@@ -1,6 +1,6 @@
 const express = require("express");
 const path = require("path");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callGemini, parseJsonResponse } = require("../lib/gemini");
 const { generateImage } = require("../lib/imagegen");
 const { buildRosterContext } = require("../lib/roster");
 const { buildNpcContentSystemPrompt } = require("../prompts/npcContentPrompt");
@@ -20,9 +20,10 @@ router.post("/generate-npc", async (req, res) => {
 
     // Step 2: content generation
     const contentSystemPrompt = buildNpcContentSystemPrompt({ rosterContext, name, role, faction });
-    const contentRaw = await callClaude({
+    const contentRaw = await callGemini({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",
+      jsonOutput: true,
       maxTokens: 2000
     });
     const npc = parseJsonResponse(contentRaw);
@@ -32,7 +33,7 @@ router.post("/generate-npc", async (req, res) => {
     let imageBuffer = null;
     try {
       const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: npc });
-      const artPrompt = await callClaude({
+      const artPrompt = await callGemini({
         systemPrompt: artSystemPrompt,
         userMessage: "Write the prompt now.",
         maxTokens: 500
