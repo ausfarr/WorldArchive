@@ -24,9 +24,16 @@ router.post("/generate-npc", async (req, res) => {
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",
       jsonOutput: true,
-      maxTokens: 2000
+      maxTokens: 4096
     });
-    const npc = parseJsonResponse(contentRaw);
+    let npc;
+    try {
+      npc = parseJsonResponse(contentRaw);
+    } catch (parseErr) {
+      console.error("Failed to parse NPC JSON. Raw response length:", contentRaw.length);
+      console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
+      throw new Error(`NPC content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
+    }
     if (!npc.id) npc.id = slugify(npc.name);
 
     // Step 3: art prompt generation
