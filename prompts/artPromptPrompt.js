@@ -10,6 +10,8 @@ STRUCTURE, IN THIS ORDER:
 
 ASSET TYPE: Character Portrait (default for a named NPC) — waist-up or bust framing, centered, three-quarter or direct angle.
 
+AGE: the character data includes an age. Let it visibly inform the depiction — build, posture, skin/hair texture, wear on the face — the same way the gear and faction accents are pulled from the data rather than invented. Don't state the number in the prompt itself; translate it into how the person actually looks (e.g. a character in their 60s might show weathered skin and a stooped economy of movement; one in their 20s might read leaner and quicker, still marked by the world but less worn down by it).
+
 STYLE RULES (every prompt must stay inside these):
 - Rendering: painterly digital illustration, gritty concept-art register — not flat cartoon, not photoreal. Visible brush texture, confident heavy shadow, moderate fine detail. "Video game key art," not anime or comic book.
 - Lighting: single dramatic light source (flashlight, sodium-vapor lamp, neon sign, headlamp). Heavy lit/unlit contrast. Atmospheric haze/dust with visible light shafts where the scene allows. Never flat/even.
