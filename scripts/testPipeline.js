@@ -25,6 +25,7 @@ global.fetch = async (url, opts) => {
             callsign: "The Fixer",
             roleArchetype: "Informant/Fixer",
             faction: "unaligned",
+            age: 34,
             signatureQuote: "Everyone's got a price. Yours is just information.",
             physicalDescription: "Patchwork coat over salvaged tech, always watching exits.",
             traits: ["watchful", "transactional", "quietly loyal to no one but herself"],

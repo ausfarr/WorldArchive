@@ -1,0 +1,12 @@
+{
+  "name": "world-forge",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "seed:pages": "node scripts/seedCategoryPages.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
