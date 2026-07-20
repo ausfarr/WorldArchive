@@ -24,7 +24,7 @@ router.post("/generate-npc", async (req, res) => {
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",
       jsonOutput: true,
-      maxTokens: 4096
+      maxTokens: 8192
     });
     let npc;
     try {
