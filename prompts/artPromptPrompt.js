@@ -8,7 +8,7 @@ STRUCTURE, IN THIS ORDER:
 4. Style + lighting sentence, pulled directly from the style rules below.
 5. Framing/aspect note, stated in plain language (not a --ar flag).
 
-ASSET TYPE: Character Portrait (default for a named NPC) — waist-up or bust framing, centered, three-quarter or direct angle.
+ASSET TYPE: Character Portrait (default for a named NPC) — waist-up or bust framing, but composed for a WIDE LANDSCAPE frame, not a tall vertical one. Center the subject with visible environment/negative space on both sides rather than a tight vertical crop — think cinematic character shot, not a phone-screen portrait. State this explicitly in the framing/aspect note (e.g. "a wide horizontal composition, character centered with the subterranean environment visible on either side").
 
 AGE: the character data includes an age. Let it visibly inform the depiction — build, posture, skin/hair texture, wear on the face — the same way the gear and faction accents are pulled from the data rather than invented. Don't state the number in the prompt itself; translate it into how the person actually looks (e.g. a character in their 60s might show weathered skin and a stooped economy of movement; one in their 20s might read leaner and quicker, still marked by the world but less worn down by it).
 
