@@ -4,6 +4,7 @@ const SCHEMA_DESCRIPTION = `{
   "callsign": "optional nickname, or null",
   "roleArchetype": "Faction Leader | Quest-Giver | Colony VIP | Rival | Informant/Fixer | Merchant",
   "faction": "preservation | ferro_kings | the_board | glitch_kin | unaligned",
+  "age": "integer, chosen to fit the character's role/backstory (e.g. a weary veteran Faction Leader likely reads older than a scrappy young Informant)",
   "signatureQuote": "one sentence, first person, in voice",
   "physicalDescription": "2-4 sentences",
   "traits": ["trait1", "trait2", "trait3"],
