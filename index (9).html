@@ -1,0 +1,1 @@
+window.MANIFEST_SURVIVORS = [];

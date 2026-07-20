@@ -1,31 +1,43 @@
-# World Forge — NPC Pipeline v1
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+const MODEL = "claude-sonnet-4-6";
 
-Automated NPC generation + real Archive browsing for Echoes of the Neon.
+async function callClaude({ systemPrompt, userMessage, maxTokens = 2000 }) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("ANTHROPIC_API_KEY is not set");
+  }
 
-## Setup
-1. `npm install`
-2. Copy `.env.example` to `.env` and fill in:
-   - `ANTHROPIC_API_KEY`
-   - `IMAGEGEN_API_KEY` (Gemini/Nano Banana)
-3. `npm start`
-4. Visit http://localhost:3000 — full archive browsing, generator form on the NPCs page.
+  const res = await fetch(ANTHROPIC_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }]
+    })
+  });
 
-## Structure
-See `npc_pipeline_v1_spec.md` (in the parent project) for full architecture notes.
-Key files:
-- `server.js` — Express entry point
-- `routes/generate.js` — the pipeline (roster context → content → art prompt → image → file writes)
-- `lib/roster.js` — reads live archive/npcs/* via vm sandbox for overlap-checking
-- `lib/entryTemplate.js` — JSON → bodyHtml → ENTRY file (single source of truth for archive HTML shape)
-- `lib/claude.js` / `lib/imagegen.js` — API wrappers
-- `prompts/` — the two system prompts, built from the real reference files
-- `archive/` — your actual site (index.html, dossier.html, css, js) + all data
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Claude API error ${res.status}: ${text}`);
+  }
 
-## Tested (see scripts/testPipeline.js)
-- vm-based parsing of real manifest.js/data files
-- Templating against realistic + adversarial input (backticks, `${}`, quotes)
-- Full pipeline with mocked Claude/image responses
-- Static serving of real homepage/category/dossier pages
+  const data = await res.json();
+  const textBlock = data.content.find((b) => b.type === "text");
+  if (!textBlock) throw new Error("No text content in Claude response");
+  return textBlock.text;
+}
 
-Not yet tested: real API calls (needs your keys — add them as secrets on whatever
-host you deploy to, never paste them into chat).
+// Strips accidental markdown code fences before JSON.parse, in case the
+// model wraps its output despite instructions not to.
+function parseJsonResponse(text) {
+  const cleaned = text.replace(/^```json\s*|^```\s*|```\s*$/gm, "").trim();
+  return JSON.parse(cleaned);
+}
+
+module.exports = { callClaude, parseJsonResponse };
