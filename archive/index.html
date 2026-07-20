@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Archive — Echoes of the Neon</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+    <nav class="site-nav">
+      <a href="factions/index.html">Factions</a>
+      <a href="npcs/index.html">NPCs</a>
+      <a href="enemies/index.html">Bestiary</a>
+      <a href="classes/index.html">Classes</a>
+      <a href="items/index.html">Items</a>
+      <a href="logs/index.html">Logs</a>
+      <a href="survivors/index.html">Survivors</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1 class="flicker-title">The Archive</h1>
+    <p class="dek">Every record recovered from Corvale, cross-indexed and cross-filed — faction dossiers, named contacts, threat assessments, salvage, and intercepted transmissions. Compiled for internal Colony use.</p>
+    <div class="status-line"><span class="dot">●</span> Year 27 YSS &nbsp;·&nbsp; Population 40,000–60,000 &nbsp;·&nbsp; Status: active development</div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="hub-grid">
+
+    <div class="category-card">
+      <h2>Factions</h2>
+      <p>The four powers of the Dome, plus what lives in the gaps between them.</p>
+      <span class="count" id="count-factions">— archived</span>
+      <a class="card-link" href="factions/index.html"></a>
+    </div>
+
+    <div class="category-card">
+      <h2>NPCs</h2>
+      <p>Faction leaders, rivals, quest-givers, informants — named and accounted for.</p>
+      <span class="count" id="count-npcs">— archived</span>
+      <a class="card-link" href="npcs/index.html"></a>
+    </div>
+
+    <div class="category-card">
+      <h2>Bestiary</h2>
+      <p>Trash, Elite, and Boss-tier threats. Stat blocks, ability kits, combat notes.</p>
+      <span class="count" id="count-enemies">— archived</span>
+      <a class="card-link" href="enemies/index.html"></a>
+    </div>
+
+    <div class="category-card">
+      <h2>Classes</h2>
+      <p>Professions turned combat. Full 1–99 progression trees and Level 50 evolutions.</p>
+      <span class="count" id="count-classes">— archived</span>
+      <a class="card-link" href="classes/index.html"></a>
+    </div>
+
+    <div class="category-card">
+      <h2>Items</h2>
+      <p>Found gear, crafted recipes, consumables, and relics.</p>
+      <span class="count" id="count-items">— archived</span>
+      <a class="card-link" href="items/index.html"></a>
+    </div>
+
+    <div class="category-card">
+      <h2>Logs</h2>
+      <p>Data drives, terminal records, and intercepted Hex-Tongue traffic.</p>
+      <span class="count" id="count-logs">— archived</span>
+      <a class="card-link" href="logs/index.html"></a>
+    </div>
+
+    <div class="category-card">
+      <h2>Survivors</h2>
+      <p>Colony roster — recruits, quirks, and short backstories.</p>
+      <span class="count" id="count-survivors">— archived</span>
+      <a class="card-link" href="survivors/index.html"></a>
+    </div>
+
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD &nbsp;·&nbsp; generated from project source files &nbsp;·&nbsp; portraits pending art pass
+  </div>
+</footer>
+
+<script src="factions/manifest.js"></script>
+<script src="npcs/manifest.js"></script>
+<script src="enemies/manifest.js"></script>
+<script src="classes/manifest.js"></script>
+<script src="items/manifest.js"></script>
+<script src="logs/manifest.js"></script>
+<script src="survivors/manifest.js"></script>
+<script src="js/render.js"></script>
+<script>
+  renderHomepageCounts({
+    factions: window.MANIFEST_FACTIONS,
+    npcs: window.MANIFEST_NPCS,
+    enemies: window.MANIFEST_ENEMIES,
+    classes: window.MANIFEST_CLASSES,
+    items: window.MANIFEST_ITEMS,
+    logs: window.MANIFEST_LOGS,
+    survivors: window.MANIFEST_SURVIVORS
+  });
+</script>
+</body>
+</html>
