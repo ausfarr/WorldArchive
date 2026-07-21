@@ -29,6 +29,49 @@
   <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;">Colony roster — recruits, quirks, and short backstories.</p>
 
   
+<div class="sheet" style="margin: 0 0 40px; padding: 24px 32px;">
+  <p class="sheet-eyebrow" style="margin: 0 0 8px;">Generate New Entry</p>
+  <form id="gen-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CLASS (optional)</label>
+      <input id="gen-field-2" type="text" placeholder="leave blank to vary the roster" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate Survivor</button>
+  </form>
+  <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
+</div>
+<script>
+document.getElementById('gen-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('gen-submit');
+  const status = document.getElementById('gen-status');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
+  try {
+    const res = await fetch('/api/generate-survivor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: document.getElementById('gen-name').value,
+        className: document.getElementById('gen-field-2').value
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Generation failed');
+    status.textContent = `Generated: ${data.name} (The ${data.className})`;
+    setTimeout(() => window.location.reload(), 1200);
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate Survivor';
+  }
+});
+</script>
+
 
   <div class="entry-grid" id="entry-grid"></div>
 </div>
