@@ -1,3 +1,4 @@
+const { getWorldBibleContext } = require("../lib/worldBible");
 const ABILITY_SCHEMA = `{ "level": 1, "name": "...", "kind": "Active | Passive | Ultimate Unlock | Final Unlock", "effectText": "one sentence combining the mechanical effect AND its scaling formula in bracketed/inline notation, e.g. 'Light damage, generates 1 Thread. Damage = Blade-work × 1.5.' — this goes in a single compact table cell, not a separate blockquote/Scaling pair" }`;
 
 const SCHEMA_DESCRIPTION = `{
@@ -26,6 +27,7 @@ const SCHEMA_DESCRIPTION = `{
 }`;
 
 function buildClassContentSystemPrompt({ rosterContext, name }) {
+  const worldBibleContext = getWorldBibleContext({ faction: null, category: "classes" });
   return `You are generating a full playable character class for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse — professions turned into combat classes (Courier, Bouncer, Neon-Jack). Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 TONE: blue-collar industrial horror. Abilities and lore should feel like repurposed tools/jobs, not magic-fantasy powers (no wizards, knights, glowing swords). If inventing the profession, pick something blue-collar/industrial in the same register as the existing roster (Butcher, Electrician, Courier, Idol) — never a fantasy class. The Neon-Jack is the ONE sanctioned "special/mutant" exception in this world; don't create a second Neon-touched class unless explicitly asked.
