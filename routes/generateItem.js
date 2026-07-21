@@ -8,13 +8,40 @@ const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { writeItemDataFile, appendToItemManifest, saveImage } = require("../lib/fileWriter");
 const { slugify } = require("../lib/itemTemplate");
 const { weaponRollInRange } = require("../lib/itemFormulas");
+const { readItemManifest } = require("../lib/roster");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
+const RARITY_WORDS = ["Common", "Uncommon", "Rare", "Legendary"];
+function parseSubtitleForItem(subtitle) {
+  const words = (subtitle || "").split(/\s+/);
+  const rarity = RARITY_WORDS.find((r) => words.includes(r)) || null;
+  let category = null;
+  if (/weapon/i.test(subtitle)) category = "Weapon";
+  else if (/armor/i.test(subtitle)) category = "Armor";
+  else if (/consumable/i.test(subtitle)) category = "Consumable";
+  else if (/quest/i.test(subtitle)) category = "QuestItem";
+  return { rarity, category };
+}
+
 router.post("/generate-item", async (req, res) => {
   try {
-    const { name, category, rarity } = req.body || {};
+    let { name, category, rarity, fillExistingId } = req.body || {};
+    let existingEntry = null;
+
+    if (fillExistingId) {
+      const manifest = readItemManifest(ARCHIVE_ROOT);
+      existingEntry = manifest.find((m) => m.id === fillExistingId);
+      if (!existingEntry) {
+        return res.status(404).json({ error: `No existing item entry found with id '${fillExistingId}'` });
+      }
+      name = existingEntry.name;
+      // Older placeholders don't have dedicated category/rarity fields - parse from subtitle.
+      const parsed = parseSubtitleForItem(existingEntry.subtitle);
+      category = parsed.category || category;
+      rarity = parsed.rarity || rarity;
+    }
 
     const rosterContext = buildItemRosterContext(ARCHIVE_ROOT);
 
@@ -32,7 +59,8 @@ router.post("/generate-item", async (req, res) => {
       console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
       throw new Error(`Item content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
     }
-    if (!item.id) item.id = slugify(item.name);
+    item.id = fillExistingId || item.id || slugify(item.name);
+    if (existingEntry) item.name = existingEntry.name;
 
     // Defensive clamp - model occasionally drifts slightly outside the stated range
     if (item.category === "Weapon" && item.weaponRoll && item.weaponSkill) {

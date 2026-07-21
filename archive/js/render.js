@@ -21,9 +21,47 @@ const CATEGORY_LABELS = {
   survivors: "Survivors"
 };
 
+// Categories where a locked/greyed-out placeholder can be filled in by the
+// generator, and which API endpoint handles it. Survivors has no locked
+// placeholders (the roster only ever grows via fresh generation), so it's
+// intentionally absent here.
+const FILL_IN_ENDPOINTS = {
+  npcs: "/api/generate-npc",
+  enemies: "/api/generate-enemy",
+  items: "/api/generate-item",
+  classes: "/api/generate-class",
+  logs: "/api/generate-log",
+  factions: "/api/generate-faction"
+};
+
 function facColorVar(factionKey) {
   if (factionKey && FACTION_COLORS[factionKey]) return `var(${FACTION_COLORS[factionKey].varName})`;
   return "var(--neon-cyan)";
+}
+
+// Called from a locked card's "Fill In" button. POSTs { fillExistingId }
+// to the category's generate endpoint and reloads the page on success.
+async function fillInEntry(categoryPath, id, btnEl) {
+  const endpoint = FILL_IN_ENDPOINTS[categoryPath];
+  if (!endpoint) return;
+  const originalText = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = "Generating…";
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fillExistingId: id })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Generation failed");
+    btnEl.textContent = "Done!";
+    setTimeout(() => window.location.reload(), 800);
+  } catch (err) {
+    btnEl.disabled = false;
+    btnEl.textContent = originalText;
+    alert("Fill-in failed: " + err.message);
+  }
 }
 
 // ---------- Category index page: render the grid of entry-cards ----------
@@ -36,11 +74,16 @@ function renderCategoryIndex(manifest, categoryPath) {
     const facTag = entry.faction && FACTION_COLORS[entry.faction]
       ? `<span class="tag fac">${FACTION_COLORS[entry.faction].name}</span>` : "";
     if (entry.locked) {
+      const canFill = !!FILL_IN_ENDPOINTS[categoryPath];
+      const fillBtn = canFill
+        ? `<button type="button" class="fill-in-btn" onclick="fillInEntry('${categoryPath}', '${entry.id}', this)" style="margin-top: 10px; background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Fill In</button>`
+        : "";
       return `
         <div class="entry-card locked" style="--fac-color: ${facColor};">
           <h3>${entry.name}</h3>
           <p class="role">${entry.subtitle || ""}</p>
           <div class="tags">${facTag}${tagsHtml}</div>
+          ${fillBtn}
         </div>`;
     }
     return `

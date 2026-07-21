@@ -5,13 +5,29 @@ const { buildLogRosterContext } = require("../lib/roster");
 const { buildLogContentSystemPrompt } = require("../prompts/logContentPrompt");
 const { writeLogDataFile, appendToLogManifest } = require("../lib/fileWriter");
 const { slugify } = require("../lib/logTemplate");
+const { readLogManifest } = require("../lib/roster");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 router.post("/generate-log", async (req, res) => {
   try {
-    const { name, logType } = req.body || {};
+    let { name, logType, fillExistingId } = req.body || {};
+    let existingEntry = null;
+
+    if (fillExistingId) {
+      const manifest = readLogManifest(ARCHIVE_ROOT);
+      existingEntry = manifest.find((m) => m.id === fillExistingId);
+      if (!existingEntry) {
+        return res.status(404).json({ error: `No existing log entry found with id '${fillExistingId}'` });
+      }
+      name = existingEntry.name;
+      // Subtitle format: "Terminal — The Board" - first segment is the type.
+      const typeGuess = (existingEntry.subtitle || "").split("—")[0].trim();
+      if (/terminal/i.test(typeGuess)) logType = "Terminal";
+      else if (/audio/i.test(typeGuess)) logType = "Audio";
+      else if (/journal/i.test(typeGuess)) logType = "Journal";
+    }
 
     const rosterContext = buildLogRosterContext(ARCHIVE_ROOT);
 
@@ -29,7 +45,8 @@ router.post("/generate-log", async (req, res) => {
       console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
       throw new Error(`Log content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
     }
-    if (!log.id) log.id = slugify(log.name);
+    log.id = fillExistingId || log.id || slugify(log.name);
+    if (existingEntry) log.name = existingEntry.name;
 
     // No image step - logs are text-only artifacts, no portrait in the real archive.
     writeLogDataFile(ARCHIVE_ROOT, log);

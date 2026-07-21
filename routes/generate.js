@@ -7,13 +7,27 @@ const { buildNpcContentSystemPrompt } = require("../prompts/npcContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { writeNpcDataFile, appendToManifest, saveImage } = require("../lib/fileWriter");
 const { slugify } = require("../lib/entryTemplate");
+const { readNpcManifest } = require("../lib/roster");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 router.post("/generate-npc", async (req, res) => {
   try {
-    const { name, role, faction } = req.body || {};
+    let { name, role, faction, fillExistingId } = req.body || {};
+    let existingEntry = null;
+
+    if (fillExistingId) {
+      const manifest = readNpcManifest(ARCHIVE_ROOT);
+      existingEntry = manifest.find((m) => m.id === fillExistingId);
+      if (!existingEntry) {
+        return res.status(404).json({ error: `No existing NPC entry found with id '${fillExistingId}'` });
+      }
+      // Known facts from the placeholder become fixed inputs, not suggestions.
+      name = existingEntry.name;
+      role = existingEntry.roleArchetype || role;
+      faction = existingEntry.faction || faction;
+    }
 
     // Step 1: roster overlap context from live archive files
     const rosterContext = buildRosterContext(ARCHIVE_ROOT);
@@ -33,7 +47,10 @@ router.post("/generate-npc", async (req, res) => {
       console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
       throw new Error(`NPC content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
     }
-    if (!npc.id) npc.id = slugify(npc.name);
+    // For fill-existing, force the id/name to match the placeholder exactly
+    // (other pages may already link to this id/display this name).
+    npc.id = fillExistingId || npc.id || slugify(npc.name);
+    if (existingEntry) npc.name = existingEntry.name;
 
     // Step 3: art prompt generation
     let imageBuffer = null;

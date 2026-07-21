@@ -7,13 +7,28 @@ const { buildClassContentSystemPrompt } = require("../prompts/classContentPrompt
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { writeClassDataFile, appendToClassManifest, saveImage } = require("../lib/fileWriter");
 const { slugify } = require("../lib/classTemplate");
+const { readClassManifest } = require("../lib/roster");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 router.post("/generate-class", async (req, res) => {
   try {
-    const { name } = req.body || {};
+    let { name, fillExistingId } = req.body || {};
+    let existingEntry = null;
+    let existingBaseName = null;
+
+    if (fillExistingId) {
+      const manifest = readClassManifest(ARCHIVE_ROOT);
+      existingEntry = manifest.find((m) => m.id === fillExistingId);
+      if (!existingEntry) {
+        return res.status(404).json({ error: `No existing class entry found with id '${fillExistingId}'` });
+      }
+      // Manifest name is stored as "The Courier → The Slipstream" - the
+      // base name (pre-evolution) is what we tell the model to build around.
+      existingBaseName = existingEntry.name.split("→")[0].trim();
+      name = existingBaseName;
+    }
 
     const rosterContext = buildClassRosterContext(ARCHIVE_ROOT);
 
@@ -33,7 +48,8 @@ router.post("/generate-class", async (req, res) => {
       console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
       throw new Error(`Class content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
     }
-    if (!cls.id) cls.id = slugify(cls.baseName);
+    cls.id = fillExistingId || cls.id || slugify(cls.baseName);
+    if (existingBaseName) cls.baseName = existingBaseName;
 
     let imageBuffer = null;
     try {
