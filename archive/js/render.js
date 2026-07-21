@@ -190,7 +190,7 @@ function renderCategoryIndex(manifest, categoryPath) {
     const tagsHtml = (entry.tags || []).join("");
     const facTag = entry.faction && FACTION_COLORS[entry.faction]
       ? `<span class="tag fac">${FACTION_COLORS[entry.faction].name}</span>` : "";
-    if (entry.locked) {
+    if (entry.locked && categoryPath !== "factions") {
       const canFill = !!FILL_IN_ENDPOINTS[categoryPath];
       const fillBtn = canFill
         ? `<button type="button" class="fill-in-btn" onclick="fillInEntry('${categoryPath}', '${entry.id}', this)" style="margin-top: 10px; background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Fill In</button>`
