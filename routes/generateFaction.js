@@ -32,6 +32,11 @@ const FACTION_SEEDS = {
     name: "Glitch-Kin",
     seed: `Mutated horrors — humans fully overtaken by nanites trying (badly) to "fix" them. Functionally a force of nature, not an army with intent. Body-horror tone. Networked; speak Hex-Tongue (debug-log style, not "monster growls"). No real hierarchy in the human sense — frame any "leader" as an emergent hub-node, not a person who gives orders.`
   }
+    "the-colony": {
+    factionKey: "colony",
+    name: "The Colony (The Silo)",
+    seed: `The player's own home base — not one of the four antagonist factions, no fixed territory of its own, survives by scavenging and trading in the gaps between the other four. Community/survival tone rather than a power bloc: internal roles (Archive, Workshop, Memorial) matter more than doctrine or conquest. No single ruler in the way the other factions have one.`
+  }
 };
 
 router.post("/generate-faction", async (req, res) => {
