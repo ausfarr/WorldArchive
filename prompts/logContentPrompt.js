@@ -1,3 +1,5 @@
+const { getWorldBibleContext } = require("../lib/worldBible");
+
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Log Title",
@@ -11,7 +13,13 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: what this reveals to the player, why the intercept (if any) makes sense at this location, and how it avoids repeating a character/location/beat already generated"
 }`;
 
-function buildLogContentSystemPrompt({ rosterContext, name, logType }) {
+function buildLogContentSystemPrompt({ rosterContext, name, logType, faction }) {
+  // NOTE: this builder doesn't currently receive a target faction from the
+  // route (the model picks the log's faction itself, including "no
+  // faction" for personal/civic logs) — faction will be undefined unless
+  // you later add it to the route's call. Falls back safely to
+  // faction-agnostic context (core lore + Hex-Tongue) either way.
+  const worldBibleContext = getWorldBibleContext({ faction, category: "logs" });
   return `You are generating found-text content for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse — Data Drive recordings, terminal logs, and journal entries. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 LOG TYPES:
@@ -26,6 +34,9 @@ ANCHOR IT: never a floating, unanchored snippet — tie it to a specific locatio
 HEX-TONGUE INTERCEPT: only include one if the log plausibly would have picked up Glitch-Kin swarm network traffic — near Glitch-Kin activity, a Data Monolith, or old server infrastructure. Do NOT add one just because you can; a personal journal in an untouched pre-collapse apartment almost certainly should NOT have one. When you do include one: show all three tiers together (Unreadable glyph static, Keyword partial-legible fragments, Phrase the full plain-English line). Write the Phrase tier as a calm technical debug-log line — the "screaming" or "growling" impression belongs only in the humanInterpretation field, never in the Phrase text itself, which is the actual in-world content.
 
 KEEP IT SHORT: this is a found artifact, not a short story. A few lines of audio/journal, or a compact terminal dump.
+
+WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
+${worldBibleContext}
 
 EXISTING ROSTER (don't reuse a character/location/beat already logged):
 ${rosterContext}

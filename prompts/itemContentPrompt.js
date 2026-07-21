@@ -1,3 +1,5 @@
+const { getWorldBibleContext } = require("../lib/worldBible");
+
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Item Name",
@@ -28,6 +30,7 @@ const WEAPON_ROLL_RANGES_TEXT = `| Weapon Skill | Example Types | WEAPON_ROLL ra
 | Catalysts | Battery Rod, Focus Crystal, Charge Coil, Signal Wand | 9-13 |`;
 
 function buildItemContentSystemPrompt({ rosterContext, name, category, rarity }) {
+  const worldBibleContext = getWorldBibleContext({ faction: null, category: "items" });
   return `You are generating an item for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. This covers unique/found items only — NOT reproducible crafting recipes. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 CATEGORIES (pick based on the user's input, or infer from context):
@@ -47,6 +50,9 @@ ${WEAPON_ROLL_RANGES_TEXT}
 If a concept doesn't cleanly fit any of the seven skills, pick the closest one rather than inventing an eighth.
 
 ARMOR (Armor category only): pick an effectorTier 1 (light) to 4 (heavy) reflecting how heavy/protective the piece is.
+
+WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
+${worldBibleContext}
 
 EXISTING ROSTER (avoid repeating a named item, and ESPECIALLY avoid repeating a Legendary unique effect already used):
 ${rosterContext}

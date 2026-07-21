@@ -1,3 +1,22 @@
+const { getWorldBibleContext } = require("../lib/worldBible");
+
+// This file receives a display name ("The Ferro-Kings"), but worldBible.js
+// tags sections with the same short keys used everywhere else in the
+// pipeline (ferro_kings, the_board, etc.) — map one to the other here
+// rather than touching the shared lookup module for one caller's format.
+const FACTION_NAME_TO_KEY = [
+  { key: "preservation", re: /preservation/i },
+  { key: "ferro_kings", re: /ferro-kings/i },
+  { key: "the_board", re: /\bthe board\b/i },
+  { key: "glitch_kin", re: /glitch-kin/i },
+  { key: "colony", re: /\bcolony\b|\bthe silo\b/i },
+];
+
+function factionKeyFromName(factionName) {
+  const match = FACTION_NAME_TO_KEY.find((f) => f.re.test(factionName || ""));
+  return match ? match.key : null;
+}
+
 const SCHEMA_DESCRIPTION = `{
   "nickname": "e.g. 'The System' — the established one/two-word epithet",
   "overviewQuote": "one sentence, in the faction's collective/leadership voice, that captures its identity",
@@ -17,6 +36,10 @@ const SCHEMA_DESCRIPTION = `{
 }`;
 
 function buildFactionContentSystemPrompt({ factionName, factionSeed, roundupContext }) {
+  const worldBibleContext = getWorldBibleContext({
+    faction: factionKeyFromName(factionName),
+    category: "factions",
+  });
   return `You are writing the Deep Lore section of a faction profile for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 This is a REFERENCE PROFILE, not a novel — keep each field to 2-4 sentences, depth over length. Every field must stay consistent with the established lore seed and with anything already generated for this faction (see the roundup context below) — you are deepening what exists, not reinventing it.
@@ -25,6 +48,9 @@ FACTION: ${factionName}
 
 ESTABLISHED LORE SEED (must stay consistent with this):
 ${factionSeed}
+
+WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; if it overlaps with the lore seed above, treat them as reinforcing the same facts, not two separate sources to reconcile):
+${worldBibleContext}
 
 WEAPON RULE (if this faction isn't Glitch-Kin): no conventional guns by default — high-velocity kinetic friction ignites the Neon atmosphere and kills the shooter. Echo-Shielded guns are a rare, explicitly-flagged exception, never a faction default.
 

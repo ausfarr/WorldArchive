@@ -49,6 +49,9 @@ STRUCTURE (standard output is the full 1-99 tree):
 
 Every ability's effectText should read as ONE compact sentence combining the mechanical effect AND a bracketed/inline scaling reference to a named skill/attribute (e.g. "Light damage, generates 1 Thread. Damage = Blade-work × 1.5.") — this renders as a single table cell, not a verbose block. Passives that don't scale should say something like "N/A — Binary Unlock" inline rather than a formula.
 
+WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
+${worldBibleContext}
+
 EXISTING ROSTER (if this class's profession, core fantasy, or signature verb collides with something already generated, angle it differently rather than shipping a duplicate):
 ${rosterContext}
 

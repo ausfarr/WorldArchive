@@ -1,3 +1,5 @@
+const { getWorldBibleContext } = require("../lib/worldBible");
+
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Full Name",
@@ -24,6 +26,7 @@ const SCHEMA_DESCRIPTION = `{
 }`;
 
 function buildNpcContentSystemPrompt({ rosterContext, name, role, faction }) {
+  const worldBibleContext = getWorldBibleContext({ faction, category: "npcs" });
   return `You are generating a named NPC for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 ROLE ARCHETYPES (pick the closest match to the user's input, or choose one that fills a gap in the existing roster if unspecified):
@@ -50,6 +53,9 @@ SPEECH: define register (vocabulary type, tied to role/faction), rhythm (short/c
 DIALOGUE TREE: one opening line + 2-3 branches + one reply each (~4-7 lines total). Each branch implies a different tone (e.g. respectful / transactional / hostile) and the reply should audibly shift with it.
 
 QUEST HOOK: only if the archetype is Quest-Giver, or a hook falls out naturally — set to null otherwise, don't force one onto a Rival/Merchant.
+
+WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
+${worldBibleContext}
 
 EXISTING ROSTER (avoid repeating a role+faction combo, contradiction, or tic already used):
 ${rosterContext}

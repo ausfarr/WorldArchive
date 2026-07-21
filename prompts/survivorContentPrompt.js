@@ -1,3 +1,5 @@
+const { getWorldBibleContext } = require("../lib/worldBible");
+
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Full First + Last Name",
@@ -13,6 +15,11 @@ const SCHEMA_DESCRIPTION = `{
 }`;
 
 function buildSurvivorContentSystemPrompt({ rosterContext, availableClasses, name, className }) {
+  // Survivors aren't tagged with a political faction (preservation/ferro_kings/
+  // the_board/glitch_kin) in the schema — they're always Colony recruits by
+  // design, so "colony" is hardcoded here rather than passed in, to pull the
+  // Part IV Colony/Death/Permadeath lore into every survivor generation.
+  const worldBibleContext = getWorldBibleContext({ faction: "colony", category: "survivors" });
   return `You are generating a survivor recruit for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 NAMING: full first + last name, surname-forward and functional (like "Captain Miller"), plausible modern/near-future, diverse in origin — not fantasy characters. A callsign is optional and should come from profession, a habit, or a post-collapse event — never a fantasy epithet, and never over-themed to their class (a Courier doesn't need to be named "Swift").
@@ -28,6 +35,9 @@ QUIRK (exactly one per survivor — a small colonist-level nudge, not a build-de
 - Don't reuse a quirk already in the roster below.
 
 BACKSTORY: a fuller paragraph (3-5 sentences), not a single line — needs one concrete human detail that makes them feel like a person, not a character sheet.
+
+WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
+${worldBibleContext}
 
 EXISTING ROSTER (the same Name+Class pairing must not repeat — change the name or the class if it would collide; also avoid reusing a quirk):
 ${rosterContext}

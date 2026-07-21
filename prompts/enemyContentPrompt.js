@@ -1,3 +1,5 @@
+const { getWorldBibleContext } = require("../lib/worldBible");
+
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Full Name",
@@ -17,6 +19,7 @@ const SCHEMA_DESCRIPTION = `{
 }`;
 
 function buildEnemyContentSystemPrompt({ rosterContext, name, faction, tier }) {
+  const worldBibleContext = getWorldBibleContext({ faction, category: "enemies" });
   return `You are generating an enemy stat block for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 FACTIONS (every enemy belongs to exactly one, and must sound like it):
@@ -37,6 +40,9 @@ Nudge the attribute split for flavor rather than copying a baseline verbatim —
 ABILITIES: every ability needs a Scaling line tied to an attribute — write both the formula AND the computed number using the attributes you chose (e.g. "Bonus damage = BASE(10%) + (PRESENCE/10) ≈ 11.2%"). Do the arithmetic carefully.
 
 HEX-TONGUE (Glitch-Kin ONLY — set hexTongue to null for every other faction, never a placeholder): a three-tier translated intercept of the enemy's network signal — Unreadable (glyphs), Keyword (partial words), Phrase (full plain-English intent).
+
+WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
+${worldBibleContext}
 
 EXISTING ROSTER (avoid repeating a faction+tier+core-gimmick combo, a named ability, or a Phase-mechanic twist already used):
 ${rosterContext}
