@@ -34,6 +34,20 @@ const FILL_IN_ENDPOINTS = {
   factions: "/api/generate-faction"
 };
 
+// Categories where an ALREADY-FILLED entry can be regenerated (revised in
+// place). Unlike FILL_IN_ENDPOINTS, this includes survivors (no locked
+// state, but any existing survivor can still be revised) and factions
+// (no locked state either — factions are always "regenerate," never "fill").
+const REGENERATE_ENDPOINTS = {
+  npcs: "/api/generate-npc",
+  enemies: "/api/generate-enemy",
+  items: "/api/generate-item",
+  classes: "/api/generate-class",
+  logs: "/api/generate-log",
+  survivors: "/api/generate-survivor",
+  factions: "/api/generate-faction"
+};
+
 function facColorVar(factionKey) {
   if (factionKey && FACTION_COLORS[factionKey]) return `var(${FACTION_COLORS[factionKey].varName})`;
   return "var(--neon-cyan)";
@@ -64,7 +78,110 @@ async function fillInEntry(categoryPath, id, btnEl) {
   }
 }
 
-// ---------- Category index page: render the grid of entry-cards ----------
+// Called from an already-filled card's "Regenerate" button. POSTs
+// { fillExistingId } to the category's generate endpoint. The backend
+// treats any non-locked existing id as a regenerate and returns a preview
+// (never writes immediately) — this opens that preview for review rather
+// than reloading the page right away.
+async function regenerateEntry(categoryPath, id, btnEl) {
+  const endpoint = REGENERATE_ENDPOINTS[categoryPath];
+  if (!endpoint) return;
+  const originalText = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = "Generating…";
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fillExistingId: id })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Generation failed");
+    btnEl.disabled = false;
+    btnEl.textContent = originalText;
+    if (data.preview) {
+      showRegeneratePreview(data);
+    } else {
+      // Shouldn't normally happen for an already-filled entry, but handle
+      // gracefully rather than silently doing nothing.
+      window.location.reload();
+    }
+  } catch (err) {
+    btnEl.disabled = false;
+    btnEl.textContent = originalText;
+    alert("Regenerate failed: " + err.message);
+  }
+}
+
+// Renders a full-screen overlay comparing the live entry to the freshly
+// generated (not-yet-saved) version, with Confirm/Discard actions. Nothing
+// is written to disk until "Save This Version" is clicked, which POSTs the
+// exact previewed entry to /api/confirm-entry.
+function showRegeneratePreview(data) {
+  const existing = document.getElementById("regen-preview-overlay");
+  if (existing) existing.remove();
+
+  const oldPanel = data.oldBodyHtmlPreview
+    ? data.oldBodyHtmlPreview
+    : `<p style="color: var(--ink-faint); font-style: italic;">No prior structured content on record for this entry (it predates the regenerate feature) — only the new version is shown below.</p>`;
+
+  const overlay = document.createElement("div");
+  overlay.id = "regen-preview-overlay";
+  overlay.style.cssText = "position:fixed; inset:0; background:rgba(10,11,13,0.92); z-index:1000; overflow:auto; padding:40px 20px;";
+  overlay.innerHTML = `
+    <div style="max-width:1200px; margin:0 auto; background:var(--bg-panel); border:1px solid var(--border-line);">
+      <div style="padding:20px 28px; border-bottom:1px solid var(--border-line-soft); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <h2 style="font-family:var(--font-display); text-transform:uppercase; margin:0; font-size:1.1rem;">Regenerate Preview — ${data.name}</h2>
+        <button id="regen-discard-x" type="button" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:6px 12px; cursor:pointer; font-family:var(--font-mono); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;">Discard ✕</button>
+      </div>
+      <div style="display:flex; gap:0; flex-wrap:wrap;">
+        <div style="flex:1; min-width:320px; padding:24px 28px; border-right:1px solid var(--border-line-soft);">
+          <p style="font-family:var(--font-mono); font-size:0.68rem; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.05em; margin:0 0 16px;">Current (Live)</p>
+          <div>${oldPanel}</div>
+        </div>
+        <div style="flex:1; min-width:320px; padding:24px 28px;">
+          <p style="font-family:var(--font-mono); font-size:0.68rem; color:var(--neon-cyan); text-transform:uppercase; letter-spacing:0.05em; margin:0 0 16px;">New (Preview — not saved yet)</p>
+          <div>${data.newBodyHtmlPreview}</div>
+        </div>
+      </div>
+      <div style="padding:20px 28px; border-top:1px solid var(--border-line-soft); display:flex; gap:12px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
+        <p id="regen-status" style="font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-faint); margin:0; display:none;"></p>
+        <button id="regen-discard" type="button" style="background:var(--bg-panel-raised); border:1px solid var(--border-line); color:var(--ink-dim); padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer;">Discard</button>
+        <button id="regen-confirm" type="button" style="background:var(--neon-primary); color:var(--bg-void); border:none; padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; font-weight:600;">Save This Version</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  document.getElementById("regen-discard").onclick = close;
+  document.getElementById("regen-discard-x").onclick = close;
+  document.getElementById("regen-confirm").onclick = async () => {
+    const confirmBtn = document.getElementById("regen-confirm");
+    const status = document.getElementById("regen-status");
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Saving…";
+    status.style.display = "block";
+    status.textContent = "Writing to the archive…";
+    try {
+      const res = await fetch("/api/confirm-entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: data.category, entry: data.entry })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Save failed");
+      status.textContent = "Saved — reloading…";
+      setTimeout(() => window.location.reload(), 600);
+    } catch (err) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Save This Version";
+      status.textContent = "Error: " + err.message;
+    }
+  };
+}
+
+
 function renderCategoryIndex(manifest, categoryPath) {
   const grid = document.getElementById("entry-grid");
   if (!grid) return;
@@ -87,11 +204,12 @@ function renderCategoryIndex(manifest, categoryPath) {
         </div>`;
     }
     return `
-      <div class="entry-card" style="--fac-color: ${facColor};">
+      <div class="entry-card" style="--fac-color: ${facColor}; position: relative;">
         <h3>${entry.name}</h3>
         <p class="role">${entry.subtitle || ""}</p>
         <div class="tags">${facTag}${tagsHtml}</div>
         <a class="card-link" href="../dossier.html?category=${categoryPath}&id=${entry.id}"></a>
+        ${REGENERATE_ENDPOINTS[categoryPath] ? `<button type="button" class="regen-btn" onclick="event.stopPropagation(); regenerateEntry('${categoryPath}', '${entry.id}', this)" style="position: relative; z-index: 2; margin-top: 10px; background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Regenerate</button>` : ""}
       </div>`;
   }).join("");
 }

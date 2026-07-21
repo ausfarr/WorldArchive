@@ -35,11 +35,14 @@ const SCHEMA_DESCRIPTION = `{
   "joining": "2-4 sentences: how someone joins or is absorbed into this faction"
 }`;
 
-function buildFactionContentSystemPrompt({ factionName, factionSeed, roundupContext }) {
+function buildFactionContentSystemPrompt({ factionName, factionSeed, roundupContext, existingContent }) {
   const worldBibleContext = getWorldBibleContext({
     faction: factionKeyFromName(factionName),
     category: "factions",
   });
+  const regenerateBlock = existingContent
+    ? `\n\nPREVIOUS DEEP LORE — THIS IS A REGENERATE (revise this: keep what already works, update anything that's grown stale or now conflicts with the roundup below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
   return `You are writing the Deep Lore section of a faction profile for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 This is a REFERENCE PROFILE, not a novel — keep each field to 2-4 sentences, depth over length. Every field must stay consistent with the established lore seed and with anything already generated for this faction (see the roundup context below) — you are deepening what exists, not reinventing it.
@@ -53,7 +56,7 @@ WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; if it overlaps wit
 ${worldBibleContext}
 
 WEAPON RULE (if this faction isn't Glitch-Kin): no conventional guns by default — high-velocity kinetic friction ignites the Neon atmosphere and kills the shooter. Echo-Shielded guns are a rare, explicitly-flagged exception, never a faction default.
-
+${regenerateBlock}
 ALREADY GENERATED FOR THIS FACTION (build your Structure/Hierarchy around any Faction Leader NPC listed here — don't invent a competing leader; stay consistent with any named characters or beats listed):
 ${roundupContext}
 

@@ -4,8 +4,8 @@ const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { buildLogRosterContext } = require("../lib/roster");
 const { buildLogContentSystemPrompt } = require("../prompts/logContentPrompt");
 const { writeLogDataFile, appendToLogManifest } = require("../lib/fileWriter");
-const { slugify } = require("../lib/logTemplate");
-const { readLogManifest } = require("../lib/roster");
+const { slugify, buildLogBodyHtml } = require("../lib/logTemplate");
+const { readLogManifest, readLogEntry } = require("../lib/roster");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
@@ -14,12 +14,21 @@ router.post("/generate-log", async (req, res) => {
   try {
     let { name, logType, fillExistingId } = req.body || {};
     let existingEntry = null;
+    let priorRaw = null;
+    let priorBodyHtml = null;
+    let mode = "new";
 
     if (fillExistingId) {
       const manifest = readLogManifest(ARCHIVE_ROOT);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing log entry found with id '${fillExistingId}'` });
+      }
+      mode = existingEntry.locked ? "fill" : "regenerate";
+      if (mode === "regenerate") {
+        const prior = readLogEntry(ARCHIVE_ROOT, fillExistingId);
+        priorRaw = prior && prior.raw ? prior.raw : null;
+        priorBodyHtml = prior ? prior.bodyHtml : null;
       }
       name = existingEntry.name;
       // Subtitle format: "Terminal — The Board" - first segment is the type.
@@ -31,7 +40,7 @@ router.post("/generate-log", async (req, res) => {
 
     const rosterContext = buildLogRosterContext(ARCHIVE_ROOT);
 
-    const contentSystemPrompt = buildLogContentSystemPrompt({ rosterContext, name, logType });
+    const contentSystemPrompt = buildLogContentSystemPrompt({ rosterContext, name, logType, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the log now.",
@@ -48,11 +57,26 @@ router.post("/generate-log", async (req, res) => {
     log.id = fillExistingId || log.id || slugify(log.name);
     if (existingEntry) log.name = existingEntry.name;
 
+    if (mode === "regenerate") {
+      const newBodyHtmlPreview = buildLogBodyHtml(log);
+      return res.json({
+        preview: true,
+        mode: "regenerate",
+        category: "logs",
+        id: log.id,
+        name: log.name,
+        entry: log,
+        newBodyHtmlPreview,
+        oldBodyHtmlPreview: priorBodyHtml
+      });
+    }
+
     // No image step - logs are text-only artifacts, no portrait in the real archive.
     writeLogDataFile(ARCHIVE_ROOT, log);
     appendToLogManifest(ARCHIVE_ROOT, log);
 
     res.json({
+      preview: false,
       id: log.id,
       name: log.name,
       logType: log.logType,

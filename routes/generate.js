@@ -6,8 +6,8 @@ const { buildRosterContext } = require("../lib/roster");
 const { buildNpcContentSystemPrompt } = require("../prompts/npcContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { writeNpcDataFile, appendToManifest, saveImage } = require("../lib/fileWriter");
-const { slugify } = require("../lib/entryTemplate");
-const { readNpcManifest } = require("../lib/roster");
+const { slugify, buildBodyHtml } = require("../lib/entryTemplate");
+const { readNpcManifest, readNpcEntry } = require("../lib/roster");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
@@ -16,12 +16,21 @@ router.post("/generate-npc", async (req, res) => {
   try {
     let { name, role, faction, fillExistingId } = req.body || {};
     let existingEntry = null;
+    let priorRaw = null;
+    let priorBodyHtml = null;
+    let mode = "new";
 
     if (fillExistingId) {
       const manifest = readNpcManifest(ARCHIVE_ROOT);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing NPC entry found with id '${fillExistingId}'` });
+      }
+      mode = existingEntry.locked ? "fill" : "regenerate";
+      if (mode === "regenerate") {
+        const prior = readNpcEntry(ARCHIVE_ROOT, fillExistingId);
+        priorRaw = prior && prior.raw ? prior.raw : null;
+        priorBodyHtml = prior ? prior.bodyHtml : null;
       }
       // Known facts from the placeholder become fixed inputs, not suggestions.
       name = existingEntry.name;
@@ -33,7 +42,7 @@ router.post("/generate-npc", async (req, res) => {
     const rosterContext = buildRosterContext(ARCHIVE_ROOT);
 
     // Step 2: content generation
-    const contentSystemPrompt = buildNpcContentSystemPrompt({ rosterContext, name, role, faction });
+    const contentSystemPrompt = buildNpcContentSystemPrompt({ rosterContext, name, role, faction, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",
@@ -51,6 +60,20 @@ router.post("/generate-npc", async (req, res) => {
     // (other pages may already link to this id/display this name).
     npc.id = fillExistingId || npc.id || slugify(npc.name);
     if (existingEntry) npc.name = existingEntry.name;
+
+    if (mode === "regenerate") {
+      const newBodyHtmlPreview = buildBodyHtml(npc);
+      return res.json({
+        preview: true,
+        mode: "regenerate",
+        category: "npcs",
+        id: npc.id,
+        name: npc.name,
+        entry: npc,
+        newBodyHtmlPreview,
+        oldBodyHtmlPreview: priorBodyHtml
+      });
+    }
 
     // Step 3: art prompt generation
     let imageBuffer = null;
@@ -74,6 +97,7 @@ router.post("/generate-npc", async (req, res) => {
     if (imageBuffer) saveImage(ARCHIVE_ROOT, npc.id, imageBuffer);
 
     res.json({
+      preview: false,
       id: npc.id,
       name: npc.name,
       roleArchetype: npc.roleArchetype,

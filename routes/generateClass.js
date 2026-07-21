@@ -6,8 +6,8 @@ const { buildClassRosterContext } = require("../lib/roster");
 const { buildClassContentSystemPrompt } = require("../prompts/classContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { writeClassDataFile, appendToClassManifest, saveImage } = require("../lib/fileWriter");
-const { slugify } = require("../lib/classTemplate");
-const { readClassManifest } = require("../lib/roster");
+const { slugify, buildClassBodyHtml } = require("../lib/classTemplate");
+const { readClassManifest, readClassEntry } = require("../lib/roster");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
@@ -17,12 +17,21 @@ router.post("/generate-class", async (req, res) => {
     let { name, fillExistingId } = req.body || {};
     let existingEntry = null;
     let existingBaseName = null;
+    let priorRaw = null;
+    let priorBodyHtml = null;
+    let mode = "new";
 
     if (fillExistingId) {
       const manifest = readClassManifest(ARCHIVE_ROOT);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing class entry found with id '${fillExistingId}'` });
+      }
+      mode = existingEntry.locked ? "fill" : "regenerate";
+      if (mode === "regenerate") {
+        const prior = readClassEntry(ARCHIVE_ROOT, fillExistingId);
+        priorRaw = prior && prior.raw ? prior.raw : null;
+        priorBodyHtml = prior ? prior.bodyHtml : null;
       }
       // Manifest name is stored as "The Courier → The Slipstream" - the
       // base name (pre-evolution) is what we tell the model to build around.
@@ -32,7 +41,7 @@ router.post("/generate-class", async (req, res) => {
 
     const rosterContext = buildClassRosterContext(ARCHIVE_ROOT);
 
-    const contentSystemPrompt = buildClassContentSystemPrompt({ rosterContext, name });
+    const contentSystemPrompt = buildClassContentSystemPrompt({ rosterContext, name, existingContent: priorRaw });
     // Generous budget - a full 1-99 tree with ~21 abilities across 4 tiers
     // is genuinely long content, not a truncation risk we're guessing at.
     const contentRaw = await callClaude({
@@ -50,6 +59,20 @@ router.post("/generate-class", async (req, res) => {
     }
     cls.id = fillExistingId || cls.id || slugify(cls.baseName);
     if (existingBaseName) cls.baseName = existingBaseName;
+
+    if (mode === "regenerate") {
+      const newBodyHtmlPreview = buildClassBodyHtml(cls);
+      return res.json({
+        preview: true,
+        mode: "regenerate",
+        category: "classes",
+        id: cls.id,
+        name: `${cls.baseName} → ${cls.evolvedName}`,
+        entry: cls,
+        newBodyHtmlPreview,
+        oldBodyHtmlPreview: priorBodyHtml
+      });
+    }
 
     let imageBuffer = null;
     try {
@@ -69,6 +92,7 @@ router.post("/generate-class", async (req, res) => {
     if (imageBuffer) saveImage(ARCHIVE_ROOT, cls.id, imageBuffer);
 
     res.json({
+      preview: false,
       id: cls.id,
       name: `${cls.baseName} → ${cls.evolvedName}`,
       archetype: cls.archetype,

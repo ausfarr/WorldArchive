@@ -1,10 +1,10 @@
 const express = require("express");
 const path = require("path");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
-const { readFactionManifest } = require("../lib/roster");
+const { readFactionManifest, readFactionEntry } = require("../lib/roster");
 const { buildFactionContentSystemPrompt } = require("../prompts/factionContentPrompt");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
-const { writeFactionDataFile, updateFactionManifest } = require("../lib/fileWriter");
+const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
@@ -50,6 +50,17 @@ router.post("/generate-faction", async (req, res) => {
       return res.status(404).json({ error: `No existing faction entry found with id '${fillExistingId}'` });
     }
 
+    // Factions have no locked/unlocked distinction - all four/five always
+    // exist in the manifest, so every generate-faction call is effectively
+    // a regenerate. priorRaw is null for the original hand-authored faction
+    // files (pre-World Forge) or any generated before the `raw` field was
+    // added — in that case the model just generates fresh against the seed
+    // + roundup rather than truly revising, which is a fine one-time
+    // degradation until the first regenerate populates `raw`.
+    const prior = readFactionEntry(ARCHIVE_ROOT, fillExistingId);
+    const priorRaw = prior && prior.raw ? prior.raw : null;
+    const priorBodyHtml = prior ? prior.bodyHtml : null;
+
     // Roundup is built FIRST and deterministically - it's both the output
     // section and context fed to the model, never invented either way.
     const roundupRows = buildFactionRoundup(ARCHIVE_ROOT, seed.factionKey);
@@ -60,7 +71,8 @@ router.post("/generate-faction", async (req, res) => {
     const contentSystemPrompt = buildFactionContentSystemPrompt({
       factionName: seed.name,
       factionSeed: seed.seed,
-      roundupContext
+      roundupContext,
+      existingContent: priorRaw
     });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
@@ -83,13 +95,17 @@ router.post("/generate-faction", async (req, res) => {
       ...deepLore
     };
 
-    writeFactionDataFile(ARCHIVE_ROOT, faction, roundupRows);
-    updateFactionManifest(ARCHIVE_ROOT, faction);
+    const newBodyHtmlPreview = buildFactionBodyHtml(faction, roundupRows);
 
     res.json({
+      preview: true,
+      mode: "regenerate",
+      category: "factions",
       id: faction.id,
       name: faction.name,
-      nickname: faction.nickname,
+      entry: faction,
+      newBodyHtmlPreview,
+      oldBodyHtmlPreview: priorBodyHtml,
       roundupEntryCount: roundupRows.length
     });
   } catch (err) {

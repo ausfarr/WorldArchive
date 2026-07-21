@@ -13,13 +13,16 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: what this reveals to the player, why the intercept (if any) makes sense at this location, and how it avoids repeating a character/location/beat already generated"
 }`;
 
-function buildLogContentSystemPrompt({ rosterContext, name, logType, faction }) {
+function buildLogContentSystemPrompt({ rosterContext, name, logType, faction, existingContent }) {
   // NOTE: this builder doesn't currently receive a target faction from the
   // route (the model picks the log's faction itself, including "no
   // faction" for personal/civic logs) — faction will be undefined unless
   // you later add it to the route's call. Falls back safely to
   // faction-agnostic context (core lore + Hex-Tongue) either way.
   const worldBibleContext = getWorldBibleContext({ faction, category: "logs" });
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/world-bible context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
   return `You are generating found-text content for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse — Data Drive recordings, terminal logs, and journal entries. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 LOG TYPES:
@@ -37,7 +40,7 @@ KEEP IT SHORT: this is a found artifact, not a short story. A few lines of audio
 
 WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
 ${worldBibleContext}
-
+${regenerateBlock}
 EXISTING ROSTER (don't reuse a character/location/beat already logged):
 ${rosterContext}
 

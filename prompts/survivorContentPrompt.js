@@ -14,12 +14,15 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1 sentence: how this avoids repeating a Name+Class combo or quirk already in the roster"
 }`;
 
-function buildSurvivorContentSystemPrompt({ rosterContext, availableClasses, name, className }) {
+function buildSurvivorContentSystemPrompt({ rosterContext, availableClasses, name, className, existingContent }) {
   // Survivors aren't tagged with a political faction (preservation/ferro_kings/
   // the_board/glitch_kin) in the schema — they're always Colony recruits by
   // design, so "colony" is hardcoded here rather than passed in, to pull the
   // Part IV Colony/Death/Permadeath lore into every survivor generation.
   const worldBibleContext = getWorldBibleContext({ faction: "colony", category: "survivors" });
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/world-bible context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
   return `You are generating a survivor recruit for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 NAMING: full first + last name, surname-forward and functional (like "Captain Miller"), plausible modern/near-future, diverse in origin — not fantasy characters. A callsign is optional and should come from profession, a habit, or a post-collapse event — never a fantasy epithet, and never over-themed to their class (a Courier doesn't need to be named "Swift").
@@ -38,7 +41,7 @@ BACKSTORY: a fuller paragraph (3-5 sentences), not a single line — needs one c
 
 WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
 ${worldBibleContext}
-
+${regenerateBlock}
 EXISTING ROSTER (the same Name+Class pairing must not repeat — change the name or the class if it would collide; also avoid reusing a quirk):
 ${rosterContext}
 

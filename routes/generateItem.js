@@ -6,9 +6,9 @@ const { buildItemRosterContext } = require("../lib/roster");
 const { buildItemContentSystemPrompt } = require("../prompts/itemContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { writeItemDataFile, appendToItemManifest, saveImage } = require("../lib/fileWriter");
-const { slugify } = require("../lib/itemTemplate");
+const { slugify, buildItemBodyHtml } = require("../lib/itemTemplate");
 const { weaponRollInRange } = require("../lib/itemFormulas");
-const { readItemManifest } = require("../lib/roster");
+const { readItemManifest, readItemEntry } = require("../lib/roster");
 
 const router = express.Router();
 const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
@@ -29,12 +29,21 @@ router.post("/generate-item", async (req, res) => {
   try {
     let { name, category, rarity, fillExistingId } = req.body || {};
     let existingEntry = null;
+    let priorRaw = null;
+    let priorBodyHtml = null;
+    let mode = "new";
 
     if (fillExistingId) {
       const manifest = readItemManifest(ARCHIVE_ROOT);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing item entry found with id '${fillExistingId}'` });
+      }
+      mode = existingEntry.locked ? "fill" : "regenerate";
+      if (mode === "regenerate") {
+        const prior = readItemEntry(ARCHIVE_ROOT, fillExistingId);
+        priorRaw = prior && prior.raw ? prior.raw : null;
+        priorBodyHtml = prior ? prior.bodyHtml : null;
       }
       name = existingEntry.name;
       // Older placeholders don't have dedicated category/rarity fields - parse from subtitle.
@@ -45,7 +54,7 @@ router.post("/generate-item", async (req, res) => {
 
     const rosterContext = buildItemRosterContext(ARCHIVE_ROOT);
 
-    const contentSystemPrompt = buildItemContentSystemPrompt({ rosterContext, name, category, rarity });
+    const contentSystemPrompt = buildItemContentSystemPrompt({ rosterContext, name, category, rarity, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the item now.",
@@ -67,6 +76,20 @@ router.post("/generate-item", async (req, res) => {
       item.weaponRoll = weaponRollInRange(item.weaponSkill, item.weaponRoll);
     }
 
+    if (mode === "regenerate") {
+      const newBodyHtmlPreview = buildItemBodyHtml(item);
+      return res.json({
+        preview: true,
+        mode: "regenerate",
+        category: "items",
+        id: item.id,
+        name: item.name,
+        entry: item,
+        newBodyHtmlPreview,
+        oldBodyHtmlPreview: priorBodyHtml
+      });
+    }
+
     let imageBuffer = null;
     try {
       const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: item });
@@ -85,6 +108,7 @@ router.post("/generate-item", async (req, res) => {
     if (imageBuffer) saveImage(ARCHIVE_ROOT, item.id, imageBuffer);
 
     res.json({
+      preview: false,
       id: item.id,
       name: item.name,
       category: item.category,

@@ -29,8 +29,11 @@ const WEAPON_ROLL_RANGES_TEXT = `| Weapon Skill | Example Types | WEAPON_ROLL ra
 | Archery | Bow, Crossbow, Throwing Knives, Sling | 8-12 |
 | Catalysts | Battery Rod, Focus Crystal, Charge Coil, Signal Wand | 9-13 |`;
 
-function buildItemContentSystemPrompt({ rosterContext, name, category, rarity }) {
+function buildItemContentSystemPrompt({ rosterContext, name, category, rarity, existingContent }) {
   const worldBibleContext = getWorldBibleContext({ faction: null, category: "items" });
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/world-bible context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
   return `You are generating an item for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. This covers unique/found items only — NOT reproducible crafting recipes. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 CATEGORIES (pick based on the user's input, or infer from context):
@@ -53,7 +56,7 @@ ARMOR (Armor category only): pick an effectorTier 1 (light) to 4 (heavy) reflect
 
 WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
 ${worldBibleContext}
-
+${regenerateBlock}
 EXISTING ROSTER (avoid repeating a named item, and ESPECIALLY avoid repeating a Legendary unique effect already used):
 ${rosterContext}
 

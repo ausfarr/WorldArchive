@@ -26,8 +26,11 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: how this avoids colliding with an existing class's profession, core fantasy, or signature verb"
 }`;
 
-function buildClassContentSystemPrompt({ rosterContext, name }) {
+function buildClassContentSystemPrompt({ rosterContext, name, existingContent }) {
   const worldBibleContext = getWorldBibleContext({ faction: null, category: "classes" });
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/world-bible context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
   return `You are generating a full playable character class for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse — professions turned into combat classes (Courier, Bouncer, Neon-Jack). Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 TONE: blue-collar industrial horror. Abilities and lore should feel like repurposed tools/jobs, not magic-fantasy powers (no wizards, knights, glowing swords). If inventing the profession, pick something blue-collar/industrial in the same register as the existing roster (Butcher, Electrician, Courier, Idol) — never a fantasy class. The Neon-Jack is the ONE sanctioned "special/mutant" exception in this world; don't create a second Neon-touched class unless explicitly asked.
@@ -51,7 +54,7 @@ Every ability's effectText should read as ONE compact sentence combining the mec
 
 WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
 ${worldBibleContext}
-
+${regenerateBlock}
 EXISTING ROSTER (if this class's profession, core fantasy, or signature verb collides with something already generated, angle it differently rather than shipping a duplicate):
 ${rosterContext}
 

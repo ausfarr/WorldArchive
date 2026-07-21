@@ -25,8 +25,11 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "how this avoids repeating an existing role/faction/contradiction/tic combo"
 }`;
 
-function buildNpcContentSystemPrompt({ rosterContext, name, role, faction }) {
+function buildNpcContentSystemPrompt({ rosterContext, name, role, faction, existingContent }) {
   const worldBibleContext = getWorldBibleContext({ faction, category: "npcs" });
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/world-bible context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
   return `You are generating a named NPC for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 ROLE ARCHETYPES (pick the closest match to the user's input, or choose one that fills a gap in the existing roster if unspecified):
@@ -56,7 +59,7 @@ QUEST HOOK: only if the archetype is Quest-Giver, or a hook falls out naturally 
 
 WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
 ${worldBibleContext}
-
+${regenerateBlock}
 EXISTING ROSTER (avoid repeating a role+faction combo, contradiction, or tic already used):
 ${rosterContext}
 

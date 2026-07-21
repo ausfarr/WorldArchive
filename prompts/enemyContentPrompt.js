@@ -18,8 +18,11 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: how this avoids overlapping the existing roster, and/or where it fits"
 }`;
 
-function buildEnemyContentSystemPrompt({ rosterContext, name, faction, tier }) {
+function buildEnemyContentSystemPrompt({ rosterContext, name, faction, tier, existingContent }) {
   const worldBibleContext = getWorldBibleContext({ faction, category: "enemies" });
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/world-bible context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
   return `You are generating an enemy stat block for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 FACTIONS (every enemy belongs to exactly one, and must sound like it):
@@ -43,7 +46,7 @@ HEX-TONGUE (Glitch-Kin ONLY — set hexTongue to null for every other faction, n
 
 WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
 ${worldBibleContext}
-
+${regenerateBlock}
 EXISTING ROSTER (avoid repeating a faction+tier+core-gimmick combo, a named ability, or a Phase-mechanic twist already used):
 ${rosterContext}
 
