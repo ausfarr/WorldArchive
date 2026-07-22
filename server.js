@@ -11,6 +11,7 @@ const generateFactionRoute = require("./routes/generateFaction");
 const confirmEntryRoute = require("./routes/confirmEntry");
 const wizardRoute = require("./routes/wizard");
 const wizardLoreRoute = require("./routes/wizardLore");
+const wizardFactionsRoute = require("./routes/wizardFactions");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,6 +49,7 @@ app.use("/api", generateFactionRoute);
 app.use("/api", confirmEntryRoute);
 app.use("/api", wizardRoute);
 app.use("/api", wizardLoreRoute);
+app.use("/api", wizardFactionsRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 
 // Catches errors passed via next(err) anywhere above (e.g. a Supabase/DB

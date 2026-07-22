@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Setup — Factions — The Archive</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+    <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+  </div>
+</header>
+
+<div class="wrap" style="max-width: 760px; padding-top: 40px; padding-bottom: 80px;">
+
+  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 4 of 8 <span class="sep">/</span> Factions</p>
+
+  <div class="sheet" style="padding: 32px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+      <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Factions</h1>
+      <button type="button" id="generate-step" class="generate-btn">Generate this whole step for me</button>
+    </div>
+    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Up to 8 factions. Add a slot with just a name (or a name + one-line concept) and generate its full profile, or let the step-level button invent some from scratch.</p>
+
+    <div id="factions-list"></div>
+
+    <button type="button" id="add-slot" class="secondary-btn" style="margin-top: 8px;">+ Add Faction</button>
+
+    <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+
+    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+      <button type="button" id="save-factions" class="primary-btn">Save &amp; Continue →</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+</footer>
+
+<style>
+  .primary-btn {
+    background: var(--neon-primary); color: var(--bg-void); border: none;
+    padding: 12px 24px; font-family: var(--font-display); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-weight: 600;
+  }
+  .primary-btn:disabled { opacity: 0.5; cursor: default; }
+  .secondary-btn {
+    background: none; border: 1px solid var(--border-line); color: var(--ink-dim);
+    padding: 10px 18px; font-family: var(--font-mono); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-size: 0.78rem;
+  }
+  .generate-btn {
+    background: none; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+    padding: 8px 14px; font-family: var(--font-mono); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
+  }
+  .generate-btn:disabled, .secondary-btn:disabled { opacity: 0.5; cursor: default; }
+  .field-input {
+    width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    color: var(--ink); padding: 10px 12px; font-family: var(--font-body); font-size: 0.92rem;
+  }
+  textarea.field-input { resize: vertical; }
+  .faction-card {
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    padding: 18px 20px; margin-bottom: 16px;
+  }
+  .faction-card-top { display:flex; gap: 10px; align-items:flex-start; margin-bottom: 10px; }
+  .faction-name-input {
+    flex: 1; background: none; border: none; border-bottom: 1px solid var(--border-line);
+    color: var(--ink); font-family: var(--font-display); text-transform: uppercase;
+    font-size: 1.05rem; padding: 4px 0;
+  }
+  .remove-slot { background:none; border:none; color: var(--ink-faint); cursor:pointer; font-size: 1rem; padding: 2px 8px; }
+  .remove-slot:hover { color: var(--neon-primary); }
+  .field-label {
+    display: block; font-family: var(--font-mono); font-size: 0.65rem;
+    letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint);
+    margin: 10px 0 4px;
+  }
+</style>
+
+<script src="/config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+const MAX_FACTIONS = 8;
+let factions = []; // each: { id, name, concept, politics, government, economy, military, tensions }
+
+function newSlot() {
+  return { id: null, name: "", concept: "", politics: "", government: "", economy: "", military: "", tensions: "" };
+}
+
+function render() {
+  document.getElementById("factions-list").innerHTML = factions.map((f, i) => `
+    <div class="faction-card" data-index="${i}">
+      <div class="faction-card-top">
+        <input class="faction-name-input" placeholder="Faction name" value="${(f.name || "").replace(/"/g, "&quot;")}">
+        <button type="button" class="generate-btn" data-action="generate-one">Generate for me</button>
+        <button type="button" class="remove-slot" data-action="remove">✕</button>
+      </div>
+      <label class="field-label">Concept (one line)</label>
+      <input class="field-input concept-input" value="${(f.concept || "").replace(/"/g, "&quot;")}" placeholder="Optional — leave blank and let generation infer one">
+      <label class="field-label">Politics</label>
+      <textarea class="field-input politics-input" rows="2">${f.politics || ""}</textarea>
+      <label class="field-label">Government</label>
+      <textarea class="field-input government-input" rows="2">${f.government || ""}</textarea>
+      <label class="field-label">Economy</label>
+      <textarea class="field-input economy-input" rows="2">${f.economy || ""}</textarea>
+      <label class="field-label">Military</label>
+      <textarea class="field-input military-input" rows="2">${f.military || ""}</textarea>
+      <label class="field-label">Tensions &amp; Secrets</label>
+      <textarea class="field-input tensions-input" rows="2">${f.tensions || ""}</textarea>
+    </div>
+  `).join("");
+  document.getElementById("add-slot").disabled = factions.length >= MAX_FACTIONS;
+  document.getElementById("generate-step").disabled = factions.length >= MAX_FACTIONS;
+}
+
+function syncFromDOM() {
+  document.querySelectorAll(".faction-card").forEach((card, i) => {
+    factions[i].name = card.querySelector(".faction-name-input").value;
+    factions[i].concept = card.querySelector(".concept-input").value;
+    factions[i].politics = card.querySelector(".politics-input").value;
+    factions[i].government = card.querySelector(".government-input").value;
+    factions[i].economy = card.querySelector(".economy-input").value;
+    factions[i].military = card.querySelector(".military-input").value;
+    factions[i].tensions = card.querySelector(".tensions-input").value;
+  });
+}
+
+document.getElementById("add-slot").addEventListener("click", () => {
+  if (factions.length >= MAX_FACTIONS) return;
+  factions.push(newSlot());
+  render();
+});
+
+document.getElementById("factions-list").addEventListener("click", async (e) => {
+  const action = e.target.dataset.action;
+  if (!action) return;
+  syncFromDOM();
+  const card = e.target.closest(".faction-card");
+  const index = Number(card.dataset.index);
+  const status = document.getElementById("status");
+
+  if (action === "remove") {
+    factions.splice(index, 1);
+    render();
+    return;
+  }
+
+  if (action === "generate-one") {
+    e.target.disabled = true;
+    status.textContent = "Generating…";
+    try {
+      const f = factions[index];
+      const res = await authFetch("/api/wizard/generate-faction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: f.name || undefined, concept: f.concept || undefined })
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+      const { faction } = await res.json();
+      factions[index] = Object.assign({}, factions[index], faction);
+      render();
+      status.textContent = "Generated — edit freely before saving.";
+    } catch (err) {
+      status.textContent = "Error: " + err.message;
+    } finally {
+      e.target.disabled = false;
+    }
+  }
+});
+
+document.getElementById("generate-step").addEventListener("click", async () => {
+  const btn = document.getElementById("generate-step");
+  const status = document.getElementById("status");
+  btn.disabled = true;
+  syncFromDOM();
+  const room = MAX_FACTIONS - factions.length;
+  const count = Math.min(4, room);
+  status.textContent = `Generating ${count} new faction(s) from scratch — this can take a moment…`;
+  try {
+    const res = await authFetch("/api/wizard/generate-factions-step", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ count })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+    const { factions: generated } = await res.json();
+    factions = factions.concat(generated);
+    render();
+    status.textContent = `Added ${generated.length} faction(s) — edit freely before saving.`;
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("save-factions").addEventListener("click", async () => {
+  syncFromDOM();
+  const status = document.getElementById("status");
+  const btn = document.getElementById("save-factions");
+  btn.disabled = true;
+  status.textContent = "Saving…";
+  try {
+    const res = await authFetch("/api/wizard/save-factions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ factions })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
+    status.innerHTML = "Saved. (Step 5 — Stat System — isn't built yet, this is as far as the wizard goes for now.)";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+async function init() {
+  await requireAuth();
+  renderAuthStatus();
+  try {
+    const res = await authFetch("/api/wizard/factions");
+    const { factions: loaded } = await res.json();
+    factions = (loaded && loaded.length > 0) ? loaded : [];
+  } catch (err) {
+    console.error("Could not load existing factions:", err);
+  }
+  render();
+}
+
+init();
+</script>
+
+</body>
+</html>
