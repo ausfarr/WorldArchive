@@ -1,65 +1,61 @@
-const { getWorldBibleContext } = require("../lib/worldBible");
-
-// This file receives a display name ("The Ferro-Kings"), but worldBible.js
-// tags sections with the same short keys used everywhere else in the
-// pipeline (ferro_kings, the_board, etc.) — map one to the other here
-// rather than touching the shared lookup module for one caller's format.
-const FACTION_NAME_TO_KEY = [
-  { key: "preservation", re: /preservation/i },
-  { key: "ferro_kings", re: /ferro-kings/i },
-  { key: "the_board", re: /\bthe board\b/i },
-  { key: "glitch_kin", re: /glitch-kin/i },
-  { key: "colony", re: /\bcolony\b|\bthe silo\b/i },
-];
-
-function factionKeyFromName(factionName) {
-  const match = FACTION_NAME_TO_KEY.find((f) => f.re.test(factionName || ""));
-  return match ? match.key : null;
-}
+// prompts/factionContentPrompt.js
+//
+// Generic "Deep Lore" expansion generator for the archive's Faction
+// dossier page. Takes a faction that already exists in this world (either
+// wizard-created via world_config.factions_json, or a prior dossier
+// regenerate) and expands it into the richer dossier schema
+// (lib/factionTemplate.js's buildFactionBodyHtml fields) — nickname,
+// origin, structure, territory, goals, tensions, iconography, etc.
+//
+// Replaces the old Echoes-specific version, which hardcoded FACTION_SEEDS
+// and four faction-voice paragraphs. Grounding now comes entirely from
+// this world's own saved lore (lib/loreContext.js) and its own
+// wizard-generated faction seed (concept/politics/government/economy/
+// military/tensions from world_config.factions_json) — no hardcoded
+// setting name, faction list, or voice descriptions.
 
 const SCHEMA_DESCRIPTION = `{
-  "nickname": "e.g. 'The System' — the established one/two-word epithet",
+  "nickname": "an established one/two-word epithet for this faction, consistent with the seed/lore below",
   "overviewQuote": "one sentence, in the faction's collective/leadership voice, that captures its identity",
-  "origin": "2-4 sentences: how this faction actually formed after the collapse - a specific triggering moment or decision, not just 'they're the workers'",
-  "corePhilosophy": "one sentence: the belief that drives every decision this faction makes, distinct from the other three, could double as a slogan",
-  "structureHierarchy": "2-4 sentences: who's actually in charge and how authority flows. If an existing Faction Leader NPC is listed in the roundup below, they ARE the top of this hierarchy - build around them, don't invent a competing leader",
-  "territory": "2-4 sentences: what part of the city/Dome they hold, and why that location makes sense for them",
+  "origin": "2-4 sentences: how this faction actually formed — a specific triggering moment or decision, not just a label",
+  "corePhilosophy": "one sentence: the belief that drives every decision this faction makes, could double as a slogan",
+  "structureHierarchy": "2-4 sentences: who's actually in charge and how authority flows. If an existing Faction Leader NPC is listed in the roundup below, they ARE the top of this hierarchy — build around them, don't invent a competing leader",
+  "territory": "2-4 sentences: what part of the world this faction holds, and why that location/domain makes sense for them",
   "goalsNearTerm": "1-2 sentences: what they're actively doing right now",
   "goalsLongTerm": "1-2 sentences: what 'winning' looks like to them",
-  "internalTensions": "2-4 sentences: a real fault line inside the faction that could fracture it from within - not just external conflict",
-  "iconography": "2-4 sentences: colors (use the established faction accent color), symbols, uniform/dress conventions",
+  "internalTensions": "2-4 sentences: a real fault line inside the faction that could fracture it from within — not just external conflict",
+  "iconography": "2-4 sentences: colors, symbols, dress/uniform conventions",
   "relationships": [
-    { "faction": "one of the other three factions by name", "stance": "Alliance | Rivalry | Indifference", "why": "one concrete sentence" }
+    { "faction": "name of another faction in this world", "stance": "e.g. Rivalry, Uneasy alliance, Open war, Trade partner", "why": "one concrete sentence" }
   ],
-  "economyResources": "2-4 sentences: what they produce/control/trade, and what they're short on",
-  "joining": "2-4 sentences: how someone joins or is absorbed into this faction"
+  "economyResources": "1 paragraph: how this faction sustains itself materially",
+  "joining": "1 paragraph: what it takes for an outsider to join or be absorbed, if that's even possible"
 }`;
 
-function buildFactionContentSystemPrompt({ factionName, factionSeed, roundupContext, existingContent }) {
-  const worldBibleContext = getWorldBibleContext({
-    faction: factionKeyFromName(factionName),
-    category: "factions",
-  });
+// seedText: this faction's own wizard-generated concept/politics/government/
+// economy/military/tensions, formatted as plain text — the equivalent of
+// the old hardcoded FACTION_SEEDS entry, but sourced from the world's own
+// data instead of Austin's hand-written Echoes seeds.
+function buildFactionContentSystemPrompt({ factionName, seedText, loreContext, roundupContext, existingContent }) {
   const regenerateBlock = existingContent
-    ? `\n\nPREVIOUS DEEP LORE — THIS IS A REGENERATE (revise this: keep what already works, update anything that's grown stale or now conflicts with the roundup below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roundup/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
-  return `You are writing the Deep Lore section of a faction profile for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
-This is a REFERENCE PROFILE, not a novel — keep each field to 2-4 sentences, depth over length. Every field must stay consistent with the established lore seed and with anything already generated for this faction (see the roundup context below) — you are deepening what exists, not reinventing it.
+  return `You are expanding a faction's established concept into a full dossier for a tabletop/game world archive. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
-FACTION: ${factionName}
+Stay consistent with everything given below — don't contradict the faction's own established concept, the world's lore, or anything already archived and connected to this faction (the Roundup). Every field should feel like it grew out of THIS faction's specific concept, not a generic archetype.
 
-ESTABLISHED LORE SEED (must stay consistent with this):
-${factionSeed}
+FACTION NAME: ${factionName}
 
-WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; if it overlaps with the lore seed above, treat them as reinforcing the same facts, not two separate sources to reconcile):
-${worldBibleContext}
+THIS FACTION'S ESTABLISHED CONCEPT (do not contradict — expand on it):
+${seedText || "(no prior concept saved — infer one consistent with the world lore below)"}
 
-WEAPON RULE (if this faction isn't Glitch-Kin): no conventional guns by default — high-velocity kinetic friction ignites the Neon atmosphere and kills the shooter. Echo-Shielded guns are a rare, explicitly-flagged exception, never a faction default.
-${regenerateBlock}
-ALREADY GENERATED FOR THIS FACTION (build your Structure/Hierarchy around any Faction Leader NPC listed here — don't invent a competing leader; stay consistent with any named characters or beats listed):
+WORLD LORE — GROUND TRUTH (stay consistent with this):
+${loreContext || "(no lore saved yet for this world — invent details consistent with general genre conventions and this faction's own concept above)"}
+
+ROUNDUP — EVERYTHING ALREADY ARCHIVED FOR THIS FACTION (build around these, especially any named Faction Leader — never invent a competing leader):
 ${roundupContext}
-
+${regenerateBlock}
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 }

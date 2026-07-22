@@ -1,78 +1,88 @@
 const express = require("express");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { readFactionManifest, readFactionEntry } = require("../lib/roster");
+const { getFactions } = require("../lib/worldConfigRepo");
+const { getLoreContext } = require("../lib/loreContext");
 const { buildFactionContentSystemPrompt } = require("../prompts/factionContentPrompt");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
 const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 
 const router = express.Router();
 
-// Only these four are covered by the faction generator skill - "The Colony"
-// is the player's own home base, not one of the four world factions.
-const FACTION_SEEDS = {
-  "the-preservation": {
-    factionKey: "preservation",
-    name: "The Preservation",
-    seed: `AI-driven faction seeking to freeze the city in Stasis. Sterile, white, ice-blue aesthetic. Cold, procedural, bureaucratic control — enforcement via security systems and drones, quarantine logic, protocol over personality.`
-  },
-  "the-ferro-kings": {
-    factionKey: "ferro_kings",
-    name: "The Ferro-Kings",
-    seed: `Brutal warlords controlling the factories. Value physical strength and heavy armor. See the apocalypse as a return to a harder, purer order. Brutal industrial tone — foremen, enforcers, factory-floor violence, shop-floor slang. Already-established leadership: Adaeze Okonkwo ("The Foreman") — check the roundup context for her and anyone connected to her before inventing a separate leadership structure.`
-  },
-  "the-board": {
-    factionKey: "the_board",
-    name: "The Board",
-    seed: `Delusional executives operating from the Sky-Needle. Treat the apocalypse as a hostile takeover to manage and monetize. Darkly comic corporate-horror tone — quarterly-report language applied to violence and survival.`
-  },
-  "glitch-kin": {
-    factionKey: "glitch_kin",
-    name: "Glitch-Kin",
-    seed: `Mutated horrors — humans fully overtaken by nanites trying (badly) to "fix" them. Functionally a force of nature, not an army with intent. Body-horror tone. Networked; speak Hex-Tongue (debug-log style, not "monster growls"). No real hierarchy in the human sense — frame any "leader" as an emergent hub-node, not a person who gives orders.`
-  },
-  "the-colony": {
-    factionKey: "colony",
-    name: "The Colony (The Silo)",
-    seed: `The player's own home base — not one of the four antagonist factions, no fixed territory of its own, survives by scavenging and trading in the gaps between the other four. Community/survival tone rather than a power bloc: internal roles (Archive, Workshop, Memorial) matter more than doctrine or conquest. No single ruler in the way the other factions have one.`
-  }
-};
+// Formats a wizard-generated faction's seed fields (concept/politics/
+// government/economy/military/tensions) into the plain-text block this
+// route used to get from the hardcoded FACTION_SEEDS map. Falls back to
+// just the concept line if a faction predates some of these fields.
+function formatFactionSeed(faction) {
+  if (!faction) return "";
+  const parts = [];
+  if (faction.concept) parts.push(faction.concept);
+  if (faction.politics) parts.push(`Politics: ${faction.politics}`);
+  if (faction.government) parts.push(`Government: ${faction.government}`);
+  if (faction.economy) parts.push(`Economy: ${faction.economy}`);
+  if (faction.military) parts.push(`Military: ${faction.military}`);
+  if (faction.tensions) parts.push(`Tensions: ${faction.tensions}`);
+  return parts.join("\n\n");
+}
 
 router.post("/generate-faction", async (req, res) => {
   try {
     const worldId = req.worldId;
     const { fillExistingId } = req.body || {};
-    const seed = FACTION_SEEDS[fillExistingId];
-    if (!seed) {
-      return res.status(400).json({
-        error: `'${fillExistingId}' isn't a supported faction id. Supported: ${Object.keys(FACTION_SEEDS).join(", ")}`
-      });
+    if (!fillExistingId) {
+      return res.status(400).json({ error: "Missing fillExistingId" });
     }
 
+    // This faction must already exist in the live archive (bridged in by
+    // routes/wizardFactions.js's save-factions step) — this route only
+    // expands/revises Deep Lore, it never invents a brand-new faction from
+    // nothing. That's the wizard's job.
     const manifest = await readFactionManifest(worldId);
     const existingEntry = manifest.find((m) => m.id === fillExistingId);
     if (!existingEntry) {
-      return res.status(404).json({ error: `No existing faction entry found with id '${fillExistingId}'` });
+      return res.status(404).json({
+        error: `No existing faction entry found with id '${fillExistingId}'. Create it first via the World Setup Wizard's Factions step.`
+      });
     }
 
-    // Factions have no locked/unlocked distinction - every generate-faction
-    // call is effectively a regenerate. priorRaw is null for entries
-    // generated before the `raw` field existed — the model just generates
-    // fresh against the seed + roundup rather than truly revising, a fine
-    // one-time degradation until the first regenerate populates `raw`.
+    // Factions have no locked/unlocked distinction — every call here is
+    // effectively a regenerate. priorRaw is null for entries that predate
+    // the `raw` field (or were only ever bridged from the wizard, which
+    // stores the simpler wizard schema, not this route's richer Deep Lore
+    // schema) — the model just generates fresh against the seed + roundup
+    // rather than truly revising, same self-healing behavior used
+    // elsewhere in the pipeline.
     const prior = await readFactionEntry(worldId, fillExistingId);
-    const priorRaw = prior && prior.raw ? prior.raw : null;
+    const priorRaw = prior && prior.raw && prior.raw.origin ? prior.raw : null;
     const priorBodyHtml = prior ? prior.bodyHtml : null;
 
-    // Roundup is built FIRST and deterministically - it's both the output
+    // factionKey: use the faction's own id as the matching key for the
+    // Roundup and any CSS accent lookup — generic worlds don't have a
+    // fixed 5-key enum the way Echoes did, so entries authored for this
+    // faction just need faction === this id, which is what every
+    // generic-path generator now writes.
+    const factionKey = existingEntry.faction || existingEntry.id;
+
+    // Seed: prefer this faction's own wizard-generated concept/politics/
+    // etc. (world_config.factions_json), falling back to whatever's in
+    // the bridged entries-table raw data if the wizard record is gone.
+    const wizardFactions = await getFactions(worldId);
+    const wizardFaction = wizardFactions.find((f) => f.id === fillExistingId);
+    const seedText = wizardFaction ? formatFactionSeed(wizardFaction) : formatFactionSeed(prior && prior.raw);
+
+    const loreContext = await getLoreContext(worldId, { category: "factions", faction: factionKey });
+
+    // Roundup is built FIRST and deterministically — it's both the output
     // section and context fed to the model, never invented either way.
-    const roundupRows = await buildFactionRoundup(worldId, seed.factionKey);
+    const roundupRows = await buildFactionRoundup(worldId, factionKey);
     const roundupContext = roundupRows.length === 0
       ? "Nothing archived for this faction yet."
       : roundupRows.map((r) => `- ${r.type}: ${r.name}${r.note ? ` (${r.note})` : ""}`).join("\n");
 
     const contentSystemPrompt = buildFactionContentSystemPrompt({
-      factionName: seed.name,
-      factionSeed: seed.seed,
+      factionName: existingEntry.name,
+      seedText,
+      loreContext,
       roundupContext,
       existingContent: priorRaw
     });
@@ -92,8 +102,8 @@ router.post("/generate-faction", async (req, res) => {
 
     const faction = {
       id: fillExistingId,
-      factionKey: seed.factionKey,
-      name: seed.name,
+      factionKey,
+      name: existingEntry.name,
       ...deepLore
     };
 
