@@ -61,6 +61,10 @@ router.post("/generate-enemy", async (req, res) => {
     enemy.id = fillExistingId || enemy.id || slugify(enemy.name);
     if (existingEntry) enemy.name = existingEntry.name;
 
+    // Same fix as routes/generate.js — a user-selected faction is a known
+    // fact, not a suggestion, so it overrides whatever the model output.
+    if (faction) enemy.faction = faction;
+
     const warning = attributeBudgetWarning(enemy.attributes, enemy.tier);
     if (warning) console.warn("Attribute budget check:", warning);
 

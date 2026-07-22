@@ -68,6 +68,16 @@ router.post("/generate-npc", async (req, res) => {
     npc.id = fillExistingId || npc.id || slugify(npc.name);
     if (existingEntry) npc.name = existingEntry.name;
 
+    // A specific faction chosen by the user (dropdown selection, or an
+    // existing entry being filled/regenerated) is a known fact, not a
+    // suggestion — force it rather than trusting the model to have
+    // honored the explicit "Faction: X" line in the prompt. This is what
+    // actually fixes generated NPCs coming back "Unaligned" even when a
+    // real faction was picked: the flavor text/relationships still stay
+    // grounded in that faction via loreContext, but the stored field
+    // itself no longer depends on the model getting it right.
+    if (faction) npc.faction = faction;
+
     if (mode === "regenerate") {
       const newBodyHtmlPreview = buildBodyHtml(npc);
       return res.json({
