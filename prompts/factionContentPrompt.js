@@ -36,14 +36,21 @@ const SCHEMA_DESCRIPTION = `{
 // economy/military/tensions, formatted as plain text — the equivalent of
 // the old hardcoded FACTION_SEEDS entry, but sourced from the world's own
 // data instead of Austin's hand-written Echoes seeds.
-function buildFactionContentSystemPrompt({ factionName, seedText, loreContext, roundupContext, existingContent }) {
+function buildFactionContentSystemPrompt({ factionName, seedText, loreContext, roundupContext, otherFactionNames, existingContent }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roundup/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
 
+  const factionListBlock = (otherFactionNames || []).length
+    ? (otherFactionNames || []).map((n) => `- ${n}`).join("\n")
+    : "(no other factions exist in this world yet)";
+
   return `You are expanding a faction's established concept into a full dossier for a tabletop/game world archive. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 Stay consistent with everything given below — don't contradict the faction's own established concept, the world's lore, or anything already archived and connected to this faction (the Roundup). Every field should feel like it grew out of THIS faction's specific concept, not a generic archetype.
+
+OTHER FACTIONS THAT ACTUALLY EXIST IN THIS WORLD (the ONLY factions you may name in the "relationships" field — do not invent, rename, or reference any faction not on this exact list; if the list is empty, return an empty relationships array rather than inventing one):
+${factionListBlock}
 
 FACTION NAME: ${factionName}
 
