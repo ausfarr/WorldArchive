@@ -22,14 +22,15 @@ async function generateOneFaction(worldId, existingFactions, { name, concept, mo
   const raw = await callClaude({
     systemPrompt,
     userMessage: "Generate the faction now.",
-    maxTokens: 1200
+    maxTokens: 2500
   });
   let faction;
   try {
     faction = parseJsonResponse(raw);
   } catch (parseErr) {
-    console.error("Failed to parse faction JSON. Raw response:", raw);
-    throw new Error(`Faction content was not valid JSON: ${parseErr.message}`);
+    console.error("Failed to parse faction JSON. Raw response length:", raw.length);
+    console.error("Raw response (last 300 chars):", raw.slice(-300));
+    throw new Error(`Faction content was not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
   }
   faction.id = slugify(faction.name);
   return faction;
