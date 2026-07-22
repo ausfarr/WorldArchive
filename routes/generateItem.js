@@ -7,6 +7,8 @@ const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveItemEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildItemBodyHtml } = require("../lib/itemTemplate");
 const { weaponRollInRange } = require("../lib/itemFormulas");
+const { getLoreContext } = require("../lib/loreContext");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
 
 const router = express.Router();
 
@@ -50,8 +52,11 @@ router.post("/generate-item", async (req, res) => {
     }
 
     const rosterContext = await buildItemRosterContext(worldId);
+    const loreContext = await getLoreContext(worldId, { category: "items" });
+    const settingContext = await getSettingContext(worldId);
+    const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
 
-    const contentSystemPrompt = buildItemContentSystemPrompt({ rosterContext, name, category, rarity, existingContent: priorRaw });
+    const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, rosterContext, name, category, rarity, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the item now.",

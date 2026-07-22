@@ -6,6 +6,8 @@ const { buildSurvivorContentSystemPrompt } = require("../prompts/survivorContent
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveSurvivorEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildSurvivorBodyHtml } = require("../lib/survivorTemplate");
+const { getLoreContext } = require("../lib/loreContext");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
 
 const router = express.Router();
 
@@ -37,8 +39,11 @@ router.post("/generate-survivor", async (req, res) => {
 
     const rosterContext = await buildSurvivorRosterContext(worldId);
     const availableClasses = await buildAvailableClassesText(worldId);
+    const loreContext = await getLoreContext(worldId, { category: "survivors" });
+    const settingContext = await getSettingContext(worldId);
+    const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
 
-    const contentSystemPrompt = buildSurvivorContentSystemPrompt({ rosterContext, availableClasses, name, className, existingContent: priorRaw });
+    const contentSystemPrompt = buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, rosterContext, availableClasses, name, className, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the survivor now.",

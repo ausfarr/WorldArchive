@@ -1,12 +1,19 @@
-const { getWorldBibleContext } = require("../lib/worldBible");
+// prompts/npcContentPrompt.js
+//
+// Generic named-NPC generator. Replaces the Echoes-specific version,
+// which hardcoded the setting name, a fixed 4-faction enum, and four
+// hand-written faction-voice paragraphs. Grounding now comes from this
+// world's own lore (lib/loreContext.js), its own faction list
+// (lib/worldFlavor.js), and the roster-overlap context — no hardcoded
+// setting content.
 
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Full Name",
   "callsign": "optional nickname, or null",
-  "roleArchetype": "Faction Leader | Quest-Giver | Colony VIP | Rival | Informant/Fixer | Merchant",
-  "faction": "preservation | ferro_kings | the_board | glitch_kin | unaligned",
-  "age": "integer, chosen to fit the character's role/backstory (e.g. a weary veteran Faction Leader likely reads older than a scrappy young Informant)",
+  "roleArchetype": "Faction Leader | Quest-Giver | Community VIP | Rival | Informant/Fixer | Merchant",
+  "faction": "one of this world's faction ids (see FACTIONS below), or \\"unaligned\\" if this character deliberately doesn't belong to one",
+  "age": "integer, chosen to fit the character's role/backstory",
   "signatureQuote": "one sentence, first person, in voice",
   "physicalDescription": "2-4 sentences",
   "traits": ["trait1", "trait2", "trait3"],
@@ -15,7 +22,7 @@ const SCHEMA_DESCRIPTION = `{
   "actuallyNeeds": "the deeper driver",
   "speech": { "register": "...", "rhythm": "...", "tic": "...", "neverSay": "..." },
   "relationships": [
-    { "type": "Faction allegiance", "toId": "the-ferro-kings", "toCategory": "factions", "toLabel": "The Ferro-Kings", "why": "..." }
+    { "type": "Faction allegiance", "toId": "an id from FACTIONS below, or an existing NPC/enemy/class/survivor id from the roster", "toCategory": "factions | npcs | enemies | classes | survivors", "toLabel": "the display name of that entry", "why": "..." }
   ],
   "dialogue": {
     "openingLine": "...",
@@ -25,31 +32,32 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "how this avoids repeating an existing role/faction/contradiction/tic combo"
 }`;
 
-function buildNpcContentSystemPrompt({ rosterContext, name, role, faction, existingContent }) {
-  const worldBibleContext = getWorldBibleContext({ faction, category: "npcs" });
+function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent }) {
   const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/world-bible context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
-  return `You are generating a named NPC for "Echoes of the Neon," a tactical RPG set in a subterranean industrial-horror colony after a societal collapse. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
+
+  return `You are generating a named NPC for a tabletop/game world archive — a character the player will remember, not a rank-and-file extra. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
+
+SETTING (stay consistent with this):
+${settingContext}
 
 ROLE ARCHETYPES (pick the closest match to the user's input, or choose one that fills a gap in the existing roster if unspecified):
 - Faction Leader — sets a faction's agenda; embodies its philosophy personally, not as a mission statement.
 - Quest-Giver — has a concrete want that becomes a mission hook; personality colors HOW they ask, not just what.
-- Colony VIP — runs something (Archive, Workshop, Memorial); the player interacts with them repeatedly.
-- Rival — works against the player/Colony without being a combat boss; political, economic, or personal opposition.
+- Community VIP — runs something notable (an institution, a hub, a resource) that the player interacts with repeatedly.
+- Rival — works against the player without being a combat boss; political, economic, or personal opposition.
 - Informant/Fixer — trades in information or access; morally grey; transactional relationship with the player.
 - Merchant — runs an economic node; personality justifies their prices/inventory philosophy.
 
-FACTION VOICE (the named character must sound like an individual within this, not a mission statement):
-- The Preservation — institutional, procedural, clinical — but ONE crack in that surface: a personal stake they won't admit to.
-- The Ferro-Kings — blunt, physical, values-driven; earns respect through visible competence/toughness, not title.
-- The Board — corporate-horror register, KPIs and quarterly language applied to survival; darkly funny AND genuinely dangerous, never pure comic relief.
-- Glitch-Kin — RARE, weighty exception only, never a default. A tragic figure: someone the Colony knew before the change, now caught between the swarm's network-logic and flickers of the person they were.
-- Unaligned/Colony-native — doesn't have to perform a faction voice at all; can be the "normal" one, which is its own contrast.
+FACTIONS IN THIS WORLD (the ONLY values valid for the "faction" field and for any faction referenced in relationships — do not invent, rename, or reference a faction not on this exact list; use "unaligned" if this character deliberately doesn't belong to one):
+${factionOptionsText}
 
-RULE OF THUMB: the NPC needs one trait that COMPLICATES their role, not just decorates it (a Ferro-Kings enforcer secretly gentle with animals; a Board executive who genuinely believes they're saving people).
+FACTION VOICE: derive how this character's faction actually sounds/thinks from the world lore below — don't default to a generic "evil empire" or "noble rebels" voice. The named character should feel like an individual within that faction's established culture, not a mission statement reciting it.
 
-RELATIONSHIPS: at minimum, state a faction allegiance. Prefer connecting to an existing named NPC, faction, class, enemy, or survivor over a floating faction-only tie. State each as one concrete sentence with a reason — "Rival: the Press-Ganger — she ran his shift crew before the collapse and knows exactly how to needle him" — never just a label. Relationship types to draw from: faction allegiance, chain of command, rivalry/grudge (with a specific concrete reason), debt/obligation, historical pre-collapse connection, romantic/found-family (sparingly, with real weight).
+RULE OF THUMB: the NPC needs one trait that COMPLICATES their role, not just decorates it.
+
+RELATIONSHIPS: at minimum, state a faction allegiance (or explicit "unaligned"). Prefer connecting to an existing named NPC, enemy, class, or survivor from the roster below over a floating faction-only tie — and ONLY reference ids that actually appear in the FACTIONS list or the EXISTING ROSTER below, never an invented one. State each as one concrete sentence with a reason, never just a label. Relationship types to draw from: faction allegiance, chain of command, rivalry/grudge (with a specific concrete reason), debt/obligation, historical pre-collapse or pre-existing connection, romantic/found-family (sparingly, with real weight).
 
 SPEECH: define register (vocabulary type, tied to role/faction), rhythm (short/clipped vs long/looping — matters more than vocabulary), a tic (one small repeatable habit — used once or twice in the dialogue tree, never in every line), and one explicit thing they'd never say. Write the signature quote AFTER defining these — it should demonstrably use their voice and land on their contradiction or motivation in one line. Do not reuse it verbatim in the dialogue tree.
 
@@ -57,10 +65,10 @@ DIALOGUE TREE: one opening line + 2-3 branches + one reply each (~4-7 lines tota
 
 QUEST HOOK: only if the archetype is Quest-Giver, or a hook falls out naturally — set to null otherwise, don't force one onto a Rival/Merchant.
 
-WORLD BIBLE — GROUND TRUTH LORE (stay consistent with this; don't contradict it):
-${worldBibleContext}
+WORLD LORE — GROUND TRUTH (stay consistent with this; don't contradict it):
+${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}
 ${regenerateBlock}
-EXISTING ROSTER (avoid repeating a role+faction combo, contradiction, or tic already used):
+EXISTING ROSTER (avoid repeating a role+faction combo, contradiction, or tic already used; these are the only NPC/enemy/class/survivor ids you may reference in relationships):
 ${rosterContext}
 
 USER INPUT:

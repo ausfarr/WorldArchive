@@ -6,6 +6,8 @@ const { buildNpcContentSystemPrompt } = require("../prompts/npcContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveNpcEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildBodyHtml } = require("../lib/entryTemplate");
+const { getLoreContext } = require("../lib/loreContext");
+const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
 
 const router = express.Router();
 
@@ -39,8 +41,15 @@ router.post("/generate-npc", async (req, res) => {
     // Step 1: roster overlap context from live archive
     const rosterContext = await buildRosterContext(worldId);
 
+    // Step 1b: generic world grounding — lore, setting framing, and this
+    // world's own faction list (replaces the old hardcoded Echoes World
+    // Bible + 4-faction voice text).
+    const loreContext = await getLoreContext(worldId, { category: "npcs", faction });
+    const settingContext = await getSettingContext(worldId);
+    const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+
     // Step 2: content generation
-    const contentSystemPrompt = buildNpcContentSystemPrompt({ rosterContext, name, role, faction, existingContent: priorRaw });
+    const contentSystemPrompt = buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",

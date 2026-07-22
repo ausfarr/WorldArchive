@@ -7,6 +7,8 @@ const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveEnemyEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildEnemyBodyHtml } = require("../lib/enemyTemplate");
 const { attributeBudgetWarning } = require("../lib/statFormulas");
+const { getLoreContext } = require("../lib/loreContext");
+const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
 
 const router = express.Router();
 
@@ -37,8 +39,12 @@ router.post("/generate-enemy", async (req, res) => {
     }
 
     const rosterContext = await buildEnemyRosterContext(worldId);
+    const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
+    const settingContext = await getSettingContext(worldId);
+    const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+    const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
 
-    const contentSystemPrompt = buildEnemyContentSystemPrompt({ rosterContext, name, faction, tier, existingContent: priorRaw });
+    const contentSystemPrompt = buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the enemy now.",
