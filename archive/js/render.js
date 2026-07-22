@@ -182,6 +182,23 @@ function showRegeneratePreview(data) {
 }
 
 
+// Replaces the old <script src="manifest.js"> + renderCategoryIndex(window.MANIFEST_X, ...)
+// pattern -- fetches this world's entries for the category from the API
+// (see routes/entries.js) and renders them. Category pages now call this
+// directly instead of loading a manifest.js file.
+async function loadAndRenderCategoryIndex(categoryPath) {
+  const grid = document.getElementById("entry-grid");
+  try {
+    const res = await authFetch(`/api/entries/${categoryPath}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load entries.");
+    renderCategoryIndex(data.entries, categoryPath);
+  } catch (err) {
+    console.error(`Failed to load ${categoryPath} entries:`, err);
+    if (grid) grid.innerHTML = `<p style="color: var(--ink-faint);">Could not load entries: ${err.message}</p>`;
+  }
+}
+
 function renderCategoryIndex(manifest, categoryPath) {
   const grid = document.getElementById("entry-grid");
   if (!grid) return;
@@ -248,8 +265,10 @@ function renderDossier(entry) {
   footerEl.innerHTML = (entry.footer || []).map(f => `<span>${f}</span>`).join("");
 }
 
-// Resolves ?category=X&id=Y, injects the matching data/*.js file, then renders.
-function loadAndRenderDossier() {
+// Resolves ?category=X&id=Y and fetches the matching entry from the API
+// (see routes/entries.js), then renders it. Replaces the old
+// <script src="{category}/data/{id}.js"> injection pattern.
+async function loadAndRenderDossier() {
   const params = new URLSearchParams(window.location.search);
   const category = params.get("category");
   const id = params.get("id");
@@ -257,15 +276,37 @@ function loadAndRenderDossier() {
     document.getElementById("sheet-body").innerHTML = "<p>No entry specified.</p>";
     return;
   }
-  const script = document.createElement("script");
-  script.src = `${category}/data/${id}.js`;
-  script.onload = () => {
-    if (window.ENTRY) renderDossier(window.ENTRY);
-  };
-  script.onerror = () => {
+  try {
+    const res = await authFetch(`/api/entries/${category}/${id}`);
+    if (res.status === 404) {
+      document.getElementById("sheet-body").innerHTML = "<p>Entry not found.</p>";
+      return;
+    }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load entry.");
+    renderDossier(data.entry);
+  } catch (err) {
+    console.error("Failed to load entry:", err);
     document.getElementById("sheet-body").innerHTML = "<p>Entry not found.</p>";
-  };
-  document.body.appendChild(script);
+  }
+}
+
+// Fetches all 7 categories' entries from the API and renders homepage
+// counts. Replaces the old pattern of loading 7 manifest.js files via
+// <script> tags and passing window.MANIFEST_X objects directly.
+async function loadAndRenderHomepageCounts() {
+  const categories = Object.keys(CATEGORY_LABELS);
+  try {
+    const results = await Promise.all(categories.map(async (cat) => {
+      const res = await authFetch(`/api/entries/${cat}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `Failed to load ${cat}`);
+      return [cat, data.entries || []];
+    }));
+    renderHomepageCounts(Object.fromEntries(results));
+  } catch (err) {
+    console.error("Failed to load homepage counts:", err);
+  }
 }
 
 // ---------- Homepage: compute archived counts from each manifest ----------

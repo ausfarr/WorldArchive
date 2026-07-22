@@ -101,13 +101,12 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
 <script src="/config.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
-<script src="manifest.js"></script>
 <script src="../js/render.js"></script>
 <script>
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html
     renderAuthStatus();
-    renderCategoryIndex(window.MANIFEST_ITEMS, "items");
+    loadAndRenderCategoryIndex("items");
   });
 </script>
 
