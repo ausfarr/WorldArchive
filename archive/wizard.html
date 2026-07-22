@@ -27,8 +27,7 @@
 
       <div class="field-group">
         <label class="field-label">Genre &amp; Tone</label>
-        <select id="genre" class="field-input" multiple size="4"></select>
-        <p class="field-hint">Cmd/Ctrl-click to select more than one.</p>
+        <div id="genre-checklist" class="checklist"></div>
       </div>
 
       <div class="field-group">
@@ -106,6 +105,15 @@
     text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
   }
   .generate-btn:disabled { opacity: 0.5; cursor: default; }
+  .checklist {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px 16px;
+  }
+  .checklist label {
+    display: flex; align-items: center; gap: 8px; font-size: 0.88rem;
+    color: var(--ink); cursor: pointer;
+  }
+  .checklist input[type="checkbox"] { accent-color: var(--neon-primary); }
 </style>
 
 <script src="/config.js"></script>
@@ -120,21 +128,32 @@ function populateSelect(el, options) {
   el.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join("");
 }
 
-function getSelectedValues(el) {
-  return Array.from(el.selectedOptions).map(o => o.value);
+function populateChecklist(el, options) {
+  el.innerHTML = options.map((o, i) => `
+    <label>
+      <input type="checkbox" value="${o}" id="genre-opt-${i}">
+      ${o}
+    </label>
+  `).join("");
 }
 
-function setSelectedValues(el, values) {
+function getCheckedValues(el) {
+  return Array.from(el.querySelectorAll("input[type=checkbox]:checked")).map(cb => cb.value);
+}
+
+function setCheckedValues(el, values) {
   if (!values) return;
   const set = new Set(Array.isArray(values) ? values : [values]);
-  Array.from(el.options).forEach(o => { o.selected = set.has(o.value); });
+  Array.from(el.querySelectorAll("input[type=checkbox]")).forEach(cb => {
+    cb.checked = set.has(cb.value);
+  });
 }
 
 async function init() {
   await requireAuth();
   renderAuthStatus();
 
-  populateSelect(document.getElementById("genre"), GENRE_OPTIONS);
+  populateChecklist(document.getElementById("genre-checklist"), GENRE_OPTIONS);
   populateSelect(document.getElementById("scale"), SCALE_OPTIONS);
   populateSelect(document.getElementById("era"), ERA_OPTIONS);
 
@@ -143,7 +162,7 @@ async function init() {
     const res = await authFetch("/api/wizard/draft");
     const { draft } = await res.json();
     const step1 = (draft && draft["1"]) || {};
-    setSelectedValues(document.getElementById("genre"), step1.genre);
+    setCheckedValues(document.getElementById("genre-checklist"), step1.genre);
     if (step1.scale) document.getElementById("scale").value = step1.scale;
     if (step1.era) document.getElementById("era").value = step1.era;
     if (step1.supernaturalSystem) {
@@ -170,7 +189,7 @@ document.querySelector(".generate-btn").addEventListener("click", async (e) => {
   status.textContent = "Generating suggestions…";
   try {
     const body = {
-      genre: getSelectedValues(document.getElementById("genre")).join(", "),
+      genre: getCheckedValues(document.getElementById("genre-checklist")).join(", "),
       scale: document.getElementById("scale").value,
       era: document.getElementById("era").value,
       supernaturalSystem: document.getElementById("has-supernatural").checked
@@ -203,7 +222,7 @@ document.getElementById("step1-form").addEventListener("submit", async (e) => {
   const status = document.getElementById("status");
   status.textContent = "Saving…";
   const fields = {
-    genre: getSelectedValues(document.getElementById("genre")),
+    genre: getCheckedValues(document.getElementById("genre-checklist")),
     scale: document.getElementById("scale").value,
     era: document.getElementById("era").value,
     supernaturalSystem: document.getElementById("has-supernatural").checked
