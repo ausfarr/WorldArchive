@@ -1,5 +1,4 @@
 const express = require("express");
-const path = require("path");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { readFactionManifest, readFactionEntry } = require("../lib/roster");
 const { buildFactionContentSystemPrompt } = require("../prompts/factionContentPrompt");
@@ -7,7 +6,6 @@ const { buildFactionRoundup } = require("../lib/factionRoundup");
 const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 
 const router = express.Router();
-const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 // Only these four are covered by the faction generator skill - "The Colony"
 // is the player's own home base, not one of the four world factions.
@@ -41,6 +39,7 @@ const FACTION_SEEDS = {
 
 router.post("/generate-faction", async (req, res) => {
   try {
+    const worldId = req.worldId;
     const { fillExistingId } = req.body || {};
     const seed = FACTION_SEEDS[fillExistingId];
     if (!seed) {
@@ -49,26 +48,24 @@ router.post("/generate-faction", async (req, res) => {
       });
     }
 
-    const manifest = readFactionManifest(ARCHIVE_ROOT);
+    const manifest = await readFactionManifest(worldId);
     const existingEntry = manifest.find((m) => m.id === fillExistingId);
     if (!existingEntry) {
       return res.status(404).json({ error: `No existing faction entry found with id '${fillExistingId}'` });
     }
 
-    // Factions have no locked/unlocked distinction - all four/five always
-    // exist in the manifest, so every generate-faction call is effectively
-    // a regenerate. priorRaw is null for the original hand-authored faction
-    // files (pre-World Forge) or any generated before the `raw` field was
-    // added — in that case the model just generates fresh against the seed
-    // + roundup rather than truly revising, which is a fine one-time
-    // degradation until the first regenerate populates `raw`.
-    const prior = readFactionEntry(ARCHIVE_ROOT, fillExistingId);
+    // Factions have no locked/unlocked distinction - every generate-faction
+    // call is effectively a regenerate. priorRaw is null for entries
+    // generated before the `raw` field existed — the model just generates
+    // fresh against the seed + roundup rather than truly revising, a fine
+    // one-time degradation until the first regenerate populates `raw`.
+    const prior = await readFactionEntry(worldId, fillExistingId);
     const priorRaw = prior && prior.raw ? prior.raw : null;
     const priorBodyHtml = prior ? prior.bodyHtml : null;
 
     // Roundup is built FIRST and deterministically - it's both the output
     // section and context fed to the model, never invented either way.
-    const roundupRows = buildFactionRoundup(ARCHIVE_ROOT, seed.factionKey);
+    const roundupRows = await buildFactionRoundup(worldId, seed.factionKey);
     const roundupContext = roundupRows.length === 0
       ? "Nothing archived for this faction yet."
       : roundupRows.map((r) => `- ${r.type}: ${r.name}${r.note ? ` (${r.note})` : ""}`).join("\n");

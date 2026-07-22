@@ -1,17 +1,15 @@
 const express = require("express");
-const path = require("path");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
-const { buildLogRosterContext } = require("../lib/roster");
+const { buildLogRosterContext, readLogManifest, readLogEntry } = require("../lib/roster");
 const { buildLogContentSystemPrompt } = require("../prompts/logContentPrompt");
-const { writeLogDataFile, appendToLogManifest } = require("../lib/fileWriter");
+const { saveLogEntry } = require("../lib/fileWriter");
 const { slugify, buildLogBodyHtml } = require("../lib/logTemplate");
-const { readLogManifest, readLogEntry } = require("../lib/roster");
 
 const router = express.Router();
-const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 router.post("/generate-log", async (req, res) => {
   try {
+    const worldId = req.worldId;
     let { name, logType, fillExistingId } = req.body || {};
     let existingEntry = null;
     let priorRaw = null;
@@ -19,14 +17,14 @@ router.post("/generate-log", async (req, res) => {
     let mode = "new";
 
     if (fillExistingId) {
-      const manifest = readLogManifest(ARCHIVE_ROOT);
+      const manifest = await readLogManifest(worldId);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing log entry found with id '${fillExistingId}'` });
       }
       mode = existingEntry.locked ? "fill" : "regenerate";
       if (mode === "regenerate") {
-        const prior = readLogEntry(ARCHIVE_ROOT, fillExistingId);
+        const prior = await readLogEntry(worldId, fillExistingId);
         priorRaw = prior && prior.raw ? prior.raw : null;
         priorBodyHtml = prior ? prior.bodyHtml : null;
       }
@@ -38,7 +36,7 @@ router.post("/generate-log", async (req, res) => {
       else if (/journal/i.test(typeGuess)) logType = "Journal";
     }
 
-    const rosterContext = buildLogRosterContext(ARCHIVE_ROOT);
+    const rosterContext = await buildLogRosterContext(worldId);
 
     const contentSystemPrompt = buildLogContentSystemPrompt({ rosterContext, name, logType, existingContent: priorRaw });
     const contentRaw = await callClaude({
@@ -72,8 +70,7 @@ router.post("/generate-log", async (req, res) => {
     }
 
     // No image step - logs are text-only artifacts, no portrait in the real archive.
-    writeLogDataFile(ARCHIVE_ROOT, log);
-    appendToLogManifest(ARCHIVE_ROOT, log);
+    await saveLogEntry(worldId, log);
 
     res.json({
       preview: false,

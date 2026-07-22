@@ -1,36 +1,35 @@
 const express = require("express");
-const path = require("path");
 const {
-  writeNpcDataFile, appendToManifest,
-  writeEnemyDataFile, appendToEnemyManifest,
-  writeItemDataFile, appendToItemManifest,
-  writeSurvivorDataFile, appendToSurvivorManifest,
-  writeLogDataFile, appendToLogManifest,
-  writeClassDataFile, appendToClassManifest,
-  writeFactionDataFile, updateFactionManifest
+  saveNpcEntry,
+  saveEnemyEntry,
+  saveItemEntry,
+  saveSurvivorEntry,
+  saveLogEntry,
+  saveClassEntry,
+  saveFactionEntry
 } = require("../lib/fileWriter");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
 
 const router = express.Router();
-const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 // Shared write path for every "regenerate" preview across all categories
 // except factions (handled separately below, since it needs a freshly
-// computed Roundup rather than a stored writer pair).
+// computed Roundup rather than a stored writer).
 const WRITERS = {
-  npcs: { data: writeNpcDataFile, manifest: appendToManifest },
-  enemies: { data: writeEnemyDataFile, manifest: appendToEnemyManifest },
-  items: { data: writeItemDataFile, manifest: appendToItemManifest },
-  survivors: { data: writeSurvivorDataFile, manifest: appendToSurvivorManifest },
-  logs: { data: writeLogDataFile, manifest: appendToLogManifest },
-  classes: { data: writeClassDataFile, manifest: appendToClassManifest }
+  npcs: saveNpcEntry,
+  enemies: saveEnemyEntry,
+  items: saveItemEntry,
+  survivors: saveSurvivorEntry,
+  logs: saveLogEntry,
+  classes: saveClassEntry
 };
 
 // Called after the user reviews a /generate-X preview response and clicks
 // "Save This Version." Takes the exact `entry` object the preview returned
 // and writes it for real — no re-generation happens here.
-router.post("/confirm-entry", (req, res) => {
+router.post("/confirm-entry", async (req, res) => {
   try {
+    const worldId = req.worldId;
     const { category, entry } = req.body || {};
     if (!entry || !entry.id) {
       return res.status(400).json({ error: "Missing entry or entry.id" });
@@ -45,9 +44,8 @@ router.post("/confirm-entry", (req, res) => {
       if (!entry.factionKey) {
         return res.status(400).json({ error: "Faction entry is missing factionKey" });
       }
-      const roundupRows = buildFactionRoundup(ARCHIVE_ROOT, entry.factionKey);
-      writeFactionDataFile(ARCHIVE_ROOT, entry, roundupRows);
-      updateFactionManifest(ARCHIVE_ROOT, entry);
+      const roundupRows = await buildFactionRoundup(worldId, entry.factionKey);
+      await saveFactionEntry(worldId, entry, roundupRows);
       return res.json({ saved: true, id: entry.id, category });
     }
 
@@ -56,8 +54,7 @@ router.post("/confirm-entry", (req, res) => {
       return res.status(400).json({ error: `Unknown category '${category}'` });
     }
 
-    writer.data(ARCHIVE_ROOT, entry);
-    writer.manifest(ARCHIVE_ROOT, entry);
+    await writer(worldId, entry);
     res.json({ saved: true, id: entry.id, category });
   } catch (err) {
     console.error("Confirm-save failed:", err);

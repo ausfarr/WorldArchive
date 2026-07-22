@@ -1,19 +1,17 @@
 const express = require("express");
-const path = require("path");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
-const { buildSurvivorRosterContext, buildAvailableClassesText } = require("../lib/roster");
+const { buildSurvivorRosterContext, buildAvailableClassesText, readSurvivorManifest, readSurvivorEntry } = require("../lib/roster");
 const { buildSurvivorContentSystemPrompt } = require("../prompts/survivorContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
-const { writeSurvivorDataFile, appendToSurvivorManifest, saveImage } = require("../lib/fileWriter");
+const { saveSurvivorEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildSurvivorBodyHtml } = require("../lib/survivorTemplate");
-const { readSurvivorManifest, readSurvivorEntry } = require("../lib/roster");
 
 const router = express.Router();
-const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 router.post("/generate-survivor", async (req, res) => {
   try {
+    const worldId = req.worldId;
     let { name, className, fillExistingId } = req.body || {};
     let existingEntry = null;
     let priorRaw = null;
@@ -21,7 +19,7 @@ router.post("/generate-survivor", async (req, res) => {
     let mode = "new";
 
     if (fillExistingId) {
-      const manifest = readSurvivorManifest(ARCHIVE_ROOT);
+      const manifest = await readSurvivorManifest(worldId);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing survivor entry found with id '${fillExistingId}'` });
@@ -30,15 +28,15 @@ router.post("/generate-survivor", async (req, res) => {
       // via fresh generation, per scope doc) — so any existing id here is
       // always a regenerate, never a "fill."
       mode = "regenerate";
-      const prior = readSurvivorEntry(ARCHIVE_ROOT, fillExistingId);
+      const prior = await readSurvivorEntry(worldId, fillExistingId);
       priorRaw = prior && prior.raw ? prior.raw : null;
       priorBodyHtml = prior ? prior.bodyHtml : null;
       name = existingEntry.name;
       className = priorRaw ? priorRaw.className : className;
     }
 
-    const rosterContext = buildSurvivorRosterContext(ARCHIVE_ROOT);
-    const availableClasses = buildAvailableClassesText(ARCHIVE_ROOT);
+    const rosterContext = await buildSurvivorRosterContext(worldId);
+    const availableClasses = await buildAvailableClassesText(worldId);
 
     const contentSystemPrompt = buildSurvivorContentSystemPrompt({ rosterContext, availableClasses, name, className, existingContent: priorRaw });
     const contentRaw = await callClaude({
@@ -85,9 +83,8 @@ router.post("/generate-survivor", async (req, res) => {
       console.error("Image step failed, continuing without art:", imgErr.message);
     }
 
-    writeSurvivorDataFile(ARCHIVE_ROOT, survivor);
-    appendToSurvivorManifest(ARCHIVE_ROOT, survivor);
-    if (imageBuffer) saveImage(ARCHIVE_ROOT, survivor.id, imageBuffer);
+    await saveSurvivorEntry(worldId, survivor);
+    if (imageBuffer) await saveImage(worldId, survivor.id, imageBuffer);
 
     res.json({
       preview: false,

@@ -1,17 +1,14 @@
 const express = require("express");
-const path = require("path");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
-const { buildItemRosterContext } = require("../lib/roster");
+const { buildItemRosterContext, readItemManifest, readItemEntry } = require("../lib/roster");
 const { buildItemContentSystemPrompt } = require("../prompts/itemContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
-const { writeItemDataFile, appendToItemManifest, saveImage } = require("../lib/fileWriter");
+const { saveItemEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildItemBodyHtml } = require("../lib/itemTemplate");
 const { weaponRollInRange } = require("../lib/itemFormulas");
-const { readItemManifest, readItemEntry } = require("../lib/roster");
 
 const router = express.Router();
-const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 const RARITY_WORDS = ["Common", "Uncommon", "Rare", "Legendary"];
 function parseSubtitleForItem(subtitle) {
@@ -27,6 +24,7 @@ function parseSubtitleForItem(subtitle) {
 
 router.post("/generate-item", async (req, res) => {
   try {
+    const worldId = req.worldId;
     let { name, category, rarity, fillExistingId } = req.body || {};
     let existingEntry = null;
     let priorRaw = null;
@@ -34,25 +32,24 @@ router.post("/generate-item", async (req, res) => {
     let mode = "new";
 
     if (fillExistingId) {
-      const manifest = readItemManifest(ARCHIVE_ROOT);
+      const manifest = await readItemManifest(worldId);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing item entry found with id '${fillExistingId}'` });
       }
       mode = existingEntry.locked ? "fill" : "regenerate";
       if (mode === "regenerate") {
-        const prior = readItemEntry(ARCHIVE_ROOT, fillExistingId);
+        const prior = await readItemEntry(worldId, fillExistingId);
         priorRaw = prior && prior.raw ? prior.raw : null;
         priorBodyHtml = prior ? prior.bodyHtml : null;
       }
       name = existingEntry.name;
-      // Older placeholders don't have dedicated category/rarity fields - parse from subtitle.
       const parsed = parseSubtitleForItem(existingEntry.subtitle);
       category = parsed.category || category;
       rarity = parsed.rarity || rarity;
     }
 
-    const rosterContext = buildItemRosterContext(ARCHIVE_ROOT);
+    const rosterContext = await buildItemRosterContext(worldId);
 
     const contentSystemPrompt = buildItemContentSystemPrompt({ rosterContext, name, category, rarity, existingContent: priorRaw });
     const contentRaw = await callClaude({
@@ -103,9 +100,8 @@ router.post("/generate-item", async (req, res) => {
       console.error("Image step failed, continuing without art:", imgErr.message);
     }
 
-    writeItemDataFile(ARCHIVE_ROOT, item);
-    appendToItemManifest(ARCHIVE_ROOT, item);
-    if (imageBuffer) saveImage(ARCHIVE_ROOT, item.id, imageBuffer);
+    await saveItemEntry(worldId, item);
+    if (imageBuffer) await saveImage(worldId, item.id, imageBuffer);
 
     res.json({
       preview: false,

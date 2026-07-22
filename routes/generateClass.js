@@ -1,19 +1,17 @@
 const express = require("express");
-const path = require("path");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
-const { buildClassRosterContext } = require("../lib/roster");
+const { buildClassRosterContext, readClassManifest, readClassEntry } = require("../lib/roster");
 const { buildClassContentSystemPrompt } = require("../prompts/classContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
-const { writeClassDataFile, appendToClassManifest, saveImage } = require("../lib/fileWriter");
+const { saveClassEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildClassBodyHtml } = require("../lib/classTemplate");
-const { readClassManifest, readClassEntry } = require("../lib/roster");
 
 const router = express.Router();
-const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 router.post("/generate-class", async (req, res) => {
   try {
+    const worldId = req.worldId;
     let { name, fillExistingId } = req.body || {};
     let existingEntry = null;
     let existingBaseName = null;
@@ -22,14 +20,14 @@ router.post("/generate-class", async (req, res) => {
     let mode = "new";
 
     if (fillExistingId) {
-      const manifest = readClassManifest(ARCHIVE_ROOT);
+      const manifest = await readClassManifest(worldId);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing class entry found with id '${fillExistingId}'` });
       }
       mode = existingEntry.locked ? "fill" : "regenerate";
       if (mode === "regenerate") {
-        const prior = readClassEntry(ARCHIVE_ROOT, fillExistingId);
+        const prior = await readClassEntry(worldId, fillExistingId);
         priorRaw = prior && prior.raw ? prior.raw : null;
         priorBodyHtml = prior ? prior.bodyHtml : null;
       }
@@ -39,7 +37,7 @@ router.post("/generate-class", async (req, res) => {
       name = existingBaseName;
     }
 
-    const rosterContext = buildClassRosterContext(ARCHIVE_ROOT);
+    const rosterContext = await buildClassRosterContext(worldId);
 
     const contentSystemPrompt = buildClassContentSystemPrompt({ rosterContext, name, existingContent: priorRaw });
     // Generous budget - a full 1-99 tree with ~21 abilities across 4 tiers
@@ -87,9 +85,8 @@ router.post("/generate-class", async (req, res) => {
       console.error("Image step failed, continuing without art:", imgErr.message);
     }
 
-    writeClassDataFile(ARCHIVE_ROOT, cls);
-    appendToClassManifest(ARCHIVE_ROOT, cls);
-    if (imageBuffer) saveImage(ARCHIVE_ROOT, cls.id, imageBuffer);
+    await saveClassEntry(worldId, cls);
+    if (imageBuffer) await saveImage(worldId, cls.id, imageBuffer);
 
     res.json({
       preview: false,

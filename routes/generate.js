@@ -1,19 +1,17 @@
 const express = require("express");
-const path = require("path");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
-const { buildRosterContext } = require("../lib/roster");
+const { buildRosterContext, readNpcManifest, readNpcEntry } = require("../lib/roster");
 const { buildNpcContentSystemPrompt } = require("../prompts/npcContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
-const { writeNpcDataFile, appendToManifest, saveImage } = require("../lib/fileWriter");
+const { saveNpcEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildBodyHtml } = require("../lib/entryTemplate");
-const { readNpcManifest, readNpcEntry } = require("../lib/roster");
 
 const router = express.Router();
-const ARCHIVE_ROOT = path.join(__dirname, "..", "archive");
 
 router.post("/generate-npc", async (req, res) => {
   try {
+    const worldId = req.worldId;
     let { name, role, faction, fillExistingId } = req.body || {};
     let existingEntry = null;
     let priorRaw = null;
@@ -21,14 +19,14 @@ router.post("/generate-npc", async (req, res) => {
     let mode = "new";
 
     if (fillExistingId) {
-      const manifest = readNpcManifest(ARCHIVE_ROOT);
+      const manifest = await readNpcManifest(worldId);
       existingEntry = manifest.find((m) => m.id === fillExistingId);
       if (!existingEntry) {
         return res.status(404).json({ error: `No existing NPC entry found with id '${fillExistingId}'` });
       }
       mode = existingEntry.locked ? "fill" : "regenerate";
       if (mode === "regenerate") {
-        const prior = readNpcEntry(ARCHIVE_ROOT, fillExistingId);
+        const prior = await readNpcEntry(worldId, fillExistingId);
         priorRaw = prior && prior.raw ? prior.raw : null;
         priorBodyHtml = prior ? prior.bodyHtml : null;
       }
@@ -38,8 +36,8 @@ router.post("/generate-npc", async (req, res) => {
       faction = existingEntry.faction || faction;
     }
 
-    // Step 1: roster overlap context from live archive files
-    const rosterContext = buildRosterContext(ARCHIVE_ROOT);
+    // Step 1: roster overlap context from live archive
+    const rosterContext = await buildRosterContext(worldId);
 
     // Step 2: content generation
     const contentSystemPrompt = buildNpcContentSystemPrompt({ rosterContext, name, role, faction, existingContent: priorRaw });
@@ -91,10 +89,9 @@ router.post("/generate-npc", async (req, res) => {
       console.error("Image step failed, continuing without art:", imgErr.message);
     }
 
-    // Step 5: write files
-    writeNpcDataFile(ARCHIVE_ROOT, npc);
-    appendToManifest(ARCHIVE_ROOT, npc);
-    if (imageBuffer) saveImage(ARCHIVE_ROOT, npc.id, imageBuffer);
+    // Step 5: write to Supabase
+    await saveNpcEntry(worldId, npc);
+    if (imageBuffer) await saveImage(worldId, npc.id, imageBuffer);
 
     res.json({
       preview: false,
