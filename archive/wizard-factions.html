@@ -221,7 +221,8 @@ document.getElementById("save-factions").addEventListener("click", async () => {
       body: JSON.stringify({ factions })
     });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
-    status.innerHTML = "Saved. (Step 5 — Stat System — isn't built yet, this is as far as the wizard goes for now.)";
+    status.textContent = "Saved — continuing…";
+    window.location.href = "wizard-stats.html";
   } catch (err) {
     status.textContent = "Error: " + err.message;
   } finally {
