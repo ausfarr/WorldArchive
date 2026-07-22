@@ -5,6 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Classes — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
+<script>
+(function() {
+  try {
+    var cached = localStorage.getItem('worldforge_theme_cache');
+    if (!cached) return;
+    var t = JSON.parse(cached);
+    var hex = /^#[0-9a-fA-F]{6}$/;
+    var overrides = [];
+    if (hex.test(t.backgroundColor)) overrides.push('--bg-void: ' + t.backgroundColor + ';');
+    if (hex.test(t.panelColor)) overrides.push('--bg-panel: ' + t.panelColor + '; --bg-panel-raised: ' + t.panelColor + ';');
+    if (hex.test(t.inkColor)) overrides.push('--ink: ' + t.inkColor + ';');
+    if (hex.test(t.primaryColor)) overrides.push('--neon-primary: ' + t.primaryColor + ';');
+    if (hex.test(t.secondaryColor)) overrides.push('--neon-cyan: ' + t.secondaryColor + ';');
+    var fontCss = '';
+    if (t.fontDisplay) {
+      var l1 = document.createElement('link');
+      l1.rel = 'stylesheet';
+      l1.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontDisplay).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
+      document.head.appendChild(l1);
+      fontCss += "h1, h2, .site-title { font-family: '" + t.fontDisplay + "', sans-serif; }\n";
+    }
+    if (t.fontBody) {
+      var l2 = document.createElement('link');
+      l2.rel = 'stylesheet';
+      l2.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontBody).replace(/%20/g, '+') + ':wght@400;500;600&display=swap';
+      document.head.appendChild(l2);
+      fontCss += "body { font-family: '" + t.fontBody + "', sans-serif; }\n";
+    }
+    var styleTag = document.createElement('style');
+    styleTag.id = 'world-theme-cached';
+    styleTag.textContent = ':root { ' + overrides.join(' ') + ' }\n' + fontCss;
+    document.head.appendChild(styleTag);
+  } catch (e) { /* no cache yet, or malformed -- fall back to default theme, async apply will fix it */ }
+})();
+</script>
+
 </head>
 <body data-category="classes">
 

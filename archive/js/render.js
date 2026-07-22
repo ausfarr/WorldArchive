@@ -348,57 +348,76 @@ async function applyCategoryConfig() {
   }
 }
 
+const THEME_CACHE_KEY = "worldforge_theme_cache";
+
 function googleFontLinkTag(fontName) {
   const family = encodeURIComponent(fontName).replace(/%20/g, "+");
   return `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${family}:wght@400;500;600;700&display=swap">`;
 }
 
+// Shared between the async applySiteTheme() below and the synchronous
+// cache-apply snippet duplicated inline in every page's <head> (which
+// can't call this function directly since it runs before render.js
+// loads -- see the inline snippet for why it's a near-identical copy of
+// this logic in plain vanilla JS).
+function buildThemeOverrideCss(styleGuide) {
+  const hex = /^#[0-9a-fA-F]{6}$/;
+  const overrides = [];
+  if (hex.test(styleGuide.backgroundColor)) overrides.push(`--bg-void: ${styleGuide.backgroundColor};`);
+  if (hex.test(styleGuide.panelColor)) overrides.push(`--bg-panel: ${styleGuide.panelColor}; --bg-panel-raised: ${styleGuide.panelColor};`);
+  if (hex.test(styleGuide.inkColor)) overrides.push(`--ink: ${styleGuide.inkColor};`);
+  if (hex.test(styleGuide.primaryColor)) overrides.push(`--neon-primary: ${styleGuide.primaryColor};`);
+  if (hex.test(styleGuide.secondaryColor)) overrides.push(`--neon-cyan: ${styleGuide.secondaryColor};`);
+
+  let fontCss = "";
+  if (styleGuide.fontDisplay) fontCss += `.flicker-title, .site-title, h1, h2, .sheet-header h1, .category-card h2, .entry-card h3 { font-family: '${styleGuide.fontDisplay}', sans-serif; }\n`;
+  if (styleGuide.fontBody) fontCss += `body { font-family: '${styleGuide.fontBody}', sans-serif; }\n`;
+
+  return `:root { ${overrides.join(" ")} }\n${fontCss}`;
+}
+
 // Applies style_guide_json's literal color/font fields (Wizard Step 6) as
-// a runtime CSS override -- injects a <style id="world-theme-override">
-// tag with :root custom-property overrides plus font-family rules, and
-// loads any needed Google Fonts. Prose fields on the style guide
-// (renderingStyle, lighting, textureAndWear, etc.) are for a future
-// art-prompt generator, not applied here -- only the literal
-// hex-color/font-name fields affect the site itself.
+// a runtime CSS override, and caches it in localStorage so the NEXT page
+// load can apply it synchronously before first paint (see the inline
+// cache-apply snippet at the top of every page's <head>) -- eliminating
+// the flash-of-default-theme on every navigation after the first.
 //
-// KNOWN SIMPLIFICATION: this runs after the page has already painted with
-// the default theme (it's an async fetch gated on auth), so there's a
-// brief flash of the default look before the world's theme applies.
-// Acceptable for now; revisit if this becomes a real product page rather
-// than a dev/admin tool.
+// KNOWN SIMPLIFICATION: localStorage isn't scoped per-account -- if
+// multiple WorldForge accounts share one browser, they'll briefly see
+// each other's cached theme on the very first paint before this async
+// call corrects it. Low-stakes (visual only, self-corrects same page
+// load), same risk class as the portrait bucket's unguessable-ID
+// simplification -- not worth solving until it's a real complaint.
 async function applySiteTheme() {
   try {
     const res = await authFetch("/api/wizard/style-guide");
     const { styleGuide } = await res.json();
-    if (!styleGuide) return;
 
-    const hex = /^#[0-9a-fA-F]{6}$/;
-    const overrides = [];
-    if (hex.test(styleGuide.backgroundColor)) overrides.push(`--bg-void: ${styleGuide.backgroundColor};`);
-    if (hex.test(styleGuide.panelColor)) overrides.push(`--bg-panel: ${styleGuide.panelColor}; --bg-panel-raised: ${styleGuide.panelColor};`);
-    if (hex.test(styleGuide.inkColor)) overrides.push(`--ink: ${styleGuide.inkColor};`);
-    if (hex.test(styleGuide.primaryColor)) overrides.push(`--neon-primary: ${styleGuide.primaryColor};`);
-    if (hex.test(styleGuide.secondaryColor)) overrides.push(`--neon-cyan: ${styleGuide.secondaryColor};`);
+    // Remove any previously-applied override (from this call or the
+    // cache-apply snippet) so a world with no theme (or a freshly reset
+    // one) actually reverts to the site defaults instead of leaving a
+    // stale cached theme showing forever.
+    const existingOverride = document.getElementById("world-theme-override");
+    if (existingOverride) existingOverride.remove();
+    const cachedOverride = document.getElementById("world-theme-cached");
+    if (cachedOverride) cachedOverride.remove();
+
+    if (!styleGuide) {
+      localStorage.removeItem(THEME_CACHE_KEY);
+      return;
+    }
 
     let fontLinks = "";
-    let fontCss = "";
-    if (styleGuide.fontDisplay) {
-      fontLinks += googleFontLinkTag(styleGuide.fontDisplay);
-      fontCss += `.flicker-title, .site-title, h1, h2, .sheet-header h1, .category-card h2, .entry-card h3 { font-family: '${styleGuide.fontDisplay}', sans-serif; }\n`;
-    }
-    if (styleGuide.fontBody) {
-      fontLinks += googleFontLinkTag(styleGuide.fontBody);
-      fontCss += `body { font-family: '${styleGuide.fontBody}', sans-serif; }\n`;
-    }
-
+    if (styleGuide.fontDisplay) fontLinks += googleFontLinkTag(styleGuide.fontDisplay);
+    if (styleGuide.fontBody) fontLinks += googleFontLinkTag(styleGuide.fontBody);
     if (fontLinks) document.head.insertAdjacentHTML("beforeend", fontLinks);
 
-    if (overrides.length || fontCss) {
-      const styleTag = document.createElement("style");
-      styleTag.id = "world-theme-override";
-      styleTag.textContent = `:root { ${overrides.join(" ")} }\n${fontCss}`;
-      document.head.appendChild(styleTag);
-    }
+    const styleTag = document.createElement("style");
+    styleTag.id = "world-theme-override";
+    styleTag.textContent = buildThemeOverrideCss(styleGuide);
+    document.head.appendChild(styleTag);
+
+    localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(styleGuide));
   } catch (err) {
     console.error("Failed to apply site theme:", err);
   }
