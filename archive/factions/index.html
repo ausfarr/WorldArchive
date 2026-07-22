@@ -19,6 +19,7 @@
       <a href="../items/index.html">Items</a>
       <a href="../logs/index.html">Logs</a>
       <a href="../survivors/index.html">Survivors</a>
+      <span id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></span>
     </nav>
   </div>
 </header>
@@ -37,10 +38,17 @@
   <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
 </footer>
 
+<script src="/config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
 <script src="manifest.js"></script>
 <script src="../js/render.js"></script>
 <script>
-  renderCategoryIndex(window.MANIFEST_FACTIONS, "factions");
+  requireAuth().then((session) => {
+    if (!session) return; // requireAuth already redirected to /login.html
+    renderAuthStatus();
+    renderCategoryIndex(window.MANIFEST_FACTIONS, "factions");
+  });
 </script>
 
 </body>

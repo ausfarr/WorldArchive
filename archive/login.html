@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log In — The Archive</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+  </div>
+</header>
+
+<div class="wrap" style="max-width: 420px; padding-top: 60px;">
+  <div class="sheet" style="padding: 32px;">
+    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;" id="form-title">Log In</h1>
+    <p style="color: var(--ink-dim); font-size: 0.88rem; margin: 0 0 24px;" id="form-sub">Access your World Forge account.</p>
+
+    <form id="auth-form">
+      <label for="email" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">EMAIL</label>
+      <input id="email" type="email" required autocomplete="email" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 10px 12px; font-family: var(--font-body); margin-bottom: 16px;">
+
+      <label for="password" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">PASSWORD</label>
+      <input id="password" type="password" required autocomplete="current-password" minlength="6" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 10px 12px; font-family: var(--font-body); margin-bottom: 20px;">
+
+      <button type="submit" id="submit-btn" style="width: 100%; background: var(--neon-primary); color: var(--bg-void); border: none; padding: 12px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Log In</button>
+    </form>
+
+    <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 16px 0 0; display: none;"></p>
+
+    <p style="font-size: 0.85rem; color: var(--ink-dim); margin: 20px 0 0; text-align: center;">
+      <span id="toggle-mode-prompt">Don't have an account?</span>
+      <a href="#" id="toggle-mode">Sign up</a>
+    </p>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+</footer>
+
+<script src="/config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+let mode = "signin"; // "signin" | "signup"
+
+document.getElementById("toggle-mode").addEventListener("click", (e) => {
+  e.preventDefault();
+  mode = mode === "signin" ? "signup" : "signin";
+  const isSignup = mode === "signup";
+  document.getElementById("form-title").textContent = isSignup ? "Sign Up" : "Log In";
+  document.getElementById("form-sub").textContent = isSignup
+    ? "Create a new World Forge account."
+    : "Access your World Forge account.";
+  document.getElementById("submit-btn").textContent = isSignup ? "Sign Up" : "Log In";
+  document.getElementById("toggle-mode-prompt").textContent = isSignup
+    ? "Already have an account?"
+    : "Don't have an account?";
+  document.getElementById("toggle-mode").textContent = isSignup ? "Log in" : "Sign up";
+});
+
+document.getElementById("auth-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+  const btn = document.getElementById("submit-btn");
+  const status = document.getElementById("status");
+  btn.disabled = true;
+  status.style.display = "block";
+  status.textContent = mode === "signup" ? "Creating account…" : "Logging in…";
+  try {
+    if (mode === "signup") {
+      await signUp(email, password);
+      status.textContent = "Account created. If email confirmation is required, check your inbox — otherwise you're logged in.";
+      // If Supabase's project settings don't require email confirmation,
+      // signUp() already returns an active session, so this redirect
+      // works immediately. If confirmation IS required, the session will
+      // be null and the user lands back here after confirming — no
+      // special-casing needed beyond this message.
+      const session = await getCurrentSession();
+      if (session) window.location.href = "index.html";
+    } else {
+      await signIn(email, password);
+      window.location.href = "index.html";
+    }
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+    btn.disabled = false;
+  }
+});
+
+// If already logged in, skip straight past the login page.
+(async () => {
+  const session = await getCurrentSession();
+  if (session) window.location.href = "index.html";
+})();
+</script>
+
+</body>
+</html>

@@ -62,7 +62,7 @@ async function fillInEntry(categoryPath, id, btnEl) {
   btnEl.disabled = true;
   btnEl.textContent = "Generating…";
   try {
-    const res = await fetch(endpoint, {
+    const res = await authFetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fillExistingId: id })
@@ -90,7 +90,7 @@ async function regenerateEntry(categoryPath, id, btnEl) {
   btnEl.disabled = true;
   btnEl.textContent = "Generating…";
   try {
-    const res = await fetch(endpoint, {
+    const res = await authFetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fillExistingId: id })
@@ -164,7 +164,7 @@ function showRegeneratePreview(data) {
     status.style.display = "block";
     status.textContent = "Writing to the archive…";
     try {
-      const res = await fetch("/api/confirm-entry", {
+      const res = await authFetch("/api/confirm-entry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category: data.category, entry: data.entry })

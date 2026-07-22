@@ -19,6 +19,7 @@
       <a href="items/index.html">Items</a>
       <a href="logs/index.html">Logs</a>
       <a href="survivors/index.html">Survivors</a>
+      <span id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></span>
     </nav>
   </div>
 </header>
@@ -92,6 +93,9 @@
   </div>
 </footer>
 
+<script src="/config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
 <script src="factions/manifest.js"></script>
 <script src="npcs/manifest.js"></script>
 <script src="enemies/manifest.js"></script>
@@ -101,14 +105,18 @@
 <script src="survivors/manifest.js"></script>
 <script src="js/render.js"></script>
 <script>
-  renderHomepageCounts({
-    factions: window.MANIFEST_FACTIONS,
-    npcs: window.MANIFEST_NPCS,
-    enemies: window.MANIFEST_ENEMIES,
-    classes: window.MANIFEST_CLASSES,
-    items: window.MANIFEST_ITEMS,
-    logs: window.MANIFEST_LOGS,
-    survivors: window.MANIFEST_SURVIVORS
+  requireAuth().then((session) => {
+    if (!session) return;
+    renderAuthStatus();
+    renderHomepageCounts({
+      factions: window.MANIFEST_FACTIONS,
+      npcs: window.MANIFEST_NPCS,
+      enemies: window.MANIFEST_ENEMIES,
+      classes: window.MANIFEST_CLASSES,
+      items: window.MANIFEST_ITEMS,
+      logs: window.MANIFEST_LOGS,
+      survivors: window.MANIFEST_SURVIVORS
+    });
   });
 </script>
 </body>
