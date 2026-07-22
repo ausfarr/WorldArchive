@@ -11,13 +11,18 @@
 <header class="site-header">
   <div class="wrap">
     <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
-    <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="#" onclick="startOverWizard(); return false;" style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em;">Start Over</a>
+      <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+    </div>
   </div>
 </header>
 
 <div class="wrap" style="max-width: 720px; padding-top: 40px; padding-bottom: 80px;">
 
   <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Steps 2–3 of 8 <span class="sep">/</span> World Lore</p>
+
+  <a href="wizard.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Seed &amp; Vision</a>
 
   <div class="sheet" style="padding: 32px;">
     <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;">World Lore</h1>
@@ -118,6 +123,7 @@
 <script src="/config.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
+<script src="/js/wizardSession.js"></script>
 <script>
 let currentSections = [];
 let currentSource = "generated";
@@ -234,6 +240,7 @@ document.getElementById("save-lore").addEventListener("click", async () => {
 async function init() {
   await requireAuth();
   renderAuthStatus();
+  await ensureWizardSession();
   try {
     const res = await authFetch("/api/wizard/lore");
     const { sections } = await res.json();

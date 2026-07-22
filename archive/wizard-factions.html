@@ -11,13 +11,18 @@
 <header class="site-header">
   <div class="wrap">
     <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
-    <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="#" onclick="startOverWizard(); return false;" style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em;">Start Over</a>
+      <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+    </div>
   </div>
 </header>
 
 <div class="wrap" style="max-width: 760px; padding-top: 40px; padding-bottom: 80px;">
 
   <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 4 of 8 <span class="sep">/</span> Factions</p>
+
+  <a href="wizard-lore.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to World Lore</a>
 
   <div class="sheet" style="padding: 32px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
@@ -87,6 +92,7 @@
 <script src="/config.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
+<script src="/js/wizardSession.js"></script>
 <script>
 const MAX_FACTIONS = 8;
 let factions = []; // each: { id, name, concept, politics, government, economy, military, tensions }
@@ -226,6 +232,7 @@ document.getElementById("save-factions").addEventListener("click", async () => {
 async function init() {
   await requireAuth();
   renderAuthStatus();
+  await ensureWizardSession();
   try {
     const res = await authFetch("/api/wizard/factions");
     const { factions: loaded } = await res.json();
