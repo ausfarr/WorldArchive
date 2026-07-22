@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Setup — Style Guide — The Archive</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="#" onclick="startOverWizard(); return false;" style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em;">Start Over</a>
+      <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" style="max-width: 680px; padding-top: 40px; padding-bottom: 80px;">
+
+  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 6 of 8 <span class="sep">/</span> Style Guide</p>
+
+  <a href="wizard-stats.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Stat System</a>
+
+  <div class="sheet" style="padding: 32px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+      <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Style Guide</h1>
+      <button type="button" id="generate-base" class="generate-btn">Generate for me</button>
+    </div>
+    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">This becomes the visual bible future art-prompt generation will draw from, so everything generated stays consistent.</p>
+
+    <label class="field-label">Rendering Style</label>
+    <textarea id="rendering-style" class="field-input" rows="2"></textarea>
+
+    <label class="field-label">Lighting</label>
+    <textarea id="lighting" class="field-input" rows="2"></textarea>
+
+    <label class="field-label">Base Palette</label>
+    <textarea id="base-palette" class="field-input" rows="2"></textarea>
+
+    <label class="field-label">Accent Color (signature/hazard color, if any)</label>
+    <textarea id="accent-color" class="field-input" rows="2"></textarea>
+
+    <label class="field-label">Texture &amp; Wear</label>
+    <textarea id="texture-wear" class="field-input" rows="2"></textarea>
+
+    <label class="field-label">Composition Defaults</label>
+    <textarea id="composition-defaults" class="field-input" rows="2"></textarea>
+
+    <label class="field-label">What to Avoid</label>
+    <textarea id="avoid" class="field-input" rows="2"></textarea>
+
+    <hr style="border: none; border-top: 1px solid var(--border-line-soft); margin: 28px 0;">
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+      <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1rem; color: var(--neon-cyan); margin: 0;">Faction Accent Colors</h2>
+      <button type="button" id="generate-accents" class="generate-btn">Generate for me</button>
+    </div>
+    <p id="no-factions-note" style="color: var(--ink-faint); font-size: 0.85rem; display:none;">No factions saved yet (Step 4) — add some there first, then come back.</p>
+    <div id="accents-list"></div>
+
+    <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+
+    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+      <button type="button" id="save-style" class="primary-btn">Save &amp; Continue →</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+</footer>
+
+<style>
+  .primary-btn {
+    background: var(--neon-primary); color: var(--bg-void); border: none;
+    padding: 12px 24px; font-family: var(--font-display); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-weight: 600;
+  }
+  .primary-btn:disabled { opacity: 0.5; cursor: default; }
+  .generate-btn {
+    background: none; border: 1px solid var(--neon-cyan); color: var(--neon-cyan);
+    padding: 8px 14px; font-family: var(--font-mono); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
+  }
+  .generate-btn:disabled { opacity: 0.5; cursor: default; }
+  .field-label {
+    display: block; font-family: var(--font-mono); font-size: 0.7rem;
+    letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint);
+    margin: 16px 0 6px;
+  }
+  .field-input {
+    width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    color: var(--ink); padding: 10px 12px; font-family: var(--font-body); font-size: 0.92rem; resize: vertical;
+  }
+  .accent-card {
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    padding: 14px 16px; margin-bottom: 10px; display: grid; grid-template-columns: 140px 1fr; gap: 12px; align-items: start;
+  }
+  .accent-faction-name { font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; color: var(--ink); padding-top: 8px; }
+  .accent-color-input { margin-bottom: 6px; }
+</style>
+
+<script src="/config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/wizardSession.js"></script>
+<script>
+let factions = [];
+let accents = {}; // keyed by faction id -> { accentColor, accentNotes }
+
+const FIELD_IDS = {
+  renderingStyle: "rendering-style",
+  lighting: "lighting",
+  basePalette: "base-palette",
+  accentColor: "accent-color",
+  textureAndWear: "texture-wear",
+  compositionDefaults: "composition-defaults",
+  avoid: "avoid"
+};
+
+function fillBaseFields(styleGuide) {
+  const s = styleGuide || {};
+  Object.entries(FIELD_IDS).forEach(([key, id]) => {
+    document.getElementById(id).value = s[key] || "";
+  });
+}
+
+function readBaseFields() {
+  const out = {};
+  Object.entries(FIELD_IDS).forEach(([key, id]) => {
+    out[key] = document.getElementById(id).value;
+  });
+  return out;
+}
+
+function renderAccents() {
+  document.getElementById("no-factions-note").style.display = factions.length === 0 ? "block" : "none";
+  document.getElementById("accents-list").innerHTML = factions.map((f) => {
+    const a = accents[f.id] || {};
+    return `
+      <div class="accent-card" data-id="${f.id}">
+        <div class="accent-faction-name">${f.name || f.id}</div>
+        <div>
+          <input class="field-input accent-color-input" placeholder="Accent color" value="${(a.accentColor || "").replace(/"/g, "&quot;")}">
+          <textarea class="field-input accent-notes-input" rows="1" placeholder="Where/how it shows up">${a.accentNotes || ""}</textarea>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function syncAccentsFromDOM() {
+  document.querySelectorAll(".accent-card").forEach((card) => {
+    const id = card.dataset.id;
+    accents[id] = {
+      accentColor: card.querySelector(".accent-color-input").value,
+      accentNotes: card.querySelector(".accent-notes-input").value
+    };
+  });
+}
+
+document.getElementById("generate-base").addEventListener("click", async () => {
+  const btn = document.getElementById("generate-base");
+  const status = document.getElementById("status");
+  btn.disabled = true;
+  status.textContent = "Generating…";
+  try {
+    const res = await authFetch("/api/wizard/generate-style-guide", { method: "POST" });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+    const { styleGuide } = await res.json();
+    fillBaseFields(styleGuide);
+    status.textContent = "Generated — edit freely before saving.";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("generate-accents").addEventListener("click", async () => {
+  const btn = document.getElementById("generate-accents");
+  const status = document.getElementById("status");
+  if (factions.length === 0) { status.textContent = "No factions saved yet — nothing to assign colors to."; return; }
+  btn.disabled = true;
+  status.textContent = "Assigning faction accent colors…";
+  try {
+    const baseStyle = readBaseFields();
+    const res = await authFetch("/api/wizard/generate-faction-accents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ baseStyle })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+    const { factionAccents } = await res.json();
+    (factionAccents || []).forEach((fa) => { accents[fa.id] = fa; });
+    renderAccents();
+    status.textContent = "Assigned — edit freely before saving.";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("save-style").addEventListener("click", async () => {
+  syncAccentsFromDOM();
+  const status = document.getElementById("status");
+  const btn = document.getElementById("save-style");
+  btn.disabled = true;
+  status.textContent = "Saving…";
+  try {
+    const styleGuide = readBaseFields();
+    styleGuide.factionAccents = factions.map((f) => Object.assign({ id: f.id }, accents[f.id] || {}));
+    const res = await authFetch("/api/wizard/save-style-guide", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ styleGuide })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
+    status.textContent = "Saved. (Step 7 — Category Configuration — isn't built yet, this is as far as the wizard goes for now.)";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+async function init() {
+  await requireAuth();
+  renderAuthStatus();
+  await ensureWizardSession();
+
+  try {
+    const [styleRes, factionsRes] = await Promise.all([
+      authFetch("/api/wizard/style-guide"),
+      authFetch("/api/wizard/factions")
+    ]);
+    const { styleGuide } = await styleRes.json();
+    const { factions: loadedFactions } = await factionsRes.json();
+    factions = loadedFactions || [];
+    fillBaseFields(styleGuide);
+    accents = {};
+    ((styleGuide && styleGuide.factionAccents) || []).forEach((fa) => { accents[fa.id] = fa; });
+  } catch (err) {
+    console.error("Could not load existing style guide/factions:", err);
+  }
+  renderAccents();
+}
+
+init();
+</script>
+
+</body>
+</html>

@@ -147,7 +147,8 @@ document.getElementById("save-stats").addEventListener("click", async () => {
       body: JSON.stringify({ statSystem })
     });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
-    status.textContent = "Saved. (Step 6 — Style Guide — isn't built yet, this is as far as the wizard goes for now.)";
+    status.textContent = "Saved — continuing…";
+    window.location.href = "wizard-style.html";
   } catch (err) {
     status.textContent = "Error: " + err.message;
   } finally {
