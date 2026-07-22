@@ -309,43 +309,61 @@ async function loadAndRenderHomepageCounts() {
   }
 }
 
+const CATEGORY_CACHE_KEY = "worldforge_category_config_cache";
+
 // Applies category_config_json (Wizard Step 7) to the live nav and
 // homepage: relabels categories, hides disabled ones. Every archive page
 // gets id="nav-{category}" on its nav link; index.html additionally gets
 // id="card-{category}" on its homepage card; category index pages get
 // id="page-title" and id="crumb-label" for their own heading/breadcrumb.
+// Caches the result in localStorage so the next page load can apply it
+// synchronously before paint (see the inline cache-apply snippet near
+// the end of <body> on every page) -- otherwise every navigation flashes
+// the default category name before correcting, same class of bug the
+// theme flash fix already addressed.
 async function applyCategoryConfig() {
   try {
     const res = await authFetch("/api/wizard/category-config");
     const { categoryConfig } = await res.json();
-    if (!categoryConfig) return;
-
-    Object.entries(categoryConfig).forEach(([key, cfg]) => {
-      const navLink = document.getElementById(`nav-${key}`);
-      if (navLink) {
-        if (cfg.enabled === false) navLink.style.display = "none";
-        else if (cfg.label) navLink.textContent = cfg.label;
-      }
-      const card = document.getElementById(`card-${key}`);
-      if (card) {
-        if (cfg.enabled === false) {
-          card.style.display = "none";
-        } else if (cfg.label) {
-          const h2 = card.querySelector("h2");
-          if (h2) h2.textContent = cfg.label;
-        }
-      }
-      const pageTitle = document.getElementById("page-title");
-      const crumbLabel = document.getElementById("crumb-label");
-      if (document.body.dataset.category === key && cfg.label) {
-        if (pageTitle) pageTitle.textContent = cfg.label;
-        if (crumbLabel) crumbLabel.textContent = cfg.label;
-        document.title = document.title.replace(/^[^—]+/, `${cfg.label} `);
-      }
-    });
+    if (!categoryConfig) {
+      localStorage.removeItem(CATEGORY_CACHE_KEY);
+      return;
+    }
+    applyCategoryConfigToDom(categoryConfig);
+    localStorage.setItem(CATEGORY_CACHE_KEY, JSON.stringify(categoryConfig));
   } catch (err) {
     console.error("Failed to apply category config:", err);
   }
+}
+
+// The actual DOM-mutation logic, factored out so both the async fetch
+// above and the synchronous cache-apply snippet in each page can use the
+// identical rules (the snippet is vanilla JS duplicated inline since it
+// runs before render.js loads, but mirrors this function's logic).
+function applyCategoryConfigToDom(categoryConfig) {
+  Object.entries(categoryConfig).forEach(([key, cfg]) => {
+    const navLink = document.getElementById(`nav-${key}`);
+    if (navLink) {
+      if (cfg.enabled === false) navLink.style.display = "none";
+      else if (cfg.label) navLink.textContent = cfg.label;
+    }
+    const card = document.getElementById(`card-${key}`);
+    if (card) {
+      if (cfg.enabled === false) {
+        card.style.display = "none";
+      } else if (cfg.label) {
+        const h2 = card.querySelector("h2");
+        if (h2) h2.textContent = cfg.label;
+      }
+    }
+    const pageTitle = document.getElementById("page-title");
+    const crumbLabel = document.getElementById("crumb-label");
+    if (document.body.dataset.category === key && cfg.label) {
+      if (pageTitle) pageTitle.textContent = cfg.label;
+      if (crumbLabel) crumbLabel.textContent = cfg.label;
+      document.title = document.title.replace(/^[^—]+/, `${cfg.label} `);
+    }
+  });
 }
 
 const THEME_CACHE_KEY = "worldforge_theme_cache";
@@ -368,12 +386,18 @@ function buildThemeOverrideCss(styleGuide) {
   if (hex.test(styleGuide.inkColor)) overrides.push(`--ink: ${styleGuide.inkColor};`);
   if (hex.test(styleGuide.primaryColor)) overrides.push(`--neon-primary: ${styleGuide.primaryColor};`);
   if (hex.test(styleGuide.secondaryColor)) overrides.push(`--neon-cyan: ${styleGuide.secondaryColor};`);
+  // Override the CSS custom properties themselves, not selector rules --
+  // style.css and several inline style="font-family: var(--font-display)"
+  // attributes already reference these variables everywhere. Redefining
+  // what the variable MEANS cascades correctly through all of that
+  // automatically. Writing a competing `h1 { font-family: ... }` rule
+  // instead (the original approach) silently lost to any inline style
+  // using var(--font-display), which is why some titles kept showing the
+  // default font even after "applying" a theme.
+  if (styleGuide.fontDisplay) overrides.push(`--font-display: '${styleGuide.fontDisplay}', sans-serif;`);
+  if (styleGuide.fontBody) overrides.push(`--font-body: '${styleGuide.fontBody}', sans-serif;`);
 
-  let fontCss = "";
-  if (styleGuide.fontDisplay) fontCss += `.flicker-title, .site-title, h1, h2, .sheet-header h1, .category-card h2, .entry-card h3 { font-family: '${styleGuide.fontDisplay}', sans-serif; }\n`;
-  if (styleGuide.fontBody) fontCss += `body { font-family: '${styleGuide.fontBody}', sans-serif; }\n`;
-
-  return `:root { ${overrides.join(" ")} }\n${fontCss}`;
+  return `:root { ${overrides.join(" ")} }`;
 }
 
 // Applies style_guide_json's literal color/font fields (Wizard Step 6) as

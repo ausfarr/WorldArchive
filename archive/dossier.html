@@ -18,24 +18,23 @@
     if (hex.test(t.inkColor)) overrides.push('--ink: ' + t.inkColor + ';');
     if (hex.test(t.primaryColor)) overrides.push('--neon-primary: ' + t.primaryColor + ';');
     if (hex.test(t.secondaryColor)) overrides.push('--neon-cyan: ' + t.secondaryColor + ';');
-    var fontCss = '';
     if (t.fontDisplay) {
+      overrides.push("--font-display: '" + t.fontDisplay + "', sans-serif;");
       var l1 = document.createElement('link');
       l1.rel = 'stylesheet';
       l1.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontDisplay).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
       document.head.appendChild(l1);
-      fontCss += "h1, h2, .site-title { font-family: '" + t.fontDisplay + "', sans-serif; }\n";
     }
     if (t.fontBody) {
+      overrides.push("--font-body: '" + t.fontBody + "', sans-serif;");
       var l2 = document.createElement('link');
       l2.rel = 'stylesheet';
       l2.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontBody).replace(/%20/g, '+') + ':wght@400;500;600&display=swap';
       document.head.appendChild(l2);
-      fontCss += "body { font-family: '" + t.fontBody + "', sans-serif; }\n";
     }
     var styleTag = document.createElement('style');
     styleTag.id = 'world-theme-cached';
-    styleTag.textContent = ':root { ' + overrides.join(' ') + ' }\n' + fontCss;
+    styleTag.textContent = ':root { ' + overrides.join(' ') + ' }';
     document.head.appendChild(styleTag);
   } catch (e) { /* no cache yet, or malformed -- fall back to default theme, async apply will fix it */ }
 })();
@@ -81,6 +80,39 @@
   <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
 </footer>
 
+<script>
+(function() {
+  try {
+    var cached = localStorage.getItem('worldforge_category_config_cache');
+    if (!cached) return;
+    var categoryConfig = JSON.parse(cached);
+    Object.keys(categoryConfig).forEach(function(key) {
+      var cfg = categoryConfig[key];
+      var navLink = document.getElementById('nav-' + key);
+      if (navLink) {
+        if (cfg.enabled === false) navLink.style.display = 'none';
+        else if (cfg.label) navLink.textContent = cfg.label;
+      }
+      var card = document.getElementById('card-' + key);
+      if (card) {
+        if (cfg.enabled === false) {
+          card.style.display = 'none';
+        } else if (cfg.label) {
+          var h2 = card.querySelector('h2');
+          if (h2) h2.textContent = cfg.label;
+        }
+      }
+      if (document.body.dataset.category === key && cfg.label) {
+        var pageTitle = document.getElementById('page-title');
+        var crumbLabel = document.getElementById('crumb-label');
+        if (pageTitle) pageTitle.textContent = cfg.label;
+        if (crumbLabel) crumbLabel.textContent = cfg.label;
+        document.title = document.title.replace(/^[^\u2014]+/, cfg.label + ' ');
+      }
+    });
+  } catch (e) { /* no cache yet, or malformed -- async apply will fix it */ }
+})();
+</script>
 <script src="/config.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
