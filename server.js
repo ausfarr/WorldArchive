@@ -15,6 +15,7 @@ const wizardFactionsRoute = require("./routes/wizardFactions");
 const wizardStatSystemRoute = require("./routes/wizardStatSystem");
 const wizardStyleGuideRoute = require("./routes/wizardStyleGuide");
 const wizardCategoryConfigRoute = require("./routes/wizardCategoryConfig");
+const wizardReviewRoute = require("./routes/wizardReview");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -56,6 +57,7 @@ app.use("/api", wizardFactionsRoute);
 app.use("/api", wizardStatSystemRoute);
 app.use("/api", wizardStyleGuideRoute);
 app.use("/api", wizardCategoryConfigRoute);
+app.use("/api", wizardReviewRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 
 // Catches errors passed via next(err) anywhere above (e.g. a Supabase/DB

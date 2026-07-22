@@ -167,7 +167,8 @@ document.getElementById("save-config").addEventListener("click", async () => {
       body: JSON.stringify({ categoryConfig })
     });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
-    status.textContent = "Saved. (Step 8 — Review & Confirm — isn't built yet, this is as far as the wizard goes for now.)";
+    status.textContent = "Saved — continuing…";
+    window.location.href = "wizard-review.html";
   } catch (err) {
     status.textContent = "Error: " + err.message;
   } finally {

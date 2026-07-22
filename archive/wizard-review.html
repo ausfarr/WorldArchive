@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Setup — Review &amp; Confirm — The Archive</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="#" onclick="startOverWizard(); return false;" style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em;">Start Over</a>
+      <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" style="max-width: 760px; padding-top: 40px; padding-bottom: 80px;">
+
+  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 8 of 8 <span class="sep">/</span> Review &amp; Confirm</p>
+
+  <a href="wizard-categories.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Category Configuration</a>
+
+  <div class="sheet" style="padding: 32px;">
+    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;">Review &amp; Confirm</h1>
+    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Everything below was already saved as you went through Steps 1–7 — this is just a summary, not a final write gate. Go back and edit any step if something's off.</p>
+
+    <div id="notice-box" style="display:none; background: rgba(255,47,110,0.08); border: 1px solid var(--neon-primary); padding: 14px 16px; margin-bottom: 24px; font-size: 0.85rem; color: var(--ink);">
+      <strong style="color: var(--neon-primary);">Heads up:</strong> confirming below will take you into the archive, but the archive's pages don't read from this generated world data yet — that frontend wiring is planned for a later phase. You won't see your NPCs/factions/etc. show up visually there yet; this step just marks setup as complete on the backend.
+    </div>
+
+    <div id="summary"></div>
+
+    <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+
+    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+      <button type="button" id="confirm-btn" class="primary-btn">Confirm &amp; Finish Setup</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+</footer>
+
+<style>
+  .primary-btn {
+    background: var(--neon-primary); color: var(--bg-void); border: none;
+    padding: 12px 24px; font-family: var(--font-display); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-weight: 600;
+  }
+  .primary-btn:disabled { opacity: 0.5; cursor: default; }
+  .review-section {
+    border: 1px solid var(--border-line); background: var(--bg-panel-raised);
+    padding: 16px 18px; margin-bottom: 14px;
+  }
+  .review-section h2 {
+    font-family: var(--font-display); text-transform: uppercase; font-size: 0.9rem;
+    color: var(--neon-cyan); margin: 0 0 10px; border-bottom: 1px solid var(--border-line-soft); padding-bottom: 8px;
+  }
+  .review-section .empty { color: var(--ink-faint); font-size: 0.85rem; font-style: italic; }
+  .review-row { font-size: 0.85rem; margin: 4px 0; color: var(--ink-dim); }
+  .review-row strong { color: var(--ink); }
+  .pill-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill {
+    font-family: var(--font-mono); font-size: 0.68rem; border: 1px solid var(--border-line);
+    padding: 3px 8px; color: var(--ink-dim);
+  }
+</style>
+
+<script src="/config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/wizardSession.js"></script>
+<script>
+function section(title, innerHtml) {
+  return `<div class="review-section"><h2>${title}</h2>${innerHtml}</div>`;
+}
+
+function renderSummary(data) {
+  const el = document.getElementById("summary");
+  let html = "";
+
+  // Step 1 — Seed & Vision
+  const s1 = data.step1 || {};
+  const genre = Array.isArray(s1.genre) ? s1.genre.join(", ") : (s1.genre || "");
+  html += section("Seed & Vision", `
+    ${genre ? `<div class="review-row"><strong>Genre:</strong> ${genre}</div>` : ""}
+    ${s1.scale ? `<div class="review-row"><strong>Scale:</strong> ${s1.scale}</div>` : ""}
+    ${s1.era ? `<div class="review-row"><strong>Era:</strong> ${s1.era}</div>` : ""}
+    ${s1.coreTension ? `<div class="review-row"><strong>Core Tension:</strong> ${s1.coreTension}</div>` : ""}
+    ${(!genre && !s1.scale && !s1.era && !s1.coreTension) ? '<div class="empty">Not filled in yet.</div>' : ""}
+  `);
+
+  // Lore
+  const sections = data.loreSections || [];
+  html += section("World Lore", sections.length
+    ? `<div class="pill-list">${sections.map(s => `<span class="pill">${s.title}</span>`).join("")}</div>`
+    : '<div class="empty">No lore generated/imported yet.</div>'
+  );
+
+  // Factions
+  const factions = data.factions || [];
+  html += section("Factions", factions.length
+    ? `<div class="pill-list">${factions.map(f => `<span class="pill">${f.name}</span>`).join("")}</div>`
+    : '<div class="empty">No factions added yet.</div>'
+  );
+
+  // Stat System
+  const stats = data.statSystem;
+  html += section("Stat System", stats
+    ? `<div class="pill-list">${["body","reflex","knowledge","presence","sanity","fate"].map(k => `<span class="pill">${(stats[k] && stats[k].label) || k}</span>`).join("")}</div>`
+    : '<div class="empty">Not configured yet.</div>'
+  );
+
+  // Style Guide
+  const style = data.styleGuide;
+  html += section("Style Guide", style && style.renderingStyle
+    ? `<div class="review-row">${style.renderingStyle}</div>`
+    : '<div class="empty">Not configured yet.</div>'
+  );
+
+  // Category Config
+  const catConfig = data.categoryConfig;
+  html += section("Category Configuration", catConfig
+    ? `<div class="pill-list">${Object.entries(catConfig).map(([key, c]) =>
+        `<span class="pill" style="${c.enabled === false ? 'opacity:0.4; text-decoration:line-through;' : ''}">${c.label || key}</span>`
+      ).join("")}</div>`
+    : '<div class="empty">Not configured yet.</div>'
+  );
+
+  el.innerHTML = html;
+
+  if (data.setupCompletedAt) {
+    document.getElementById("confirm-btn").textContent = "Already Confirmed — Enter Archive →";
+  }
+}
+
+document.getElementById("confirm-btn").addEventListener("click", async () => {
+  const btn = document.getElementById("confirm-btn");
+  const status = document.getElementById("status");
+  btn.disabled = true;
+  status.textContent = "Confirming…";
+  try {
+    const res = await authFetch("/api/wizard/confirm", { method: "POST" });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Confirm failed."); }
+    status.textContent = "Setup complete — entering the archive…";
+    window.location.href = "index.html";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+    btn.disabled = false;
+  }
+});
+
+async function init() {
+  await requireAuth();
+  renderAuthStatus();
+  await ensureWizardSession();
+  document.getElementById("notice-box").style.display = "block";
+  try {
+    const res = await authFetch("/api/wizard/review");
+    const data = await res.json();
+    renderSummary(data);
+  } catch (err) {
+    console.error("Could not load review summary:", err);
+    document.getElementById("summary").innerHTML = '<p style="color: var(--ink-faint);">Could not load summary.</p>';
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
