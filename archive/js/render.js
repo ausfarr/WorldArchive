@@ -48,6 +48,38 @@ const REGENERATE_ENDPOINTS = {
   factions: "/api/generate-faction"
 };
 
+// Populates a faction <select>'s options from this world's LIVE Factions
+// archive (via /api/entries/factions) instead of a hardcoded list. Used
+// by the NPC/Bestiary "Generate New Entry" panels, which used to ship a
+// static 4-faction Echoes list baked into lib/categoryPageTemplate.js at
+// build time -- that never updated for a different world's factions (see
+// this session's chat: the miss that prompted this fix). Uses each
+// entry's own `.faction` field when set, falling back to `.id` -- same
+// precedence as lib/worldFlavor.js's getFactionOptions() on the backend,
+// so the value submitted here always matches what the generator actually
+// expects.
+async function populateFactionSelect(selectId, { includeUnaligned = false } = {}) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  try {
+    const res = await authFetch("/api/entries/factions");
+    const data = await res.json();
+    const factions = (data && data.entries) || [];
+    const options = ['<option value="">Let it choose</option>'];
+    factions.forEach((f) => {
+      const value = f.faction || f.id;
+      options.push(`<option value="${value}">${f.name}</option>`);
+    });
+    if (includeUnaligned) options.push('<option value="unaligned">Unaligned</option>');
+    select.innerHTML = options.join("\n");
+  } catch (err) {
+    console.error("Failed to load factions for dropdown:", err);
+    // Leave whatever fallback options are already in the markup in
+    // place -- generation still works via the text field, it just can't
+    // offer a live faction picker if this call fails.
+  }
+}
+
 function facColorVar(factionKey) {
   if (factionKey && FACTION_COLORS[factionKey]) return `var(${FACTION_COLORS[factionKey].varName})`;
   return "var(--neon-cyan)";
