@@ -1,9 +1,29 @@
 const express = require("express");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
-const { getDraft, saveDraftStep } = require("../lib/worldConfigRepo");
+const { getDraft, saveDraftStep, resetWorldConfig } = require("../lib/worldConfigRepo");
+const { clearLoreSections } = require("../lib/loreRepo");
 const { buildWizardStep1SystemPrompt } = require("../prompts/wizardStep1Prompt");
 
 const router = express.Router();
+
+// Wipes ALL wizard progress for this world -- draft_json, factions_json,
+// lore_doc_ref (worldConfigRepo.resetWorldConfig) and every lore_sections
+// row (loreRepo.clearLoreSections). Called two ways from the frontend
+// (see archive/js/wizardSession.js): automatically at the start of a new
+// browser session (sessionStorage flag absent), and on-demand via an
+// explicit "Start Over" button. Both wipe unconditionally -- there is no
+// server-side distinction between the two triggers, the frontend decides
+// when to call this.
+router.post("/wizard/reset", async (req, res) => {
+  try {
+    await resetWorldConfig(req.worldId);
+    await clearLoreSections(req.worldId);
+    res.json({ reset: true });
+  } catch (err) {
+    console.error("Wizard reset failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Returns the full in-progress draft (all steps saved so far), so the
 // wizard page can pre-fill fields if the user left and came back.

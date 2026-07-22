@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Setup — World Lore — The Archive</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="#" onclick="startOverWizard(); return false;" style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em;">Start Over</a>
+      <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" style="max-width: 720px; padding-top: 40px; padding-bottom: 80px;">
+
+  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Steps 2–3 of 8 <span class="sep">/</span> World Lore</p>
+
+  <a href="wizard.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Seed &amp; Vision</a>
+
+  <div class="sheet" style="padding: 32px;">
+    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;">World Lore</h1>
+    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 28px;">Generate a fresh lore document from your Seed &amp; Vision, or import one you already have. This becomes the ground-truth context every later generator pulls from.</p>
+
+    <!-- Choice screen -->
+    <div id="choice-screen">
+      <div style="display:flex; gap:16px;">
+        <button type="button" id="choose-generate" class="choice-card">
+          <strong>Generate Fresh</strong>
+          <span>Compose a new lore document from what you set up in Step 1.</span>
+        </button>
+        <button type="button" id="choose-import" class="choice-card">
+          <strong>Import Existing</strong>
+          <span>Paste or upload a doc you already have (.md/.txt).</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Import panel -->
+    <div id="import-panel" style="display:none;">
+      <label class="field-label">Upload a file</label>
+      <input type="file" id="import-file" accept=".md,.txt,text/markdown,text/plain" class="field-input" style="margin-bottom:14px;">
+      <label class="field-label">…or paste text directly</label>
+      <textarea id="import-text" class="field-input" rows="10" placeholder="Paste your lore document here (markdown headers like ## Geography help it split into sections cleanly)."></textarea>
+      <div style="display:flex; justify-content:space-between; margin-top:16px;">
+        <button type="button" id="back-from-import" class="secondary-btn">← Back</button>
+        <button type="button" id="run-import" class="primary-btn">Import &amp; Parse</button>
+      </div>
+    </div>
+
+    <!-- Generate panel -->
+    <div id="generate-panel" style="display:none; text-align:center; padding: 20px 0;">
+      <p style="color: var(--ink-dim); font-size: 0.9rem;">This uses whatever you saved in Step 1 (genre, scale, core tension, etc.) as grounding context.</p>
+      <button type="button" id="back-from-generate" class="secondary-btn" style="margin-right: 12px;">← Back</button>
+      <button type="button" id="run-generate" class="primary-btn">Generate Lore Document</button>
+    </div>
+
+    <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+
+    <!-- Review -->
+    <div id="review-panel" style="display:none;">
+      <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.05rem; color: var(--neon-cyan); border-bottom: 1px solid var(--border-line-soft); padding-bottom: 8px; margin: 32px 0 16px;">Review Sections</h2>
+      <p style="color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 20px;">Edit any section below before saving. Category tags show which generators will pull from each section.</p>
+      <div id="sections-list"></div>
+      <div style="display:flex; justify-content: space-between; margin-top: 24px;">
+        <button type="button" id="start-over" class="secondary-btn">Start Over</button>
+        <button type="button" id="save-lore" class="primary-btn">Save &amp; Continue →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+</footer>
+
+<style>
+  .field-label {
+    display: block; font-family: var(--font-mono); font-size: 0.7rem;
+    letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+  .field-input {
+    width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    color: var(--ink); padding: 10px 12px; font-family: var(--font-body); font-size: 0.92rem;
+  }
+  textarea.field-input { resize: vertical; }
+  .primary-btn {
+    background: var(--neon-primary); color: var(--bg-void); border: none;
+    padding: 12px 24px; font-family: var(--font-display); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-weight: 600;
+  }
+  .primary-btn:disabled { opacity: 0.5; cursor: default; }
+  .secondary-btn {
+    background: none; border: 1px solid var(--border-line); color: var(--ink-dim);
+    padding: 12px 20px; font-family: var(--font-mono); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-size: 0.8rem;
+  }
+  .choice-card {
+    flex: 1; text-align: left; background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    padding: 20px; cursor: pointer; color: var(--ink); display: flex; flex-direction: column; gap: 8px;
+  }
+  .choice-card:hover { border-color: var(--neon-cyan); }
+  .choice-card strong { font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; }
+  .choice-card span { color: var(--ink-dim); font-size: 0.82rem; }
+  .section-block {
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    padding: 16px 18px; margin-bottom: 14px;
+  }
+  .section-block input.title-input {
+    background: none; border: none; color: var(--ink); font-family: var(--font-display);
+    text-transform: uppercase; font-size: 0.95rem; width: 100%; margin-bottom: 8px; padding: 0;
+  }
+  .section-tags { font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-faint); margin-bottom: 8px; }
+</style>
+
+<script src="/config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/wizardSession.js"></script>
+<script>
+let currentSections = [];
+let currentSource = "generated";
+
+function showPanel(id) {
+  ["choice-screen", "import-panel", "generate-panel", "review-panel"].forEach(p => {
+    document.getElementById(p).style.display = p === id ? "block" : "none";
+  });
+}
+
+function renderSections(sections) {
+  currentSections = sections;
+  const el = document.getElementById("sections-list");
+  el.innerHTML = sections.map((s, i) => `
+    <div class="section-block" data-index="${i}">
+      <input class="title-input" value="${(s.title || "").replace(/"/g, "&quot;")}">
+      <div class="section-tags">Categories: ${(s.category_tags || s.categoryTags || []).join(", ") || "none"} ${ (s.core) ? "· core" : "" }</div>
+      <textarea class="field-input" rows="5">${s.content || ""}</textarea>
+    </div>
+  `).join("");
+  showPanel("review-panel");
+}
+
+function readEditedSections() {
+  return Array.from(document.querySelectorAll(".section-block")).map((block, i) => ({
+    title: block.querySelector(".title-input").value,
+    content: block.querySelector("textarea").value,
+    categoryTags: currentSections[i].category_tags || currentSections[i].categoryTags || [],
+    core: !!currentSections[i].core,
+    position: i
+  }));
+}
+
+document.getElementById("choose-generate").addEventListener("click", () => showPanel("generate-panel"));
+document.getElementById("choose-import").addEventListener("click", () => showPanel("import-panel"));
+document.getElementById("back-from-import").addEventListener("click", () => showPanel("choice-screen"));
+document.getElementById("back-from-generate").addEventListener("click", () => showPanel("choice-screen"));
+document.getElementById("start-over").addEventListener("click", () => showPanel("choice-screen"));
+
+document.getElementById("import-file").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { document.getElementById("import-text").value = reader.result; };
+  reader.readAsText(file);
+});
+
+document.getElementById("run-generate").addEventListener("click", async () => {
+  const btn = document.getElementById("run-generate");
+  const status = document.getElementById("status");
+  btn.disabled = true;
+  status.textContent = "Composing lore document — this can take a moment…";
+  try {
+    const res = await authFetch("/api/wizard/generate-lore", { method: "POST" });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+    const { sections } = await res.json();
+    status.textContent = "Generated. Review and edit below before saving.";
+    currentSource = "generated";
+    renderSections(sections);
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("run-import").addEventListener("click", async () => {
+  const btn = document.getElementById("run-import");
+  const status = document.getElementById("status");
+  const text = document.getElementById("import-text").value;
+  if (!text.trim()) { status.textContent = "Paste or upload some text first."; return; }
+  btn.disabled = true;
+  status.textContent = "Parsing document…";
+  try {
+    const res = await authFetch("/api/wizard/import-lore", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Import failed."); }
+    const { sections } = await res.json();
+    status.textContent = `Parsed ${sections.length} section(s). Review and edit below before saving.`;
+    currentSource = "imported";
+    renderSections(sections);
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("save-lore").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  const btn = document.getElementById("save-lore");
+  btn.disabled = true;
+  status.textContent = "Saving…";
+  try {
+    const edited = readEditedSections();
+    const res = await authFetch("/api/wizard/save-lore-sections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sections: edited, source: currentSource })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
+    status.textContent = "Saved — continuing…";
+    window.location.href = "wizard-factions.html";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+async function init() {
+  await requireAuth();
+  renderAuthStatus();
+  await ensureWizardSession();
+  try {
+    const res = await authFetch("/api/wizard/lore");
+    const { sections } = await res.json();
+    if (sections && sections.length > 0) {
+      document.getElementById("status").textContent = "Loaded your previously saved lore below.";
+      currentSource = sections[0].source || "generated";
+      renderSections(sections);
+    }
+  } catch (err) {
+    console.error("Could not load existing lore:", err);
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
