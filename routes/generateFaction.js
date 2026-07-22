@@ -70,6 +70,16 @@ router.post("/generate-faction", async (req, res) => {
     const wizardFaction = wizardFactions.find((f) => f.id === fillExistingId);
     const seedText = wizardFaction ? formatFactionSeed(wizardFaction) : formatFactionSeed(prior && prior.raw);
 
+    // The model has no other way to know what factions actually exist in
+    // this world — without this list it will invent plausible-sounding
+    // rival names for the `relationships` field instead of referencing
+    // real ones. Built from the live archive (readFactionManifest), not
+    // world_config.factions_json, so it reflects exactly what a reader
+    // could actually click through to.
+    const otherFactionNames = manifest
+      .filter((m) => m.id !== fillExistingId)
+      .map((m) => m.name);
+
     const loreContext = await getLoreContext(worldId, { category: "factions", faction: factionKey });
 
     // Roundup is built FIRST and deterministically — it's both the output
@@ -84,6 +94,7 @@ router.post("/generate-faction", async (req, res) => {
       seedText,
       loreContext,
       roundupContext,
+      otherFactionNames,
       existingContent: priorRaw
     });
     const contentRaw = await callClaude({
