@@ -3,6 +3,7 @@ const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { getFactions, saveFactions } = require("../lib/worldConfigRepo");
 const { backfillFactionTags } = require("../lib/loreRepo");
 const { getLoreContext } = require("../lib/loreContext");
+const { upsertEntry } = require("../lib/entriesRepo");
 const { buildWizardFactionSystemPrompt } = require("../prompts/wizardFactionPrompt");
 
 const router = express.Router();
@@ -14,6 +15,44 @@ function slugify(name) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "") || "faction";
+}
+
+function nl2p(text) {
+  return (text || "")
+    .split(/\n\n+/)
+    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    .join("\n");
+}
+
+// Bridges a wizard-generated faction (world_config.factions_json) into the
+// entries table (category "factions"), the same table the live Factions
+// archive page actually reads from -- see this session's chat: these were
+// two disconnected systems (wizard config vs. the archive's own generate
+// buttons) until this bridge. entriesRepo.upsertEntry expects the old
+// window.ENTRY shape.
+function buildFactionEntryMeta(faction) {
+  const bodyHtml = `
+<div class="quote-block">${faction.concept || ""}</div>
+<h2>Politics</h2>
+${nl2p(faction.politics)}
+<h2>Government</h2>
+${nl2p(faction.government)}
+<h2>Economy</h2>
+${nl2p(faction.economy)}
+<h2>Military</h2>
+${nl2p(faction.military)}
+<h2>Tensions &amp; Secrets</h2>
+${nl2p(faction.tensions)}
+`;
+  return {
+    id: faction.id,
+    name: faction.name,
+    subtitle: faction.concept || "",
+    faction: null,
+    tags: [],
+    bodyHtml,
+    footer: ["Source: World Setup Wizard"]
+  };
 }
 
 async function generateOneFaction(worldId, existingFactions, { name, concept, mode }) {
@@ -118,6 +157,12 @@ router.post("/wizard/save-factions", async (req, res) => {
 
     const factionIds = withIds.map((f) => f.id);
     await backfillFactionTags(req.worldId, factionIds);
+
+    // Bridge into the entries table so these factions actually appear on
+    // the live Factions archive page, not just in world_config.
+    for (const faction of withIds) {
+      await upsertEntry(req.worldId, "factions", buildFactionEntryMeta(faction));
+    }
 
     res.json({ factions: saved });
   } catch (err) {

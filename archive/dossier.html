@@ -12,13 +12,13 @@
   <div class="wrap">
     <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
     <nav class="site-nav">
-      <a href="factions/index.html">Factions</a>
-      <a href="npcs/index.html">NPCs</a>
-      <a href="enemies/index.html">Bestiary</a>
-      <a href="classes/index.html">Classes</a>
-      <a href="items/index.html">Items</a>
-      <a href="logs/index.html">Logs</a>
-      <a href="survivors/index.html">Survivors</a>
+      <a href="factions/index.html" id="nav-factions">Factions</a>
+      <a href="npcs/index.html" id="nav-npcs">NPCs</a>
+      <a href="enemies/index.html" id="nav-enemies">Bestiary</a>
+      <a href="classes/index.html" id="nav-classes">Classes</a>
+      <a href="items/index.html" id="nav-items">Items</a>
+      <a href="logs/index.html" id="nav-logs">Logs</a>
+      <a href="survivors/index.html" id="nav-survivors">Survivors</a>
       <span id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></span>
     </nav>
   </div>
@@ -53,6 +53,8 @@
   requireAuth().then((session) => {
     if (!session) return;
     renderAuthStatus();
+    applyCategoryConfig();
+    applySiteTheme();
     loadAndRenderDossier();
   });
 </script>

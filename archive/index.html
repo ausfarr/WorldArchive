@@ -12,13 +12,13 @@
   <div class="wrap">
     <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
     <nav class="site-nav">
-      <a href="factions/index.html">Factions</a>
-      <a href="npcs/index.html">NPCs</a>
-      <a href="enemies/index.html">Bestiary</a>
-      <a href="classes/index.html">Classes</a>
-      <a href="items/index.html">Items</a>
-      <a href="logs/index.html">Logs</a>
-      <a href="survivors/index.html">Survivors</a>
+      <a href="factions/index.html" id="nav-factions">Factions</a>
+      <a href="npcs/index.html" id="nav-npcs">NPCs</a>
+      <a href="enemies/index.html" id="nav-enemies">Bestiary</a>
+      <a href="classes/index.html" id="nav-classes">Classes</a>
+      <a href="items/index.html" id="nav-items">Items</a>
+      <a href="logs/index.html" id="nav-logs">Logs</a>
+      <a href="survivors/index.html" id="nav-survivors">Survivors</a>
       <span id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></span>
     </nav>
   </div>
@@ -35,49 +35,49 @@
 <div class="wrap">
   <div class="hub-grid">
 
-    <div class="category-card">
+    <div class="category-card" id="card-factions">
       <h2>Factions</h2>
       <p>The four powers of the Dome, plus what lives in the gaps between them.</p>
       <span class="count" id="count-factions">— archived</span>
       <a class="card-link" href="factions/index.html"></a>
     </div>
 
-    <div class="category-card">
+    <div class="category-card" id="card-npcs">
       <h2>NPCs</h2>
       <p>Faction leaders, rivals, quest-givers, informants — named and accounted for.</p>
       <span class="count" id="count-npcs">— archived</span>
       <a class="card-link" href="npcs/index.html"></a>
     </div>
 
-    <div class="category-card">
+    <div class="category-card" id="card-enemies">
       <h2>Bestiary</h2>
       <p>Trash, Elite, and Boss-tier threats. Stat blocks, ability kits, combat notes.</p>
       <span class="count" id="count-enemies">— archived</span>
       <a class="card-link" href="enemies/index.html"></a>
     </div>
 
-    <div class="category-card">
+    <div class="category-card" id="card-classes">
       <h2>Classes</h2>
       <p>Professions turned combat. Full 1–99 progression trees and Level 50 evolutions.</p>
       <span class="count" id="count-classes">— archived</span>
       <a class="card-link" href="classes/index.html"></a>
     </div>
 
-    <div class="category-card">
+    <div class="category-card" id="card-items">
       <h2>Items</h2>
       <p>Found gear, crafted recipes, consumables, and relics.</p>
       <span class="count" id="count-items">— archived</span>
       <a class="card-link" href="items/index.html"></a>
     </div>
 
-    <div class="category-card">
+    <div class="category-card" id="card-logs">
       <h2>Logs</h2>
       <p>Data drives, terminal records, and intercepted Hex-Tongue traffic.</p>
       <span class="count" id="count-logs">— archived</span>
       <a class="card-link" href="logs/index.html"></a>
     </div>
 
-    <div class="category-card">
+    <div class="category-card" id="card-survivors">
       <h2>Survivors</h2>
       <p>Colony roster — recruits, quirks, and short backstories.</p>
       <span class="count" id="count-survivors">— archived</span>
@@ -101,6 +101,8 @@
   requireAuth().then((session) => {
     if (!session) return;
     renderAuthStatus();
+    applyCategoryConfig();
+    applySiteTheme();
     loadAndRenderHomepageCounts();
   });
 </script>

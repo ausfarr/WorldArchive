@@ -27,7 +27,10 @@
   <div class="sheet" style="padding: 32px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Style Guide</h1>
-      <button type="button" id="generate-base" class="generate-btn">Generate for me</button>
+      <div style="display:flex; gap:8px;">
+        <button type="button" id="preview-theme" class="generate-btn" style="border-color: var(--ink-faint); color: var(--ink-dim);">Preview on this page</button>
+        <button type="button" id="generate-base" class="generate-btn">Generate for me</button>
+      </div>
     </div>
     <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">This becomes the visual bible future art-prompt generation will draw from, so everything generated stays consistent.</p>
 
@@ -51,6 +54,40 @@
 
     <label class="field-label">What to Avoid</label>
     <textarea id="avoid" class="field-input" rows="2"></textarea>
+
+    <hr style="border: none; border-top: 1px solid var(--border-line-soft); margin: 28px 0;">
+
+    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1rem; color: var(--neon-cyan); margin: 0 0 12px;">Live Site Theme</h2>
+    <p style="color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 16px;">These fields actually restyle the archive site itself — background, panel, text, accent colors, and fonts.</p>
+
+    <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom: 16px;">
+      <div>
+        <label class="field-label">Background</label>
+        <input type="color" id="background-color" class="color-input">
+      </div>
+      <div>
+        <label class="field-label">Panel</label>
+        <input type="color" id="panel-color" class="color-input">
+      </div>
+      <div>
+        <label class="field-label">Text</label>
+        <input type="color" id="ink-color" class="color-input">
+      </div>
+      <div>
+        <label class="field-label">Primary Accent</label>
+        <input type="color" id="primary-color" class="color-input">
+      </div>
+      <div>
+        <label class="field-label">Secondary Accent</label>
+        <input type="color" id="secondary-color" class="color-input">
+      </div>
+    </div>
+
+    <label class="field-label">Header/Title Font (Google Fonts name)</label>
+    <input id="font-display" class="field-input" placeholder="e.g. Oswald">
+
+    <label class="field-label">Body Font (Google Fonts name)</label>
+    <input id="font-body" class="field-input" placeholder="e.g. Work Sans">
 
     <hr style="border: none; border-top: 1px solid var(--border-line-soft); margin: 28px 0;">
 
@@ -86,6 +123,7 @@
     text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
   }
   .generate-btn:disabled { opacity: 0.5; cursor: default; }
+  .color-input { width: 60px; height: 38px; padding: 2px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); cursor: pointer; }
   .field-label {
     display: block; font-family: var(--font-mono); font-size: 0.7rem;
     letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint);
@@ -108,6 +146,44 @@
 <script src="/js/auth.js"></script>
 <script src="/js/wizardSession.js"></script>
 <script>
+function previewThemeOnThisPage() {
+  const hex = /^#[0-9a-fA-F]{6}$/;
+  const bg = document.getElementById("background-color").value;
+  const panel = document.getElementById("panel-color").value;
+  const ink = document.getElementById("ink-color").value;
+  const primary = document.getElementById("primary-color").value;
+  const secondary = document.getElementById("secondary-color").value;
+  const fontDisplay = document.getElementById("font-display").value;
+  const fontBody = document.getElementById("font-body").value;
+
+  const overrides = [];
+  if (hex.test(bg)) overrides.push(`--bg-void: ${bg}; --bg-void: ${bg};`);
+  if (hex.test(panel)) overrides.push(`--bg-panel: ${panel}; --bg-panel-raised: ${panel};`);
+  if (hex.test(ink)) overrides.push(`--ink: ${ink};`);
+  if (hex.test(primary)) overrides.push(`--neon-primary: ${primary};`);
+  if (hex.test(secondary)) overrides.push(`--neon-cyan: ${secondary};`);
+
+  let fontCss = "";
+  if (fontDisplay) {
+    document.head.insertAdjacentHTML("beforeend",
+      `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontDisplay).replace(/%20/g, "+")}:wght@400;600;700&display=swap">`);
+    fontCss += `h1, h2, .site-title { font-family: '${fontDisplay}', sans-serif; }\n`;
+  }
+  if (fontBody) {
+    document.head.insertAdjacentHTML("beforeend",
+      `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontBody).replace(/%20/g, "+")}:wght@400;500;600&display=swap">`);
+    fontCss += `body { font-family: '${fontBody}', sans-serif; }\n`;
+  }
+
+  let styleTag = document.getElementById("live-theme-preview");
+  if (!styleTag) {
+    styleTag = document.createElement("style");
+    styleTag.id = "live-theme-preview";
+    document.head.appendChild(styleTag);
+  }
+  styleTag.textContent = `:root { ${overrides.join(" ")} }\n${fontCss}`;
+}
+
 let factions = [];
 let accents = {}; // keyed by faction id -> { accentColor, accentNotes }
 
@@ -118,7 +194,14 @@ const FIELD_IDS = {
   accentColor: "accent-color",
   textureAndWear: "texture-wear",
   compositionDefaults: "composition-defaults",
-  avoid: "avoid"
+  avoid: "avoid",
+  backgroundColor: "background-color",
+  panelColor: "panel-color",
+  inkColor: "ink-color",
+  primaryColor: "primary-color",
+  secondaryColor: "secondary-color",
+  fontDisplay: "font-display",
+  fontBody: "font-body"
 };
 
 function fillBaseFields(styleGuide) {
@@ -162,6 +245,8 @@ function syncAccentsFromDOM() {
   });
 }
 
+document.getElementById("preview-theme").addEventListener("click", previewThemeOnThisPage);
+
 document.getElementById("generate-base").addEventListener("click", async () => {
   const btn = document.getElementById("generate-base");
   const status = document.getElementById("status");
@@ -172,7 +257,8 @@ document.getElementById("generate-base").addEventListener("click", async () => {
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
     const { styleGuide } = await res.json();
     fillBaseFields(styleGuide);
-    status.textContent = "Generated — edit freely before saving.";
+    previewThemeOnThisPage();
+    status.textContent = "Generated — previewed on this page. Edit freely before saving.";
   } catch (err) {
     status.textContent = "Error: " + err.message;
   } finally {

@@ -16,7 +16,14 @@ const SCHEMA_DESCRIPTION = `{
   "accentColor": "1 sentence: a signature accent color (if the world has one) used sparingly to signal something specific (hazard, magic, technology, otherness) -- or 'none' if this world doesn't need one.",
   "textureAndWear": "1-2 sentences: how worn/pristine/handmade things should look by default.",
   "compositionDefaults": "1-2 sentences: default framing/posing conventions -- e.g. dynamic vs. posed, what NOT to default to.",
-  "avoid": "1-2 sentences: specific visual tropes/styles this world's art should never lean on."
+  "avoid": "1-2 sentences: specific visual tropes/styles this world's art should never lean on.",
+  "backgroundColor": "a literal 6-digit hex color, e.g. '#0a0b0d' -- the darkest base background color for the WEBSITE itself. Must stay dark enough for light text to read clearly on top of it.",
+  "panelColor": "a literal 6-digit hex color -- background for cards/panels, a shade lighter than backgroundColor but still dark.",
+  "inkColor": "a literal 6-digit hex color -- the main body text color. Must have strong contrast against backgroundColor (light, not dark).",
+  "primaryColor": "a literal 6-digit hex color -- the signature accent used for buttons/links/highlights. Should fit the world's mood and stand out clearly against backgroundColor.",
+  "secondaryColor": "a literal 6-digit hex color -- a second accent distinct from primaryColor, for contrast/secondary highlights.",
+  "fontDisplay": "the exact name of a real, existing Google Fonts family (e.g. 'Oswald', 'Cinzel', 'Space Grotesk') to use for headers/titles, fitting the world's tone.",
+  "fontBody": "the exact name of a real, existing Google Fonts family, for body text -- should pair well with fontDisplay and stay readable at small sizes."
 }`;
 
 function buildWizardStyleGuideSystemPrompt({ step1, loreContext }) {
@@ -31,6 +38,8 @@ function buildWizardStyleGuideSystemPrompt({ step1, loreContext }) {
   return `You are defining the core visual style bible for a tabletop/game world -- the rules future AI-generated art prompts for this world will draw from, so every image generated across many separate sessions still reads as one consistent world. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
 Be concrete and specific -- name actual colors, actual rendering techniques, actual composition rules. Vague mood words ("moody," "atmospheric") without a concrete visual anchor are not useful to an image-generation prompt later.
+
+The backgroundColor/panelColor/inkColor/primaryColor/secondaryColor/fontDisplay/fontBody fields are LITERAL values applied directly to the live website's theme, not flavor text -- backgroundColor and panelColor must stay dark (this site is dark-mode by design), inkColor must contrast strongly against backgroundColor for readability, and fontDisplay/fontBody must be names of real Google Fonts families that actually exist.
 
 SEED & VISION (grounding context):
 ${knownContext || "(nothing provided -- use general genre conventions)"}

@@ -6,27 +6,27 @@
 <title>Bestiary — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
 </head>
-<body>
+<body data-category="enemies">
 
 <header class="site-header">
   <div class="wrap">
     <div class="site-title"><a href="../index.html">The <span class="accent">Archive</span></a></div>
     <nav class="site-nav">
-      <a href="../factions/index.html">Factions</a>
-      <a href="../npcs/index.html">NPCs</a>
-      <a href="../enemies/index.html">Bestiary</a>
-      <a href="../classes/index.html">Classes</a>
-      <a href="../items/index.html">Items</a>
-      <a href="../logs/index.html">Logs</a>
-      <a href="../survivors/index.html">Survivors</a>
+      <a href="../factions/index.html" id="nav-factions">Factions</a>
+      <a href="../npcs/index.html" id="nav-npcs">NPCs</a>
+      <a href="../enemies/index.html" id="nav-enemies">Bestiary</a>
+      <a href="../classes/index.html" id="nav-classes">Classes</a>
+      <a href="../items/index.html" id="nav-items">Items</a>
+      <a href="../logs/index.html" id="nav-logs">Logs</a>
+      <a href="../survivors/index.html" id="nav-survivors">Survivors</a>
       <span id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></span>
     </nav>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span>Bestiary</span></div>
-  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;">Bestiary</h1>
+  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span id="crumb-label">Bestiary</span></div>
+  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Bestiary</h1>
   <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;">Trash, Elite, and Boss-tier threats. Stat blocks, ability kits, combat notes.</p>
 
   
@@ -105,6 +105,8 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html
     renderAuthStatus();
+    applyCategoryConfig();
+    applySiteTheme();
     loadAndRenderCategoryIndex("enemies");
   });
 </script>

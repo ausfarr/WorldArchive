@@ -309,6 +309,101 @@ async function loadAndRenderHomepageCounts() {
   }
 }
 
+// Applies category_config_json (Wizard Step 7) to the live nav and
+// homepage: relabels categories, hides disabled ones. Every archive page
+// gets id="nav-{category}" on its nav link; index.html additionally gets
+// id="card-{category}" on its homepage card; category index pages get
+// id="page-title" and id="crumb-label" for their own heading/breadcrumb.
+async function applyCategoryConfig() {
+  try {
+    const res = await authFetch("/api/wizard/category-config");
+    const { categoryConfig } = await res.json();
+    if (!categoryConfig) return;
+
+    Object.entries(categoryConfig).forEach(([key, cfg]) => {
+      const navLink = document.getElementById(`nav-${key}`);
+      if (navLink) {
+        if (cfg.enabled === false) navLink.style.display = "none";
+        else if (cfg.label) navLink.textContent = cfg.label;
+      }
+      const card = document.getElementById(`card-${key}`);
+      if (card) {
+        if (cfg.enabled === false) {
+          card.style.display = "none";
+        } else if (cfg.label) {
+          const h2 = card.querySelector("h2");
+          if (h2) h2.textContent = cfg.label;
+        }
+      }
+      const pageTitle = document.getElementById("page-title");
+      const crumbLabel = document.getElementById("crumb-label");
+      if (document.body.dataset.category === key && cfg.label) {
+        if (pageTitle) pageTitle.textContent = cfg.label;
+        if (crumbLabel) crumbLabel.textContent = cfg.label;
+        document.title = document.title.replace(/^[^—]+/, `${cfg.label} `);
+      }
+    });
+  } catch (err) {
+    console.error("Failed to apply category config:", err);
+  }
+}
+
+function googleFontLinkTag(fontName) {
+  const family = encodeURIComponent(fontName).replace(/%20/g, "+");
+  return `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=${family}:wght@400;500;600;700&display=swap">`;
+}
+
+// Applies style_guide_json's literal color/font fields (Wizard Step 6) as
+// a runtime CSS override -- injects a <style id="world-theme-override">
+// tag with :root custom-property overrides plus font-family rules, and
+// loads any needed Google Fonts. Prose fields on the style guide
+// (renderingStyle, lighting, textureAndWear, etc.) are for a future
+// art-prompt generator, not applied here -- only the literal
+// hex-color/font-name fields affect the site itself.
+//
+// KNOWN SIMPLIFICATION: this runs after the page has already painted with
+// the default theme (it's an async fetch gated on auth), so there's a
+// brief flash of the default look before the world's theme applies.
+// Acceptable for now; revisit if this becomes a real product page rather
+// than a dev/admin tool.
+async function applySiteTheme() {
+  try {
+    const res = await authFetch("/api/wizard/style-guide");
+    const { styleGuide } = await res.json();
+    if (!styleGuide) return;
+
+    const hex = /^#[0-9a-fA-F]{6}$/;
+    const overrides = [];
+    if (hex.test(styleGuide.backgroundColor)) overrides.push(`--bg-void: ${styleGuide.backgroundColor};`);
+    if (hex.test(styleGuide.panelColor)) overrides.push(`--bg-panel: ${styleGuide.panelColor}; --bg-panel-raised: ${styleGuide.panelColor};`);
+    if (hex.test(styleGuide.inkColor)) overrides.push(`--ink: ${styleGuide.inkColor};`);
+    if (hex.test(styleGuide.primaryColor)) overrides.push(`--neon-primary: ${styleGuide.primaryColor};`);
+    if (hex.test(styleGuide.secondaryColor)) overrides.push(`--neon-cyan: ${styleGuide.secondaryColor};`);
+
+    let fontLinks = "";
+    let fontCss = "";
+    if (styleGuide.fontDisplay) {
+      fontLinks += googleFontLinkTag(styleGuide.fontDisplay);
+      fontCss += `.flicker-title, .site-title, h1, h2, .sheet-header h1, .category-card h2, .entry-card h3 { font-family: '${styleGuide.fontDisplay}', sans-serif; }\n`;
+    }
+    if (styleGuide.fontBody) {
+      fontLinks += googleFontLinkTag(styleGuide.fontBody);
+      fontCss += `body { font-family: '${styleGuide.fontBody}', sans-serif; }\n`;
+    }
+
+    if (fontLinks) document.head.insertAdjacentHTML("beforeend", fontLinks);
+
+    if (overrides.length || fontCss) {
+      const styleTag = document.createElement("style");
+      styleTag.id = "world-theme-override";
+      styleTag.textContent = `:root { ${overrides.join(" ")} }\n${fontCss}`;
+      document.head.appendChild(styleTag);
+    }
+  } catch (err) {
+    console.error("Failed to apply site theme:", err);
+  }
+}
+
 // ---------- Homepage: compute archived counts from each manifest ----------
 function renderHomepageCounts(manifests) {
   Object.keys(manifests).forEach(category => {

@@ -30,7 +30,7 @@ router.post("/wizard/generate-style-guide", async (req, res) => {
     const raw = await callClaude({
       systemPrompt,
       userMessage: "Generate the style guide now.",
-      maxTokens: 1200
+      maxTokens: 2000
     });
     let styleGuide;
     try {
