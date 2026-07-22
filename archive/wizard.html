@@ -242,7 +242,7 @@ document.getElementById("step1-form").addEventListener("submit", async (e) => {
       const err = await res.json();
       throw new Error(err.error || "Save failed.");
     }
-    status.textContent = "Saved. (Step 2 isn't built yet — this is as far as the wizard goes for now.)";
+    status.innerHTML = 'Saved. <a href="wizard-lore.html">Continue to World Lore →</a>';
   } catch (err) {
     status.textContent = "Error: " + err.message;
   }
