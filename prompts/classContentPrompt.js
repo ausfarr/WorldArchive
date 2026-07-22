@@ -17,7 +17,7 @@ const SCHEMA_DESCRIPTION = `{
   "evolutionEvent": { "requirement": "a skill-level gate", "cost": "crafting materials (Scrap/Neon Vials/components)", "location": "an existing Colony room: Archive, Workshop, Memorial, or another established room fitting the class's fantasy", "visualShift": "1-2 sentences: how the character's appearance changes" },
   "tier3": { "title": "tier name (under the evolved identity)", "theme": "one sentence — this tier should start bending a rule the base class couldn't", "abilities": [/* 6 abilities, levels roughly 51/55/60/65/70/75, the level-75 one MUST have kind 'Ultimate Unlock' and an ALL-CAPS name */] },
   "tier4": { "title": "tier name", "theme": "one sentence, mythic register", "abilities": [/* 5 abilities, levels roughly 80/85/90/95/99, the level-99 one MUST have kind 'Final Unlock', an ALL-CAPS name, and be the single most powerful/iconic effect in the kit */] },
-  "capstoneQuote": "a lore quote that reframes the character's whole arc — appears after Tier 4 as the closing emotional beat",
+  "capstoneQuote": "a quote that reframes the character's whole arc — appears after Tier 4 as the closing emotional beat, short and catchy",
   "whyItWorks": [
     { "label": "The [Skill Name] Synergy", "text": "which non-obvious skill the build secretly depends on, and why that's satisfying" },
     { "label": "The [Resource/Gate Name]", "text": "a resource/gate mechanic that rewards or punishes neglecting a stat" },
