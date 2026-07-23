@@ -34,7 +34,7 @@ const SCHEMA_DESCRIPTION = `{
   "skillEfficiency": { "major": "1-2 skills, the build's core scaling", "minor": "1-2 supporting skills", "misc": "1-2 flavor/rare-interaction skills" },
   "tier1": { "title": "tier name", "theme": "one sentence tier theme", "abilities": [/* exactly 5 ${ABILITY_SCHEMA}, at levels roughly 1/5/10/15/20, the level-20 one MUST have kind 'Ultimate Unlock' and an ALL-CAPS name */] },
   "tier2": { "title": "tier name", "theme": "one sentence", "abilities": [/* 5-6 abilities, levels roughly 25/30/35/42/48, escalating power, setting up the evolution */] },
-  "evolutionEvent": { "requirement": "a skill-level gate", "cost": "materials/resources this world's economy would plausibly require", "location": "a fitting location/institution in this world consistent with its lore", "visualShift": "1-2 sentences: how the character's appearance changes" },
+  "evolutionEvent": { "requirement": "a skill-level gate on this world's 0-100 skill scale, e.g. 'Grid-Tap at rank 40 or higher' or two skills combined with AND -- never above 100, and a Tier 2 (mid-progression) class should gate well below the 100 ceiling, not near it", "cost": "materials/resources this world's economy would plausibly require", "location": "a fitting location/institution in this world consistent with its lore", "visualShift": "1-2 sentences: how the character's appearance changes" },
   "tier3": { "title": "tier name (under the evolved identity)", "theme": "one sentence — this tier should start bending a rule the base class couldn't", "abilities": [/* 6 abilities, levels roughly 51/55/60/65/70/75, the level-75 one MUST have kind 'Ultimate Unlock' and an ALL-CAPS name */] },
   "tier4": { "title": "tier name", "theme": "one sentence, mythic register", "abilities": [/* 5 abilities, levels roughly 80/85/90/95/99, the level-99 one MUST have kind 'Final Unlock', an ALL-CAPS name, and be the single most powerful/iconic effect in the kit */] },
   "capstoneQuote": "a quote that reframes the character's whole arc — appears after Tier 4 as the closing emotional beat, short and catchy",
@@ -63,7 +63,7 @@ ${statLabelsText}
 
 WEAPON SKILLS (canonical seven, mechanically fixed — this world's own names for them, for flavor/prose only): ${weaponSkillsText}
 
-FIELD SKILLS (this world's fixed pool — choose 3-5 of these for skillEfficiency and any ability scaling references; do NOT invent new field skills, only select from this list):
+FIELD SKILLS (this world's fixed pool, each ranked 0-100 for any character — choose 3-5 of these for skillEfficiency and any ability scaling references; do NOT invent new field skills, only select from this list):
 ${fieldSkillsText}
 
 ATTRIBUTE PRIORITY: pick a primary (the class's core fantasy) and secondary (utility/survivability) attribute. Every ability should visibly scale off one of these two, or off a Field/Weapon Skill tied to the class concept. Do NOT compute literal numeric stat blocks (no base stat arrays) — just name which attributes/skills abilities scale from, same as the game's existing class sheets.
@@ -72,7 +72,7 @@ STRUCTURE (standard output is the full 1-99 tree):
 - Skill Efficiency: Major (1.0x, 1-2 skills the build is built around) / Minor (0.5x) / Misc (0.2x).
 - Tier 1 (Levels 1-20): 5 abilities (mix of Active/Passive), ending in a Level 20 ALL-CAPS "Ultimate Unlock."
 - Tier 2 (Levels 21-49): 5-6 abilities, escalating power, setting up the evolution.
-- Evolution Event (Level 50): a skill-level gate requirement, a resource/materials cost fitting this world's economy, a fitting location, and a visual shift description.
+- Evolution Event (Level 50): a skill-level gate requirement on this world's 0-100 skill scale (see FIELD SKILLS below), a resource/materials cost fitting this world's economy, a fitting location, and a visual shift description.
 - Tier 3 (Levels 50-75, under the evolved name): 6 abilities that start bending a rule the base class couldn't (ignoring a mechanic, ignoring armor, manipulating a system directly), ending in a Level 75 ALL-CAPS "Ultimate Unlock."
 - Tier 4 (Levels 76-99): 5 abilities escalating to a mythic register, ending in the Level 99 "Final Unlock" — the single most powerful, iconic effect in the kit.
 - Why This Progression Works: exactly 3 named callouts (a non-obvious skill synergy, a resource/gate mechanic, and the Level 1→50→99 fantasy arc).
