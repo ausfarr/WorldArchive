@@ -22,7 +22,7 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1 sentence: how this avoids repeating a Name+Class combo or quirk already in the roster"
 }`;
 
-function buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, rosterContext, availableClasses, name, className, existingContent }) {
+function buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, rosterContext, availableClasses, name, className, existingContent }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -37,12 +37,15 @@ NAMING: full first + last name, plausible and diverse in origin, fitting this wo
 CLASS: assign exactly one class from this list (vary your pick — don't default to the same one or two):
 ${availableClasses}
 
-ATTRIBUTE LABELS (this world's own names for the underlying attributes — tie the quirk's effect to one of these, a field skill, or a combat specialization consistent with the roster below):
+ATTRIBUTE LABELS (this world's own names for the underlying attributes — tie the quirk's effect to one of these, a field skill from the fixed pool below, or a combat specialization consistent with the roster below):
 ${statLabelsText}
+
+FIELD SKILLS (this world's fixed pool — if the quirk ties to a skill, it MUST be one of these, never an invented one):
+${fieldSkillsText}
 
 QUIRK (exactly one per survivor — a small colonist-level nudge, not a build-defining mechanic):
 - Roughly +/-10-15% on a single stat, or a narrow situational effect.
-- Tie it to a real attribute, field skill, or combat specialization — never a vague "gets a bonus sometimes."
+- Tie it to a real attribute, a field skill from the fixed pool above, or a combat specialization — never a vague "gets a bonus sometimes."
 - Ground it in this world's tone (a bad knee, insomnia, a grudge) — not generic fantasy quirk tropes.
 - Most interesting quirks are trade-offs (a bonus AND a cost).
 - Don't reuse a quirk already in the roster below.
