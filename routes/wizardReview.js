@@ -47,21 +47,28 @@ router.post("/wizard/confirm", async (req, res) => {
     // fields self-consistent, since the wizard bridge leaves them null.
     // Rather than requiring a manual per-faction regenerate click right
     // after finishing setup, run that same upgrade automatically for
-    // every faction here, once. Failures are per-faction and non-fatal --
-    // one bad generation shouldn't block completing setup; it can still
-    // be regenerated manually later like any other entry. Accent colors
-    // (if the Style Guide step generated them) are untouched by this --
-    // see lib/fileWriter.js's saveFactionEntry, which always preserves
+    // every faction here, once -- all in parallel (Promise.allSettled)
+    // since a world has at most 8 factions, well within safe concurrent
+    // Claude API usage, and parallel cuts total wait time from
+    // roughly (8 x single-faction latency) down to roughly one.
+    // Failures are per-faction and non-fatal -- one bad generation
+    // shouldn't block completing setup; it can still be regenerated
+    // manually later like any other entry. Accent colors (if the Style
+    // Guide step generated them) are untouched by this -- see
+    // lib/fileWriter.js's saveFactionEntry, which always preserves
     // whatever accentColor is already on record.
     const factionEntries = await listEntries(worldId, "factions");
-    for (const entry of factionEntries) {
-      try {
+    const results = await Promise.allSettled(
+      factionEntries.map(async (entry) => {
         const { faction, roundupRows } = await generateFactionDeepLore(worldId, entry.id);
         await saveFactionEntry(worldId, faction, roundupRows);
-      } catch (upgradeErr) {
-        console.error(`First-pass faction upgrade failed for '${entry.id}':`, upgradeErr.message);
+      })
+    );
+    results.forEach((result, i) => {
+      if (result.status === "rejected") {
+        console.error(`First-pass faction upgrade failed for '${factionEntries[i].id}':`, result.reason && result.reason.message);
       }
-    }
+    });
 
     const config = await markSetupComplete(worldId);
     res.json({ setupCompletedAt: config.setup_completed_at });
