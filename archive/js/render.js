@@ -85,6 +85,29 @@ function facColorVar(factionKey) {
   return "var(--neon-cyan)";
 }
 
+// Fetches this world's real faction list and builds a {factionKey: name}
+// lookup for tag TEXT, replacing the hardcoded FACTION_COLORS[key].name
+// lookup that only recognized Echoes' original 5 factions and silently
+// rendered no tag at all for anything else (see this session's chat —
+// the "faction tags still don't show up" miss). facColorVar() above is
+// left as-is: it already defaults gracefully to cyan for an unrecognized
+// key, so custom per-faction accent COLORS remain a genuine Phase 4 item
+// -- only the tag's NAME TEXT was actually broken.
+async function getFactionNameLookup() {
+  try {
+    const res = await authFetch("/api/entries/factions");
+    const data = await res.json();
+    const lookup = {};
+    ((data && data.entries) || []).forEach((f) => {
+      lookup[f.faction || f.id] = f.name;
+    });
+    return lookup;
+  } catch (err) {
+    console.error("Failed to load faction name lookup:", err);
+    return {};
+  }
+}
+
 // Called from a locked card's "Fill In" button. POSTs { fillExistingId }
 // to the category's generate endpoint and reloads the page on success.
 async function fillInEntry(categoryPath, id, btnEl) {
@@ -221,24 +244,28 @@ function showRegeneratePreview(data) {
 async function loadAndRenderCategoryIndex(categoryPath) {
   const grid = document.getElementById("entry-grid");
   try {
-    const res = await authFetch(`/api/entries/${categoryPath}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load entries.");
-    renderCategoryIndex(data.entries, categoryPath);
+    const [entriesRes, factionNameLookup] = await Promise.all([
+      authFetch(`/api/entries/${categoryPath}`),
+      getFactionNameLookup()
+    ]);
+    const data = await entriesRes.json();
+    if (!entriesRes.ok) throw new Error(data.error || "Failed to load entries.");
+    renderCategoryIndex(data.entries, categoryPath, factionNameLookup);
   } catch (err) {
     console.error(`Failed to load ${categoryPath} entries:`, err);
     if (grid) grid.innerHTML = `<p style="color: var(--ink-faint);">Could not load entries: ${err.message}</p>`;
   }
 }
 
-function renderCategoryIndex(manifest, categoryPath) {
+function renderCategoryIndex(manifest, categoryPath, factionNameLookup) {
   const grid = document.getElementById("entry-grid");
   if (!grid) return;
+  const lookup = factionNameLookup || {};
   grid.innerHTML = manifest.map(entry => {
     const facColor = facColorVar(entry.faction);
     const tagsHtml = (entry.tags || []).join("");
-    const facTag = entry.faction && FACTION_COLORS[entry.faction]
-      ? `<span class="tag fac">${FACTION_COLORS[entry.faction].name}</span>` : "";
+    const facName = entry.faction ? (lookup[entry.faction] || entry.faction) : null;
+    const facTag = facName ? `<span class="tag fac">${facName}</span>` : "";
     if (entry.locked && categoryPath !== "factions") {
       const canFill = !!FILL_IN_ENDPOINTS[categoryPath];
       const fillBtn = canFill
@@ -270,7 +297,7 @@ function stripHtml(html) {
   return tmp.textContent || tmp.innerText || "";
 }
 
-function renderDossier(entry) {
+function renderDossier(entry, factionNameLookup) {
   document.title = `${stripHtml(entry.name)} — The Archive`;
   const facColor = facColorVar(entry.faction);
   document.documentElement.style.setProperty("--fac-color-override", facColor);
@@ -286,8 +313,9 @@ function renderDossier(entry) {
   document.getElementById("sheet-title").innerHTML = entry.name;
   document.getElementById("sheet-subtitle").textContent = entry.subtitle || "";
 
-  const facTag = entry.faction && FACTION_COLORS[entry.faction]
-    ? `<span class="tag fac">${FACTION_COLORS[entry.faction].name}</span>` : "";
+  const lookup = factionNameLookup || {};
+  const facName = entry.faction ? (lookup[entry.faction] || entry.faction) : null;
+  const facTag = facName ? `<span class="tag fac">${facName}</span>` : "";
   const extraTags = (entry.tags || []).join("");
   document.getElementById("sheet-tags").innerHTML = facTag + extraTags;
 
@@ -309,14 +337,17 @@ async function loadAndRenderDossier() {
     return;
   }
   try {
-    const res = await authFetch(`/api/entries/${category}/${id}`);
+    const [res, factionNameLookup] = await Promise.all([
+      authFetch(`/api/entries/${category}/${id}`),
+      getFactionNameLookup()
+    ]);
     if (res.status === 404) {
       document.getElementById("sheet-body").innerHTML = "<p>Entry not found.</p>";
       return;
     }
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load entry.");
-    renderDossier(data.entry);
+    renderDossier(data.entry, factionNameLookup);
   } catch (err) {
     console.error("Failed to load entry:", err);
     document.getElementById("sheet-body").innerHTML = "<p>Entry not found.</p>";
