@@ -1,3 +1,0 @@
-window.MANIFEST_ITEMS = [
-
-];
