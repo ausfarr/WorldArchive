@@ -26,7 +26,7 @@ const SCHEMA_DESCRIPTION = `{
   "category": "Weapon | Armor | Consumable | QuestItem",
   "rarity": "Common | Uncommon | Rare | Legendary — REQUIRED for Weapon/Armor, null for Consumable/QuestItem",
   "flavor": "1-3 sentences: what it looks like, where it might be found, any history",
-  "weaponSkill": "one of: Heavy Weapons | Light Weapons | Polearm | Unarmed | Ballistics | Archery | Catalysts — Weapon category only, else null",
+  "weaponSkill": "one of the 7 canonical English keys: Heavy Weapons | Light Weapons | Polearm | Unarmed | Ballistics | Archery | Catalysts — always this exact key, never this world's own display name for it — Weapon category only, else null",
   "weaponType": "specific physical form, e.g. 'War Cleaver' — Weapon category only, else null",
   "damageMin": "integer — the low end of this weapon's damage range, grounded in the WEAPON_ROLL guide below for its weaponSkill category — Weapon category only, else null",
   "damageMax": "integer greater than damageMin — the high end of this weapon's damage range for this specific weapon. Should read as a believable spread, not identical to min and not absurdly larger — widen the spread for higher rarity. Weapon category only, else null",
@@ -50,7 +50,7 @@ const WEAPON_ROLL_RANGES_TEXT = `| Weapon Skill | Example Types | WEAPON_ROLL ra
 | Archery | Bow, Crossbow, Throwing Knives, Sling | 8-12 |
 | Catalysts | Battery Rod, Focus Crystal, Charge Coil, Signal Wand | 9-13 |`;
 
-function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, rosterContext, name, category, rarity, existingContent }) {
+function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, name, category, rarity, existingContent }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -72,8 +72,12 @@ RARITY (Weapon/Armor only — null for Consumable/QuestItem):
 - Rare: a real secondary mechanical effect (reliable status application, conditional bonus, meaningful utility property).
 - Legendary: a genuinely UNIQUE effect not used by any other item in the existing roster (check the roster below) — must come with a short lore note on its history/prior owner, woven into the flavor text.
 
-WEAPON SKILL & DAMAGE RANGE (Weapon category only): every weapon needs a Weapon Skill (the category the player invests in) and a Weapon Type (the specific flavorful form — invent freely as long as it clearly maps to one skill). Pick damageMin from within that skill's canonical range below, then pick a damageMax above it that feels like a believable spread for this specific weapon (wider for higher rarity):
+WEAPON SKILL & DAMAGE RANGE (Weapon category only): every weapon needs a Weapon Skill and a Weapon Type (the specific flavorful form — invent freely as long as it clearly maps to one skill). The weaponSkill FIELD must be output as the exact canonical key on the left below (never translate it) — but this world has its own display name for each, shown in parentheses, and weaponType/flavor/designNotes should reference that name naturally, not the canonical English one. Pick damageMin from within that skill's canonical range, then pick a damageMax above it that feels like a believable spread for this specific weapon (wider for higher rarity):
 ${WEAPON_ROLL_RANGES_TEXT}
+
+THIS WORLD'S OWN NAMES FOR EACH WEAPON SKILL (flavor only — weaponSkill field still uses the canonical key above):
+${weaponSkillsText}
+
 If a concept doesn't cleanly fit any of the seven skills, pick the closest one rather than inventing an eighth.
 
 ATTRIBUTE LABELS (this world's own names for the underlying mechanical attributes — use these, not generic terms, when writing relevantStat or any attribute reference in flavor text):

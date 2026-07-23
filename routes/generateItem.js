@@ -8,7 +8,7 @@ const { saveItemEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildItemBodyHtml } = require("../lib/itemTemplate");
 const { clampDamageRange } = require("../lib/itemFormulas");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent, getSkillSystem, formatWeaponSkillsForPrompt, resolveWeaponSkillLabel } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
@@ -56,8 +56,10 @@ router.post("/generate-item", async (req, res) => {
     const loreContext = await getLoreContext(worldId, { category: "items" });
     const settingContext = await getSettingContext(worldId);
     const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
+    const skillSystem = await getSkillSystem(worldId);
+    const weaponSkillsText = formatWeaponSkillsForPrompt(skillSystem);
 
-    const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, rosterContext, name, category, rarity, existingContent: priorRaw });
+    const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, name, category, rarity, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the item now.",
@@ -79,6 +81,15 @@ router.post("/generate-item", async (req, res) => {
       const clamped = clampDamageRange(item.weaponSkill, item.damageMin, item.damageMax);
       item.damageMin = clamped.min;
       item.damageMax = clamped.max;
+    }
+
+    // item.weaponSkill stays the fixed canonical English key (needed for
+    // the clamp above and any future regenerate) -- weaponSkillLabel is
+    // this world's own display name, resolved once here and rendered
+    // instead of the canonical key everywhere a person actually sees it
+    // (see lib/fileWriter.js's item tags).
+    if (item.category === "Weapon" && item.weaponSkill) {
+      item.weaponSkillLabel = resolveWeaponSkillLabel(skillSystem, item.weaponSkill);
     }
 
     if (mode === "regenerate") {

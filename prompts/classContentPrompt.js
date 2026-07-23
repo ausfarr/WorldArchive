@@ -7,11 +7,17 @@
 // one-off carve-out for Echoes' own "Neon-Jack" class. All of that is now
 // derived from this world's own setting/lore instead.
 //
-// The six core attributes and seven weapon-skill categories stay fixed
-// (mechanical, not narrative — see itemContentPrompt.js's header comment
-// for the same reasoning) but field/flavor skill names are now invented
-// per-world rather than pulled from Echoes' fixed Linguistics/Scavenging/
-// Tinkering/Biology list.
+// The six core attributes and seven weapon-skill categories stay
+// mechanically fixed (see itemContentPrompt.js's header comment for the
+// same reasoning), but every label is now world-flavored: attribute
+// labels come from Wizard Step 5's Stat Labels, weapon-skill display
+// names and field skills both come from that same step's Skills section
+// (prompts/wizardSkillSystemPrompt.js) -- a FIXED pool generated once per
+// world, not invented ad hoc on every class generation call. That fixed
+// pool replaces an earlier version where each call invented its own 3-5
+// field skills with only a soft "reuse the roster" instruction, which
+// let near-duplicate skills (e.g. "Hacking" vs "Grid-Tap" vs "System
+// Intrusion") slowly accumulate across a large roster.
 
 const ABILITY_SCHEMA = `{ "level": 1, "name": "...", "kind": "Active | Passive | Ultimate Unlock | Final Unlock", "effectText": "ONE sentence, 25 words or fewer, combining the mechanical effect AND its scaling formula in bracketed/inline notation, e.g. 'Light damage, generates 1 Thread. Damage = Blade-work × 1.5.' — this goes in a single compact table cell, not a paragraph. If you cannot say it in 25 words, cut detail rather than run long." }`;
 
@@ -40,7 +46,7 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: how this avoids colliding with an existing class's concept, core fantasy, or signature verb"
 }`;
 
-function buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, rosterContext, name, existingContent }) {
+function buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, name, existingContent }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -55,7 +61,10 @@ If inventing the concept, pick something consistent with the setting above and d
 ATTRIBUTE LABELS (this world's own names for the six canonical attributes — always output these exact lowercase keys as primaryAttribute/secondaryAttribute references use these labels, don't invent others):
 ${statLabelsText}
 
-WEAPON SKILLS (canonical seven — don't invent others): Heavy Weapons, Light Weapons, Polearm, Unarmed, Ballistics, Archery, Catalysts. FIELD SKILLS: invent 3-5 flavor skill names fitting this world's professions and setting (e.g. a scavenger-economy world might have "Scavenging" or "Appraisal"; a magic-adjacent world might have "Ritual Craft") — reuse the same invented field skill names consistently with the existing roster below rather than inventing a new synonym each time.
+WEAPON SKILLS (canonical seven, mechanically fixed — this world's own names for them, for flavor/prose only): ${weaponSkillsText}
+
+FIELD SKILLS (this world's fixed pool — choose 3-5 of these for skillEfficiency and any ability scaling references; do NOT invent new field skills, only select from this list):
+${fieldSkillsText}
 
 ATTRIBUTE PRIORITY: pick a primary (the class's core fantasy) and secondary (utility/survivability) attribute. Every ability should visibly scale off one of these two, or off a Field/Weapon Skill tied to the class concept. Do NOT compute literal numeric stat blocks (no base stat arrays) — just name which attributes/skills abilities scale from, same as the game's existing class sheets.
 

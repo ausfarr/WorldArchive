@@ -7,7 +7,7 @@ const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveClassEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildClassBodyHtml } = require("../lib/classTemplate");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent, getSkillSystem, formatFieldSkillsForPrompt, formatWeaponSkillsForPrompt } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
@@ -44,8 +44,11 @@ router.post("/generate-class", async (req, res) => {
     const loreContext = await getLoreContext(worldId, { category: "classes" });
     const settingContext = await getSettingContext(worldId);
     const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
+    const skillSystem = await getSkillSystem(worldId);
+    const fieldSkillsText = formatFieldSkillsForPrompt(skillSystem);
+    const weaponSkillsText = formatWeaponSkillsForPrompt(skillSystem);
 
-    const contentSystemPrompt = buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, rosterContext, name, existingContent: priorRaw });
+    const contentSystemPrompt = buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, name, existingContent: priorRaw });
     // Generous budget - a full 1-99 tree with ~21 abilities across 4 tiers
     // is genuinely long content, not a truncation risk we're guessing at.
     const contentRaw = await callClaude({

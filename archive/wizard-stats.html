@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>World Setup — Stat System — The Archive</title>
+<title>World Setup — Stats &amp; Skills — The Archive</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -20,7 +20,7 @@
 
 <div class="wrap" style="max-width: 680px; padding-top: 40px; padding-bottom: 80px;">
 
-  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 5 of 8 <span class="sep">/</span> Stat System</p>
+  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 5 of 8 <span class="sep">/</span> Stats &amp; Skills</p>
 
   <a href="wizard-factions.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Factions</a>
 
@@ -34,15 +34,32 @@
     <div id="stats-list"></div>
 
     <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+  </div>
 
-    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
-      <button type="button" id="save-stats" class="primary-btn">Save &amp; Continue →</button>
+  <div class="sheet" style="padding: 32px; margin-top: 24px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+      <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Skills</h1>
+      <button type="button" id="generate-skills" class="generate-btn">Generate for me</button>
     </div>
+    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Name your world's 7 weapon categories (their balance never changes, only the name). Then generate a fixed pool of field skills — every class and item will draw from this same list afterward instead of inventing new ones each time.</p>
+
+    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 0 0 10px;">Weapon Skills</h2>
+    <div id="weapon-skills-list"></div>
+
+    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 24px 0 10px;">Field Skills</h2>
+    <div id="field-skills-list"></div>
+    <button type="button" id="add-field-skill" class="generate-btn" style="margin-top: 4px;">+ Add Skill</button>
+
+    <p id="skills-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+  </div>
+
+  <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+    <button type="button" id="save-stats" class="primary-btn">Save &amp; Continue →</button>
   </div>
 </div>
 
 <footer class="site-footer">
-  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+  
 </footer>
 
 <style>
@@ -72,6 +89,24 @@
   }
   .stat-mechanic { display: block; font-size: 0.62rem; color: var(--ink-faint); text-transform: none; letter-spacing: 0; margin-top: 4px; line-height: 1.4; }
   .stat-label-input { font-family: var(--font-display); text-transform: uppercase; margin-bottom: 8px; }
+  .weapon-skill-row {
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    padding: 12px 16px; margin-bottom: 10px; display: grid; grid-template-columns: 140px 1fr; gap: 14px; align-items: center;
+  }
+  .weapon-skill-canon {
+    font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .field-skill-card {
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    padding: 14px 16px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  .field-skill-card > div { flex: 1; }
+  .field-skill-name-input { font-family: var(--font-display); text-transform: uppercase; margin-bottom: 6px; }
+  .remove-skill {
+    background: none; border: 1px solid var(--border-line); color: var(--ink-faint);
+    padding: 6px 10px; cursor: pointer; font-family: var(--font-mono); font-size: 0.75rem; flex-shrink: 0;
+  }
 </style>
 
 <script src="/config.js"></script>
@@ -89,6 +124,81 @@ const CANONICAL_STATS = [
 ];
 
 let statSystem = {};
+
+const WEAPON_SKILL_CANONICAL = ["Heavy Weapons", "Light Weapons", "Polearm", "Unarmed", "Ballistics", "Archery", "Catalysts"];
+let skillSystem = { weaponSkills: {}, fieldSkills: [] };
+
+function renderWeaponSkills() {
+  document.getElementById("weapon-skills-list").innerHTML = WEAPON_SKILL_CANONICAL.map((key) => {
+    const label = (skillSystem.weaponSkills && skillSystem.weaponSkills[key]) || "";
+    return `
+      <div class="weapon-skill-row" data-key="${key}">
+        <div class="weapon-skill-canon">${key}</div>
+        <input class="field-input weapon-skill-label-input" placeholder="This world's name for ${key}" value="${label.replace(/"/g, "&quot;")}">
+      </div>
+    `;
+  }).join("");
+}
+
+function renderFieldSkills() {
+  const skills = skillSystem.fieldSkills || [];
+  document.getElementById("field-skills-list").innerHTML = skills.map((s, i) => `
+    <div class="field-skill-card" data-index="${i}">
+      <div>
+        <input class="field-input field-skill-name-input" placeholder="Skill name" value="${(s.name || "").replace(/"/g, "&quot;")}">
+        <textarea class="field-input field-skill-desc-input" rows="1" placeholder="What having this skill lets a character do">${s.description || ""}</textarea>
+      </div>
+      <button type="button" class="remove-skill" data-action="remove-skill">✕</button>
+    </div>
+  `).join("");
+
+  document.querySelectorAll('[data-action="remove-skill"]').forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      syncSkillsFromDOM();
+      const index = Number(e.target.closest(".field-skill-card").dataset.index);
+      skillSystem.fieldSkills.splice(index, 1);
+      renderFieldSkills();
+    });
+  });
+}
+
+function syncSkillsFromDOM() {
+  const weaponSkills = {};
+  document.querySelectorAll(".weapon-skill-row").forEach((row) => {
+    weaponSkills[row.dataset.key] = row.querySelector(".weapon-skill-label-input").value;
+  });
+  const fieldSkills = Array.from(document.querySelectorAll(".field-skill-card")).map((card) => ({
+    name: card.querySelector(".field-skill-name-input").value,
+    description: card.querySelector(".field-skill-desc-input").value
+  }));
+  skillSystem = { weaponSkills, fieldSkills };
+}
+
+document.getElementById("add-field-skill").addEventListener("click", () => {
+  syncSkillsFromDOM();
+  skillSystem.fieldSkills.push({ name: "", description: "" });
+  renderFieldSkills();
+});
+
+document.getElementById("generate-skills").addEventListener("click", async () => {
+  const btn = document.getElementById("generate-skills");
+  const status = document.getElementById("skills-status");
+  btn.disabled = true;
+  status.textContent = "Generating…";
+  try {
+    const res = await authFetch("/api/wizard/generate-skill-system", { method: "POST" });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+    const data = await res.json();
+    skillSystem = data.skillSystem;
+    renderWeaponSkills();
+    renderFieldSkills();
+    status.textContent = "Generated — edit freely before saving.";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 function render() {
   document.getElementById("stats-list").innerHTML = CANONICAL_STATS.map(({ key, mechanic }) => {
@@ -136,18 +246,30 @@ document.getElementById("generate-all").addEventListener("click", async () => {
 
 document.getElementById("save-stats").addEventListener("click", async () => {
   syncFromDOM();
+  syncSkillsFromDOM();
   const status = document.getElementById("status");
+  const skillsStatus = document.getElementById("skills-status");
   const btn = document.getElementById("save-stats");
   btn.disabled = true;
   status.textContent = "Saving…";
   try {
-    const res = await authFetch("/api/wizard/save-stat-system", {
+    const statRes = await authFetch("/api/wizard/save-stat-system", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ statSystem })
     });
-    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
+    if (!statRes.ok) { const err = await statRes.json(); throw new Error(err.error || "Saving stats failed."); }
+
+    skillsStatus.textContent = "Saving…";
+    const skillRes = await authFetch("/api/wizard/save-skill-system", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skillSystem })
+    });
+    if (!skillRes.ok) { const err = await skillRes.json(); throw new Error(err.error || "Saving skills failed."); }
+
     status.textContent = "Saved — continuing…";
+    skillsStatus.textContent = "Saved.";
     window.location.href = "wizard-style.html";
   } catch (err) {
     status.textContent = "Error: " + err.message;
@@ -168,6 +290,16 @@ async function init() {
     console.error("Could not load existing stat system:", err);
   }
   render();
+
+  try {
+    const res = await authFetch("/api/wizard/skill-system");
+    const { skillSystem: loaded } = await res.json();
+    skillSystem = loaded || { weaponSkills: {}, fieldSkills: [] };
+  } catch (err) {
+    console.error("Could not load existing skill system:", err);
+  }
+  renderWeaponSkills();
+  renderFieldSkills();
 }
 
 init();
