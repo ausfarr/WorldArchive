@@ -98,8 +98,8 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Generation failed');
-    status.textContent = `Generated: ${data.name} (The ${data.className})`;
-    setTimeout(() => window.location.reload(), 1200);
+    status.textContent = `Generated: ${data.name} (The ${data.className})` + (data.imageError ? ` — portrait failed: ${data.imageError}` : '');
+    setTimeout(() => window.location.reload(), data.imageError ? 6000 : 1200);
   } catch (err) {
     status.textContent = 'Error: ' + err.message;
   } finally {

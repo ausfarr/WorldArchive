@@ -76,6 +76,7 @@ router.post("/generate-survivor", async (req, res) => {
     }
 
     let imageBuffer = null;
+    let imageError = null;
     try {
       const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: survivor });
       const artPrompt = await callClaude({
@@ -86,6 +87,7 @@ router.post("/generate-survivor", async (req, res) => {
       imageBuffer = await generateImage(artPrompt.trim());
     } catch (imgErr) {
       console.error("Image step failed, continuing without art:", imgErr.message);
+      imageError = imgErr.message;
     }
 
     await saveSurvivorEntry(worldId, survivor);
@@ -97,7 +99,8 @@ router.post("/generate-survivor", async (req, res) => {
       name: survivor.name,
       className: survivor.className,
       summary: survivor.designNotes,
-      imageGenerated: !!imageBuffer
+      imageGenerated: !!imageBuffer,
+      imageError
     });
   } catch (err) {
     console.error("Survivor generation failed:", err);

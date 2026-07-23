@@ -94,6 +94,7 @@ router.post("/generate-npc", async (req, res) => {
 
     // Step 3: art prompt generation
     let imageBuffer = null;
+    let imageError = null;
     try {
       const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: npc });
       const artPrompt = await callClaude({
@@ -106,6 +107,7 @@ router.post("/generate-npc", async (req, res) => {
       imageBuffer = await generateImage(artPrompt.trim());
     } catch (imgErr) {
       console.error("Image step failed, continuing without art:", imgErr.message);
+      imageError = imgErr.message;
     }
 
     // Step 5: write to Supabase
@@ -119,7 +121,8 @@ router.post("/generate-npc", async (req, res) => {
       roleArchetype: npc.roleArchetype,
       faction: npc.faction,
       summary: npc.designNotes,
-      imageGenerated: !!imageBuffer
+      imageGenerated: !!imageBuffer,
+      imageError
     });
   } catch (err) {
     console.error("NPC generation failed:", err);

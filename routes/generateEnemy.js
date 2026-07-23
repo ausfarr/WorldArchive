@@ -84,6 +84,7 @@ router.post("/generate-enemy", async (req, res) => {
     }
 
     let imageBuffer = null;
+    let imageError = null;
     try {
       const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: enemy });
       const artPrompt = await callClaude({
@@ -94,6 +95,7 @@ router.post("/generate-enemy", async (req, res) => {
       imageBuffer = await generateImage(artPrompt.trim());
     } catch (imgErr) {
       console.error("Image step failed, continuing without art:", imgErr.message);
+      imageError = imgErr.message;
     }
 
     await saveEnemyEntry(worldId, enemy);
@@ -107,6 +109,7 @@ router.post("/generate-enemy", async (req, res) => {
       faction: enemy.faction,
       summary: enemy.designNotes,
       imageGenerated: !!imageBuffer,
+      imageError,
       attributeBudgetWarning: warning
     });
   } catch (err) {
