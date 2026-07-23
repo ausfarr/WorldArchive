@@ -1,5 +1,5 @@
 const express = require("express");
-const { generateFactionDeepLore, createNewFaction } = require("../lib/factionDeepLore");
+const { generateFactionDeepLore, createNewFaction, syncReciprocalRelationships } = require("../lib/factionDeepLore");
 const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 const { saveFactionEntry } = require("../lib/fileWriter");
 
@@ -37,6 +37,7 @@ router.post("/generate-faction", async (req, res) => {
     // how a new npc/enemy/item/class/survivor is created.
     const { faction, roundupRows } = await createNewFaction(worldId, { name, concept });
     await saveFactionEntry(worldId, faction, roundupRows);
+    await syncReciprocalRelationships(worldId, faction);
 
     res.json({
       preview: false,

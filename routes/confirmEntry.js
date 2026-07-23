@@ -10,6 +10,7 @@ const {
   getPortraitUrl
 } = require("../lib/fileWriter");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
+const { syncReciprocalRelationships } = require("../lib/factionDeepLore");
 
 const router = express.Router();
 
@@ -61,6 +62,7 @@ router.post("/confirm-entry", async (req, res) => {
       }
       const roundupRows = await buildFactionRoundup(worldId, entry.factionKey);
       await saveFactionEntry(worldId, entry, roundupRows);
+      await syncReciprocalRelationships(worldId, entry);
       return res.json({ saved: true, id: entry.id, category });
     }
 

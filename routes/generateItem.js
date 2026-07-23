@@ -6,7 +6,7 @@ const { buildItemContentSystemPrompt } = require("../prompts/itemContentPrompt")
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveItemEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildItemBodyHtml } = require("../lib/itemTemplate");
-const { weaponRollInRange } = require("../lib/itemFormulas");
+const { clampDamageRange } = require("../lib/itemFormulas");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
@@ -75,8 +75,10 @@ router.post("/generate-item", async (req, res) => {
     if (existingEntry) item.name = existingEntry.name;
 
     // Defensive clamp - model occasionally drifts slightly outside the stated range
-    if (item.category === "Weapon" && item.weaponRoll && item.weaponSkill) {
-      item.weaponRoll = weaponRollInRange(item.weaponSkill, item.weaponRoll);
+    if (item.category === "Weapon" && item.weaponSkill && item.damageMin != null && item.damageMax != null) {
+      const clamped = clampDamageRange(item.weaponSkill, item.damageMin, item.damageMax);
+      item.damageMin = clamped.min;
+      item.damageMax = clamped.max;
     }
 
     if (mode === "regenerate") {

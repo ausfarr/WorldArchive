@@ -5,12 +5,20 @@
 // guns / Neon atmosphere" weapon rule (dropped entirely, same call as
 // enemies' Hex-Tongue — see this session's chat).
 //
-// The seven weaponSkill categories and their WEAPON_ROLL ranges stay
-// fixed — they're generic combat-category names (Heavy Weapons, Archery,
-// etc.), not narrative Echoes content, and lib/itemFormulas.js keys its
-// damage-range lookup off these exact strings, so renaming them would
-// break the formula rather than just reskin it (same "skinnable
-// mechanics, fixed keys" treatment as the six core attributes).
+// The seven weaponSkill categories and their WEAPON_ROLL guide ranges
+// stay fixed — they're generic combat-category names (Heavy Weapons,
+// Archery, etc.), not narrative Echoes content, and
+// lib/itemFormulas.js's clampDamageRange() keys off these exact strings,
+// so renaming them would break the guide rather than just reskin it
+// (same "skinnable mechanics, fixed keys" treatment as the six core
+// attributes).
+//
+// Damage is two numbers (damageMin/damageMax) the model generates
+// directly per weapon, grounded by the range guide below -- not derived
+// from a formula. An earlier version computed a fake "critical hit"
+// ceiling from a single generated roll; this replaces that with the
+// model just picking a believable min/max spread itself, same way it
+// already picks other flavor-grounded numbers elsewhere in this schema.
 
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
@@ -20,7 +28,8 @@ const SCHEMA_DESCRIPTION = `{
   "flavor": "1-3 sentences: what it looks like, where it might be found, any history",
   "weaponSkill": "one of: Heavy Weapons | Light Weapons | Polearm | Unarmed | Ballistics | Archery | Catalysts — Weapon category only, else null",
   "weaponType": "specific physical form, e.g. 'War Cleaver' — Weapon category only, else null",
-  "weaponRoll": "integer within the WEAPON_ROLL range for the chosen weaponSkill (see ranges below) — Weapon category only, else null",
+  "damageMin": "integer — the low end of this weapon's damage range, grounded in the WEAPON_ROLL guide below for its weaponSkill category — Weapon category only, else null",
+  "damageMax": "integer greater than damageMin — the high end of this weapon's damage range for this specific weapon. Should read as a believable spread, not identical to min and not absurdly larger — widen the spread for higher rarity. Weapon category only, else null",
   "relevantStat": "this world's own label for whichever attribute the item's flavor implies (heavy→BODY-equivalent, precise→REFLEX-equivalent, tech→KNOWLEDGE-equivalent — see ATTRIBUTE LABELS below) — Weapon category only, else null",
   "appliesStatus": "a status effect name, or null if none — Weapon category only",
   "effectorTier": "integer 1-4 (1=light, 4=heavy) — Armor category only, else null",
@@ -63,7 +72,7 @@ RARITY (Weapon/Armor only — null for Consumable/QuestItem):
 - Rare: a real secondary mechanical effect (reliable status application, conditional bonus, meaningful utility property).
 - Legendary: a genuinely UNIQUE effect not used by any other item in the existing roster (check the roster below) — must come with a short lore note on its history/prior owner, woven into the flavor text.
 
-WEAPON SKILL & WEAPON_ROLL (Weapon category only): every weapon needs a Weapon Skill (the category the player invests in) and a Weapon Type (the specific flavorful form — invent freely as long as it clearly maps to one skill). Pick a weaponRoll integer within that skill's canonical range:
+WEAPON SKILL & DAMAGE RANGE (Weapon category only): every weapon needs a Weapon Skill (the category the player invests in) and a Weapon Type (the specific flavorful form — invent freely as long as it clearly maps to one skill). Pick damageMin from within that skill's canonical range below, then pick a damageMax above it that feels like a believable spread for this specific weapon (wider for higher rarity):
 ${WEAPON_ROLL_RANGES_TEXT}
 If a concept doesn't cleanly fit any of the seven skills, pick the closest one rather than inventing an eighth.
 
