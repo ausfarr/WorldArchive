@@ -19,6 +19,7 @@ const SCHEMA_DESCRIPTION = `{
   "_site": {
     "title": "the archive site's own name/brand for this world (2-4 words) -- grounded in the world's own name/vocabulary if one was given, otherwise invent something fitting (e.g. 'The Ledger', 'The Dossier', 'The Undercroft Archive')",
     "tagline": "one punchy sentence for the homepage hero -- what this archive IS and who it's compiled for, written in this world's own voice, replacing a generic description",
+    "statusLine": "a short in-world status line for the homepage header, 3 segments joined by ' \u00b7 ', e.g. 'Year 27 YSS \u00b7 Population 40,000-60,000 \u00b7 Status: active development' -- segment 1 is an in-world date/era/cycle marker, segment 2 is a scale-appropriate stat (population is NOT always right -- for a Multiverse-scale world use known realms/factions/whatever fits, not people), segment 3 is always 'Status: <one or two words>' describing the state of things in-world right now. Must fit this world's own genre/scale/era.",
     "footer": "one short line for the site footer, in-world flavor (e.g. an internal classification, build status, or similar phrase this world's factions/institutions would actually stamp on a document) -- avoid literally saying 'archive build' unless that fits the world's own vocabulary"
   },
   "npcs": { "label": "world-flavored display name for this category", "blurb": "one short sentence, in-world flavor, what this category means here" },
@@ -35,6 +36,7 @@ function buildWizardCategoryConfigSystemPrompt({ step1, loreContext }) {
   const knownContext = [
     s.worldName ? `World name: ${s.worldName}` : null,
     s.genre && s.genre.length ? `Genre & tone: ${Array.isArray(s.genre) ? s.genre.join(", ") : s.genre}` : null,
+    s.scale ? `Scale: ${s.scale}` : null,
     s.era ? `Era/tech level: ${s.era}` : null
   ].filter(Boolean).join("\n");
 

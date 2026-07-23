@@ -452,6 +452,8 @@ function applyCategoryConfigToDom(categoryConfig) {
   if (site.title) {
     const titleEl = document.getElementById("site-title-text");
     if (titleEl) titleEl.textContent = site.title;
+    const heroTitleEl = document.getElementById("hero-title-text");
+    if (heroTitleEl) heroTitleEl.textContent = site.title;
     document.title = document.title.includes(" — ")
       ? document.title.replace(/ — .+$/, ` — ${site.title}`)
       : site.title;
@@ -463,6 +465,10 @@ function applyCategoryConfigToDom(categoryConfig) {
   if (site.footer) {
     const footerEl = document.getElementById("site-footer-text");
     if (footerEl) footerEl.textContent = site.footer;
+  }
+  if (site.statusLine) {
+    const statusEl = document.getElementById("hero-status-line");
+    if (statusEl) statusEl.textContent = site.statusLine;
   }
 
   Object.entries(categoryConfig).forEach(([key, cfg]) => {

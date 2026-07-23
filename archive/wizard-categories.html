@@ -36,6 +36,8 @@
     <input id="site-title-input" class="field-input" placeholder="e.g. The Ledger" style="margin-bottom: 12px;">
     <label class="field-label" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px;">Homepage Tagline</label>
     <textarea id="site-tagline-input" class="field-input" rows="2" placeholder="One sentence describing what this archive is and who it's for." style="margin-bottom: 12px;"></textarea>
+    <label class="field-label" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px;">Status Line (small stat line under the tagline)</label>
+    <input id="site-status-input" class="field-input" placeholder="e.g. Year 27 YSS · Population 40,000–60,000 · Status: active development" style="margin-bottom: 12px;">
     <label class="field-label" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px;">Footer Line</label>
     <input id="site-footer-input" class="field-input" placeholder="e.g. INTERNAL ARCHIVE — RESTRICTED ACCESS" style="margin-bottom: 24px;">
 
@@ -141,6 +143,7 @@ function syncFromDOM() {
   categoryConfig._site = {
     title: document.getElementById("site-title-input").value,
     tagline: document.getElementById("site-tagline-input").value,
+    statusLine: document.getElementById("site-status-input").value,
     footer: document.getElementById("site-footer-input").value
   };
 }
@@ -163,6 +166,7 @@ document.getElementById("generate-all").addEventListener("click", async () => {
     categoryConfig._site = generated._site || {};
     document.getElementById("site-title-input").value = categoryConfig._site.title || "";
     document.getElementById("site-tagline-input").value = categoryConfig._site.tagline || "";
+    document.getElementById("site-status-input").value = categoryConfig._site.statusLine || "";
     document.getElementById("site-footer-input").value = categoryConfig._site.footer || "";
     render();
     status.textContent = "Generated — edit freely before saving.";
@@ -206,6 +210,7 @@ async function init() {
     const site = categoryConfig._site || {};
     document.getElementById("site-title-input").value = site.title || "";
     document.getElementById("site-tagline-input").value = site.tagline || "";
+    document.getElementById("site-status-input").value = site.statusLine || "";
     document.getElementById("site-footer-input").value = site.footer || "";
   } catch (err) {
     console.error("Could not load existing category config:", err);

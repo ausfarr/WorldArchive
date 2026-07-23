@@ -61,9 +61,9 @@
 
 <section class="hero">
   <div class="wrap">
-    <h1 class="flicker-title">The Archive</h1>
+    <h1 class="flicker-title" id="hero-title-text">The Archive</h1>
     <p class="dek" id="hero-tagline">Every record recovered from Corvale, cross-indexed and cross-filed — faction dossiers, named contacts, threat assessments, salvage, and intercepted transmissions. Compiled for internal Colony use.</p>
-    <div class="status-line"><span class="dot">●</span> Year 27 YSS &nbsp;·&nbsp; Population 40,000–60,000 &nbsp;·&nbsp; Status: active development</div>
+    <div class="status-line"><span class="dot">●</span> <span id="hero-status-line">Year 27 YSS &nbsp;·&nbsp; Population 40,000–60,000 &nbsp;·&nbsp; Status: active development</span></div>
   </div>
 </section>
 
@@ -124,7 +124,7 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <span id="site-footer-text">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</span> &nbsp;·&nbsp; generated from project source files &nbsp;·&nbsp; portraits pending art pass
+    <span id="site-footer-text">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</span>
   </div>
 </footer>
 
@@ -138,6 +138,8 @@
     if (site.title) {
       var titleEl = document.getElementById('site-title-text');
       if (titleEl) titleEl.textContent = site.title;
+      var heroTitleEl = document.getElementById('hero-title-text');
+      if (heroTitleEl) heroTitleEl.textContent = site.title;
       document.title = document.title.indexOf(' \u2014 ') !== -1
         ? document.title.replace(/ \u2014 .+$/, ' \u2014 ' + site.title)
         : site.title;
@@ -149,6 +151,10 @@
     if (site.footer) {
       var footerEl = document.getElementById('site-footer-text');
       if (footerEl) footerEl.textContent = site.footer;
+    }
+    if (site.statusLine) {
+      var statusEl = document.getElementById('hero-status-line');
+      if (statusEl) statusEl.textContent = site.statusLine;
     }
     Object.keys(categoryConfig).forEach(function(key) {
       if (key === '_site') return;
