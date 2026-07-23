@@ -22,6 +22,7 @@ router.get("/wizard/review", async (req, res) => {
       loreSections: loreSections.map((s) => ({ title: s.title, core: s.core, categoryTags: s.category_tags })),
       factions: config.factions_json || [],
       statSystem: config.stat_system_json || null,
+      skillSystem: config.skill_system_json || null,
       styleGuide: config.style_guide_json || null,
       categoryConfig: config.category_config_json || null,
       setupCompletedAt: config.setup_completed_at || null

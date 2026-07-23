@@ -29,7 +29,7 @@
     <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Everything below was already saved as you went through Steps 1–7 — this is just a summary, not a final write gate. Go back and edit any step if something's off.</p>
 
     <div id="notice-box" style="display:none; background: rgba(255,47,110,0.08); border: 1px solid var(--neon-primary); padding: 14px 16px; margin-bottom: 24px; font-size: 0.85rem; color: var(--ink);">
-      <strong style="color: var(--neon-primary);">Finished!</strong> Confirming will pre-generate the factions, afterwards you are ready to go.
+      <strong style="color: var(--neon-primary);">Heads up:</strong> confirming below will take you into the archive, but the archive's pages don't read from this generated world data yet — that frontend wiring is planned for a later phase. You won't see your NPCs/factions/etc. show up visually there yet; this step just marks setup as complete on the backend.
     </div>
 
     <div id="summary"></div>
@@ -43,7 +43,7 @@
 </div>
 
 <footer class="site-footer">
-  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+  
 </footer>
 
 <style>
@@ -113,6 +113,17 @@ function renderSummary(data) {
   const stats = data.statSystem;
   html += section("Stat System", stats
     ? `<div class="pill-list">${["body","reflex","knowledge","presence","sanity","fate"].map(k => `<span class="pill">${(stats[k] && stats[k].label) || k}</span>`).join("")}</div>`
+    : '<div class="empty">Not configured yet.</div>'
+  );
+
+  // Skills
+  const skillSystem = data.skillSystem;
+  const fieldSkillCount = (skillSystem && Array.isArray(skillSystem.fieldSkills)) ? skillSystem.fieldSkills.length : 0;
+  html += section("Skills", (skillSystem && (skillSystem.weaponSkills || fieldSkillCount))
+    ? `
+      ${skillSystem.weaponSkills ? `<div class="pill-list" style="margin-bottom:8px;">${Object.values(skillSystem.weaponSkills).map(label => `<span class="pill">${label}</span>`).join("")}</div>` : ""}
+      <div class="review-row">${fieldSkillCount} field skill${fieldSkillCount === 1 ? "" : "s"} in the fixed pool</div>
+    `
     : '<div class="empty">Not configured yet.</div>'
   );
 
