@@ -29,6 +29,12 @@
     <form id="step1-form">
 
       <div class="field-group">
+        <label class="field-label">World Name</label>
+        <input id="world-name" class="field-input" placeholder="What is this world/setting called?">
+        <p class="field-hint">Used as the archive's own name and voice later in setup (Step 7) — optional, but recommended.</p>
+      </div>
+
+      <div class="field-group">
         <label class="field-label">Genre &amp; Tone</label>
         <div id="genre-checklist" class="checklist"></div>
       </div>
@@ -167,6 +173,7 @@ async function init() {
     const res = await authFetch("/api/wizard/draft");
     const { draft } = await res.json();
     const step1 = (draft && draft["1"]) || {};
+    if (step1.worldName) document.getElementById("world-name").value = step1.worldName;
     setCheckedValues(document.getElementById("genre-checklist"), step1.genre);
     if (step1.scale) document.getElementById("scale").value = step1.scale;
     if (step1.era) document.getElementById("era").value = step1.era;
@@ -227,6 +234,7 @@ document.getElementById("step1-form").addEventListener("submit", async (e) => {
   const status = document.getElementById("status");
   status.textContent = "Saving…";
   const fields = {
+    worldName: document.getElementById("world-name").value,
     genre: getCheckedValues(document.getElementById("genre-checklist")),
     scale: document.getElementById("scale").value,
     era: document.getElementById("era").value,

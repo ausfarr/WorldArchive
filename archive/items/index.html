@@ -45,7 +45,7 @@
 
 <header class="site-header">
   <div class="wrap">
-    <div class="site-title"><a href="../index.html">The <span class="accent">Archive</span></a></div>
+    <div class="site-title"><a href="../index.html"><span id="site-title-text">The <span class="accent">Archive</span></span></a></div>
     <nav class="site-nav">
       <a href="../factions/index.html" id="nav-factions">Factions</a>
       <a href="../npcs/index.html" id="nav-npcs">NPCs</a>
@@ -62,7 +62,7 @@
 <div class="wrap">
   <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span id="crumb-label">Items</span></div>
   <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Items</h1>
-  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;">Found gear, crafted recipes, consumables, and relics.</p>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb">Found gear, crafted recipes, consumables, and relics.</p>
 
   
 <div class="sheet" style="margin: 0 0 40px; padding: 24px 32px;">
@@ -130,7 +130,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
 </div>
 
 <footer class="site-footer">
-  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+  <div class="wrap"><span id="site-footer-text">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</span></div>
 </footer>
 
 <script>
@@ -139,7 +139,24 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
     var cached = localStorage.getItem('worldforge_category_config_cache');
     if (!cached) return;
     var categoryConfig = JSON.parse(cached);
+    var site = categoryConfig._site || {};
+    if (site.title) {
+      var titleEl = document.getElementById('site-title-text');
+      if (titleEl) titleEl.textContent = site.title;
+      document.title = document.title.indexOf(' \u2014 ') !== -1
+        ? document.title.replace(/ \u2014 .+$/, ' \u2014 ' + site.title)
+        : site.title;
+    }
+    if (site.tagline) {
+      var taglineEl = document.getElementById('hero-tagline');
+      if (taglineEl) taglineEl.textContent = site.tagline;
+    }
+    if (site.footer) {
+      var footerEl = document.getElementById('site-footer-text');
+      if (footerEl) footerEl.textContent = site.footer;
+    }
     Object.keys(categoryConfig).forEach(function(key) {
+      if (key === '_site') return;
       var cfg = categoryConfig[key];
       var navLink = document.getElementById('nav-' + key);
       if (navLink) {
@@ -155,12 +172,22 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
           if (h2) h2.textContent = cfg.label;
         }
       }
-      if (document.body.dataset.category === key && cfg.label) {
-        var pageTitle = document.getElementById('page-title');
-        var crumbLabel = document.getElementById('crumb-label');
-        if (pageTitle) pageTitle.textContent = cfg.label;
-        if (crumbLabel) crumbLabel.textContent = cfg.label;
-        document.title = document.title.replace(/^[^\u2014]+/, cfg.label + ' ');
+      if (cfg.blurb) {
+        var cardDesc = document.getElementById('card-desc-' + key);
+        if (cardDesc) cardDesc.textContent = cfg.blurb;
+      }
+      if (document.body.dataset.category === key) {
+        if (cfg.label) {
+          var pageTitle = document.getElementById('page-title');
+          var crumbLabel = document.getElementById('crumb-label');
+          if (pageTitle) pageTitle.textContent = cfg.label;
+          if (crumbLabel) crumbLabel.textContent = cfg.label;
+          document.title = document.title.replace(/^[^\u2014]+/, cfg.label + ' ');
+        }
+        if (cfg.blurb) {
+          var pageBlurb = document.getElementById('page-blurb');
+          if (pageBlurb) pageBlurb.textContent = cfg.blurb;
+        }
       }
     });
   } catch (e) { /* no cache yet, or malformed -- async apply will fix it */ }

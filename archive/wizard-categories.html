@@ -29,7 +29,17 @@
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Category Configuration</h1>
       <button type="button" id="generate-all" class="generate-btn">Generate for me</button>
     </div>
-    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">The 7 content categories themselves are fixed — this just relabels them in your world's own vocabulary and lets you turn any off you don't need.</p>
+    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">The 7 content categories themselves are fixed — this just relabels them in your world's own vocabulary and lets you turn any off you don't need. "Generate for me" also names the archive site itself.</p>
+
+    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 0 0 10px;">Site Identity</h2>
+    <label class="field-label" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px;">Site Title (replaces "The Archive")</label>
+    <input id="site-title-input" class="field-input" placeholder="e.g. The Ledger" style="margin-bottom: 12px;">
+    <label class="field-label" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px;">Homepage Tagline</label>
+    <textarea id="site-tagline-input" class="field-input" rows="2" placeholder="One sentence describing what this archive is and who it's for." style="margin-bottom: 12px;"></textarea>
+    <label class="field-label" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px;">Footer Line</label>
+    <input id="site-footer-input" class="field-input" placeholder="e.g. INTERNAL ARCHIVE — RESTRICTED ACCESS" style="margin-bottom: 24px;">
+
+    <hr style="border: none; border-top: 1px solid var(--border-line-soft); margin: 0 0 24px;">
 
     <div id="categories-list"></div>
 
@@ -128,6 +138,11 @@ function syncFromDOM() {
       enabled: card.querySelector(".category-enabled-input").checked
     };
   });
+  categoryConfig._site = {
+    title: document.getElementById("site-title-input").value,
+    tagline: document.getElementById("site-tagline-input").value,
+    footer: document.getElementById("site-footer-input").value
+  };
 }
 
 document.getElementById("generate-all").addEventListener("click", async () => {
@@ -145,6 +160,10 @@ document.getElementById("generate-all").addEventListener("click", async () => {
       const existingEnabled = (categoryConfig[key] && categoryConfig[key].enabled !== false);
       categoryConfig[key] = Object.assign({}, generated[key], { enabled: existingEnabled });
     });
+    categoryConfig._site = generated._site || {};
+    document.getElementById("site-title-input").value = categoryConfig._site.title || "";
+    document.getElementById("site-tagline-input").value = categoryConfig._site.tagline || "";
+    document.getElementById("site-footer-input").value = categoryConfig._site.footer || "";
     render();
     status.textContent = "Generated — edit freely before saving.";
   } catch (err) {
@@ -184,6 +203,10 @@ async function init() {
     const res = await authFetch("/api/wizard/category-config");
     const { categoryConfig: loaded } = await res.json();
     categoryConfig = loaded || {};
+    const site = categoryConfig._site || {};
+    document.getElementById("site-title-input").value = site.title || "";
+    document.getElementById("site-tagline-input").value = site.tagline || "";
+    document.getElementById("site-footer-input").value = site.footer || "";
   } catch (err) {
     console.error("Could not load existing category config:", err);
   }

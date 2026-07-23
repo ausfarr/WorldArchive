@@ -45,7 +45,7 @@
 
 <header class="site-header">
   <div class="wrap">
-    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+    <div class="site-title"><a href="index.html"><span id="site-title-text">The <span class="accent">Archive</span></span></a></div>
     <nav class="site-nav">
       <a href="factions/index.html" id="nav-factions">Factions</a>
       <a href="npcs/index.html" id="nav-npcs">NPCs</a>
@@ -62,7 +62,7 @@
 <section class="hero">
   <div class="wrap">
     <h1 class="flicker-title">The Archive</h1>
-    <p class="dek">Every record recovered from Corvale, cross-indexed and cross-filed — faction dossiers, named contacts, threat assessments, salvage, and intercepted transmissions. Compiled for internal Colony use.</p>
+    <p class="dek" id="hero-tagline">Every record recovered from Corvale, cross-indexed and cross-filed — faction dossiers, named contacts, threat assessments, salvage, and intercepted transmissions. Compiled for internal Colony use.</p>
     <div class="status-line"><span class="dot">●</span> Year 27 YSS &nbsp;·&nbsp; Population 40,000–60,000 &nbsp;·&nbsp; Status: active development</div>
   </div>
 </section>
@@ -72,49 +72,49 @@
 
     <div class="category-card" id="card-factions">
       <h2>Factions</h2>
-      <p>The four powers of the Dome, plus what lives in the gaps between them.</p>
+      <p id="card-desc-factions">The four powers of the Dome, plus what lives in the gaps between them.</p>
       <span class="count" id="count-factions">— archived</span>
       <a class="card-link" href="factions/index.html"></a>
     </div>
 
     <div class="category-card" id="card-npcs">
       <h2>NPCs</h2>
-      <p>Faction leaders, rivals, quest-givers, informants — named and accounted for.</p>
+      <p id="card-desc-npcs">Faction leaders, rivals, quest-givers, informants — named and accounted for.</p>
       <span class="count" id="count-npcs">— archived</span>
       <a class="card-link" href="npcs/index.html"></a>
     </div>
 
     <div class="category-card" id="card-enemies">
       <h2>Bestiary</h2>
-      <p>Trash, Elite, and Boss-tier threats. Stat blocks, ability kits, combat notes.</p>
+      <p id="card-desc-enemies">Trash, Elite, and Boss-tier threats. Stat blocks, ability kits, combat notes.</p>
       <span class="count" id="count-enemies">— archived</span>
       <a class="card-link" href="enemies/index.html"></a>
     </div>
 
     <div class="category-card" id="card-classes">
       <h2>Classes</h2>
-      <p>Professions turned combat. Full 1–99 progression trees and Level 50 evolutions.</p>
+      <p id="card-desc-classes">Professions turned combat. Full 1–99 progression trees and Level 50 evolutions.</p>
       <span class="count" id="count-classes">— archived</span>
       <a class="card-link" href="classes/index.html"></a>
     </div>
 
     <div class="category-card" id="card-items">
       <h2>Items</h2>
-      <p>Found gear, crafted recipes, consumables, and relics.</p>
+      <p id="card-desc-items">Found gear, crafted recipes, consumables, and relics.</p>
       <span class="count" id="count-items">— archived</span>
       <a class="card-link" href="items/index.html"></a>
     </div>
 
     <div class="category-card" id="card-logs">
       <h2>Logs</h2>
-      <p>Data drives, terminal records, and intercepted Hex-Tongue traffic.</p>
+      <p id="card-desc-logs">Data drives, terminal records, and intercepted Hex-Tongue traffic.</p>
       <span class="count" id="count-logs">— archived</span>
       <a class="card-link" href="logs/index.html"></a>
     </div>
 
     <div class="category-card" id="card-survivors">
       <h2>Survivors</h2>
-      <p>Colony roster — recruits, quirks, and short backstories.</p>
+      <p id="card-desc-survivors">Colony roster — recruits, quirks, and short backstories.</p>
       <span class="count" id="count-survivors">— archived</span>
       <a class="card-link" href="survivors/index.html"></a>
     </div>
@@ -124,7 +124,7 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD &nbsp;·&nbsp; generated from project source files &nbsp;·&nbsp; portraits pending art pass
+    <span id="site-footer-text">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</span> &nbsp;·&nbsp; generated from project source files &nbsp;·&nbsp; portraits pending art pass
   </div>
 </footer>
 
@@ -134,7 +134,24 @@
     var cached = localStorage.getItem('worldforge_category_config_cache');
     if (!cached) return;
     var categoryConfig = JSON.parse(cached);
+    var site = categoryConfig._site || {};
+    if (site.title) {
+      var titleEl = document.getElementById('site-title-text');
+      if (titleEl) titleEl.textContent = site.title;
+      document.title = document.title.indexOf(' \u2014 ') !== -1
+        ? document.title.replace(/ \u2014 .+$/, ' \u2014 ' + site.title)
+        : site.title;
+    }
+    if (site.tagline) {
+      var taglineEl = document.getElementById('hero-tagline');
+      if (taglineEl) taglineEl.textContent = site.tagline;
+    }
+    if (site.footer) {
+      var footerEl = document.getElementById('site-footer-text');
+      if (footerEl) footerEl.textContent = site.footer;
+    }
     Object.keys(categoryConfig).forEach(function(key) {
+      if (key === '_site') return;
       var cfg = categoryConfig[key];
       var navLink = document.getElementById('nav-' + key);
       if (navLink) {
@@ -150,12 +167,22 @@
           if (h2) h2.textContent = cfg.label;
         }
       }
-      if (document.body.dataset.category === key && cfg.label) {
-        var pageTitle = document.getElementById('page-title');
-        var crumbLabel = document.getElementById('crumb-label');
-        if (pageTitle) pageTitle.textContent = cfg.label;
-        if (crumbLabel) crumbLabel.textContent = cfg.label;
-        document.title = document.title.replace(/^[^\u2014]+/, cfg.label + ' ');
+      if (cfg.blurb) {
+        var cardDesc = document.getElementById('card-desc-' + key);
+        if (cardDesc) cardDesc.textContent = cfg.blurb;
+      }
+      if (document.body.dataset.category === key) {
+        if (cfg.label) {
+          var pageTitle = document.getElementById('page-title');
+          var crumbLabel = document.getElementById('crumb-label');
+          if (pageTitle) pageTitle.textContent = cfg.label;
+          if (crumbLabel) crumbLabel.textContent = cfg.label;
+          document.title = document.title.replace(/^[^\u2014]+/, cfg.label + ' ');
+        }
+        if (cfg.blurb) {
+          var pageBlurb = document.getElementById('page-blurb');
+          if (pageBlurb) pageBlurb.textContent = cfg.blurb;
+        }
       }
     });
   } catch (e) { /* no cache yet, or malformed -- async apply will fix it */ }

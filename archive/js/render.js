@@ -448,7 +448,25 @@ async function applyCategoryConfig() {
 // identical rules (the snippet is vanilla JS duplicated inline since it
 // runs before render.js loads, but mirrors this function's logic).
 function applyCategoryConfigToDom(categoryConfig) {
+  const site = categoryConfig._site || {};
+  if (site.title) {
+    const titleEl = document.getElementById("site-title-text");
+    if (titleEl) titleEl.textContent = site.title;
+    document.title = document.title.includes(" — ")
+      ? document.title.replace(/ — .+$/, ` — ${site.title}`)
+      : site.title;
+  }
+  if (site.tagline) {
+    const taglineEl = document.getElementById("hero-tagline");
+    if (taglineEl) taglineEl.textContent = site.tagline;
+  }
+  if (site.footer) {
+    const footerEl = document.getElementById("site-footer-text");
+    if (footerEl) footerEl.textContent = site.footer;
+  }
+
   Object.entries(categoryConfig).forEach(([key, cfg]) => {
+    if (key === "_site") return;
     const navLink = document.getElementById(`nav-${key}`);
     if (navLink) {
       if (cfg.enabled === false) navLink.style.display = "none";
@@ -463,12 +481,22 @@ function applyCategoryConfigToDom(categoryConfig) {
         if (h2) h2.textContent = cfg.label;
       }
     }
+    if (cfg.blurb) {
+      const cardDesc = document.getElementById(`card-desc-${key}`);
+      if (cardDesc) cardDesc.textContent = cfg.blurb;
+    }
     const pageTitle = document.getElementById("page-title");
     const crumbLabel = document.getElementById("crumb-label");
-    if (document.body.dataset.category === key && cfg.label) {
-      if (pageTitle) pageTitle.textContent = cfg.label;
-      if (crumbLabel) crumbLabel.textContent = cfg.label;
-      document.title = document.title.replace(/^[^—]+/, `${cfg.label} `);
+    if (document.body.dataset.category === key) {
+      if (cfg.label) {
+        if (pageTitle) pageTitle.textContent = cfg.label;
+        if (crumbLabel) crumbLabel.textContent = cfg.label;
+        document.title = document.title.replace(/^[^—]+/, `${cfg.label} `);
+      }
+      if (cfg.blurb) {
+        const pageBlurb = document.getElementById("page-blurb");
+        if (pageBlurb) pageBlurb.textContent = cfg.blurb;
+      }
     }
   });
 }
