@@ -13,7 +13,7 @@
 // per-world rather than pulled from Echoes' fixed Linguistics/Scavenging/
 // Tinkering/Biology list.
 
-const ABILITY_SCHEMA = `{ "level": 1, "name": "...", "kind": "Active | Passive | Ultimate Unlock | Final Unlock", "effectText": "one sentence combining the mechanical effect AND its scaling formula in bracketed/inline notation, e.g. 'Light damage, generates 1 Thread. Damage = Blade-work × 1.5.' — this goes in a single compact table cell, not a separate blockquote/Scaling pair" }`;
+const ABILITY_SCHEMA = `{ "level": 1, "name": "...", "kind": "Active | Passive | Ultimate Unlock | Final Unlock", "effectText": "ONE sentence, 25 words or fewer, combining the mechanical effect AND its scaling formula in bracketed/inline notation, e.g. 'Light damage, generates 1 Thread. Damage = Blade-work × 1.5.' — this goes in a single compact table cell, not a paragraph. If you cannot say it in 25 words, cut detail rather than run long." }`;
 
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
@@ -21,7 +21,7 @@ const SCHEMA_DESCRIPTION = `{
   "evolvedName": "The [Evolved Name]",
   "tagline": "first-person, one sentence, character-select-screen line — write this LAST after the full kit is drafted",
   "archetype": "2-3 role tags, e.g. 'Controller / Binder / Battlefield Manipulator'",
-  "coreResourceName": "invented resource name fitting the profession, e.g. 'Thread', 'Heat', 'Pressure'",
+  "coreResourceName": "invented resource name fitting the class concept, e.g. 'Thread', 'Heat', 'Pressure'",
   "coreResourceDescription": "what it represents and how it's built/spent",
   "primaryAttribute": "this world's label for the governing attribute (parenthetical of what it governs for this class)",
   "secondaryAttribute": "this world's label for the secondary attribute (parenthetical)",
@@ -37,7 +37,7 @@ const SCHEMA_DESCRIPTION = `{
     { "label": "The [Resource/Gate Name]", "text": "a resource/gate mechanic that rewards or punishes neglecting a stat" },
     { "label": "The Fantasy Arc", "text": "one flowing sentence/paragraph: Level 1 — [who they start as]. Level 50 — [who they become]. Level 99 — [the mythic endpoint]." }
   ],
-  "designNotes": "1-2 sentences: how this avoids colliding with an existing class's profession, core fantasy, or signature verb"
+  "designNotes": "1-2 sentences: how this avoids colliding with an existing class's concept, core fantasy, or signature verb"
 }`;
 
 function buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, rosterContext, name, existingContent }) {
@@ -45,19 +45,19 @@ function buildClassContentSystemPrompt({ settingContext, loreContext, statLabels
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
 
-  return `You are generating a full playable character class for a tabletop/game world — a profession turned into a combat class. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
+  return `You are generating a full playable character class for a tabletop/game world — a character archetype or profession turned into a combat class, whichever fits this world's genre (a high-fantasy world wants archetypes like a Rogue or Paladin, not literal day jobs; an industrial/modern world wants real professions). Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
-SETTING (stay consistent with this — tone, technology level, and what kind of profession would plausibly exist here):
+SETTING (stay consistent with this — tone, technology level, and what kind of class concept -- archetype or profession -- would plausibly exist here):
 ${settingContext}
 
-If inventing the profession, pick something consistent with the setting above and distinct from the existing roster below.
+If inventing the concept, pick something consistent with the setting above and distinct from the existing roster below -- an archetype (Rogue, Paladin) or a profession, whichever this world's genre actually calls for.
 
 ATTRIBUTE LABELS (this world's own names for the six canonical attributes — always output these exact lowercase keys as primaryAttribute/secondaryAttribute references use these labels, don't invent others):
 ${statLabelsText}
 
 WEAPON SKILLS (canonical seven — don't invent others): Heavy Weapons, Light Weapons, Polearm, Unarmed, Ballistics, Archery, Catalysts. FIELD SKILLS: invent 3-5 flavor skill names fitting this world's professions and setting (e.g. a scavenger-economy world might have "Scavenging" or "Appraisal"; a magic-adjacent world might have "Ritual Craft") — reuse the same invented field skill names consistently with the existing roster below rather than inventing a new synonym each time.
 
-ATTRIBUTE PRIORITY: pick a primary (the class's core fantasy) and secondary (utility/survivability) attribute. Every ability should visibly scale off one of these two, or off a Field/Weapon Skill tied to the profession. Do NOT compute literal numeric stat blocks (no base stat arrays) — just name which attributes/skills abilities scale from, same as the game's existing class sheets.
+ATTRIBUTE PRIORITY: pick a primary (the class's core fantasy) and secondary (utility/survivability) attribute. Every ability should visibly scale off one of these two, or off a Field/Weapon Skill tied to the class concept. Do NOT compute literal numeric stat blocks (no base stat arrays) — just name which attributes/skills abilities scale from, same as the game's existing class sheets.
 
 STRUCTURE (standard output is the full 1-99 tree):
 - Skill Efficiency: Major (1.0x, 1-2 skills the build is built around) / Minor (0.5x) / Misc (0.2x).
@@ -68,16 +68,16 @@ STRUCTURE (standard output is the full 1-99 tree):
 - Tier 4 (Levels 76-99): 5 abilities escalating to a mythic register, ending in the Level 99 "Final Unlock" — the single most powerful, iconic effect in the kit.
 - Why This Progression Works: exactly 3 named callouts (a non-obvious skill synergy, a resource/gate mechanic, and the Level 1→50→99 fantasy arc).
 
-Every ability's effectText should read as ONE compact sentence combining the mechanical effect AND a bracketed/inline scaling reference to a named skill/attribute (e.g. "Light damage, generates 1 Thread. Damage = Blade-work × 1.5.") — this renders as a single table cell, not a verbose block. Passives that don't scale should say something like "N/A — Binary Unlock" inline rather than a formula.
+Every ability's effectText MUST be ONE compact sentence, 25 words or fewer, combining the mechanical effect AND a bracketed/inline scaling reference to a named skill/attribute (e.g. "Light damage, generates 1 Thread. Damage = Blade-work × 1.5.") — this renders as a single table cell, not a paragraph. Do NOT write multi-clause explanations of permanence, duration, or downstream consequences (e.g. do not write something like "the target loses all infrastructure authority permanently until re-certified, a process that takes weeks and requires political capital" — state the effect and its formula, nothing else). Passives that don't scale should say something like "N/A — Binary Unlock" inline rather than a formula.
 
 WORLD LORE — GROUND TRUTH (stay consistent with this; don't contradict it):
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}
 ${regenerateBlock}
-EXISTING ROSTER (if this class's profession, core fantasy, signature verb, or field skill names collide with something already generated, angle it differently rather than shipping a duplicate):
+EXISTING ROSTER (if this class's concept, core fantasy, signature verb, or field skill names collide with something already generated, angle it differently rather than shipping a duplicate):
 ${rosterContext}
 
 USER INPUT:
-Concept/Name: ${name || "invent a profession fitting this world's setting, not already in the roster below"}
+Concept/Name: ${name || "invent a class concept (archetype or profession, whichever fits this world's genre) fitting this world's setting, not already in the roster below"}
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
