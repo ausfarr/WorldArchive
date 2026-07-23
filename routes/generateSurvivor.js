@@ -7,7 +7,8 @@ const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveSurvivorEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildSurvivorBodyHtml } = require("../lib/survivorTemplate");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
+const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -78,7 +79,9 @@ router.post("/generate-survivor", async (req, res) => {
     let imageBuffer = null;
     let imageError = null;
     try {
-      const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: survivor });
+      const styleGuide = await getStyleGuide(worldId);
+      const factionAccent = await getFactionAccent(worldId, styleGuide, survivor.faction);
+      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "survivors", subjectJson: survivor, styleGuide, factionAccent });
       const artPrompt = await callClaude({
         systemPrompt: artSystemPrompt,
         userMessage: "Write the prompt now.",

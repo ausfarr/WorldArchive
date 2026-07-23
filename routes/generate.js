@@ -7,7 +7,8 @@ const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveNpcEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildBodyHtml } = require("../lib/entryTemplate");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
+const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
+const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -96,7 +97,9 @@ router.post("/generate-npc", async (req, res) => {
     let imageBuffer = null;
     let imageError = null;
     try {
-      const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: npc });
+      const styleGuide = await getStyleGuide(worldId);
+      const factionAccent = await getFactionAccent(worldId, styleGuide, npc.faction);
+      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "npcs", subjectJson: npc, styleGuide, factionAccent });
       const artPrompt = await callClaude({
         systemPrompt: artSystemPrompt,
         userMessage: "Write the prompt now.",

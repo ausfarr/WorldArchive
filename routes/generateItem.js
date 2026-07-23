@@ -8,7 +8,8 @@ const { saveItemEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildItemBodyHtml } = require("../lib/itemTemplate");
 const { weaponRollInRange } = require("../lib/itemFormulas");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
+const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -95,7 +96,9 @@ router.post("/generate-item", async (req, res) => {
     let imageBuffer = null;
     let imageError = null;
     try {
-      const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: item });
+      const styleGuide = await getStyleGuide(worldId);
+      const factionAccent = await getFactionAccent(worldId, styleGuide, item.faction);
+      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "items", subjectJson: item, styleGuide, factionAccent });
       const artPrompt = await callClaude({
         systemPrompt: artSystemPrompt,
         userMessage: "Write the prompt now.",

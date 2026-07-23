@@ -7,7 +7,8 @@ const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveClassEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildClassBodyHtml } = require("../lib/classTemplate");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
+const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -80,7 +81,9 @@ router.post("/generate-class", async (req, res) => {
     let imageBuffer = null;
     let imageError = null;
     try {
-      const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: cls });
+      const styleGuide = await getStyleGuide(worldId);
+      const factionAccent = await getFactionAccent(worldId, styleGuide, cls.faction);
+      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "classes", subjectJson: cls, styleGuide, factionAccent });
       const artPrompt = await callClaude({
         systemPrompt: artSystemPrompt,
         userMessage: "Write the prompt now.",

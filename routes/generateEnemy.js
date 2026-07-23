@@ -8,7 +8,8 @@ const { saveEnemyEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildEnemyBodyHtml } = require("../lib/enemyTemplate");
 const { attributeBudgetWarning } = require("../lib/statFormulas");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
+const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
+const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -86,7 +87,9 @@ router.post("/generate-enemy", async (req, res) => {
     let imageBuffer = null;
     let imageError = null;
     try {
-      const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: enemy });
+      const styleGuide = await getStyleGuide(worldId);
+      const factionAccent = await getFactionAccent(worldId, styleGuide, enemy.faction);
+      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "enemies", subjectJson: enemy, styleGuide, factionAccent });
       const artPrompt = await callClaude({
         systemPrompt: artSystemPrompt,
         userMessage: "Write the prompt now.",
