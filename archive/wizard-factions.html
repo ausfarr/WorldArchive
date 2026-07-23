@@ -98,13 +98,14 @@ const MAX_FACTIONS = 8;
 let factions = []; // each: { id, name, concept, politics, government, economy, military, tensions }
 
 function newSlot() {
-  return { id: null, name: "", concept: "", politics: "", government: "", economy: "", military: "", tensions: "" };
+  return { id: null, name: "", concept: "", politics: "", government: "", economy: "", military: "", tensions: "", accentColor: "#29f0d1" };
 }
 
 function render() {
   document.getElementById("factions-list").innerHTML = factions.map((f, i) => `
     <div class="faction-card" data-index="${i}">
       <div class="faction-card-top">
+        <input type="color" class="accent-color-input" value="${f.accentColor || "#29f0d1"}" title="Accent color" style="width:32px; height:32px; padding:0; border:1px solid var(--border-line); background:none; cursor:pointer; flex-shrink:0;">
         <input class="faction-name-input" placeholder="Faction name" value="${(f.name || "").replace(/"/g, "&quot;")}">
         <button type="button" class="generate-btn" data-action="generate-one">Generate for me</button>
         <button type="button" class="remove-slot" data-action="remove">✕</button>
@@ -130,6 +131,7 @@ function render() {
 function syncFromDOM() {
   document.querySelectorAll(".faction-card").forEach((card, i) => {
     factions[i].name = card.querySelector(".faction-name-input").value;
+    factions[i].accentColor = card.querySelector(".accent-color-input").value;
     factions[i].concept = card.querySelector(".concept-input").value;
     factions[i].politics = card.querySelector(".politics-input").value;
     factions[i].government = card.querySelector(".government-input").value;

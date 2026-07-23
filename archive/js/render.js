@@ -3,14 +3,6 @@
 // keeps working when opened directly from disk (file://), where fetch()
 // of local files is blocked by browser CORS rules.
 
-const FACTION_COLORS = {
-  preservation: { name: "Preservation", varName: "--preservation" },
-  ferro_kings: { name: "Ferro-Kings", varName: "--ferro-kings" },
-  the_board: { name: "The Board", varName: "--the-board" },
-  colony: { name: "Colony", varName: "--colony" },
-  glitch_kin: { name: "Glitch-Kin", varName: "--glitch-kin" }
-};
-
 const CATEGORY_LABELS = {
   factions: "Factions",
   npcs: "NPCs",
@@ -80,30 +72,37 @@ async function populateFactionSelect(selectId, { includeUnaligned = false } = {}
   }
 }
 
-function facColorVar(factionKey) {
-  if (factionKey && FACTION_COLORS[factionKey]) return `var(${FACTION_COLORS[factionKey].varName})`;
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
+// factionLookup is {factionKey: {name, accentColor}} -- see
+// getFactionLookup() below. Falls back to cyan for any faction that
+// predates the accent-color feature or hasn't been assigned one yet
+// (Echoes' original 5 included, until each is regenerated or given a
+// color via the picker) rather than requiring a backfill.
+function facColorVar(factionKey, factionLookup) {
+  const entry = factionKey && factionLookup && factionLookup[factionKey];
+  if (entry && entry.accentColor && HEX_COLOR_RE.test(entry.accentColor)) return entry.accentColor;
   return "var(--neon-cyan)";
 }
 
-// Fetches this world's real faction list and builds a {factionKey: name}
-// lookup for tag TEXT, replacing the hardcoded FACTION_COLORS[key].name
-// lookup that only recognized Echoes' original 5 factions and silently
-// rendered no tag at all for anything else (see this session's chat —
-// the "faction tags still don't show up" miss). facColorVar() above is
-// left as-is: it already defaults gracefully to cyan for an unrecognized
-// key, so custom per-faction accent COLORS remain a genuine Phase 4 item
-// -- only the tag's NAME TEXT was actually broken.
-async function getFactionNameLookup() {
+// Fetches this world's real faction list and builds a
+// {factionKey: {name, accentColor}} lookup, used for both tag TEXT and
+// each entry's accent color -- replacing the two separate hardcoded maps
+// (FACTION_LABEL, FACTION_COLORS) that only recognized Echoes' original 5
+// factions (see this session's earlier chat: the "faction tags still
+// don't show up" miss, and this session's Phase 4 work closing the
+// matching color gap).
+async function getFactionLookup() {
   try {
     const res = await authFetch("/api/entries/factions");
     const data = await res.json();
     const lookup = {};
     ((data && data.entries) || []).forEach((f) => {
-      lookup[f.faction || f.id] = f.name;
+      lookup[f.faction || f.id] = { name: f.name, accentColor: f.accentColor || null };
     });
     return lookup;
   } catch (err) {
-    console.error("Failed to load faction name lookup:", err);
+    console.error("Failed to load faction lookup:", err);
     return {};
   }
 }
@@ -244,27 +243,27 @@ function showRegeneratePreview(data) {
 async function loadAndRenderCategoryIndex(categoryPath) {
   const grid = document.getElementById("entry-grid");
   try {
-    const [entriesRes, factionNameLookup] = await Promise.all([
+    const [entriesRes, factionLookup] = await Promise.all([
       authFetch(`/api/entries/${categoryPath}`),
-      getFactionNameLookup()
+      getFactionLookup()
     ]);
     const data = await entriesRes.json();
     if (!entriesRes.ok) throw new Error(data.error || "Failed to load entries.");
-    renderCategoryIndex(data.entries, categoryPath, factionNameLookup);
+    renderCategoryIndex(data.entries, categoryPath, factionLookup);
   } catch (err) {
     console.error(`Failed to load ${categoryPath} entries:`, err);
     if (grid) grid.innerHTML = `<p style="color: var(--ink-faint);">Could not load entries: ${err.message}</p>`;
   }
 }
 
-function renderCategoryIndex(manifest, categoryPath, factionNameLookup) {
+function renderCategoryIndex(manifest, categoryPath, factionLookup) {
   const grid = document.getElementById("entry-grid");
   if (!grid) return;
-  const lookup = factionNameLookup || {};
+  const lookup = factionLookup || {};
   grid.innerHTML = manifest.map(entry => {
-    const facColor = facColorVar(entry.faction);
+    const facColor = facColorVar(entry.faction, lookup);
     const tagsHtml = (entry.tags || []).join("");
-    const facName = entry.faction ? (lookup[entry.faction] || entry.faction) : null;
+    const facName = entry.faction ? ((lookup[entry.faction] && lookup[entry.faction].name) || entry.faction) : null;
     const facTag = facName ? `<span class="tag fac">${facName}</span>` : "";
     if (entry.locked && categoryPath !== "factions") {
       const canFill = !!FILL_IN_ENDPOINTS[categoryPath];
@@ -297,9 +296,14 @@ function stripHtml(html) {
   return tmp.textContent || tmp.innerText || "";
 }
 
-function renderDossier(entry, factionNameLookup) {
+function renderDossier(entry, factionLookup) {
   document.title = `${stripHtml(entry.name)} — The Archive`;
-  const facColor = facColorVar(entry.faction);
+  const lookup = factionLookup || {};
+  // A faction entry's own accent color is keyed by ITS id (this is the
+  // color other entries reference via .faction), not by a `.faction`
+  // field on itself -- factions don't belong to another faction.
+  const colorKey = entry.category === "factions" ? entry.id : entry.faction;
+  const facColor = facColorVar(colorKey, lookup);
   document.documentElement.style.setProperty("--fac-color-override", facColor);
   const styleTag = document.createElement("style");
   styleTag.textContent = `:root { --fac-color: ${facColor}; }`;
@@ -313,8 +317,7 @@ function renderDossier(entry, factionNameLookup) {
   document.getElementById("sheet-title").innerHTML = entry.name;
   document.getElementById("sheet-subtitle").textContent = entry.subtitle || "";
 
-  const lookup = factionNameLookup || {};
-  const facName = entry.faction ? (lookup[entry.faction] || entry.faction) : null;
+  const facName = entry.faction ? ((lookup[entry.faction] && lookup[entry.faction].name) || entry.faction) : null;
   const facTag = facName ? `<span class="tag fac">${facName}</span>` : "";
   const extraTags = (entry.tags || []).join("");
   document.getElementById("sheet-tags").innerHTML = facTag + extraTags;
@@ -323,6 +326,47 @@ function renderDossier(entry, factionNameLookup) {
 
   const footerEl = document.getElementById("sheet-footer");
   footerEl.innerHTML = (entry.footer || []).map(f => `<span>${f}</span>`).join("");
+
+  if (entry.category === "factions") {
+    renderFactionColorPicker(entry, facColor);
+  }
+}
+
+// Small color-picker control injected only on a faction's own dossier
+// page. Deliberately calls the dedicated PATCH endpoint rather than the
+// regenerate/confirm flow -- changing the color shouldn't touch Deep
+// Lore content, and shouldn't require a preview/confirm round trip.
+function renderFactionColorPicker(entry, currentColorCss) {
+  const host = document.getElementById("sheet-tags");
+  if (!host || document.getElementById("fac-color-picker")) return;
+  const currentHex = HEX_COLOR_RE.test(entry.accentColor || "") ? entry.accentColor : "#29f0d1";
+  const wrap = document.createElement("span");
+  wrap.id = "fac-color-picker";
+  wrap.style.cssText = "display:inline-flex; align-items:center; gap:6px; margin-left:8px; font-family:var(--font-mono); font-size:0.65rem; color:var(--ink-faint); text-transform:uppercase; letter-spacing:0.05em; vertical-align:middle;";
+  wrap.innerHTML = `
+    Accent
+    <input type="color" id="fac-color-input" value="${currentHex}" style="width:22px; height:22px; padding:0; border:1px solid var(--border-line); background:none; cursor:pointer;">
+    <span id="fac-color-status"></span>
+  `;
+  host.appendChild(wrap);
+
+  document.getElementById("fac-color-input").addEventListener("change", async (e) => {
+    const status = document.getElementById("fac-color-status");
+    status.textContent = "Saving…";
+    try {
+      const res = await authFetch(`/api/wizard/factions/${entry.id}/accent-color`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accentColor: e.target.value })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Save failed");
+      status.textContent = "Saved — reloading…";
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      status.textContent = "Error: " + err.message;
+    }
+  });
 }
 
 // Resolves ?category=X&id=Y and fetches the matching entry from the API
@@ -337,9 +381,9 @@ async function loadAndRenderDossier() {
     return;
   }
   try {
-    const [res, factionNameLookup] = await Promise.all([
+    const [res, factionLookup] = await Promise.all([
       authFetch(`/api/entries/${category}/${id}`),
-      getFactionNameLookup()
+      getFactionLookup()
     ]);
     if (res.status === 404) {
       document.getElementById("sheet-body").innerHTML = "<p>Entry not found.</p>";
@@ -347,7 +391,7 @@ async function loadAndRenderDossier() {
     }
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load entry.");
-    renderDossier(data.entry, factionNameLookup);
+    renderDossier(data.entry, factionLookup);
   } catch (err) {
     console.error("Failed to load entry:", err);
     document.getElementById("sheet-body").innerHTML = "<p>Entry not found.</p>";

@@ -14,7 +14,8 @@ const SCHEMA_DESCRIPTION = `{
   "government": "1 paragraph: the formal structure/title system, if any -- can be informal/absent if that fits the faction better.",
   "economy": "1 paragraph: how this faction sustains itself materially -- resources, trade, extraction, labor.",
   "military": "1 paragraph: how this faction projects or defends force, if at all -- can be non-martial if that fits.",
-  "tensions": "1-2 paragraphs: internal fractures/disagreements AND external conflicts with other forces in the world, plus one genuine secret this faction is hiding (folded into this section, not a separate field)."
+  "tensions": "1-2 paragraphs: internal fractures/disagreements AND external conflicts with other forces in the world, plus one genuine secret this faction is hiding (folded into this section, not a separate field).",
+  "accentColor": "A single hex color, e.g. #c9502e -- an accent color that fits this faction's visual identity and mood (its iconography, territory, or tone). Must be visually distinct from any colors already claimed in this world, listed below. Avoid near-black/near-white (needs to read clearly against a dark UI panel)."
 }`;
 
 // mode: "fill" (name/concept given, fill in the rest) or "invent" (name
@@ -23,6 +24,11 @@ function buildWizardFactionSystemPrompt({ loreContext, existingFactions, name, c
   const existingNames = (existingFactions || []).map((f) => f.name).filter(Boolean);
   const overlapBlock = existingNames.length
     ? `\n\nALREADY-DEFINED FACTIONS IN THIS WORLD (don't reinvent these, don't duplicate their core concept, but you may reference tension/rivalry with them where it fits naturally): ${existingNames.join(", ")}\n`
+    : "";
+
+  const existingColors = (existingFactions || []).map((f) => f.accentColor).filter(Boolean);
+  const colorBlock = existingColors.length
+    ? `\n\nCOLORS ALREADY CLAIMED IN THIS WORLD (pick something visually distinct from these): ${existingColors.join(", ")}\n`
     : "";
 
   const inputBlock = mode === "invent"
@@ -35,7 +41,7 @@ Stay consistent with the world's lore given below -- don't contradict its geogra
 
 WORLD LORE — GROUND TRUTH (stay consistent with this):
 ${loreContext || "(no lore saved yet for this world -- invent a faction consistent with general genre conventions)"}
-${overlapBlock}
+${overlapBlock}${colorBlock}
 YOUR TASK:
 ${inputBlock}
 

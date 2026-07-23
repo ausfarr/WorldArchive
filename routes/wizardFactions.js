@@ -3,12 +3,17 @@ const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { getFactions, saveFactions } = require("../lib/worldConfigRepo");
 const { backfillFactionTags } = require("../lib/loreRepo");
 const { getLoreContext } = require("../lib/loreContext");
-const { upsertEntry } = require("../lib/entriesRepo");
+const { upsertEntry, patchEntryMeta } = require("../lib/entriesRepo");
 const { buildWizardFactionSystemPrompt } = require("../prompts/wizardFactionPrompt");
 
 const router = express.Router();
 
 const MAX_FACTIONS = 8;
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+
+function normalizeHex(value) {
+  return HEX_COLOR_RE.test(value || "") ? value : null;
+}
 
 function slugify(name) {
   return (name || "faction")
@@ -50,6 +55,7 @@ ${nl2p(faction.tensions)}
     subtitle: faction.concept || "",
     faction: null,
     tags: [],
+    accentColor: normalizeHex(faction.accentColor),
     bodyHtml,
     footer: ["Source: World Setup Wizard"]
   };
@@ -72,6 +78,7 @@ async function generateOneFaction(worldId, existingFactions, { name, concept, mo
     throw new Error(`Faction content was not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
   }
   faction.id = slugify(faction.name);
+  faction.accentColor = normalizeHex(faction.accentColor);
   return faction;
 }
 
@@ -142,7 +149,7 @@ router.post("/wizard/save-factions", async (req, res) => {
     if (factions.length > MAX_FACTIONS) {
       return res.status(400).json({ error: `A world can have at most ${MAX_FACTIONS} factions.` });
     }
-    const withIds = factions.map((f) => ({ ...f, id: f.id || slugify(f.name) }));
+    const withIds = factions.map((f) => ({ ...f, id: f.id || slugify(f.name), accentColor: normalizeHex(f.accentColor) }));
     const seenIds = new Set();
     withIds.forEach((f) => {
       let uniqueId = f.id;
@@ -167,6 +174,28 @@ router.post("/wizard/save-factions", async (req, res) => {
     res.json({ factions: saved });
   } catch (err) {
     console.error("Saving factions failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Manual override for a faction's accent color (the picker on the
+// dossier page and the wizard step both call this). Deliberately separate
+// from /wizard/save-factions and from the content-regenerate path in
+// routes/generateFaction.js -- changing the color should never require
+// touching Deep Lore, and regenerating Deep Lore should never touch the
+// color (see lib/fileWriter.js's saveFactionEntry, which now preserves it
+// explicitly for that reason).
+router.patch("/wizard/factions/:id/accent-color", async (req, res) => {
+  try {
+    const { accentColor } = req.body || {};
+    const normalized = normalizeHex(accentColor);
+    if (!normalized) {
+      return res.status(400).json({ error: "accentColor must be a hex string like #29f0d1" });
+    }
+    const updated = await patchEntryMeta(req.worldId, "factions", req.params.id, { accentColor: normalized });
+    res.json({ accentColor: updated.accentColor });
+  } catch (err) {
+    console.error("Updating faction accent color failed:", err);
     res.status(500).json({ error: err.message });
   }
 });
