@@ -3,8 +3,14 @@ const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { getDraft, getFactions, getStyleGuide, saveStyleGuide } = require("../lib/worldConfigRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { buildWizardStyleGuideSystemPrompt, buildFactionAccentsSystemPrompt } = require("../prompts/wizardStyleGuidePrompt");
+const { patchEntryMeta } = require("../lib/entriesRepo");
 
 const router = express.Router();
+
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+function normalizeHex(value) {
+  return HEX_COLOR_RE.test(value || "") ? value : null;
+}
 
 router.get("/wizard/style-guide", async (req, res) => {
   try {
@@ -86,6 +92,27 @@ router.post("/wizard/save-style-guide", async (req, res) => {
       return res.status(400).json({ error: "Request body must include a 'styleGuide' object." });
     }
     const saved = await saveStyleGuide(req.worldId, styleGuide);
+
+    // Bridge each faction's literal hex into the live entries table --
+    // this is what render.js's facColorVar() actually reads at browse
+    // time (see archive/js/render.js's getFactionLookup()). The prose
+    // accentColor/accentNotes fields stay in world_config.style_guide_json
+    // only, for the future art-prompt generator; only accentColorHex is
+    // a real UI value.
+    const factionAccents = Array.isArray(styleGuide.factionAccents) ? styleGuide.factionAccents : [];
+    for (const fa of factionAccents) {
+      const hex = normalizeHex(fa.accentColorHex);
+      if (!fa.id || !hex) continue;
+      try {
+        await patchEntryMeta(req.worldId, "factions", fa.id, { accentColor: hex });
+      } catch (bridgeErr) {
+        // Most likely this faction id doesn't exist yet in the live
+        // archive (e.g. draft-only, never actually saved via Step 4) --
+        // don't fail the whole style guide save over one faction's color.
+        console.error(`Could not bridge accent color for faction '${fa.id}':`, bridgeErr.message);
+      }
+    }
+
     res.json({ styleGuide: saved });
   } catch (err) {
     console.error("Saving style guide failed:", err);

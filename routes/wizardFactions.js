@@ -55,7 +55,6 @@ ${nl2p(faction.tensions)}
     subtitle: faction.concept || "",
     faction: null,
     tags: [],
-    accentColor: normalizeHex(faction.accentColor),
     bodyHtml,
     footer: ["Source: World Setup Wizard"]
   };
@@ -78,7 +77,6 @@ async function generateOneFaction(worldId, existingFactions, { name, concept, mo
     throw new Error(`Faction content was not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
   }
   faction.id = slugify(faction.name);
-  faction.accentColor = normalizeHex(faction.accentColor);
   return faction;
 }
 
@@ -149,7 +147,7 @@ router.post("/wizard/save-factions", async (req, res) => {
     if (factions.length > MAX_FACTIONS) {
       return res.status(400).json({ error: `A world can have at most ${MAX_FACTIONS} factions.` });
     }
-    const withIds = factions.map((f) => ({ ...f, id: f.id || slugify(f.name), accentColor: normalizeHex(f.accentColor) }));
+    const withIds = factions.map((f) => ({ ...f, id: f.id || slugify(f.name) }));
     const seenIds = new Set();
     withIds.forEach((f) => {
       let uniqueId = f.id;
@@ -179,12 +177,15 @@ router.post("/wizard/save-factions", async (req, res) => {
 });
 
 // Manual override for a faction's accent color (the picker on the
-// dossier page and the wizard step both call this). Deliberately separate
-// from /wizard/save-factions and from the content-regenerate path in
-// routes/generateFaction.js -- changing the color should never require
-// touching Deep Lore, and regenerating Deep Lore should never touch the
-// color (see lib/fileWriter.js's saveFactionEntry, which now preserves it
-// explicitly for that reason).
+// dossier page). The initial AI-suggested color comes from the Style
+// Guide step (Step 6, routes/wizardStyleGuide.js's generate-faction-accents
+// + save-style-guide bridge) rather than from faction creation here --
+// that step has base-palette and cross-faction context this one doesn't.
+// This endpoint is deliberately separate from both that bridge and from
+// the content-regenerate path in routes/generateFaction.js -- changing
+// the color should never require touching Deep Lore, and regenerating
+// Deep Lore should never touch the color (see lib/fileWriter.js's
+// saveFactionEntry, which now preserves it explicitly for that reason).
 router.patch("/wizard/factions/:id/accent-color", async (req, res) => {
   try {
     const { accentColor } = req.body || {};

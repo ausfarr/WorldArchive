@@ -57,7 +57,7 @@ ${SCHEMA_DESCRIPTION}`;
 // clashing/duplicated).
 const FACTION_ACCENTS_SCHEMA = `{
   "factionAccents": [
-    { "id": "faction-id-exactly-as-given", "accentColor": "a specific color/tone, e.g. 'rust red, molten orange'", "accentNotes": "1 sentence: where/how this accent shows up visually" }
+    { "id": "faction-id-exactly-as-given", "accentColor": "a specific color/tone, e.g. 'rust red, molten orange'", "accentColorHex": "a literal 6-digit hex color matching the description above, e.g. '#c9502e' -- used directly as this faction's UI accent color on the live site", "accentNotes": "1 sentence: where/how this accent shows up visually" }
   ]
 }`;
 
@@ -69,6 +69,8 @@ function buildFactionAccentsSystemPrompt({ baseStyle, factions }) {
   return `You are assigning a distinct visual accent color to each faction in a tabletop/game world, consistent with the world's base style guide below. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
 Every faction must get a color/tone DISTINCT from every other faction's -- no two factions should be visually confusable. Ground each choice in that faction's actual concept, not an arbitrary color wheel assignment.
+
+accentColorHex is a LITERAL value applied directly to the live website (card borders, headers, tags) for that faction, not flavor text. It must: be visually distinct from every other faction's accentColorHex here, be visually distinct from the base style guide's own backgroundColor/panelColor/primaryColor/secondaryColor below (so a faction's accent doesn't get lost in or clash with the site's own theme), and stay legible against a dark panel background (avoid near-black; avoid unsaturated grays).
 
 BASE STYLE GUIDE (stay consistent with this):
 ${JSON.stringify(baseStyle, null, 2)}

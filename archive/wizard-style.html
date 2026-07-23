@@ -185,7 +185,7 @@ function previewThemeOnThisPage() {
 }
 
 let factions = [];
-let accents = {}; // keyed by faction id -> { accentColor, accentNotes }
+let accents = {}; // keyed by faction id -> { accentColor, accentColorHex, accentNotes }
 
 const FIELD_IDS = {
   renderingStyle: "rendering-style",
@@ -227,7 +227,10 @@ function renderAccents() {
       <div class="accent-card" data-id="${f.id}">
         <div class="accent-faction-name">${f.name || f.id}</div>
         <div>
-          <input class="field-input accent-color-input" placeholder="Accent color" value="${(a.accentColor || "").replace(/"/g, "&quot;")}">
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:6px;">
+            <input type="color" class="accent-hex-input color-input" style="width:44px; height:32px;" value="${/^#[0-9a-fA-F]{6}$/.test(a.accentColorHex || "") ? a.accentColorHex : "#29f0d1"}" title="Live site accent color">
+            <input class="field-input accent-color-input" placeholder="Accent color" style="margin-bottom:0;" value="${(a.accentColor || "").replace(/"/g, "&quot;")}">
+          </div>
           <textarea class="field-input accent-notes-input" rows="1" placeholder="Where/how it shows up">${a.accentNotes || ""}</textarea>
         </div>
       </div>
@@ -240,6 +243,7 @@ function syncAccentsFromDOM() {
     const id = card.dataset.id;
     accents[id] = {
       accentColor: card.querySelector(".accent-color-input").value,
+      accentColorHex: card.querySelector(".accent-hex-input").value,
       accentNotes: card.querySelector(".accent-notes-input").value
     };
   });
