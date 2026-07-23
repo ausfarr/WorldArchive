@@ -90,8 +90,16 @@ router.post("/generate-survivor", async (req, res) => {
       imageError = imgErr.message;
     }
 
-    await saveSurvivorEntry(worldId, survivor);
-    if (imageBuffer) await saveImage(worldId, survivor.id, imageBuffer);
+    let imageUrl = null;
+    if (imageBuffer) {
+      try {
+        imageUrl = await saveImage(worldId, survivor.id, imageBuffer);
+      } catch (uploadErr) {
+        console.error("Image upload failed:", uploadErr.message);
+        imageError = uploadErr.message;
+      }
+    }
+    await saveSurvivorEntry(worldId, survivor, imageUrl);
 
     res.json({
       preview: false,
@@ -99,7 +107,7 @@ router.post("/generate-survivor", async (req, res) => {
       name: survivor.name,
       className: survivor.className,
       summary: survivor.designNotes,
-      imageGenerated: !!imageBuffer,
+      imageGenerated: !!imageUrl,
       imageError
     });
   } catch (err) {

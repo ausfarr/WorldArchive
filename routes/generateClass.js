@@ -78,6 +78,7 @@ router.post("/generate-class", async (req, res) => {
     }
 
     let imageBuffer = null;
+    let imageError = null;
     try {
       const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: cls });
       const artPrompt = await callClaude({
@@ -88,10 +89,19 @@ router.post("/generate-class", async (req, res) => {
       imageBuffer = await generateImage(artPrompt.trim());
     } catch (imgErr) {
       console.error("Image step failed, continuing without art:", imgErr.message);
+      imageError = imgErr.message;
     }
 
-    await saveClassEntry(worldId, cls);
-    if (imageBuffer) await saveImage(worldId, cls.id, imageBuffer);
+    let imageUrl = null;
+    if (imageBuffer) {
+      try {
+        imageUrl = await saveImage(worldId, cls.id, imageBuffer);
+      } catch (uploadErr) {
+        console.error("Image upload failed:", uploadErr.message);
+        imageError = uploadErr.message;
+      }
+    }
+    await saveClassEntry(worldId, cls, imageUrl);
 
     res.json({
       preview: false,
@@ -99,7 +109,8 @@ router.post("/generate-class", async (req, res) => {
       name: `${cls.baseName} → ${cls.evolvedName}`,
       archetype: cls.archetype,
       summary: cls.designNotes,
-      imageGenerated: !!imageBuffer
+      imageGenerated: !!imageUrl,
+      imageError
     });
   } catch (err) {
     console.error("Class generation failed:", err);

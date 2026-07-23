@@ -98,8 +98,16 @@ router.post("/generate-enemy", async (req, res) => {
       imageError = imgErr.message;
     }
 
-    await saveEnemyEntry(worldId, enemy);
-    if (imageBuffer) await saveImage(worldId, enemy.id, imageBuffer);
+    let imageUrl = null;
+    if (imageBuffer) {
+      try {
+        imageUrl = await saveImage(worldId, enemy.id, imageBuffer);
+      } catch (uploadErr) {
+        console.error("Image upload failed:", uploadErr.message);
+        imageError = uploadErr.message;
+      }
+    }
+    await saveEnemyEntry(worldId, enemy, imageUrl);
 
     res.json({
       preview: false,
@@ -108,7 +116,7 @@ router.post("/generate-enemy", async (req, res) => {
       tier: enemy.tier,
       faction: enemy.faction,
       summary: enemy.designNotes,
-      imageGenerated: !!imageBuffer,
+      imageGenerated: !!imageUrl,
       imageError,
       attributeBudgetWarning: warning
     });

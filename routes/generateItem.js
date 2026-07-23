@@ -93,6 +93,7 @@ router.post("/generate-item", async (req, res) => {
     }
 
     let imageBuffer = null;
+    let imageError = null;
     try {
       const artSystemPrompt = buildArtPromptSystemPrompt({ npcJson: item });
       const artPrompt = await callClaude({
@@ -103,10 +104,19 @@ router.post("/generate-item", async (req, res) => {
       imageBuffer = await generateImage(artPrompt.trim());
     } catch (imgErr) {
       console.error("Image step failed, continuing without art:", imgErr.message);
+      imageError = imgErr.message;
     }
 
-    await saveItemEntry(worldId, item);
-    if (imageBuffer) await saveImage(worldId, item.id, imageBuffer);
+    let imageUrl = null;
+    if (imageBuffer) {
+      try {
+        imageUrl = await saveImage(worldId, item.id, imageBuffer);
+      } catch (uploadErr) {
+        console.error("Image upload failed:", uploadErr.message);
+        imageError = uploadErr.message;
+      }
+    }
+    await saveItemEntry(worldId, item, imageUrl);
 
     res.json({
       preview: false,
@@ -115,7 +125,8 @@ router.post("/generate-item", async (req, res) => {
       category: item.category,
       rarity: item.rarity,
       summary: item.designNotes,
-      imageGenerated: !!imageBuffer
+      imageGenerated: !!imageUrl,
+      imageError
     });
   } catch (err) {
     console.error("Item generation failed:", err);

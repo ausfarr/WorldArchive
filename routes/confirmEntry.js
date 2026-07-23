@@ -6,7 +6,8 @@ const {
   saveSurvivorEntry,
   saveLogEntry,
   saveClassEntry,
-  saveFactionEntry
+  saveFactionEntry,
+  getPortraitUrl
 } = require("../lib/fileWriter");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
 
@@ -22,6 +23,20 @@ const WRITERS = {
   survivors: saveSurvivorEntry,
   logs: saveLogEntry,
   classes: saveClassEntry
+};
+
+// Categories whose writer function accepts a third imageUrl argument
+// (logs don't have portraits at all). Regenerate never touches images —
+// without this, confirming a regenerate would silently overwrite a
+// previously-working portrait's URL with nothing, reverting the dossier
+// to the dead relative-path placeholder every single time (see this
+// session's chat).
+const HAS_PORTRAIT = {
+  npcs: true,
+  enemies: true,
+  items: true,
+  survivors: true,
+  classes: true
 };
 
 // Called after the user reviews a /generate-X preview response and clicks
@@ -54,7 +69,8 @@ router.post("/confirm-entry", async (req, res) => {
       return res.status(400).json({ error: `Unknown category '${category}'` });
     }
 
-    await writer(worldId, entry);
+    const imageUrl = HAS_PORTRAIT[category] ? getPortraitUrl(worldId, entry.id) : undefined;
+    await writer(worldId, entry, imageUrl);
     res.json({ saved: true, id: entry.id, category });
   } catch (err) {
     console.error("Confirm-save failed:", err);

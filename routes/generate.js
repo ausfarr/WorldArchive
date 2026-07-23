@@ -110,9 +110,21 @@ router.post("/generate-npc", async (req, res) => {
       imageError = imgErr.message;
     }
 
-    // Step 5: write to Supabase
-    await saveNpcEntry(worldId, npc);
-    if (imageBuffer) await saveImage(worldId, npc.id, imageBuffer);
+    // Step 5: upload image FIRST (if any) so its real public URL can be
+    // baked into the saved bodyHtml -- saving the entry before the image
+    // exists left a dead relative-path <img src> permanently in the
+    // stored HTML, which is why portraits never actually displayed even
+    // when generation/upload succeeded (see this session's chat).
+    let imageUrl = null;
+    if (imageBuffer) {
+      try {
+        imageUrl = await saveImage(worldId, npc.id, imageBuffer);
+      } catch (uploadErr) {
+        console.error("Image upload failed:", uploadErr.message);
+        imageError = uploadErr.message;
+      }
+    }
+    await saveNpcEntry(worldId, npc, imageUrl);
 
     res.json({
       preview: false,
@@ -121,7 +133,7 @@ router.post("/generate-npc", async (req, res) => {
       roleArchetype: npc.roleArchetype,
       faction: npc.faction,
       summary: npc.designNotes,
-      imageGenerated: !!imageBuffer,
+      imageGenerated: !!imageUrl,
       imageError
     });
   } catch (err) {
