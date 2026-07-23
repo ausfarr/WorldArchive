@@ -1,8 +1,8 @@
 const express = require("express");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
-const { getDraft, getStatSystem, getSkillSystem, saveSkillSystem } = require("../lib/worldConfigRepo");
+const { getDraft, getSkillSystem, saveSkillSystem } = require("../lib/worldConfigRepo");
 const { getLoreContext } = require("../lib/loreContext");
-const { formatStatLabelsForPrompt } = require("../lib/worldFlavor");
+const { getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
 const { buildWizardSkillSystemPrompt, WEAPON_SKILL_KEYS } = require("../prompts/wizardSkillSystemPrompt");
 
 const router = express.Router();
@@ -25,8 +25,7 @@ router.post("/wizard/generate-skill-system", async (req, res) => {
     const draft = await getDraft(worldId);
     const step1 = draft["1"] || {};
     const loreContext = await getLoreContext(worldId, {});
-    const statSystem = await getStatSystem(worldId);
-    const statLabelsText = formatStatLabelsForPrompt(statSystem);
+    const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
 
     const systemPrompt = buildWizardSkillSystemPrompt({ step1, loreContext, statLabelsText });
     const raw = await callClaude({
