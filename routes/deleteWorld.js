@@ -1,10 +1,23 @@
 const express = require("express");
-const { resetWorldConfig } = require("../lib/worldConfigRepo");
+const { resetWorldConfig, getGenerationCount, GENERATION_CAP } = require("../lib/worldConfigRepo");
 const { clearLoreSections } = require("../lib/loreRepo");
 const { deleteAllEntries } = require("../lib/entriesRepo");
 const { deleteAllPortraits } = require("../lib/fileWriter");
 
 const router = express.Router();
+
+// Returns the beta generation cap and how much of it this world's
+// account has used -- see middleware/enforceGenerationCap.js for what
+// counts. Read-only, doesn't touch the counter itself.
+router.get("/generation-usage", async (req, res) => {
+  try {
+    const used = await getGenerationCount(req.worldId);
+    res.json({ used, cap: GENERATION_CAP, remaining: Math.max(0, GENERATION_CAP - used) });
+  } catch (err) {
+    console.error("Loading generation usage failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Wipes everything a world has ever generated and sends the user back to
 // a fresh wizard -- but keeps their Supabase Auth account and worlds row

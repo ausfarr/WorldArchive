@@ -66,6 +66,11 @@
   <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;">Settings</h1>
   <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 32px;">Account and world-level actions.</p>
 
+  <div class="info-section">
+    <h2>Beta Usage</h2>
+    <div id="usage-content" class="info-row">Loading…</div>
+  </div>
+
   <div class="info-section" style="border-color: var(--danger, #c0392b);">
     <h2 style="color: var(--danger, #c0392b);">Delete World</h2>
     <p class="info-row">Permanently deletes every NPC, enemy, item, class, log, survivor, and faction this world has generated, along with all portraits and world lore/config. You'll be sent back into a fresh wizard to start over. Your login stays active -- this does not delete your account.</p>
@@ -96,12 +101,32 @@
 <script src="/js/auth.js"></script>
 <script src="js/render.js"></script>
 <script>
+async function loadUsage() {
+  const el = document.getElementById("usage-content");
+  try {
+    const res = await authFetch("/api/generation-usage");
+    if (!res.ok) throw new Error("Failed to load usage.");
+    const { used, cap, remaining } = await res.json();
+    const pct = Math.min(100, Math.round((used / cap) * 100));
+    el.innerHTML = `
+      <div>${remaining} of ${cap} generations remaining (${used} used) — counts NPCs, enemies, items, classes, logs, survivors, and factions generated or regenerated from the archive. Wizard setup doesn't count against this.</div>
+      <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
+        <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
+      </div>
+    `;
+  } catch (err) {
+    console.error("Could not load generation usage:", err);
+    el.textContent = "Could not load usage.";
+  }
+}
+
 async function init() {
   const session = await requireAuth();
   if (!session) return;
   renderAuthStatus();
   applyCategoryConfig();
   applySiteTheme();
+  loadUsage();
 
   document.getElementById("delete-world-btn").addEventListener("click", async () => {
     const confirmed = window.confirm(
