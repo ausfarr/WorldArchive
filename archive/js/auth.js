@@ -78,6 +78,29 @@ async function authFetch(url, options = {}) {
   return fetch(url, Object.assign({}, options, { headers }));
 }
 
+// Where a logged-in user should land: the wizard if their world hasn't
+// finished setup (fresh signup, or after Delete World reset it), the
+// archive homepage otherwise. Used right after login/signup (login.html)
+// and as a safety net on index.html itself, in case someone lands there
+// directly (bookmark, back button) with setup still incomplete -- a
+// blank homepage with no world info is a bad first thing for a new
+// tester to see, so both call sites route through this one check rather
+// than assuming index.html is always the right landing page.
+//
+// Relative paths only -- both call sites (login.html, index.html) live
+// at the archive/ root, same level as wizard.html and index.html.
+async function getPostLoginDestination() {
+  try {
+    const res = await authFetch("/api/wizard/review");
+    if (!res.ok) return "index.html"; // fail open rather than trap the user
+    const { setupCompletedAt } = await res.json();
+    return setupCompletedAt ? "index.html" : "wizard.html";
+  } catch (err) {
+    console.error("Could not determine setup status, defaulting to index.html:", err);
+    return "index.html";
+  }
+}
+
 // Fills in a #auth-status element in the site nav, if present on the
 // page, with either a "Log In" link or the current user's email + a
 // Sign Out link.

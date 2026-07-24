@@ -201,8 +201,16 @@
 <script src="/js/auth.js"></script>
 <script src="js/render.js"></script>
 <script>
-  requireAuth().then((session) => {
+  requireAuth().then(async (session) => {
     if (!session) return;
+    // Safety net for anyone landing here directly (bookmark, back
+    // button) whose world hasn't finished setup yet -- a blank homepage
+    // with no world info is a bad thing for a new tester to hit.
+    const destination = await getPostLoginDestination();
+    if (destination !== "index.html") {
+      window.location.href = destination;
+      return;
+    }
     renderAuthStatus();
     applyCategoryConfig();
     applySiteTheme();

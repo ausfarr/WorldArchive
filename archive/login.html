@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Log In — The Archive</title>
+<title>Log In — Chronicled</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
 <header class="site-header">
   <div class="wrap">
-    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+    <div class="site-title"><a href="index.html">Chronicled</a></div>
   </div>
 </header>
 
 <div class="wrap" style="max-width: 420px; padding-top: 60px;">
   <div class="sheet" style="padding: 32px;">
     <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;" id="form-title">Log In</h1>
-    <p style="color: var(--ink-dim); font-size: 0.88rem; margin: 0 0 24px;" id="form-sub">Access your World Forge account.</p>
+    <p style="color: var(--ink-dim); font-size: 0.88rem; margin: 0 0 24px;" id="form-sub">Access your Chronicled account.</p>
 
     <form id="auth-form">
       <label for="email" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">EMAIL</label>
@@ -39,7 +39,7 @@
 </div>
 
 <footer class="site-footer">
-  <div class="wrap">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</div>
+  <div class="wrap">CHRONICLED</div>
 </footer>
 
 <script src="/config.js"></script>
@@ -54,8 +54,8 @@ document.getElementById("toggle-mode").addEventListener("click", (e) => {
   const isSignup = mode === "signup";
   document.getElementById("form-title").textContent = isSignup ? "Sign Up" : "Log In";
   document.getElementById("form-sub").textContent = isSignup
-    ? "Create a new World Forge account."
-    : "Access your World Forge account.";
+    ? "Create a new Chronicled account."
+    : "Access your Chronicled account.";
   document.getElementById("submit-btn").textContent = isSignup ? "Sign Up" : "Log In";
   document.getElementById("toggle-mode-prompt").textContent = isSignup
     ? "Already have an account?"
@@ -82,10 +82,10 @@ document.getElementById("auth-form").addEventListener("submit", async (e) => {
       // be null and the user lands back here after confirming — no
       // special-casing needed beyond this message.
       const session = await getCurrentSession();
-      if (session) window.location.href = "index.html";
+      if (session) window.location.href = await getPostLoginDestination();
     } else {
       await signIn(email, password);
-      window.location.href = "index.html";
+      window.location.href = await getPostLoginDestination();
     }
   } catch (err) {
     status.textContent = "Error: " + err.message;
@@ -96,7 +96,7 @@ document.getElementById("auth-form").addEventListener("submit", async (e) => {
 // If already logged in, skip straight past the login page.
 (async () => {
   const session = await getCurrentSession();
-  if (session) window.location.href = "index.html";
+  if (session) window.location.href = await getPostLoginDestination();
 })();
 </script>
 
