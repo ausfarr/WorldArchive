@@ -16,7 +16,7 @@
 const { checkAndIncrementGenerationCount, GENERATION_CAP } = require("../lib/worldConfigRepo");
 
 // TODO(Austin): swap in a real contact address before beta testers see this.
-const CONTACT_EMAIL = "[email protected]";
+const CONTACT_EMAIL = "ausfarr@gmail.com";
 
 async function enforceGenerationCap(req, res, next) {
   try {
