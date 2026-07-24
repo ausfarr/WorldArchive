@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Archive</title>
+<title>Settings — The Archive</title>
 <link rel="stylesheet" href="css/style.css">
 <script>
 (function() {
@@ -61,26 +61,77 @@
   </div>
 </header>
 
-<div class="wrap">
-  <div class="crumb"><a href="index.html">Archive</a><span class="sep">/</span><a id="crumb-category" href="#"></a><span class="sep">/</span><span id="crumb-name"></span></div>
+<div class="wrap" style="max-width: 820px; padding-top: 40px; padding-bottom: 80px;">
+  <div class="crumb"><a href="index.html">Archive</a><span class="sep">/</span><span>Settings</span></div>
+  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;">Settings</h1>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 32px;">Account and world-level actions.</p>
 
-  <div class="sheet">
-    <div class="sheet-header">
-      <p class="sheet-eyebrow" id="sheet-eyebrow"></p>
-      <h1 id="sheet-title"></h1>
-      <p class="subtitle" id="sheet-subtitle"></p>
-      <div id="sheet-tags"></div>
-    </div>
-
-    <div class="sheet-body" id="sheet-body"></div>
-
-    <div class="sheet-footer" id="sheet-footer"></div>
+  <div class="info-section" style="border-color: var(--danger, #c0392b);">
+    <h2 style="color: var(--danger, #c0392b);">Delete World</h2>
+    <p class="info-row">Permanently deletes every NPC, enemy, item, class, log, survivor, and faction this world has generated, along with all portraits and world lore/config. You'll be sent back into a fresh wizard to start over. Your login stays active -- this does not delete your account.</p>
+    <p class="info-row" style="color: var(--ink-faint); font-size: 0.8rem;">This cannot be undone.</p>
+    <button id="delete-world-btn" style="margin-top: 12px; background: var(--danger, #c0392b); color: #fff; border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer;">Delete World</button>
+    <div id="delete-status" style="margin-top: 12px; font-family: var(--font-mono); font-size: 0.8rem;"></div>
   </div>
 </div>
 
 <footer class="site-footer">
   <div class="wrap"><span id="site-footer-text">ECHOES OF THE NEON — INTERNAL ARCHIVE BUILD</span></div>
 </footer>
+
+<style>
+  .info-section {
+    border: 1px solid var(--border-line); background: var(--bg-panel-raised);
+    padding: 20px 24px; margin-bottom: 20px;
+  }
+  .info-section h2 {
+    font-family: var(--font-display); text-transform: uppercase; font-size: 1rem;
+    margin: 0 0 14px; border-bottom: 1px solid var(--border-line-soft); padding-bottom: 10px;
+  }
+  .info-row { font-size: 0.88rem; margin: 6px 0; color: var(--ink-dim); line-height: 1.5; }
+</style>
+
+<script src="/config.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script src="js/render.js"></script>
+<script>
+async function init() {
+  const session = await requireAuth();
+  if (!session) return;
+  renderAuthStatus();
+  applyCategoryConfig();
+  applySiteTheme();
+
+  document.getElementById("delete-world-btn").addEventListener("click", async () => {
+    const confirmed = window.confirm(
+      "This will permanently delete everything generated in this world -- NPCs, enemies, items, classes, logs, survivors, factions, portraits, and lore -- and send you back to the wizard. This cannot be undone.\n\nAre you sure?"
+    );
+    if (!confirmed) return;
+
+    const btn = document.getElementById("delete-world-btn");
+    const status = document.getElementById("delete-status");
+    btn.disabled = true;
+    status.textContent = "Deleting…";
+
+    try {
+      const res = await authFetch("/api/world/delete", { method: "POST" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Delete failed.");
+      }
+      status.textContent = "World deleted. Redirecting to the wizard…";
+      window.location.href = "wizard.html";
+    } catch (err) {
+      console.error("Delete world failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+      btn.disabled = false;
+    }
+  });
+}
+
+init();
+</script>
 
 <script>
 (function() {
@@ -96,10 +147,6 @@
         ? document.title.replace(/ \u2014 .+$/, ' \u2014 ' + site.title)
         : site.title;
     }
-    if (site.tagline) {
-      var taglineEl = document.getElementById('hero-tagline');
-      if (taglineEl) taglineEl.textContent = site.tagline;
-    }
     if (site.footer) {
       var footerEl = document.getElementById('site-footer-text');
       if (footerEl) footerEl.textContent = site.footer;
@@ -112,48 +159,9 @@
         if (cfg.enabled === false) navLink.style.display = 'none';
         else if (cfg.label) navLink.textContent = cfg.label;
       }
-      var card = document.getElementById('card-' + key);
-      if (card) {
-        if (cfg.enabled === false) {
-          card.style.display = 'none';
-        } else if (cfg.label) {
-          var h2 = card.querySelector('h2');
-          if (h2) h2.textContent = cfg.label;
-        }
-      }
-      if (cfg.blurb) {
-        var cardDesc = document.getElementById('card-desc-' + key);
-        if (cardDesc) cardDesc.textContent = cfg.blurb;
-      }
-      if (document.body.dataset.category === key) {
-        if (cfg.label) {
-          var pageTitle = document.getElementById('page-title');
-          var crumbLabel = document.getElementById('crumb-label');
-          if (pageTitle) pageTitle.textContent = cfg.label;
-          if (crumbLabel) crumbLabel.textContent = cfg.label;
-          document.title = document.title.replace(/^[^\u2014]+/, cfg.label + ' ');
-        }
-        if (cfg.blurb) {
-          var pageBlurb = document.getElementById('page-blurb');
-          if (pageBlurb) pageBlurb.textContent = cfg.blurb;
-        }
-      }
     });
   } catch (e) { /* no cache yet, or malformed -- async apply will fix it */ }
 })();
-</script>
-<script src="/config.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js"></script>
-<script src="js/render.js"></script>
-<script>
-  requireAuth().then((session) => {
-    if (!session) return;
-    renderAuthStatus();
-    applyCategoryConfig();
-    applySiteTheme();
-    loadAndRenderDossier();
-  });
 </script>
 
 </body>
