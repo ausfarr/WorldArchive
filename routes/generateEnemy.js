@@ -43,7 +43,8 @@ router.post("/generate-enemy", async (req, res) => {
     const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
     const settingContext = await getSettingContext(worldId);
     const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
-    const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
+    const statLabels = await getStatLabels(worldId);
+    const statLabelsText = formatStatLabelsForPrompt(statLabels);
 
     const contentSystemPrompt = buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent: priorRaw });
     const contentRaw = await callClaude({
@@ -70,7 +71,7 @@ router.post("/generate-enemy", async (req, res) => {
     if (warning) console.warn("Attribute budget check:", warning);
 
     if (mode === "regenerate") {
-      const newBodyHtmlPreview = buildEnemyBodyHtml(enemy);
+      const newBodyHtmlPreview = buildEnemyBodyHtml(enemy, null, statLabels);
       return res.json({
         preview: true,
         mode: "regenerate",
