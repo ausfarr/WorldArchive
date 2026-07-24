@@ -10,7 +10,7 @@
 // from once Phase 4 genericizes visual style.
 
 const SCHEMA_DESCRIPTION = `{
-  "renderingStyle": "1-2 sentences: the overall rendering register (e.g. painterly digital illustration, flat vector, photoreal, pixel art, ink/line art) -- pick ONE clear direction, not a menu.",
+  "renderingStyle": "1-2 sentences: the overall rendering register (e.g. painterly digital illustration, flat vector, photoreal, pixel art, ink/line art, photoreal, anime, concept art) -- pick ONE clear direction, not a menu.",
   "lighting": "1-2 sentences: the default lighting approach (e.g. single dramatic light source, flat even lighting, golden-hour naturalism) and what mood it should produce.",
   "basePalette": "1-2 sentences: the default color palette for everyday subjects/environments in this world -- name actual colors/tones, not just adjectives.",
   "accentColor": "1 sentence: a signature accent color (if the world has one) used sparingly to signal something specific (hazard, magic, technology, otherness) -- or 'none' if this world doesn't need one.",
