@@ -330,6 +330,45 @@ function renderDossier(entry, factionLookup) {
   if (entry.category === "factions") {
     renderFactionColorPicker(entry, facColor);
   }
+
+  wireDeleteEntryButton(entry);
+}
+
+// Wires the dossier page's "Delete This Entry" button to the entry
+// currently being viewed. Re-wired on every renderDossier() call (rather
+// than once at page load) since entry.category/entry.id aren't known
+// until the fetch in loadAndRenderDossier() resolves.
+function wireDeleteEntryButton(entry) {
+  const btn = document.getElementById("delete-entry-btn");
+  if (!btn) return;
+  // Clone-and-replace clears any listener from a previous render (dossier
+  // pages don't currently re-render without a full navigation, but this
+  // keeps the function safe to call more than once regardless).
+  const freshBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(freshBtn, btn);
+
+  freshBtn.addEventListener("click", async () => {
+    const confirmed = window.confirm(`Permanently delete "${stripHtml(entry.name)}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    const status = document.getElementById("delete-entry-status");
+    freshBtn.disabled = true;
+    status.textContent = "Deleting…";
+
+    try {
+      const res = await authFetch(`/api/entries/${entry.category}/${entry.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Delete failed.");
+      }
+      status.textContent = "Deleted. Redirecting…";
+      window.location.href = `${entry.category}/index.html`;
+    } catch (err) {
+      console.error("Delete entry failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+      freshBtn.disabled = false;
+    }
+  });
 }
 
 // Small color-picker control injected only on a faction's own dossier

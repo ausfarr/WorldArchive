@@ -1,5 +1,6 @@
 const express = require("express");
-const { listEntries, getEntry } = require("../lib/entriesRepo");
+const { listEntries, getEntry, deleteEntry } = require("../lib/entriesRepo");
+const { deletePortrait } = require("../lib/fileWriter");
 
 const router = express.Router();
 
@@ -41,6 +42,25 @@ router.get("/entries/:category/:id", requireValidCategory, async (req, res) => {
     res.json({ entry });
   } catch (err) {
     console.error(`Loading entry (${req.params.category}/${req.params.id}) failed:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Permanently deletes one entry (dossier page's "Delete This Entry"
+// button) -- distinct from /api/world/delete, which wipes everything.
+// Portrait removal is attempted for every category (not just the ones
+// known to have one) since deletePortrait() is a harmless no-op for
+// categories like logs/factions that never had one -- simpler than
+// keeping a HAS_PORTRAIT map in sync here too (see confirmEntry.js for
+// where that map does matter, because it distinguishes "never had a
+// portrait" from "regenerate shouldn't touch an existing one").
+router.delete("/entries/:category/:id", requireValidCategory, async (req, res) => {
+  try {
+    await deleteEntry(req.worldId, req.params.category, req.params.id);
+    await deletePortrait(req.worldId, req.params.id);
+    res.json({ deleted: true });
+  } catch (err) {
+    console.error(`Deleting entry (${req.params.category}/${req.params.id}) failed:`, err);
     res.status(500).json({ error: err.message });
   }
 });
