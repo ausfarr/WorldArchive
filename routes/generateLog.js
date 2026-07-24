@@ -1,4 +1,5 @@
 const express = require("express");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { buildLogRosterContext, readLogManifest, readLogEntry } = require("../lib/roster");
 const { buildLogContentSystemPrompt } = require("../prompts/logContentPrompt");
@@ -9,7 +10,7 @@ const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = 
 
 const router = express.Router();
 
-router.post("/generate-log", async (req, res) => {
+router.post("/generate-log", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, logType, fillExistingId } = req.body || {};

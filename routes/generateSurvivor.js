@@ -1,4 +1,5 @@
 const express = require("express");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildSurvivorRosterContext, buildAvailableClassesText, readSurvivorManifest, readSurvivorEntry } = require("../lib/roster");
@@ -12,7 +13,7 @@ const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
-router.post("/generate-survivor", async (req, res) => {
+router.post("/generate-survivor", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, className, fillExistingId } = req.body || {};

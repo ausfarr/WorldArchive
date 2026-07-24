@@ -1,4 +1,5 @@
 const express = require("express");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildItemRosterContext, readItemManifest, readItemEntry } = require("../lib/roster");
@@ -25,7 +26,7 @@ function parseSubtitleForItem(subtitle) {
   return { rarity, category };
 }
 
-router.post("/generate-item", async (req, res) => {
+router.post("/generate-item", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, category, rarity, fillExistingId } = req.body || {};

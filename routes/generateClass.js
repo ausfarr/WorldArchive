@@ -1,4 +1,5 @@
 const express = require("express");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildClassRosterContext, readClassManifest, readClassEntry } = require("../lib/roster");
@@ -12,7 +13,7 @@ const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
-router.post("/generate-class", async (req, res) => {
+router.post("/generate-class", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, fillExistingId } = req.body || {};

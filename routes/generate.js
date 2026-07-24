@@ -1,4 +1,5 @@
 const express = require("express");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildRosterContext, readNpcManifest, readNpcEntry } = require("../lib/roster");
@@ -12,7 +13,7 @@ const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
-router.post("/generate-npc", async (req, res) => {
+router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, role, faction, fillExistingId } = req.body || {};

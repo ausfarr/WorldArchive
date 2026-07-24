@@ -1,4 +1,5 @@
 const express = require("express");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildEnemyRosterContext, readEnemyManifest, readEnemyEntry } = require("../lib/roster");
@@ -13,7 +14,7 @@ const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
-router.post("/generate-enemy", async (req, res) => {
+router.post("/generate-enemy", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, faction, tier, fillExistingId } = req.body || {};
