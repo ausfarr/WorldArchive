@@ -20,6 +20,7 @@ const wizardStyleGuideRoute = require("./routes/wizardStyleGuide");
 const wizardCategoryConfigRoute = require("./routes/wizardCategoryConfig");
 const wizardReviewRoute = require("./routes/wizardReview");
 const entriesRoute = require("./routes/entries");
+const searchRoute = require("./routes/search");
 const deleteWorldRoute = require("./routes/deleteWorld");
 
 const app = express();
@@ -67,6 +68,7 @@ app.use("/api", wizardStyleGuideRoute);
 app.use("/api", wizardCategoryConfigRoute);
 app.use("/api", wizardReviewRoute);
 app.use("/api", entriesRoute);
+app.use("/api", searchRoute);
 app.use("/api", deleteWorldRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 

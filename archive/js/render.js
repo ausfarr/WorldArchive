@@ -14,6 +14,97 @@ const CATEGORY_LABELS = {
   locations: "Locations"
 };
 
+// Per-category grouping + ordering for category index pages (see
+// session_addendum_search_and_grouping.md). `groupBy` is a field name on
+// each manifest entry to bucket under (null = no grouping, straight
+// alphabetical). `orderField`/`order` define a fixed rank order *within*
+// each group (or across all entries, if groupBy is null); entries whose
+// value isn't in the `order` list, or where orderField is null, fall
+// back to alphabetical-by-name.
+const CATEGORY_SORT = {
+  enemies: { groupBy: "faction", orderField: "tier", order: ["Trash", "Elite", "Boss"] },
+  items: { groupBy: "itemCategory", orderField: "rarity", order: ["Common", "Uncommon", "Rare", "Legendary"] },
+  npcs: {
+    groupBy: "faction",
+    orderField: "roleArchetype",
+    // No existing "importance" field to sort by -- this rank order is a
+    // new judgment call (power/plot-centrality descending), not pulled
+    // from stored data. Easy one-line change if it feels wrong once live.
+    order: ["Faction Leader", "Rival", "Quest-Giver", "Informant/Fixer", "Community VIP", "Merchant"]
+  },
+  locations: { groupBy: "faction", orderField: null, order: [] },
+  classes: { groupBy: null, orderField: null, order: [] },
+  survivors: { groupBy: null, orderField: null, order: [] },
+  logs: { groupBy: null, orderField: null, order: [] },
+  factions: { groupBy: null, orderField: null, order: [] }
+};
+
+// Display labels for Items' groupBy field (item.category values), kept
+// separate from CATEGORY_LABELS since that map is keyed by archive
+// category (npcs/items/...), not by a field *within* the items category.
+const ITEM_CATEGORY_GROUP_LABELS = {
+  Weapon: "Weapon",
+  Armor: "Armor/Gear",
+  Consumable: "Consumable",
+  QuestItem: "Quest Item"
+};
+
+function byEntryName(a, b) {
+  return (a.name || "").localeCompare(b.name || "");
+}
+
+function groupLabelFor(key, groupBy, factionLookup) {
+  if (key === "__none__") return "Unaligned";
+  if (groupBy === "faction") return (factionLookup[key] && factionLookup[key].name) || key;
+  if (groupBy === "itemCategory") return ITEM_CATEGORY_GROUP_LABELS[key] || key;
+  return key;
+}
+
+function orderWithinGroup(a, b, config) {
+  if (config.orderField && config.order && config.order.length) {
+    const idxA = config.order.indexOf(a[config.orderField]);
+    const idxB = config.order.indexOf(b[config.orderField]);
+    const rankA = idxA === -1 ? config.order.length : idxA;
+    const rankB = idxB === -1 ? config.order.length : idxB;
+    if (rankA !== rankB) return rankA - rankB;
+  }
+  return byEntryName(a, b);
+}
+
+// Buckets + orders a category's manifest per CATEGORY_SORT. Returns
+// [{groupLabel, entries}, ...] -- groupLabel is null when the category
+// has no grouping (classes/survivors/logs/factions), in which case
+// there's exactly one bucket and the caller should skip rendering a
+// group header.
+function groupAndSortEntries(manifest, categoryPath, factionLookup) {
+  const config = CATEGORY_SORT[categoryPath] || { groupBy: null, orderField: null, order: [] };
+  const lookup = factionLookup || {};
+  if (!config.groupBy) {
+    return [{ groupLabel: null, entries: manifest.slice().sort((a, b) => orderWithinGroup(a, b, config)) }];
+  }
+  const groups = {};
+  const groupKeys = [];
+  manifest.forEach((entry) => {
+    const key = entry[config.groupBy] || "__none__";
+    if (!groups[key]) {
+      groups[key] = [];
+      groupKeys.push(key);
+    }
+    groups[key].push(entry);
+  });
+  // "Unaligned"/no-value group always sorts last; real groups sort
+  // alphabetically by their display label.
+  groupKeys.sort((a, b) => {
+    if (a === "__none__") return 1;
+    if (b === "__none__") return -1;
+    return groupLabelFor(a, config.groupBy, lookup).localeCompare(groupLabelFor(b, config.groupBy, lookup));
+  });
+  return groupKeys.map((key) => ({
+    groupLabel: groupLabelFor(key, config.groupBy, lookup),
+    entries: groups[key].slice().sort((a, b) => orderWithinGroup(a, b, config))
+  }));
+}
+
 // Categories where a locked/greyed-out placeholder can be filled in by the
 // generator, and which API endpoint handles it. Survivors has no locked
 // placeholders (the roster only ever grows via fresh generation), so it's
@@ -259,35 +350,50 @@ async function loadAndRenderCategoryIndex(categoryPath) {
   }
 }
 
+function buildEntryCardHtml(entry, categoryPath, lookup) {
+  const facColor = facColorVar(entry.faction, lookup);
+  const tagsHtml = (entry.tags || []).join("");
+  const facName = entry.faction ? ((lookup[entry.faction] && lookup[entry.faction].name) || entry.faction) : null;
+  const facTag = facName ? `<span class="tag fac">${facName}</span>` : "";
+  if (entry.locked && categoryPath !== "factions") {
+    const canFill = !!FILL_IN_ENDPOINTS[categoryPath];
+    const fillBtn = canFill
+      ? `<button type="button" class="fill-in-btn" onclick="fillInEntry('${categoryPath}', '${entry.id}', this)" style="margin-top: 10px; background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Fill In</button>`
+      : "";
+    return `
+      <div class="entry-card locked" style="--fac-color: ${facColor};">
+        <h3>${entry.name}</h3>
+        <p class="role">${entry.subtitle || ""}</p>
+        <div class="tags">${facTag}${tagsHtml}</div>
+        ${fillBtn}
+      </div>`;
+  }
+  return `
+    <div class="entry-card" style="--fac-color: ${facColor}; position: relative;">
+      <h3>${entry.name}</h3>
+      <p class="role">${entry.subtitle || ""}</p>
+      <div class="tags">${facTag}${tagsHtml}</div>
+      <a class="card-link" href="../dossier.html?category=${categoryPath}&id=${entry.id}"></a>
+      ${REGENERATE_ENDPOINTS[categoryPath] ? `<button type="button" class="regen-btn" onclick="event.stopPropagation(); regenerateEntry('${categoryPath}', '${entry.id}', this)" style="position: relative; z-index: 2; margin-top: 10px; background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Regenerate</button>` : ""}
+    </div>`;
+}
+
+// Renders a category's entries as grouped/ordered sections per
+// CATEGORY_SORT (see session_addendum_search_and_grouping.md). Ungrouped
+// categories (classes/survivors/logs/factions) render as a single
+// section with no header, same visual result as the old flat list.
 function renderCategoryIndex(manifest, categoryPath, factionLookup) {
   const grid = document.getElementById("entry-grid");
   if (!grid) return;
   const lookup = factionLookup || {};
-  grid.innerHTML = manifest.map(entry => {
-    const facColor = facColorVar(entry.faction, lookup);
-    const tagsHtml = (entry.tags || []).join("");
-    const facName = entry.faction ? ((lookup[entry.faction] && lookup[entry.faction].name) || entry.faction) : null;
-    const facTag = facName ? `<span class="tag fac">${facName}</span>` : "";
-    if (entry.locked && categoryPath !== "factions") {
-      const canFill = !!FILL_IN_ENDPOINTS[categoryPath];
-      const fillBtn = canFill
-        ? `<button type="button" class="fill-in-btn" onclick="fillInEntry('${categoryPath}', '${entry.id}', this)" style="margin-top: 10px; background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Fill In</button>`
-        : "";
-      return `
-        <div class="entry-card locked" style="--fac-color: ${facColor};">
-          <h3>${entry.name}</h3>
-          <p class="role">${entry.subtitle || ""}</p>
-          <div class="tags">${facTag}${tagsHtml}</div>
-          ${fillBtn}
-        </div>`;
-    }
+  const groups = groupAndSortEntries(manifest, categoryPath, lookup);
+  grid.innerHTML = groups.map(group => {
+    const cardsHtml = group.entries.map(entry => buildEntryCardHtml(entry, categoryPath, lookup)).join("");
+    if (!group.groupLabel) return cardsHtml;
     return `
-      <div class="entry-card" style="--fac-color: ${facColor}; position: relative;">
-        <h3>${entry.name}</h3>
-        <p class="role">${entry.subtitle || ""}</p>
-        <div class="tags">${facTag}${tagsHtml}</div>
-        <a class="card-link" href="../dossier.html?category=${categoryPath}&id=${entry.id}"></a>
-        ${REGENERATE_ENDPOINTS[categoryPath] ? `<button type="button" class="regen-btn" onclick="event.stopPropagation(); regenerateEntry('${categoryPath}', '${entry.id}', this)" style="position: relative; z-index: 2; margin-top: 10px; background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Regenerate</button>` : ""}
+      <div class="entry-group">
+        <h2 class="entry-group-label">${group.groupLabel}</h2>
+        <div class="entry-group-grid">${cardsHtml}</div>
       </div>`;
   }).join("");
 }
@@ -639,3 +745,94 @@ function renderHomepageCounts(manifests) {
     if (el) el.textContent = `${archived} / ${list.length} archived`;
   });
 }
+
+// ---------- Shared nav: archive-wide search ----------
+// Self-initializing (see the DOMContentLoaded listener at the bottom of
+// this file) so every page that includes render.js gets a working search
+// bar for free, with no per-page wiring needed -- same "add once, works
+// everywhere" approach as the nav link rollout for Locations.
+
+function escapeHtmlForSearch(str) {
+  if (str == null) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// Category pages link to dossier.html via "../dossier.html"; top-level
+// pages (homepage, dossier, map, settings, world-info) link via a bare
+// "dossier.html". Rather than hardcode this per file, read it off the
+// nav's own Factions link, which every page that has the nav already
+// gets right.
+function getSitePrefix() {
+  const link = document.getElementById("nav-factions");
+  const href = (link && link.getAttribute("href")) || "";
+  return href.startsWith("../") ? "../" : "";
+}
+
+function initSiteSearch() {
+  const input = document.getElementById("site-search-input");
+  const results = document.getElementById("site-search-results");
+  if (!input || !results) return;
+  const prefix = getSitePrefix();
+  let debounceTimer = null;
+
+  function hideResults() {
+    results.style.display = "none";
+  }
+
+  function renderSearchResults(groups) {
+    if (!groups.length) {
+      results.innerHTML = '<div class="site-search-empty">No matches.</div>';
+      results.style.display = "block";
+      return;
+    }
+    results.innerHTML = groups.map(group => {
+      const label = CATEGORY_LABELS[group.category] || group.category;
+      const items = group.entries.map(entry => {
+        const href = `${prefix}dossier.html?category=${encodeURIComponent(group.category)}&id=${encodeURIComponent(entry.id)}`;
+        return `<a class="site-search-result" href="${href}"><span>${escapeHtmlForSearch(entry.name)}</span><span class="site-search-cat">${label}</span></a>`;
+      }).join("");
+      return `<div class="site-search-group"><div class="site-search-group-label">${label}</div>${items}</div>`;
+    }).join("");
+    results.style.display = "block";
+  }
+
+  async function runSearch(q) {
+    const trimmed = q.trim();
+    if (trimmed.length < 2) {
+      hideResults();
+      return;
+    }
+    try {
+      const res = await authFetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Search failed.");
+      renderSearchResults(data.results || []);
+    } catch (err) {
+      console.error("Search failed:", err);
+      hideResults();
+    }
+  }
+
+  input.addEventListener("input", () => {
+    clearTimeout(debounceTimer);
+    const q = input.value;
+    debounceTimer = setTimeout(() => runSearch(q), 250);
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      hideResults();
+      input.blur();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (e.target !== input && !results.contains(e.target)) hideResults();
+  });
+}
+
+document.addEventListener("DOMContentLoaded", initSiteSearch);

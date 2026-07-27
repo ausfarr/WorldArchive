@@ -154,6 +154,45 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); out
   display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 14px; padding: 32px 0 60px;
 }
+.entry-grid .entry-group { grid-column: 1 / -1; }
+.entry-group + .entry-group { margin-top: 8px; }
+.entry-group-label {
+  font-family: var(--font-mono); font-size: 0.78rem; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-dim); border-bottom: 1px solid var(--border-line);
+  padding-bottom: 8px; margin: 0 0 14px;
+}
+.entry-group-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px; margin-bottom: 36px;
+}
+
+.site-search { position: relative; }
+.site-search input {
+  background: var(--bg-panel); border: 1px solid var(--border-line); color: var(--ink);
+  font-family: var(--font-mono); font-size: 0.72rem; padding: 6px 10px; width: 160px;
+  border-radius: 2px;
+}
+.site-search input:focus { outline: none; border-color: var(--neon-cyan); }
+.site-search-results {
+  display: none; position: absolute; top: calc(100% + 6px); right: 0; width: 300px;
+  max-height: 400px; overflow-y: auto; background: var(--bg-panel-raised);
+  border: 1px solid var(--border-line); border-radius: 4px; padding: 8px;
+  z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.site-search-group + .site-search-group { margin-top: 10px; }
+.site-search-group-label {
+  font-family: var(--font-mono); font-size: 0.62rem; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--ink-faint); margin-bottom: 4px;
+}
+.site-search-result {
+  display: flex; justify-content: space-between; gap: 10px; padding: 6px 4px;
+  font-size: 0.85rem; color: var(--ink); border-radius: 2px;
+}
+.site-search-result:hover { background: var(--bg-panel); color: var(--neon-cyan); }
+.site-search-result .site-search-cat {
+  font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-faint); white-space: nowrap;
+}
+.site-search-empty { font-size: 0.8rem; color: var(--ink-faint); padding: 6px 4px; }
 .entry-card {
   position: relative;
   background: var(--bg-panel);
