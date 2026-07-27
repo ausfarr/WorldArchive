@@ -158,6 +158,10 @@
     font-size: 0.64rem; text-align: center; padding: 30px 16px; margin: 0 0 18px;
     text-transform: uppercase; letter-spacing: 0.05em;
   }
+  .mock-portrait-img {
+    width: 100%; display: block; border: 1px solid var(--border-line);
+    margin: 0 0 18px; object-fit: cover; max-height: 320px;
+  }
   table.mock-stats { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.76rem; }
   table.mock-stats th, table.mock-stats td { border: 1px solid var(--border-line); padding: 6px 10px; text-align: left; }
   table.mock-stats th { color: var(--ink-dim); font-weight: 500; background: var(--bg-panel-raised); }
@@ -229,6 +233,24 @@
   table.derived th { color: var(--ink-dim); font-weight: 500; background: var(--bg-panel-raised); }
   table.derived td.formula { color: var(--ink-faint); font-size: 0.68rem; }
 
+  .ability-card { background: var(--bg-panel-raised); border: 1px solid var(--border-line); padding: 14px 16px; margin-top: 14px; }
+  .ability-name { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.02em; font-size: 0.85rem; margin: 0 0 8px; color: var(--ink); }
+  .ability-kind { color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; margin-left: 6px; }
+  .ability-desc { color: var(--ink-dim); font-size: 0.82rem; margin: 0; }
+
+  /* ---------- Live UI showcase ---------- */
+  .live-shots { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .live-frame { border: 1px solid var(--border-line); background: var(--bg-panel); }
+  .live-frame .frame-bar {
+    display: flex; align-items: center; gap: 6px; padding: 10px 12px;
+    border-bottom: 1px solid var(--border-line-soft); font-family: var(--font-mono);
+    font-size: 0.62rem; color: var(--ink-faint); letter-spacing: 0.04em;
+  }
+  .live-frame .frame-bar .dots { display: flex; gap: 4px; margin-right: 8px; }
+  .live-frame .frame-bar .dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--border-line); display: inline-block; }
+  .live-frame img { width: 100%; display: block; }
+  @media (max-width: 900px) { .live-shots { grid-template-columns: 1fr; } }
+
   /* ---------- Social proof ---------- */
   .quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   .quote-card {
@@ -270,6 +292,7 @@
     <nav class="site-nav">
       <a href="#how">How it works</a>
       <a href="#categories">Categories</a>
+      <a href="#live">See it live</a>
       <a href="#sample">Sample</a>
       <a href="#cta" class="nav-cta">Request access</a>
     </nav>
@@ -291,21 +314,20 @@
 
     <div class="mock-sheet">
       <div class="mock-header">
-        <p class="mock-eyebrow">NPC Dossier — Auto-Filed</p>
-        <h3>Kess Varn</h3>
-        <p class="sub">Informant · The Hollow Docks</p>
+        <p class="mock-eyebrow">Bestiary Entry — Auto-Filed</p>
+        <h3>Compliance Auditor VEX-7</h3>
+        <p class="sub">Control / Attrition / Debuffer</p>
       </div>
       <div class="mock-body">
-        <div class="mock-portrait">Portrait — Generated</div>
-        <p class="mock-quote">"I don't sell secrets. I rent them, and the interest is steep."</p>
+        <img class="mock-portrait-img" src="images/vex7-portrait.png" alt="Compliance Auditor VEX-7 — generated portrait art">
+        <p class="mock-quote">"Your oxygen allotment has been reviewed. The discrepancy is... substantial."</p>
         <table class="mock-stats">
-          <tr><th>Presence</th><th>Knowledge</th><th>Fate</th></tr>
-          <tr><td>14</td><td>17</td><td>9</td></tr>
+          <tr><th>Body</th><th>Reflex</th><th>Knowledge</th></tr>
+          <tr><td>14</td><td>10</td><td>20</td></tr>
         </table>
         <div class="mock-tags">
-          <span class="tag fac">Dockside Syndicate</span>
-          <span class="tag">Informant</span>
-          <span class="tag">Recurring</span>
+          <span class="tag fac">The Board</span>
+          <span class="tag">Boss</span>
         </div>
       </div>
     </div>
@@ -359,6 +381,26 @@
   </div>
 </section>
 
+<section id="live">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="section-eyebrow">The real thing</p>
+      <h2>This isn't a mockup</h2>
+      <p>What you're looking at below is the actual archive — live screenshots, not illustrations of an idea.</p>
+    </div>
+    <div class="live-shots">
+      <div class="live-frame">
+        <div class="frame-bar"><span class="dots"><span></span><span></span><span></span></span> app.chronicled.world/archive</div>
+        <img src="images/archive-hub.png" alt="The Archive hub page, showing category cards for Factions, NPCs, Enemies, Professions, Items, and Logs with entry counts">
+      </div>
+      <div class="live-frame">
+        <div class="frame-bar"><span class="dots"><span></span><span></span><span></span></span> app.chronicled.world/archive/enemies</div>
+        <img src="images/enemies-page.png" alt="The Enemies category page, with a generate-new-entry form and a grid of existing bestiary entries">
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="sample">
   <div class="wrap sample-wrap">
     <div class="sample-copy">
@@ -373,18 +415,21 @@
     </div>
     <div class="sample-sheet mock-sheet">
       <div class="mock-header">
-        <p class="mock-eyebrow">Bestiary Entry — Computed Stats</p>
-        <h3>Rust-Marked Warden</h3>
-        <p class="sub">Elite · The Ferro-Kings</p>
+        <p class="mock-eyebrow">Compliance Auditor VEX-7 — Computed Stats</p>
+        <h3 style="font-size:1.05rem;">Derived from six base attributes</h3>
       </div>
       <div class="mock-body">
         <table class="derived">
           <tr><th>Stat</th><th>Value</th><th>Formula</th></tr>
-          <tr><td>Body</td><td>22</td><td class="formula">Base + Tier Mod</td></tr>
-          <tr><td>Reflex</td><td>14</td><td class="formula">Base + Tier Mod</td></tr>
-          <tr><td>Damage</td><td>18–26</td><td class="formula">Body × 1.4, Elite scaling</td></tr>
-          <tr><td>Armor DR</td><td>9</td><td class="formula">Gear + Faction bonus</td></tr>
+          <tr><td>Max Health</td><td>70</td><td class="formula">(Body×2)+(Sanity×2)+Base</td></tr>
+          <tr><td>Max Energy</td><td>74</td><td class="formula">(Knowledge×2)+(Fate×2)+Base</td></tr>
+          <tr><td>Dodge Chance</td><td>27.5%</td><td class="formula">Base+(Reflex/4)+(Skill/4)</td></tr>
+          <tr><td>Crit Chance</td><td>26%</td><td class="formula">Base+(Fate/3)+(Skill/5)</td></tr>
         </table>
+        <div class="ability-card">
+          <p class="ability-name">Air Tax Assessment <span class="ability-kind">Active</span></p>
+          <p class="ability-desc">Applies a stacking "Oxygen Debt" DOT — damage increases 30% per stack, up to 4 stacks, also reducing the target's Body-derived max HP for the duration.</p>
+        </div>
       </div>
     </div>
   </div>
