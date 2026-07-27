@@ -2,7 +2,7 @@ const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
-const { buildClassRosterContext, readClassManifest, readClassEntry } = require("../lib/roster");
+const { buildClassRosterContext, readClassManifest, readClassEntry, buildLocationRosterContext } = require("../lib/roster");
 const { buildClassContentSystemPrompt } = require("../prompts/classContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveClassEntry, saveImage } = require("../lib/fileWriter");
@@ -42,6 +42,7 @@ router.post("/generate-class", enforceGenerationCap, async (req, res) => {
     }
 
     const rosterContext = await buildClassRosterContext(worldId);
+    const locationRosterText = await buildLocationRosterContext(worldId);
     const loreContext = await getLoreContext(worldId, { category: "classes" });
     const settingContext = await getSettingContext(worldId);
     const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
@@ -49,7 +50,7 @@ router.post("/generate-class", enforceGenerationCap, async (req, res) => {
     const fieldSkillsText = formatFieldSkillsForPrompt(skillSystem);
     const weaponSkillsText = formatWeaponSkillsForPrompt(skillSystem);
 
-    const contentSystemPrompt = buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, name, existingContent: priorRaw });
+    const contentSystemPrompt = buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, locationRosterText, name, existingContent: priorRaw });
     // Generous budget - a full 1-99 tree with ~21 abilities across 4 tiers
     // is genuinely long content, not a truncation risk we're guessing at.
     const contentRaw = await callClaude({

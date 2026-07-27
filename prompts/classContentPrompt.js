@@ -34,7 +34,7 @@ const SCHEMA_DESCRIPTION = `{
   "skillEfficiency": { "major": "1-2 skills, the build's core scaling", "minor": "1-2 supporting skills", "misc": "1-2 flavor/rare-interaction skills" },
   "tier1": { "title": "tier name", "theme": "one sentence tier theme", "abilities": [/* exactly 5 ${ABILITY_SCHEMA}, at levels roughly 1/5/10/15/20, the level-20 one MUST have kind 'Ultimate Unlock' and an ALL-CAPS name */] },
   "tier2": { "title": "tier name", "theme": "one sentence", "abilities": [/* 5-6 abilities, levels roughly 25/30/35/42/48, escalating power, setting up the evolution */] },
-  "evolutionEvent": { "requirement": "a skill-level gate on this world's 0-100 skill scale, e.g. 'Grid-Tap at rank 40 or higher' or two skills combined with AND -- never above 100, and a Tier 2 (mid-progression) class should gate well below the 100 ceiling, not near it", "cost": "materials/resources this world's economy would plausibly require", "location": "a fitting location/institution in this world consistent with its lore", "visualShift": "1-2 sentences: how the character's appearance changes" },
+  "evolutionEvent": { "requirement": "a skill-level gate on this world's 0-100 skill scale, e.g. 'Grid-Tap at rank 40 or higher' or two skills combined with AND -- never above 100, and a Tier 2 (mid-progression) class should gate well below the 100 ceiling, not near it", "cost": "materials/resources this world's economy would plausibly require", "location": "a fitting location/institution in this world consistent with its lore", "locationId": "an id from LOCATIONS below if an already-archived Location genuinely fits this evolution event, else null -- do not invent one, and it's fine and expected for this to be null if nothing fits or none are archived yet", "visualShift": "1-2 sentences: how the character's appearance changes" },
   "tier3": { "title": "tier name (under the evolved identity)", "theme": "one sentence — this tier should start bending a rule the base class couldn't", "abilities": [/* 6 abilities, levels roughly 51/55/60/65/70/75, the level-75 one MUST have kind 'Ultimate Unlock' and an ALL-CAPS name */] },
   "tier4": { "title": "tier name", "theme": "one sentence, mythic register", "abilities": [/* 5 abilities, levels roughly 80/85/90/95/99, the level-99 one MUST have kind 'Final Unlock', an ALL-CAPS name, and be the single most powerful/iconic effect in the kit */] },
   "capstoneQuote": "a quote that reframes the character's whole arc — appears after Tier 4 as the closing emotional beat, short and catchy",
@@ -46,7 +46,7 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: how this avoids colliding with an existing class's concept, core fantasy, or signature verb"
 }`;
 
-function buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, name, existingContent }) {
+function buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, locationRosterText, name, existingContent }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -78,6 +78,9 @@ STRUCTURE (standard output is the full 1-99 tree):
 - Why This Progression Works: exactly 3 named callouts (a non-obvious skill synergy, a resource/gate mechanic, and the Level 1→50→99 fantasy arc).
 
 Every ability's effectText MUST be ONE compact sentence, 25 words or fewer, combining the mechanical effect AND a bracketed/inline scaling reference to a named skill/attribute (e.g. "Light damage, generates 1 Thread. Damage = Blade-work × 1.5.") — this renders as a single table cell, not a paragraph. Do NOT write multi-clause explanations of permanence, duration, or downstream consequences (e.g. do not write something like "the target loses all infrastructure authority permanently until re-certified, a process that takes weeks and requires political capital" — state the effect and its formula, nothing else). Passives that don't scale should say something like "N/A — Binary Unlock" inline rather than a formula.
+
+LOCATIONS IN THIS WORLD (the only ids valid for evolutionEvent.locationId -- do not invent one; leave locationId null if nothing archived fits, that's expected and fine):
+${locationRosterText || "No locations archived yet -- leave evolutionEvent.locationId null and just describe the location in prose."}
 
 WORLD LORE — GROUND TRUTH (stay consistent with this; don't contradict it):
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}

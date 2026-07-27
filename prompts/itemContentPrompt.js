@@ -37,6 +37,7 @@ const SCHEMA_DESCRIPTION = `{
   "apCost": "integer, almost always 1 — Consumable category only, else null",
   "effect": "plain description of what it does — Consumable category only, else null",
   "whereFoundWhyMatters": "2-3 sentences: location/context and narrative significance — QuestItem category only, else null",
+  "foundAtLocationId": "an id from LOCATIONS below if an already-archived Location genuinely matches where this was found, else null -- do not invent one; fine and expected to be null if nothing fits or none archived yet — QuestItem category only, else null",
   "designNotes": "1 sentence: how this avoids duplicating a named item, Legendary effect, or quest item already generated"
 }`;
 
@@ -50,7 +51,7 @@ const WEAPON_ROLL_RANGES_TEXT = `| Weapon Skill | Example Types | WEAPON_ROLL ra
 | Archery | Bow, Crossbow, Throwing Knives, Sling | 8-12 |
 | Catalysts | Battery Rod, Focus Crystal, Charge Coil, Signal Wand | 9-13 |`;
 
-function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, name, category, rarity, existingContent }) {
+function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -84,6 +85,9 @@ ATTRIBUTE LABELS (this world's own names for the underlying mechanical attribute
 ${statLabelsText}
 
 ARMOR (Armor category only): pick an effectorTier 1 (light) to 4 (heavy) reflecting how heavy/protective the piece is.
+
+LOCATIONS IN THIS WORLD (the only ids valid for foundAtLocationId -- do not invent one; leave it null if nothing archived fits, that's expected and fine):
+${locationRosterText || "No locations archived yet -- leave foundAtLocationId null and just describe where it was found in prose."}
 
 WORLD LORE — GROUND TRUTH (stay consistent with this; don't contradict it):
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}

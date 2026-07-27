@@ -2,7 +2,7 @@ const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
-const { buildItemRosterContext, readItemManifest, readItemEntry } = require("../lib/roster");
+const { buildItemRosterContext, readItemManifest, readItemEntry, buildLocationRosterContext } = require("../lib/roster");
 const { buildItemContentSystemPrompt } = require("../prompts/itemContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { saveItemEntry, saveImage } = require("../lib/fileWriter");
@@ -54,13 +54,14 @@ router.post("/generate-item", enforceGenerationCap, async (req, res) => {
     }
 
     const rosterContext = await buildItemRosterContext(worldId);
+    const locationRosterText = await buildLocationRosterContext(worldId);
     const loreContext = await getLoreContext(worldId, { category: "items" });
     const settingContext = await getSettingContext(worldId);
     const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
     const skillSystem = await getSkillSystem(worldId);
     const weaponSkillsText = formatWeaponSkillsForPrompt(skillSystem);
 
-    const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, name, category, rarity, existingContent: priorRaw });
+    const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the item now.",

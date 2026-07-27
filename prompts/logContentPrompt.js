@@ -11,6 +11,7 @@ const SCHEMA_DESCRIPTION = `{
   "name": "Log Title",
   "logType": "Audio | Journal | Terminal",
   "locationContext": "where/how this would be found in-game, e.g. 'East Platform, Subway Substructure'",
+  "locationId": "an id from LOCATIONS below if an already-archived Location genuinely matches where this would be found, else null -- do not invent one; fine and expected to be null if nothing fits or none archived yet",
   "characters": "who this belongs to/features (name or role), or 'none' if no clear human voice",
   "context": "one sentence flavor: what this artifact is physically, and the circumstances of its recovery",
   "bodyText": "the actual found-text content, plain text with real line breaks — timestamped transcript for Audio, dated entries for Journal, system/terminal dump for Terminal. Keep it short: a found artifact, not a short story.",
@@ -18,7 +19,7 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: what this reveals to the player, and how it avoids repeating a character/location/beat already generated"
 }`;
 
-function buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, logType, existingContent }) {
+function buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, locationRosterText, name, logType, existingContent }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -41,6 +42,9 @@ Personal/emotional beats (a death, a goodbye, a discovery) suit Audio or Journal
 ANCHOR IT: never a floating, unanchored snippet — tie it to a specific location, character, or event (invent something concrete if not given).
 
 KEEP IT SHORT: this is a found artifact, not a short story. A few lines of audio/journal, or a compact terminal dump.
+
+LOCATIONS IN THIS WORLD (the only ids valid for locationId -- do not invent one; leave it null if nothing archived fits, that's expected and fine):
+${locationRosterText || "No locations archived yet -- leave locationId null and just describe the location in prose."}
 
 WORLD LORE — GROUND TRUTH (stay consistent with this; don't contradict it):
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}

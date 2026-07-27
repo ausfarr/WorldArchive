@@ -1,7 +1,7 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaude, parseJsonResponse } = require("../lib/claude");
-const { buildLogRosterContext, readLogManifest, readLogEntry } = require("../lib/roster");
+const { buildLogRosterContext, readLogManifest, readLogEntry, buildLocationRosterContext } = require("../lib/roster");
 const { buildLogContentSystemPrompt } = require("../prompts/logContentPrompt");
 const { saveLogEntry } = require("../lib/fileWriter");
 const { slugify, buildLogBodyHtml } = require("../lib/logTemplate");
@@ -40,6 +40,7 @@ router.post("/generate-log", enforceGenerationCap, async (req, res) => {
     }
 
     const rosterContext = await buildLogRosterContext(worldId);
+    const locationRosterText = await buildLocationRosterContext(worldId);
     // Logs pick their own faction (including "none"), so this doesn't
     // filter lore by a target faction — same behavior as before, just
     // routed through the generic lore helper instead of worldBible.js.
@@ -47,7 +48,7 @@ router.post("/generate-log", enforceGenerationCap, async (req, res) => {
     const settingContext = await getSettingContext(worldId);
     const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
 
-    const contentSystemPrompt = buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, logType, existingContent: priorRaw });
+    const contentSystemPrompt = buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, locationRosterText, name, logType, existingContent: priorRaw });
     const contentRaw = await callClaude({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the log now.",
