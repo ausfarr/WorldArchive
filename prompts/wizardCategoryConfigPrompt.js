@@ -1,9 +1,11 @@
 // prompts/wizardCategoryConfigPrompt.js
 //
-// Step 7 (Category Configuration). Option B, locked decision: the 7
+// Step 7 (Category Configuration). Option B, locked decision: the
 // backend content categories stay fixed -- this only generates a
 // world-flavored display label + short blurb for each, not new
-// categories. One combined call for all 7, same precedent as Steps 1/3/5.
+// categories. Now 8 categories (Locations added as the 8th, see
+// phase_locations_addendum.md) -- one combined call for all 8, same
+// precedent as Steps 1/3/5.
 
 const CANONICAL_CATEGORIES = {
   npcs: "Named, significant characters -- faction leaders, quest-givers, rivals, informants, merchants.",
@@ -12,7 +14,8 @@ const CANONICAL_CATEGORIES = {
   classes: "Playable character professions/archetypes with a full progression tree.",
   logs: "Found-text lore artifacts -- recordings, journals, terminal dumps.",
   survivors: "Rank-and-file recruits for the player's own roster/base.",
-  factions: "The major organized powers/groups in the world."
+  factions: "The major organized powers/groups in the world.",
+  locations: "Real, specific places the player can travel to -- strongholds, ruins, settlements, dungeons -- not vague region labels."
 };
 
 const SCHEMA_DESCRIPTION = `{
@@ -28,7 +31,8 @@ const SCHEMA_DESCRIPTION = `{
   "classes": { "label": "...", "blurb": "..." },
   "logs": { "label": "...", "blurb": "..." },
   "survivors": { "label": "...", "blurb": "..." },
-  "factions": { "label": "...", "blurb": "..." }
+  "factions": { "label": "...", "blurb": "..." },
+  "locations": { "label": "...", "blurb": "..." }
 }`;
 
 function buildWizardCategoryConfigSystemPrompt({ step1, loreContext }) {
@@ -44,7 +48,7 @@ function buildWizardCategoryConfigSystemPrompt({ step1, loreContext }) {
     .map(([key, desc]) => `- ${key}: ${desc}`)
     .join("\n");
 
-  return `You are renaming a tabletop/game world's 7 FIXED content categories to fit its own in-world vocabulary, and giving the archive site itself a name and voice. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
+  return `You are renaming a tabletop/game world's 8 FIXED content categories to fit its own in-world vocabulary, and giving the archive site itself a name and voice. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
 The categories and what each one actually contains are FIXED and do not change -- only the display label and a short flavor blurb change. A good label reads as native to this world's own terminology (e.g. "NPCs" might become "Named Contacts" or "The Ledger" depending on the setting) while still being clear enough that a user recognizes what they'll find there.
 

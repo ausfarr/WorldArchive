@@ -7,6 +7,7 @@ const {
   saveLogEntry,
   saveClassEntry,
   saveFactionEntry,
+  saveLocationEntry,
   getPortraitUrl
 } = require("../lib/fileWriter");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
@@ -23,7 +24,8 @@ const WRITERS = {
   items: saveItemEntry,
   survivors: saveSurvivorEntry,
   logs: saveLogEntry,
-  classes: saveClassEntry
+  classes: saveClassEntry,
+  locations: saveLocationEntry
 };
 
 // Categories whose writer function accepts a third imageUrl argument
@@ -37,7 +39,8 @@ const HAS_PORTRAIT = {
   enemies: true,
   items: true,
   survivors: true,
-  classes: true
+  classes: true,
+  locations: true
 };
 
 // Called after the user reviews a /generate-X preview response and clicks

@@ -10,7 +10,8 @@ const CATEGORY_LABELS = {
   classes: "Classes",
   items: "Items",
   logs: "Logs",
-  survivors: "Survivors"
+  survivors: "Survivors",
+  locations: "Locations"
 };
 
 // Categories where a locked/greyed-out placeholder can be filled in by the
@@ -23,7 +24,8 @@ const FILL_IN_ENDPOINTS = {
   items: "/api/generate-item",
   classes: "/api/generate-class",
   logs: "/api/generate-log",
-  factions: "/api/generate-faction"
+  factions: "/api/generate-faction",
+  locations: "/api/generate-location"
 };
 
 // Categories where an ALREADY-FILLED entry can be regenerated (revised in
@@ -37,7 +39,8 @@ const REGENERATE_ENDPOINTS = {
   classes: "/api/generate-class",
   logs: "/api/generate-log",
   survivors: "/api/generate-survivor",
-  factions: "/api/generate-faction"
+  factions: "/api/generate-faction",
+  locations: "/api/generate-location"
 };
 
 // Populates a faction <select>'s options from this world's LIVE Factions

@@ -10,7 +10,7 @@ const router = express.Router();
 // Section 5's "Known, deliberate simplifications" for the history of why
 // this was deferred, and this session's addendum for it closing.
 
-const VALID_CATEGORIES = new Set(["factions", "npcs", "enemies", "classes", "items", "logs", "survivors"]);
+const VALID_CATEGORIES = new Set(["factions", "npcs", "enemies", "classes", "items", "logs", "survivors", "locations"]);
 
 function requireValidCategory(req, res, next) {
   if (!VALID_CATEGORIES.has(req.params.category)) {

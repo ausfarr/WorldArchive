@@ -9,15 +9,17 @@
 // style field the same way prompts/*ContentPrompt.js ground content in a
 // world's lore via lib/worldFlavor.js.
 //
-// Asset framing branches in two ways, not five: CHARACTER (npcs,
-// enemies, classes, survivors -- anything depicting a person/creature)
-// vs OBJECT (items -- weapons/armor/consumables, not a person). Both
-// stay landscape/wide framing to match the site's fixed aspect ratio
-// (see lib/imagegen.js's IMAGEGEN_ASPECT_RATIO, default 16:9) -- an
-// object shot just fills that wide frame with environmental context
-// instead of a character.
+// Asset framing branches in three ways: CHARACTER (npcs, enemies,
+// classes, survivors -- anything depicting a person/creature), OBJECT
+// (items -- weapons/armor/consumables, not a person), and ENVIRONMENT
+// (locations -- a place, no figure-focused composition rules). All
+// three stay landscape/wide framing to match the site's fixed aspect
+// ratio (see lib/imagegen.js's IMAGEGEN_ASPECT_RATIO, default 16:9) --
+// an object shot fills that wide frame with environmental context
+// instead of a character, and an environment shot IS the wide frame.
 
 const OBJECT_CATEGORIES = new Set(["items"]);
+const ENVIRONMENT_CATEGORIES = new Set(["locations"]);
 
 function buildStyleRulesBlock(styleGuide) {
   const s = styleGuide || {};
@@ -50,21 +52,24 @@ function buildFactionAccentLine(factionAccent) {
 // factionAccent: result of lib/worldFlavor.js's getFactionAccent(), or null
 function buildArtPromptSystemPrompt({ category, subjectJson, styleGuide, factionAccent }) {
   const isObject = OBJECT_CATEGORIES.has(category);
+  const isEnvironment = ENVIRONMENT_CATEGORIES.has(category);
   const styleRules = buildStyleRulesBlock(styleGuide);
   const factionLine = buildFactionAccentLine(factionAccent);
 
-  const assetTypeBlock = isObject
-    ? `ASSET TYPE: Object/Item Render -- the subject is a single object (weapon, tool, wearable, consumable, relic, etc.), NOT a person. Compose it as the clear focal point of a WIDE LANDSCAPE frame: the object placed within a shallow, believable environment or surface consistent with this world (a workbench, bare ground, propped against a wall or ruin, held in a gloved hand -- whatever fits) that fills the negative space on either side, rather than a tall vertical product-shot isolated on a plain background. State the wide framing explicitly in the framing/aspect note.`
-    : `ASSET TYPE: Character Portrait -- waist-up or bust framing, composed for a WIDE LANDSCAPE frame, not a tall vertical one. Center the subject with visible environment/negative space on both sides rather than a tight vertical crop -- think cinematic character shot, not a phone-screen portrait. State the wide framing explicitly in the framing/aspect note (e.g. "a wide horizontal composition, subject centered with the environment visible on either side").`;
+  const assetTypeBlock = isEnvironment
+    ? `ASSET TYPE: Environment/Establishing Shot -- the subject is a PLACE, not a person or object. No figure should be the focal point (a small, distant, unnamed figure for scale is fine, but never a posed subject). Compose it as a wide landscape establishing shot: foreground, midground, and a sense of depth appropriate to the region/biome, with faction control (if any) visible through architecture, signage, upkeep, or damage rather than through a character. State the wide framing explicitly in the framing/aspect note.`
+    : isObject
+      ? `ASSET TYPE: Object/Item Render -- the subject is a single object (weapon, tool, wearable, consumable, relic, etc.), NOT a person. Compose it as the clear focal point of a WIDE LANDSCAPE frame: the object placed within a shallow, believable environment or surface consistent with this world (a workbench, bare ground, propped against a wall or ruin, held in a gloved hand -- whatever fits) that fills the negative space on either side, rather than a tall vertical product-shot isolated on a plain background. State the wide framing explicitly in the framing/aspect note.`
+      : `ASSET TYPE: Character Portrait -- waist-up or bust framing, composed for a WIDE LANDSCAPE frame, not a tall vertical one. Center the subject with visible environment/negative space on both sides rather than a tight vertical crop -- think cinematic character shot, not a phone-screen portrait. State the wide framing explicitly in the framing/aspect note (e.g. "a wide horizontal composition, subject centered with the environment visible on either side").`;
 
-  const ageBlock = !isObject
+  const ageBlock = (!isObject && !isEnvironment)
     ? `\n\nAGE: if the subject data includes an age, let it visibly inform the depiction -- build, posture, skin/hair/hide texture, wear -- the same way gear and faction accents are pulled from the data rather than invented. Don't state the number in the prompt itself; translate it into how the subject actually looks.`
     : "";
 
   return `You generate image-generation prompts for a tabletop/game world -- you do not generate images. Output ONLY the prompt text, 80-150 words, as flowing natural-language prose (NOT a comma-separated tag list). No markdown, no preamble.
 
 STRUCTURE, IN THIS ORDER:
-1. Subject + action/pose (or, for an object, its resting state/context), as a full sentence.
+1. Subject + action/pose (or, for an object, its resting state/context; or, for an environment, the vantage point/composition), as a full sentence.
 2. Key visual details -- specific gear/texture/faction-accent details pulled from the subject data below, never invented from scratch.
 3. Setting/context -- a short environmental phrase.
 4. Style + lighting sentence, pulled directly from the style rules below.
