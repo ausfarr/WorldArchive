@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronicled — Every World Deserves an Archive</title>
+<meta name="description" content="Chronicled turns your campaign into a living archive — NPCs, monsters, items, and lore, generated on demand and filed automatically, with portrait art for everything that needs a face.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-void: #0a0b0d;
+    --bg-panel: #14161a;
+    --bg-panel-raised: #1c1f24;
+    --border-line: #2a2d33;
+    --border-line-soft: #202226;
+    --ink: #e4e1d6;
+    --ink-dim: #9a9ca3;
+    --ink-faint: #5c5f66;
+
+    --neon-primary: #ff2f6e;
+    --neon-cyan: #29f0d1;
+
+    --font-display: 'Oswald', sans-serif;
+    --font-body: 'Work Sans', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--bg-void);
+    color: var(--ink);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+  }
+
+  a { color: var(--neon-cyan); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); outline-offset: 2px; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Header ---------- */
+  .site-header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(10,11,13,0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border-line);
+  }
+  .site-header .wrap { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; }
+  .site-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .site-title .accent { color: var(--neon-primary); }
+  .site-nav { display: flex; gap: 24px; align-items: center; }
+  .site-nav a {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .site-nav a:hover { color: var(--neon-cyan); text-decoration: none; }
+  .nav-cta {
+    font-family: var(--font-mono) !important;
+    font-size: 0.68rem !important;
+    padding: 8px 14px;
+    border: 1px solid var(--neon-primary);
+    color: var(--neon-primary) !important;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .nav-cta:hover { background: var(--neon-primary); color: var(--bg-void) !important; text-decoration: none !important; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 72px 0 88px; border-bottom: 1px solid var(--border-line); position: relative; overflow: hidden; }
+  .hero .wrap {
+    display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center;
+  }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .eyebrow .dot { color: var(--neon-cyan); }
+  .hero h1 {
+    font-family: var(--font-display); text-transform: uppercase; font-weight: 700;
+    font-size: clamp(2.1rem, 4.4vw, 3.4rem); line-height: 1.08; letter-spacing: 0.01em;
+    margin: 0 0 20px; color: var(--ink);
+  }
+  .hero h1 .glow {
+    color: var(--neon-primary);
+    text-shadow: 0 0 6px rgba(255,47,110,0.55), 0 0 18px rgba(255,47,110,0.25);
+    animation: neon-settle 2.2s steps(1) 1;
+  }
+  @keyframes neon-settle {
+    0% { opacity: 1; } 4% { opacity: 0.2; } 8% { opacity: 1; }
+    12% { opacity: 0.15; } 16% { opacity: 1; } 40% { opacity: 1; }
+    43% { opacity: 0.3; } 46% { opacity: 1; } 100% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) { .hero h1 .glow { animation: none; } }
+
+  .hero .dek { color: var(--ink-dim); font-size: 1.06rem; max-width: 460px; margin: 0 0 32px; }
+
+  .cta-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+  .btn-primary {
+    font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
+    background: var(--neon-primary); color: var(--bg-void); border: 1px solid var(--neon-primary);
+    padding: 14px 24px; display: inline-block; transition: opacity 0.15s ease;
+  }
+  .btn-primary:hover { opacity: 0.85; text-decoration: none; }
+  .btn-ghost {
+    font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.04em; color: var(--ink-dim);
+  }
+  .btn-ghost:hover { color: var(--neon-cyan); }
+
+  .hero .status-line {
+    font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint);
+    margin-top: 26px; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .hero .status-line .dot { color: var(--neon-cyan); }
+
+  /* ---------- Mock dossier card (hero signature element) ---------- */
+  .mock-sheet {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-line);
+    border-top: 3px solid var(--neon-primary);
+    position: relative;
+  }
+  .mock-sheet::before, .mock-sheet::after {
+    content: ''; position: absolute; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--ink-faint); top: 10px;
+  }
+  .mock-sheet::before { left: 10px; } .mock-sheet::after { right: 10px; }
+  .mock-header { padding: 22px 22px 16px; border-bottom: 1px solid var(--border-line-soft); }
+  .mock-eyebrow {
+    font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--neon-cyan); margin: 0 0 6px;
+  }
+  .mock-header h3 { font-family: var(--font-display); font-size: 1.3rem; margin: 0 0 4px; letter-spacing: 0.01em; }
+  .mock-header .sub { color: var(--ink-dim); font-size: 0.82rem; }
+  .mock-body { padding: 20px 22px 24px; }
+  .mock-quote {
+    border-left: 3px solid var(--neon-primary); padding: 2px 0 2px 14px; margin: 0 0 18px;
+    font-style: italic; color: var(--ink); font-size: 0.9rem;
+  }
+  .mock-portrait {
+    border: 1px dashed var(--ink-faint); color: var(--ink-faint); font-family: var(--font-mono);
+    font-size: 0.64rem; text-align: center; padding: 30px 16px; margin: 0 0 18px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  table.mock-stats { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.76rem; }
+  table.mock-stats th, table.mock-stats td { border: 1px solid var(--border-line); padding: 6px 10px; text-align: left; }
+  table.mock-stats th { color: var(--ink-dim); font-weight: 500; background: var(--bg-panel-raised); }
+  .mock-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .tag {
+    display: inline-block; font-family: var(--font-mono); font-size: 0.6rem;
+    letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px;
+    border: 1px solid var(--border-line); color: var(--ink-dim);
+  }
+  .tag.fac { color: var(--bg-void); font-weight: 600; border: none; background: var(--neon-cyan); }
+
+  /* ---------- Section shell ---------- */
+  section { padding: 76px 0; border-bottom: 1px solid var(--border-line); }
+  section:last-of-type { border-bottom: none; }
+  .section-head { max-width: 620px; margin: 0 0 48px; }
+  .section-eyebrow {
+    font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--neon-cyan); margin: 0 0 12px;
+  }
+  .section-head h2 {
+    font-family: var(--font-display); text-transform: uppercase; font-size: clamp(1.6rem, 3vw, 2.2rem);
+    letter-spacing: 0.01em; margin: 0 0 12px; color: var(--ink);
+  }
+  .section-head p { color: var(--ink-dim); font-size: 1rem; margin: 0; }
+
+  /* ---------- How it works ---------- */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .step {
+    background: var(--bg-panel); border: 1px solid var(--border-line); padding: 26px 22px;
+    position: relative;
+  }
+  .step .file-no {
+    font-family: var(--font-mono); font-size: 0.68rem; color: var(--neon-primary);
+    letter-spacing: 0.08em; margin: 0 0 16px; text-transform: uppercase;
+  }
+  .step h3 { font-family: var(--font-display); text-transform: uppercase; font-size: 1.05rem; margin: 0 0 10px; letter-spacing: 0.02em; }
+  .step p { color: var(--ink-dim); font-size: 0.9rem; margin: 0; }
+
+  /* ---------- Category grid ---------- */
+  .cat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  }
+  .cat-card {
+    background: var(--bg-panel); border: 1px solid var(--border-line); padding: 20px 18px;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+  }
+  .cat-card:hover { border-color: var(--ink-faint); transform: translateY(-2px); }
+  .cat-card .cat-label {
+    font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-faint);
+    letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 8px;
+  }
+  .cat-card h4 { font-family: var(--font-display); text-transform: uppercase; font-size: 0.98rem; margin: 0 0 8px; letter-spacing: 0.02em; }
+  .cat-card p { color: var(--ink-dim); font-size: 0.82rem; margin: 0; }
+
+  /* ---------- Sample output ---------- */
+  .sample-wrap { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; align-items: center; }
+  .sample-copy p { color: var(--ink-dim); font-size: 0.98rem; margin: 0 0 16px; }
+  .sample-copy ul { margin: 0; padding-left: 18px; color: var(--ink-dim); font-size: 0.92rem; }
+  .sample-copy li { margin-bottom: 8px; }
+
+  .sample-sheet {
+    background: var(--bg-panel); border: 1px solid var(--border-line);
+    border-top: 3px solid var(--neon-cyan);
+  }
+  .sample-sheet .mock-header { border-bottom: 1px solid var(--border-line-soft); }
+  .sample-sheet .mock-eyebrow { color: var(--neon-primary); }
+  table.derived { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.74rem; margin-top: 4px; }
+  table.derived th, table.derived td { border: 1px solid var(--border-line); padding: 7px 10px; text-align: left; }
+  table.derived th { color: var(--ink-dim); font-weight: 500; background: var(--bg-panel-raised); }
+  table.derived td.formula { color: var(--ink-faint); font-size: 0.68rem; }
+
+  /* ---------- Social proof ---------- */
+  .quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .quote-card {
+    background: var(--bg-panel); border: 1px solid var(--border-line); padding: 26px 22px;
+    border-left: 3px solid var(--neon-primary);
+  }
+  .quote-card p.q { font-style: italic; color: var(--ink); font-size: 0.94rem; margin: 0 0 16px; }
+  .quote-card p.attr { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
+
+  /* ---------- Final CTA ---------- */
+  .final-cta { text-align: center; padding: 90px 0; }
+  .final-cta h2 {
+    font-family: var(--font-display); text-transform: uppercase; font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin: 0 0 16px; color: var(--ink);
+  }
+  .final-cta p { color: var(--ink-dim); max-width: 480px; margin: 0 auto 32px; font-size: 1rem; }
+
+  footer.site-footer {
+    border-top: 1px solid var(--border-line);
+    padding: 32px 0 60px; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.68rem;
+  }
+  footer.site-footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+
+  @media (max-width: 900px) {
+    .hero .wrap { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .cat-grid { grid-template-columns: repeat(2, 1fr); }
+    .sample-wrap { grid-template-columns: 1fr; }
+    .quotes { grid-template-columns: 1fr; }
+    .site-nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title">CHRON<span class="accent">I</span>CLED</div>
+    <nav class="site-nav">
+      <a href="#how">How it works</a>
+      <a href="#categories">Categories</a>
+      <a href="#sample">Sample</a>
+      <a href="#cta" class="nav-cta">Request access</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow"><span class="dot">●</span> WORLD ARCHIVE SYSTEM — LIMITED BETA</p>
+      <h1>Every world deserves an <span class="glow">archive</span>.</h1>
+      <p class="dek">Chronicled turns your campaign into a living dossier. Describe your world once — then generate NPCs, monsters, items, and lore on demand, each one filed automatically with matching portrait art.</p>
+      <div class="cta-row">
+        <a class="btn-primary" href="#cta">Request beta access</a>
+        <a class="btn-ghost" href="#how">See how it works ↓</a>
+      </div>
+      <p class="status-line"><span class="dot">●</span> Built for GMs — currently accepting a small group of beta testers</p>
+    </div>
+
+    <div class="mock-sheet">
+      <div class="mock-header">
+        <p class="mock-eyebrow">NPC Dossier — Auto-Filed</p>
+        <h3>Kess Varn</h3>
+        <p class="sub">Informant · The Hollow Docks</p>
+      </div>
+      <div class="mock-body">
+        <div class="mock-portrait">Portrait — Generated</div>
+        <p class="mock-quote">"I don't sell secrets. I rent them, and the interest is steep."</p>
+        <table class="mock-stats">
+          <tr><th>Presence</th><th>Knowledge</th><th>Fate</th></tr>
+          <tr><td>14</td><td>17</td><td>9</td></tr>
+        </table>
+        <div class="mock-tags">
+          <span class="tag fac">Dockside Syndicate</span>
+          <span class="tag">Informant</span>
+          <span class="tag">Recurring</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="section-eyebrow">Process</p>
+      <h2>From blank page to living archive</h2>
+      <p>No manual file editing, no juggling five tabs of scattered notes. Three steps, and it's on file.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <p class="file-no">File 01</p>
+        <h3>Describe your world</h3>
+        <p>A guided setup walks you through tone, genre, and factions — or generate any piece of it for you if you'd rather start from a spark than a blank page.</p>
+      </div>
+      <div class="step">
+        <p class="file-no">File 02</p>
+        <h3>Generate on demand</h3>
+        <p>Pick a category and generate real content grounded in your world's own lore — a full character bible, a stat block, an item, a faction, whatever the session needs.</p>
+      </div>
+      <div class="step">
+        <p class="file-no">File 03</p>
+        <h3>Filed automatically</h3>
+        <p>Every entry lands in your browsable archive with matching portrait art already attached — searchable, cross-referenced, ready before your next session.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="categories">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="section-eyebrow">Coverage</p>
+      <h2>Eight categories. One consistent world.</h2>
+      <p>Everything a campaign needs, generated from the same grounded lore — so fifty separate sessions still read as one world.</p>
+    </div>
+    <div class="cat-grid">
+      <div class="cat-card"><p class="cat-label">Category 01</p><h4>NPCs</h4><p>Full character bible, personality, motivation, and a branching sample dialogue tree.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 02</p><h4>Bestiary</h4><p>Complete stat blocks with real computed combat math and a full ability kit.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 03</p><h4>Items</h4><p>Weapons, armor, consumables, and quest relics with derived stats where they matter.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 04</p><h4>Classes</h4><p>Full leveling tree, signature abilities, and a late-game evolution.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 05</p><h4>Factions</h4><p>Deep lore plus a living roundup of every NPC, enemy, and item tied to it.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 06</p><h4>Logs</h4><p>Found-text: recordings, terminal entries, and journals for environmental storytelling.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 07</p><h4>Survivors</h4><p>Roster-ready recruits with a real mechanical quirk and a one-line backstory.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 08</p><h4>Locations</h4><p>Places your world actually visits — grounded in its factions and its danger.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="sample">
+  <div class="wrap sample-wrap">
+    <div class="sample-copy">
+      <p class="section-eyebrow" style="margin-bottom:12px;">Under the hood</p>
+      <h2 style="font-family:var(--font-display); text-transform:uppercase; font-size:clamp(1.6rem,3vw,2.2rem); margin:0 0 16px;">Real math. Real consistency.</h2>
+      <p>The model handles narrative judgment — voice, motivation, tone. Anything that needs to be exact — stat math, formatting, cross-references — is computed by the backend, every time.</p>
+      <ul>
+        <li>Derived stats computed from your world's real formulas, not model guesswork</li>
+        <li>Faction and ability references pulled from what actually exists in your archive — never invented</li>
+        <li>Every entry stays editable, regenerable, and consistent with what came before</li>
+      </ul>
+    </div>
+    <div class="sample-sheet mock-sheet">
+      <div class="mock-header">
+        <p class="mock-eyebrow">Bestiary Entry — Computed Stats</p>
+        <h3>Rust-Marked Warden</h3>
+        <p class="sub">Elite · The Ferro-Kings</p>
+      </div>
+      <div class="mock-body">
+        <table class="derived">
+          <tr><th>Stat</th><th>Value</th><th>Formula</th></tr>
+          <tr><td>Body</td><td>22</td><td class="formula">Base + Tier Mod</td></tr>
+          <tr><td>Reflex</td><td>14</td><td class="formula">Base + Tier Mod</td></tr>
+          <tr><td>Damage</td><td>18–26</td><td class="formula">Body × 1.4, Elite scaling</td></tr>
+          <tr><td>Armor DR</td><td>9</td><td class="formula">Gear + Faction bonus</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <p class="section-eyebrow">From the beta</p>
+      <h2>What testers are filing</h2>
+      <p>A small group of GMs are running real campaigns on Chronicled right now.</p>
+    </div>
+    <div class="quotes">
+      <div class="quote-card">
+        <p class="q">"Placeholder — replace with a real tester quote once feedback comes in."</p>
+        <p class="attr">— Beta Tester, Fantasy Campaign</p>
+      </div>
+      <div class="quote-card">
+        <p class="q">"Placeholder — replace with a real tester quote once feedback comes in."</p>
+        <p class="attr">— Beta Tester, Sci-Fi Campaign</p>
+      </div>
+      <div class="quote-card">
+        <p class="q">"Placeholder — replace with a real tester quote once feedback comes in."</p>
+        <p class="attr">— Beta Tester, Horror Campaign</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cta" class="final-cta" style="border-bottom:none;">
+  <p class="section-eyebrow" style="text-align:center;">Beta Access</p>
+  <h2>Open your world's file.</h2>
+  <p>Chronicled is in limited beta — a small number of GMs are testing it against real campaigns right now. Request access and we'll reach out when a slot opens.</p>
+  <a class="btn-primary" href="mailto:ausfarr@gmail.com?subject=Chronicled%20Beta%20Access%20Request">Request beta access</a>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>CHRONICLED — WORLD ARCHIVE SYSTEM</span>
+    <span>chronicled.world</span>
+  </div>
+</footer>
+
+</body>
+</html>
