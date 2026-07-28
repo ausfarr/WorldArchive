@@ -105,11 +105,11 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
       })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Generation failed');
+    if (!res.ok) throw new Error(formatGenerationError(data));
     status.textContent = `Generated: ${data.name}`;
     setTimeout(() => window.location.reload(), 1200);
   } catch (err) {
-    status.textContent = 'Error: ' + err.message;
+    status.innerHTML = err.message;
   } finally {
     btn.disabled = false; btn.textContent = 'Generate Faction';
   }

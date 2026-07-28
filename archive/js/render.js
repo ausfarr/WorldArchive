@@ -14,6 +14,39 @@ const CATEGORY_LABELS = {
   locations: "Locations"
 };
 
+// TODO(Austin): swap in the real Google Form URL once created.
+const BETA_FEEDBACK_FORM_URL = "https://forms.gle/REPLACE_ME";
+
+// Turns a failed-generation response body into a display string.
+//
+// Every generate-* route reports errors as { error: "..." } (a human
+// sentence, e.g. "Something went wrong"), EXCEPT
+// middleware/enforceGenerationCap.js, which uniquely puts a machine code
+// in `error` ("generation_cap_reached") and the human sentence in a
+// separate `message` field. Preferring `message` over `error` handles
+// both shapes correctly with one rule, and fixes a real existing bug:
+// every "Generation failed" catch block across the 8 category pages (and
+// the two handlers below) was showing the raw code
+// "generation_cap_reached" verbatim to testers who hit the cap, instead
+// of the friendly message that was already being sent.
+//
+// `asHtml: true` (the default, for the per-page status <p> elements,
+// rendered via .innerHTML) adds a clickable link to the beta feedback
+// form specifically for the cap-reached case, since that's the one
+// error worth turning into an ask rather than just an apology.
+// `asHtml: false` (for render.js's alert()-based flows, which can't
+// render markup) appends the same URL as plain text instead.
+function formatGenerationError(data, { asHtml = true } = {}) {
+  const base = (data && (data.message || data.error)) || "Generation failed.";
+  if (data && data.error === "generation_cap_reached") {
+    return asHtml
+      ? `${base} <a href="${BETA_FEEDBACK_FORM_URL}" target="_blank" rel="noopener" style="color: var(--neon-cyan); text-decoration: underline;">Got 2 minutes for a quick feedback form?</a>`
+      : `${base} Feedback form: ${BETA_FEEDBACK_FORM_URL}`;
+  }
+  return base;
+}
+window.formatGenerationError = formatGenerationError;
+
 // Per-category grouping + ordering for category index pages (see
 // session_addendum_search_and_grouping.md). `groupBy` is a field name on
 // each manifest entry to bucket under (null = no grouping, straight
@@ -216,7 +249,7 @@ async function fillInEntry(categoryPath, id, btnEl) {
       body: JSON.stringify({ fillExistingId: id })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Generation failed");
+    if (!res.ok) throw new Error(formatGenerationError(data, { asHtml: false }));
     btnEl.textContent = "Done!";
     setTimeout(() => window.location.reload(), 800);
   } catch (err) {
@@ -244,7 +277,7 @@ async function regenerateEntry(categoryPath, id, btnEl) {
       body: JSON.stringify({ fillExistingId: id })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Generation failed");
+    if (!res.ok) throw new Error(formatGenerationError(data, { asHtml: false }));
     btnEl.disabled = false;
     btnEl.textContent = originalText;
     if (data.preview) {
