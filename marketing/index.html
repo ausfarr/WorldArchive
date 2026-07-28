@@ -268,6 +268,17 @@
   }
   .final-cta p { color: var(--ink-dim); max-width: 480px; margin: 0 auto 32px; font-size: 1rem; }
 
+  .signup-form { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; max-width: 420px; margin: 0 auto; }
+  .signup-input {
+    flex: 1; min-width: 220px; background: var(--bg-panel); border: 1px solid var(--border-line);
+    color: var(--ink); font-family: var(--font-mono); font-size: 0.85rem; padding: 13px 14px;
+  }
+  .signup-input:focus { outline: none; border-color: var(--neon-cyan); }
+  .signup-input::placeholder { color: var(--ink-faint); }
+  .signup-status { font-family: var(--font-mono); font-size: 0.78rem; margin-top: 18px; min-height: 1.2em; }
+  .signup-status.success { color: var(--neon-cyan); }
+  .signup-status.error { color: var(--neon-primary); }
+
   footer.site-footer {
     border-top: 1px solid var(--border-line);
     padding: 32px 0 60px; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.68rem;
@@ -462,14 +473,61 @@
 <section id="cta" class="final-cta" style="border-bottom:none;">
   <p class="section-eyebrow" style="text-align:center;">Beta Access</p>
   <h2>Open your world's file.</h2>
-  <p>Chronicled is in limited beta — a small number of GMs are testing it against real campaigns right now. Request access and we'll reach out when a slot opens.</p>
-  <a class="btn-primary" href="mailto:ausfarr@gmail.com?subject=Chronicled%20Beta%20Access%20Request">Request beta access</a>
+  <p>Chronicled is in limited beta — a small number of GMs are testing it against real campaigns right now. Leave your email and we'll reach out when a slot opens.</p>
+
+  <form id="waitlist-form" class="signup-form" novalidate>
+    <input type="email" id="waitlist-email" class="signup-input" placeholder="you@example.com" required autocomplete="email">
+    <button type="submit" class="btn-primary" id="waitlist-submit">Request beta access</button>
+  </form>
+  <p class="signup-status" id="waitlist-status" aria-live="polite"></p>
 </section>
+
+<script>
+  (function () {
+    var form = document.getElementById('waitlist-form');
+    var input = document.getElementById('waitlist-email');
+    var button = document.getElementById('waitlist-submit');
+    var status = document.getElementById('waitlist-status');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = input.value.trim();
+      if (!email) return;
+
+      button.disabled = true;
+      button.textContent = 'Sending…';
+      status.textContent = '';
+      status.className = 'signup-status';
+
+      fetch('https://app.chronicled.world/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, source: 'landing_page' })
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (result.ok) {
+            form.style.display = 'none';
+            status.textContent = "You're on the list — we'll email you when a beta slot opens.";
+            status.className = 'signup-status success';
+          } else {
+            throw new Error(result.data && result.data.error ? result.data.error : 'Something went wrong.');
+          }
+        })
+        .catch(function (err) {
+          status.textContent = err.message || 'Something went wrong. Please try again.';
+          status.className = 'signup-status error';
+          button.disabled = false;
+          button.textContent = 'Request beta access';
+        });
+    });
+  })();
+</script>
 
 <footer class="site-footer">
   <div class="wrap">
     <span>CHRONICLED — WORLD ARCHIVE SYSTEM</span>
-    <span>chronicled.world</span>
+    <span><a href="terms.html" style="color:var(--ink-faint);">Terms</a> · <a href="privacy.html" style="color:var(--ink-faint);">Privacy</a> · chronicled.world</span>
   </div>
 </footer>
 

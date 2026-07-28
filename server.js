@@ -22,6 +22,7 @@ const wizardReviewRoute = require("./routes/wizardReview");
 const entriesRoute = require("./routes/entries");
 const searchRoute = require("./routes/search");
 const deleteWorldRoute = require("./routes/deleteWorld");
+const waitlistRoute = require("./routes/waitlist");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -45,6 +46,13 @@ app.get("/config.js", (req, res) => {
     })};`
   );
 });
+
+// Public marketing-site waitlist signup -- no account/session exists yet
+// at this point, so this must stay outside the resolveTenant gate below.
+// See routes/waitlist.js for the CORS notes (this is the one route that
+// accepts cross-origin requests, from the separate chronicled.world
+// static site).
+app.use(waitlistRoute);
 
 // Every /api route below expects req.worldId, set by resolveTenant after
 // verifying the request's Supabase JWT (see middleware/resolveTenant.js).
