@@ -22,6 +22,7 @@
 // identical every time, so still worth the split.
 
 const { buildCacheableSystemPrompt } = require("../lib/claude");
+const { QUOTE_CRAFT_GUIDANCE } = require("../lib/promptGuidance");
 
 const SCHEMA_DESCRIPTION = `{
   "nickname": "an established one/two-word epithet for this faction, consistent with the seed/lore below",
@@ -45,6 +46,8 @@ const SCHEMA_DESCRIPTION = `{
 const STATIC_INSTRUCTIONS = `You are expanding a faction's established concept into a full dossier for a tabletop/game world archive. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 Stay consistent with everything given below — don't contradict the faction's own established concept, the world's lore, or anything already archived and connected to this faction (the Roundup). Every field should feel like it grew out of THIS faction's specific concept, not a generic archetype.
+
+${QUOTE_CRAFT_GUIDANCE} This applies to overviewQuote — it should speak in the faction's collective/leadership voice, not any one individual's.
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;

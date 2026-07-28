@@ -27,6 +27,7 @@
 // universal and stay static.
 
 const { buildCacheableSystemPrompt } = require("../lib/claude");
+const { QUOTE_CRAFT_GUIDANCE } = require("../lib/promptGuidance");
 
 const ABILITY_SCHEMA = `{ "level": 1, "name": "...", "kind": "Active | Passive | Ultimate Unlock | Final Unlock", "effectText": "ONE sentence, 25 words or fewer, combining the mechanical effect AND its scaling formula in bracketed/inline notation, e.g. 'Light damage, generates 1 Thread. Damage = Blade-work × 1.5.' — this goes in a single compact table cell, not a paragraph. If you cannot say it in 25 words, cut detail rather than run long." }`;
 
@@ -72,6 +73,8 @@ STRUCTURE (standard output is the full 1-99 tree):
 - Why This Progression Works: exactly 3 named callouts (a non-obvious skill synergy, a resource/gate mechanic, and the Level 1→50→99 fantasy arc).
 
 Every ability's effectText MUST be ONE compact sentence, 25 words or fewer, combining the mechanical effect AND a bracketed/inline scaling reference to a named skill/attribute (e.g. "Light damage, generates 1 Thread. Damage = Blade-work × 1.5.") — this renders as a single table cell, not a paragraph. Do NOT write multi-clause explanations of permanence, duration, or downstream consequences (e.g. do not write something like "the target loses all infrastructure authority permanently until re-certified, a process that takes weeks and requires political capital" — state the effect and its formula, nothing else). Passives that don't scale should say something like "N/A — Binary Unlock" inline rather than a formula.
+
+${QUOTE_CRAFT_GUIDANCE} This applies to BOTH the tagline (write it LAST, after the full kit is drafted, so it can land on something the kit actually earned) and the capstoneQuote (the closing emotional beat after Tier 4 — it should reframe the whole arc, not just restate the tagline in different words).
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;

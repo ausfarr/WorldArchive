@@ -21,6 +21,7 @@
 // see git history if you need the original single-string version.
 
 const { buildCacheableSystemPrompt } = require("../lib/claude");
+const { QUOTE_CRAFT_GUIDANCE } = require("../lib/promptGuidance");
 
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
@@ -65,6 +66,8 @@ RULE OF THUMB: the NPC needs one trait that COMPLICATES their role, not just dec
 RELATIONSHIPS: at minimum, state a faction allegiance (or explicit "unaligned"). Prefer connecting to an existing named NPC, enemy, class, or survivor from the roster provided below over a floating faction-only tie — and ONLY reference ids that actually appear in the FACTIONS list or the EXISTING ROSTER below, never an invented one. State each as one concrete sentence with a reason, never just a label. Relationship types to draw from: faction allegiance, chain of command, rivalry/grudge (with a specific concrete reason), debt/obligation, historical pre-collapse or pre-existing connection, romantic/found-family (sparingly, with real weight).
 
 SPEECH: define register (vocabulary type, tied to role/faction), rhythm (short/clipped vs long/looping — matters more than vocabulary), a tic (one small repeatable habit — used once or twice in the dialogue tree, never in every line), and one explicit thing they'd never say. Write the signature quote AFTER defining these — it should demonstrably use their voice and land on their contradiction or motivation in one line. Do not reuse it verbatim in the dialogue tree.
+
+${QUOTE_CRAFT_GUIDANCE}
 
 DIALOGUE TREE: one opening line + 2-3 branches + one reply each (~4-7 lines total). Each branch implies a different tone (e.g. respectful / transactional / hostile) and the reply should audibly shift with it.
 

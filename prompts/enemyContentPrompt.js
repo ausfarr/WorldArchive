@@ -22,6 +22,7 @@
 // instruction explaining what to do with it is static.
 
 const { buildCacheableSystemPrompt } = require("../lib/claude");
+const { QUOTE_CRAFT_GUIDANCE } = require("../lib/promptGuidance");
 
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
@@ -51,6 +52,8 @@ TIER (drives everything — attribute budget, ability count, whether a quote/pha
 - Boss: ~90-110 total attribute points (3-4 stats at 15-25, rest at 8-12). 3-5 abilities PLUS exactly one HP-threshold Phase Change (e.g. "below 50% HP, gains X"). Gets a signature quote.
 
 Nudge the attribute split for flavor rather than copying a baseline verbatim.
+
+${QUOTE_CRAFT_GUIDANCE}
 
 ATTRIBUTES: canonical six keys — always output these exact lowercase keys in "attributes": body, reflex, knowledge, presence, sanity, fate. This world's own display labels for these six (used for flavor text and ability names) are provided below.
 
