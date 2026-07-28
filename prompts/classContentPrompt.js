@@ -19,6 +19,15 @@
 // let near-duplicate skills (e.g. "Hacking" vs "Grid-Tap" vs "System
 // Intrusion") slowly accumulate across a large roster.
 
+// PROMPT CACHING: see prompts/npcContentPrompt.js's header comment for
+// the split rationale. statLabelsText, weaponSkillsText, and
+// fieldSkillsText are all per-world custom data (Wizard Step 5 output),
+// so they move to the dynamic block even though the surrounding
+// structural instructions (STRUCTURE, effectText format rules) are
+// universal and stay static.
+
+const { buildCacheableSystemPrompt } = require("../lib/claude");
+
 const ABILITY_SCHEMA = `{ "level": 1, "name": "...", "kind": "Active | Passive | Ultimate Unlock | Final Unlock", "effectText": "ONE sentence, 25 words or fewer, combining the mechanical effect AND its scaling formula in bracketed/inline notation, e.g. 'Light damage, generates 1 Thread. Damage = Blade-work × 1.5.' — this goes in a single compact table cell, not a paragraph. If you cannot say it in 25 words, cut detail rather than run long." }`;
 
 const SCHEMA_DESCRIPTION = `{
@@ -46,27 +55,12 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: how this avoids colliding with an existing class's concept, core fantasy, or signature verb"
 }`;
 
-function buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, locationRosterText, name, existingContent }) {
-  const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
-    : "";
+// STATIC — identical for every call, every world. Cached.
+const STATIC_INSTRUCTIONS = `You are generating a full playable character class for a tabletop/game world — a character archetype or profession turned into a combat class, whichever fits this world's genre (a high-fantasy world wants archetypes like a Rogue or Paladin, not literal day jobs; an industrial/modern world wants real professions). Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
-  return `You are generating a full playable character class for a tabletop/game world — a character archetype or profession turned into a combat class, whichever fits this world's genre (a high-fantasy world wants archetypes like a Rogue or Paladin, not literal day jobs; an industrial/modern world wants real professions). Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
+If inventing the concept, pick something consistent with the setting provided below and distinct from the existing roster below -- an archetype (Rogue, Paladin) or a profession, whichever this world's genre actually calls for.
 
-SETTING (stay consistent with this — tone, technology level, and what kind of class concept -- archetype or profession -- would plausibly exist here):
-${settingContext}
-
-If inventing the concept, pick something consistent with the setting above and distinct from the existing roster below -- an archetype (Rogue, Paladin) or a profession, whichever this world's genre actually calls for.
-
-ATTRIBUTE LABELS (this world's own names for the six canonical attributes — always output these exact lowercase keys as primaryAttribute/secondaryAttribute references use these labels, don't invent others):
-${statLabelsText}
-
-WEAPON SKILLS (canonical seven, mechanically fixed — this world's own names for them, for flavor/prose only): ${weaponSkillsText}
-
-FIELD SKILLS (this world's fixed pool, each ranked 0-100 for any character — choose 3-5 of these for skillEfficiency and any ability scaling references; do NOT invent new field skills, only select from this list):
-${fieldSkillsText}
-
-ATTRIBUTE PRIORITY: pick a primary (the class's core fantasy) and secondary (utility/survivability) attribute. Every ability should visibly scale off one of these two, or off a Field/Weapon Skill tied to the class concept. Do NOT compute literal numeric stat blocks (no base stat arrays) — just name which attributes/skills abilities scale from, same as the game's existing class sheets.
+ATTRIBUTE PRIORITY: pick a primary (the class's core fantasy) and secondary (utility/survivability) attribute, using this world's own attribute labels provided below. Every ability should visibly scale off one of these two, or off a Field/Weapon Skill tied to the class concept. Do NOT compute literal numeric stat blocks (no base stat arrays) — just name which attributes/skills abilities scale from, same as the game's existing class sheets.
 
 STRUCTURE (standard output is the full 1-99 tree):
 - Skill Efficiency: Major (1.0x, 1-2 skills the build is built around) / Minor (0.5x) / Misc (0.2x).
@@ -79,6 +73,26 @@ STRUCTURE (standard output is the full 1-99 tree):
 
 Every ability's effectText MUST be ONE compact sentence, 25 words or fewer, combining the mechanical effect AND a bracketed/inline scaling reference to a named skill/attribute (e.g. "Light damage, generates 1 Thread. Damage = Blade-work × 1.5.") — this renders as a single table cell, not a paragraph. Do NOT write multi-clause explanations of permanence, duration, or downstream consequences (e.g. do not write something like "the target loses all infrastructure authority permanently until re-certified, a process that takes weeks and requires political capital" — state the effect and its formula, nothing else). Passives that don't scale should say something like "N/A — Binary Unlock" inline rather than a formula.
 
+Return JSON matching this exact schema:
+${SCHEMA_DESCRIPTION}`;
+
+function buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, locationRosterText, name, existingContent }) {
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
+
+  // DYNAMIC — this world's data plus this specific call's input. Uncached.
+  const dynamicContext = `SETTING (stay consistent with this — tone, technology level, and what kind of class concept -- archetype or profession -- would plausibly exist here):
+${settingContext}
+
+ATTRIBUTE LABELS (this world's own names for the six canonical attributes — used above for primaryAttribute/secondaryAttribute references):
+${statLabelsText}
+
+WEAPON SKILLS (canonical seven, mechanically fixed — this world's own names for them, for flavor/prose only): ${weaponSkillsText}
+
+FIELD SKILLS (this world's fixed pool, each ranked 0-100 for any character — choose 3-5 of these for skillEfficiency and any ability scaling references; do NOT invent new field skills, only select from this list):
+${fieldSkillsText}
+
 LOCATIONS IN THIS WORLD (the only ids valid for evolutionEvent.locationId -- do not invent one; leave locationId null if nothing archived fits, that's expected and fine):
 ${locationRosterText || "No locations archived yet -- leave evolutionEvent.locationId null and just describe the location in prose."}
 
@@ -89,10 +103,9 @@ EXISTING ROSTER (if this class's concept, core fantasy, signature verb, or field
 ${rosterContext}
 
 USER INPUT:
-Concept/Name: ${name || "invent a class concept (archetype or profession, whichever fits this world's genre) fitting this world's setting, not already in the roster below"}
+Concept/Name: ${name || "invent a class concept (archetype or profession, whichever fits this world's genre) fitting this world's setting, not already in the roster below"}`;
 
-Return JSON matching this exact schema:
-${SCHEMA_DESCRIPTION}`;
+  return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
 module.exports = { buildClassContentSystemPrompt };

@@ -14,6 +14,15 @@
 // military/tensions from world_config.factions_json) — no hardcoded
 // setting name, faction list, or voice descriptions.
 
+// PROMPT CACHING: see prompts/npcContentPrompt.js's header comment for
+// the split rationale. This file's static block is smaller relative to
+// the whole prompt than the other generators -- most of what this
+// prompt needs (faction name, seed, roundup, lore) is inherently
+// per-call -- but the intro/instruction sentence and schema are still
+// identical every time, so still worth the split.
+
+const { buildCacheableSystemPrompt } = require("../lib/claude");
+
 const SCHEMA_DESCRIPTION = `{
   "nickname": "an established one/two-word epithet for this faction, consistent with the seed/lore below",
   "overviewQuote": "one sentence, in the faction's collective/leadership voice, that captures its identity",
@@ -32,6 +41,14 @@ const SCHEMA_DESCRIPTION = `{
   "joining": "1 paragraph: what it takes for an outsider to join or be absorbed, if that's even possible"
 }`;
 
+// STATIC — identical for every call, every world. Cached.
+const STATIC_INSTRUCTIONS = `You are expanding a faction's established concept into a full dossier for a tabletop/game world archive. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
+
+Stay consistent with everything given below — don't contradict the faction's own established concept, the world's lore, or anything already archived and connected to this faction (the Roundup). Every field should feel like it grew out of THIS faction's specific concept, not a generic archetype.
+
+Return JSON matching this exact schema:
+${SCHEMA_DESCRIPTION}`;
+
 // seedText: this faction's own wizard-generated concept/politics/government/
 // economy/military/tensions, formatted as plain text — the equivalent of
 // the old hardcoded FACTION_SEEDS entry, but sourced from the world's own
@@ -45,11 +62,8 @@ function buildFactionContentSystemPrompt({ factionName, seedText, loreContext, r
     ? (otherFactionNames || []).map((n) => `- ${n}`).join("\n")
     : "(no other factions exist in this world yet)";
 
-  return `You are expanding a faction's established concept into a full dossier for a tabletop/game world archive. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
-
-Stay consistent with everything given below — don't contradict the faction's own established concept, the world's lore, or anything already archived and connected to this faction (the Roundup). Every field should feel like it grew out of THIS faction's specific concept, not a generic archetype.
-
-OTHER FACTIONS THAT ACTUALLY EXIST IN THIS WORLD (the ONLY factions you may name in the "relationships" field — do not invent, rename, or reference any faction not on this exact list; if the list is empty, return an empty relationships array rather than inventing one):
+  // DYNAMIC — this faction's data plus this specific call's input. Uncached.
+  const dynamicContext = `OTHER FACTIONS THAT ACTUALLY EXIST IN THIS WORLD (the ONLY factions you may name in the "relationships" field — do not invent, rename, or reference any faction not on this exact list; if the list is empty, return an empty relationships array rather than inventing one):
 ${factionListBlock}
 
 FACTION NAME: ${factionName}
@@ -62,9 +76,9 @@ ${loreContext || "(no lore saved yet for this world — invent details consisten
 
 ROUNDUP — EVERYTHING ALREADY ARCHIVED FOR THIS FACTION (build around these, especially any named Faction Leader — never invent a competing leader):
 ${roundupContext}
-${regenerateBlock}
-Return JSON matching this exact schema:
-${SCHEMA_DESCRIPTION}`;
+${regenerateBlock}`;
+
+  return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
 module.exports = { buildFactionContentSystemPrompt };

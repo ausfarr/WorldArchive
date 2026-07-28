@@ -18,6 +18,18 @@
 // an object shot fills that wide frame with environmental context
 // instead of a character, and an environment shot IS the wide frame.
 
+// PROMPT CACHING: unlike prompts/*ContentPrompt.js, the static block
+// here isn't identical across EVERY call -- it depends on `category`
+// (character vs object vs environment framing). But it IS identical
+// across every call for the SAME category, which still caches well in
+// practice: a real prep session tends to generate several NPCs, or
+// several items, back-to-back, not one of each. styleRules/factionLine
+// (this world's own style guide/faction accents) and subjectJson (this
+// specific generated entry) are genuinely per-call, so those stay
+// dynamic regardless of category.
+
+const { buildCacheableSystemPrompt } = require("../lib/claude");
+
 const OBJECT_CATEGORIES = new Set(["items"]);
 const ENVIRONMENT_CATEGORIES = new Set(["locations"]);
 
@@ -46,15 +58,11 @@ function buildFactionAccentLine(factionAccent) {
   return `- Faction accent for ${factionAccent.name || factionAccent.id} (use only because this subject belongs to that faction): ${bits.join(" -- ")}`;
 }
 
-// category: one of "npcs" | "enemies" | "items" | "classes" | "survivors"
-// subjectJson: the generated NPC/enemy/item/class/survivor JSON
-// styleGuide: world_config.style_guide_json (may be null/undefined)
-// factionAccent: result of lib/worldFlavor.js's getFactionAccent(), or null
-function buildArtPromptSystemPrompt({ category, subjectJson, styleGuide, factionAccent }) {
+// STATIC per category (see header comment) — same text every time for a
+// given category, so cacheable, just not universally across categories.
+function buildStaticInstructions(category) {
   const isObject = OBJECT_CATEGORIES.has(category);
   const isEnvironment = ENVIRONMENT_CATEGORIES.has(category);
-  const styleRules = buildStyleRulesBlock(styleGuide);
-  const factionLine = buildFactionAccentLine(factionAccent);
 
   const assetTypeBlock = isEnvironment
     ? `ASSET TYPE: Environment/Establishing Shot -- the subject is a PLACE, not a person or object. No figure should be the focal point (a small, distant, unnamed figure for scale is fine, but never a posed subject). Compose it as a wide landscape establishing shot: foreground, midground, and a sense of depth appropriate to the region/biome, with faction control (if any) visible through architecture, signage, upkeep, or damage rather than through a character. State the wide framing explicitly in the framing/aspect note.`
@@ -70,20 +78,33 @@ function buildArtPromptSystemPrompt({ category, subjectJson, styleGuide, faction
 
 STRUCTURE, IN THIS ORDER:
 1. Subject + action/pose (or, for an object, its resting state/context; or, for an environment, the vantage point/composition), as a full sentence.
-2. Key visual details -- specific gear/texture/faction-accent details pulled from the subject data below, never invented from scratch.
+2. Key visual details -- specific gear/texture/faction-accent details pulled from the subject data provided below, never invented from scratch.
 3. Setting/context -- a short environmental phrase.
-4. Style + lighting sentence, pulled directly from the style rules below.
+4. Style + lighting sentence, pulled directly from the style rules provided below.
 5. Framing/aspect note, stated in plain language (not a --ar flag) -- MUST describe a wide landscape composition, never a tall/vertical one, regardless of asset type.
 
-${assetTypeBlock}${ageBlock}
+${assetTypeBlock}${ageBlock}`;
+}
 
-STYLE RULES (every prompt must stay inside these -- grounded in this world's own style guide, not a generic template):
+// category: one of "npcs" | "enemies" | "items" | "classes" | "survivors"
+// subjectJson: the generated NPC/enemy/item/class/survivor JSON
+// styleGuide: world_config.style_guide_json (may be null/undefined)
+// factionAccent: result of lib/worldFlavor.js's getFactionAccent(), or null
+function buildArtPromptSystemPrompt({ category, subjectJson, styleGuide, factionAccent }) {
+  const styleRules = buildStyleRulesBlock(styleGuide);
+  const factionLine = buildFactionAccentLine(factionAccent);
+
+  // DYNAMIC — this world's style guide/faction data plus this specific
+  // subject. Uncached.
+  const dynamicContext = `STYLE RULES (every prompt must stay inside these -- grounded in this world's own style guide, not a generic template):
 ${styleRules}
 ${factionLine ? `\n${factionLine}\n` : ""}
 SUBJECT DATA (pull details from here, do not invent new equipment/traits not implied by it):
 ${JSON.stringify(subjectJson, null, 2)}
 
 Write the prompt now.`;
+
+  return buildCacheableSystemPrompt(buildStaticInstructions(category), dynamicContext);
 }
 
 module.exports = { buildArtPromptSystemPrompt };

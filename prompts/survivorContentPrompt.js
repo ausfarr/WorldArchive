@@ -8,6 +8,14 @@
 // general world lore (category: survivors) without assuming a specific
 // home-faction name.
 
+// PROMPT CACHING: see prompts/npcContentPrompt.js's header comment for
+// the split rationale. availableClasses, statLabelsText, and
+// fieldSkillsText are all per-world data, so they stay in the dynamic
+// block even though the instructions telling the model what to do with
+// them are static.
+
+const { buildCacheableSystemPrompt } = require("../lib/claude");
+
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Full First + Last Name",
@@ -22,19 +30,35 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1 sentence: how this avoids repeating a Name+Class combo or quirk already in the roster"
 }`;
 
+// STATIC — identical for every call, every world. Cached.
+const STATIC_INSTRUCTIONS = `You are generating a recruit for a tabletop/game world's roster — a rank-and-file character, not a major named NPC. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
+
+NAMING: full first + last name, plausible and diverse in origin, fitting this world's setting — not a random fantasy name unless the setting calls for it. A callsign is optional and should come from profession, a habit, or a specific event — never over-themed to their class.
+
+CLASS: assign exactly one class from the list provided below (vary your pick — don't default to the same one or two).
+
+QUIRK (exactly one per survivor — a small colonist-level nudge, not a build-defining mechanic):
+- Roughly +/-10-15% on a single stat, or a narrow situational effect.
+- Tie it to a real attribute, a field skill from the fixed pool provided below, or a combat specialization — never a vague "gets a bonus sometimes."
+- Ground it in this world's tone (a bad knee, insomnia, a grudge) — not generic fantasy quirk tropes.
+- Most interesting quirks are trade-offs (a bonus AND a cost).
+- Don't reuse a quirk already in the roster provided below.
+
+BACKSTORY: a fuller paragraph (3-5 sentences), not a single line — needs one concrete human detail that makes them feel like a person, not a character sheet.
+
+Return JSON matching this exact schema:
+${SCHEMA_DESCRIPTION}`;
+
 function buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, rosterContext, availableClasses, name, className, existingContent }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
 
-  return `You are generating a recruit for a tabletop/game world's roster — a rank-and-file character, not a major named NPC. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
-
-SETTING (stay consistent with this):
+  // DYNAMIC — this world's data plus this specific call's input. Uncached.
+  const dynamicContext = `SETTING (stay consistent with this):
 ${settingContext}
 
-NAMING: full first + last name, plausible and diverse in origin, fitting this world's setting — not a random fantasy name unless the setting calls for it. A callsign is optional and should come from profession, a habit, or a specific event — never over-themed to their class.
-
-CLASS: assign exactly one class from this list (vary your pick — don't default to the same one or two):
+AVAILABLE CLASSES (assign exactly one of these):
 ${availableClasses}
 
 ATTRIBUTE LABELS (this world's own names for the underlying attributes — tie the quirk's effect to one of these, a field skill from the fixed pool below, or a combat specialization consistent with the roster below):
@@ -42,15 +66,6 @@ ${statLabelsText}
 
 FIELD SKILLS (this world's fixed pool — if the quirk ties to a skill, it MUST be one of these, never an invented one):
 ${fieldSkillsText}
-
-QUIRK (exactly one per survivor — a small colonist-level nudge, not a build-defining mechanic):
-- Roughly +/-10-15% on a single stat, or a narrow situational effect.
-- Tie it to a real attribute, a field skill from the fixed pool above, or a combat specialization — never a vague "gets a bonus sometimes."
-- Ground it in this world's tone (a bad knee, insomnia, a grudge) — not generic fantasy quirk tropes.
-- Most interesting quirks are trade-offs (a bonus AND a cost).
-- Don't reuse a quirk already in the roster below.
-
-BACKSTORY: a fuller paragraph (3-5 sentences), not a single line — needs one concrete human detail that makes them feel like a person, not a character sheet.
 
 WORLD LORE — GROUND TRUTH (stay consistent with this; don't contradict it):
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}
@@ -60,10 +75,9 @@ ${rosterContext}
 
 USER INPUT:
 Name: ${name || "generate one fitting the naming conventions"}
-Class: ${className || "choose one that adds variety to the existing roster"}
+Class: ${className || "choose one that adds variety to the existing roster"}`;
 
-Return JSON matching this exact schema:
-${SCHEMA_DESCRIPTION}`;
+  return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
 module.exports = { buildSurvivorContentSystemPrompt };

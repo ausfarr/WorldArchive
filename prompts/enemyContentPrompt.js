@@ -13,6 +13,16 @@
 // The tier/attribute-budget system stays as-is — it's mechanical, driven
 // by lib/statFormulas.js, not narrative flavor.
 
+// PROMPT CACHING: see prompts/npcContentPrompt.js's header comment for
+// the full explanation of the static/dynamic split and why it's
+// org-wide cacheable, not just per-user. One wrinkle specific to this
+// file: statLabelsText is per-world custom data (this world's own
+// display names for the six attributes, set in Wizard Step 5), NOT
+// universal, so it lives in the DYNAMIC block even though the
+// instruction explaining what to do with it is static.
+
+const { buildCacheableSystemPrompt } = require("../lib/claude");
+
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Full Name",
@@ -30,20 +40,10 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: how this avoids overlapping the existing roster, and/or where it fits"
 }`;
 
-function buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent }) {
-  const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
-    : "";
+// STATIC — identical for every call, every world. Cached.
+const STATIC_INSTRUCTIONS = `You are generating an enemy stat block for a tabletop/game world archive's bestiary. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
-  return `You are generating an enemy stat block for a tabletop/game world archive's bestiary. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
-
-SETTING (stay consistent with this):
-${settingContext}
-
-FACTIONS IN THIS WORLD (the ONLY values valid for the "faction" field — do not invent, rename, or reference a faction not on this exact list; use null if this enemy is faction-agnostic):
-${factionOptionsText}
-
-FACTION VOICE: every enemy tied to a faction should sound like it — derive tone, weapon/ability flavor, and ability naming conventions from the world lore below for that specific faction, rather than a generic monster template.
+FACTION VOICE: every enemy tied to a faction should sound like it — derive tone, weapon/ability flavor, and ability naming conventions from the world lore provided below for that specific faction, rather than a generic monster template.
 
 TIER (drives everything — attribute budget, ability count, whether a quote/phase exists):
 - Trash: ~30 total attribute points (2 stats at 8-10, rest at 2-4). 1-2 abilities. NO signature quote — they're disposable by design, a memorable line undercuts that. NO phase change.
@@ -52,10 +52,27 @@ TIER (drives everything — attribute budget, ability count, whether a quote/pha
 
 Nudge the attribute split for flavor rather than copying a baseline verbatim.
 
-ATTRIBUTES (canonical six keys — always output these exact lowercase keys in "attributes"; this world's own labels for them, used for flavor text and ability names, are):
-${statLabelsText}
+ATTRIBUTES: canonical six keys — always output these exact lowercase keys in "attributes": body, reflex, knowledge, presence, sanity, fate. This world's own display labels for these six (used for flavor text and ability names) are provided below.
 
 ABILITIES: every ability needs a Scaling line tied to an attribute — write both the formula AND the computed number using the attributes you chose, using this world's own attribute labels in the formula text (e.g. "Bonus damage = BASE(10%) + (PRESENCE_LABEL/10) ≈ 11.2%"). Do the arithmetic carefully.
+
+Return JSON matching this exact schema:
+${SCHEMA_DESCRIPTION}`;
+
+function buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent }) {
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
+
+  // DYNAMIC — this world's data plus this specific call's input. Uncached.
+  const dynamicContext = `SETTING (stay consistent with this):
+${settingContext}
+
+FACTIONS IN THIS WORLD (the ONLY values valid for the "faction" field — do not invent, rename, or reference a faction not on this exact list; use null if this enemy is faction-agnostic):
+${factionOptionsText}
+
+THIS WORLD'S ATTRIBUTE LABELS:
+${statLabelsText}
 
 WORLD LORE — GROUND TRUTH (stay consistent with this; don't contradict it):
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}
@@ -66,10 +83,9 @@ ${rosterContext}
 USER INPUT:
 Name: ${name || "generate one fitting the faction/tier"}
 Faction: ${faction || "choose one that fills a gap in the existing roster, or null if faction-agnostic"}
-Tier: ${tier || "choose one that fills a gap in the existing roster (Elite is a reasonable default if genuinely unspecified)"}
+Tier: ${tier || "choose one that fills a gap in the existing roster (Elite is a reasonable default if genuinely unspecified)"}`;
 
-Return JSON matching this exact schema:
-${SCHEMA_DESCRIPTION}`;
+  return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
 module.exports = { buildEnemyContentSystemPrompt };

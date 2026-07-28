@@ -20,6 +20,15 @@
 // model just picking a believable min/max spread itself, same way it
 // already picks other flavor-grounded numbers elsewhere in this schema.
 
+// PROMPT CACHING: see prompts/npcContentPrompt.js's header comment for
+// the split rationale. WEAPON_ROLL_RANGES_TEXT stays in the static block
+// -- it's the fixed canonical English skill/range table, not per-world
+// data (see the file header above: these 7 keys are hardcoded and
+// lib/itemFormulas.js depends on them staying fixed). weaponSkillsText
+// and statLabelsText ARE per-world custom data, so they move to dynamic.
+
+const { buildCacheableSystemPrompt } = require("../lib/claude");
+
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Item Name",
@@ -51,15 +60,8 @@ const WEAPON_ROLL_RANGES_TEXT = `| Weapon Skill | Example Types | WEAPON_ROLL ra
 | Archery | Bow, Crossbow, Throwing Knives, Sling | 8-12 |
 | Catalysts | Battery Rod, Focus Crystal, Charge Coil, Signal Wand | 9-13 |`;
 
-function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent }) {
-  const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
-    : "";
-
-  return `You are generating an item for a tabletop/game world archive. This covers unique/found items only — NOT reproducible crafting recipes. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
-
-SETTING (stay consistent with this — including whether/how firearms or other high-tech weapon types fit this world; some settings restrict them, some don't, follow the lore below):
-${settingContext}
+// STATIC — identical for every call, every world. Cached.
+const STATIC_INSTRUCTIONS = `You are generating an item for a tabletop/game world archive. This covers unique/found items only — NOT reproducible crafting recipes. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 CATEGORIES (pick based on the user's input, or infer from context):
 - Weapon: a specific, individual found/looted weapon. Gets full stats.
@@ -71,20 +73,32 @@ RARITY (Weapon/Armor only — null for Consumable/QuestItem):
 - Common: ordinary scavenged item. Simple stats, no special effect.
 - Uncommon: one minor bonus effect on top of base stats. Default to this if the user hasn't implied a rarity — pure Common items are rarely interesting enough to generate on request.
 - Rare: a real secondary mechanical effect (reliable status application, conditional bonus, meaningful utility property).
-- Legendary: a genuinely UNIQUE effect not used by any other item in the existing roster (check the roster below) — must come with a short lore note on its history/prior owner, woven into the flavor text.
+- Legendary: a genuinely UNIQUE effect not used by any other item in the existing roster (check the roster provided below) — must come with a short lore note on its history/prior owner, woven into the flavor text.
 
-WEAPON SKILL & DAMAGE RANGE (Weapon category only): every weapon needs a Weapon Skill and a Weapon Type (the specific flavorful form — invent freely as long as it clearly maps to one skill). The weaponSkill FIELD must be output as the exact canonical key on the left below (never translate it) — but this world has its own display name for each, shown in parentheses, and weaponType/flavor/designNotes should reference that name naturally, not the canonical English one. Pick damageMin from within that skill's canonical range, then pick a damageMax above it that feels like a believable spread for this specific weapon (wider for higher rarity):
+WEAPON SKILL & DAMAGE RANGE (Weapon category only): every weapon needs a Weapon Skill and a Weapon Type (the specific flavorful form — invent freely as long as it clearly maps to one skill). The weaponSkill FIELD must be output as the exact canonical key on the left below (never translate it) — but this world has its own display name for each (provided below), and weaponType/flavor/designNotes should reference that name naturally, not the canonical English one. Pick damageMin from within that skill's canonical range, then pick a damageMax above it that feels like a believable spread for this specific weapon (wider for higher rarity):
 ${WEAPON_ROLL_RANGES_TEXT}
-
-THIS WORLD'S OWN NAMES FOR EACH WEAPON SKILL (flavor only — weaponSkill field still uses the canonical key above):
-${weaponSkillsText}
 
 If a concept doesn't cleanly fit any of the seven skills, pick the closest one rather than inventing an eighth.
 
+ARMOR (Armor category only): pick an effectorTier 1 (light) to 4 (heavy) reflecting how heavy/protective the piece is.
+
+Return JSON matching this exact schema:
+${SCHEMA_DESCRIPTION}`;
+
+function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent }) {
+  const regenerateBlock = existingContent
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
+
+  // DYNAMIC — this world's data plus this specific call's input. Uncached.
+  const dynamicContext = `SETTING (stay consistent with this — including whether/how firearms or other high-tech weapon types fit this world; some settings restrict them, some don't, follow the lore below):
+${settingContext}
+
+THIS WORLD'S OWN NAMES FOR EACH WEAPON SKILL (flavor only — weaponSkill field still uses the canonical key from the guide above):
+${weaponSkillsText}
+
 ATTRIBUTE LABELS (this world's own names for the underlying mechanical attributes — use these, not generic terms, when writing relevantStat or any attribute reference in flavor text):
 ${statLabelsText}
-
-ARMOR (Armor category only): pick an effectorTier 1 (light) to 4 (heavy) reflecting how heavy/protective the piece is.
 
 LOCATIONS IN THIS WORLD (the only ids valid for foundAtLocationId -- do not invent one; leave it null if nothing archived fits, that's expected and fine):
 ${locationRosterText || "No locations archived yet -- leave foundAtLocationId null and just describe where it was found in prose."}
@@ -98,10 +112,9 @@ ${rosterContext}
 USER INPUT:
 Name: ${name || "generate one fitting the category/rarity"}
 Category: ${category || "infer from context, or choose one that fills a gap in the existing roster"}
-Rarity: ${rarity || "default to Uncommon for Weapon/Armor unless context implies otherwise; null for Consumable/QuestItem"}
+Rarity: ${rarity || "default to Uncommon for Weapon/Armor unless context implies otherwise; null for Consumable/QuestItem"}`;
 
-Return JSON matching this exact schema:
-${SCHEMA_DESCRIPTION}`;
+  return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
 module.exports = { buildItemContentSystemPrompt };
