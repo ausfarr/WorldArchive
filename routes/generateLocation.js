@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildLocationRosterContext, readLocationManifest, readLocationEntry, buildRosterContext } = require("../lib/roster");
 const { buildLocationContentSystemPrompt } = require("../prompts/locationContentPrompt");
@@ -98,7 +98,12 @@ router.post("/generate-location", enforceGenerationCap, async (req, res) => {
       const artPrompt = await callClaude({
         systemPrompt: artSystemPrompt,
         userMessage: "Write the prompt now.",
-        maxTokens: 500
+        maxTokens: 500,
+        // Cheaper model for this call -- see lib/claude.js's HAIKU_MODEL
+        // comment. Writing an art-generation prompt from structured JSON
+        // + a strict template is a mechanical/templating task, not
+        // creative world-building judgment, so it doesn't need Sonnet.
+        model: HAIKU_MODEL
       });
 
       // Step 4: image generation — non-fatal if it fails

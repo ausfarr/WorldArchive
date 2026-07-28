@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildSurvivorRosterContext, buildAvailableClassesText, readSurvivorManifest, readSurvivorEntry } = require("../lib/roster");
 const { buildSurvivorContentSystemPrompt } = require("../prompts/survivorContentPrompt");
@@ -87,7 +87,12 @@ router.post("/generate-survivor", enforceGenerationCap, async (req, res) => {
       const artPrompt = await callClaude({
         systemPrompt: artSystemPrompt,
         userMessage: "Write the prompt now.",
-        maxTokens: 500
+        maxTokens: 500,
+        // Cheaper model for this call -- see lib/claude.js's HAIKU_MODEL
+        // comment. Writing an art-generation prompt from structured JSON
+        // + a strict template is a mechanical/templating task, not
+        // creative world-building judgment, so it doesn't need Sonnet.
+        model: HAIKU_MODEL
       });
       imageBuffer = await generateImage(artPrompt.trim());
     } catch (imgErr) {
