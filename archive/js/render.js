@@ -15,7 +15,7 @@ const CATEGORY_LABELS = {
 };
 
 // TODO(Austin): swap in the real Google Form URL once created.
-const BETA_FEEDBACK_FORM_URL = "https://forms.gle/REPLACE_ME";
+const BETA_FEEDBACK_FORM_URL = "https://forms.gle/UuQSHAetFnkAXxV87";
 
 // Turns a failed-generation response body into a display string.
 //
