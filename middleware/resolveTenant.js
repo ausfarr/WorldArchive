@@ -85,6 +85,7 @@ async function resolveTenant(req, res, next) {
   try {
     const worldId = await getOrCreateWorldId(userData.user.id);
     req.userId = userData.user.id;
+    req.userEmail = userData.user.email;
     req.worldId = worldId;
     next();
   } catch (err) {

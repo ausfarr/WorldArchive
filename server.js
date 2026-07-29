@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const { resolveTenant } = require("./middleware/resolveTenant");
+const { attachCostContext } = require("./middleware/attachCostContext");
 const generateRoute = require("./routes/generate");
 const generateEnemyRoute = require("./routes/generateEnemy");
 const generateItemRoute = require("./routes/generateItem");
@@ -22,6 +23,7 @@ const wizardReviewRoute = require("./routes/wizardReview");
 const entriesRoute = require("./routes/entries");
 const searchRoute = require("./routes/search");
 const deleteWorldRoute = require("./routes/deleteWorld");
+const adminCostRoute = require("./routes/adminCost");
 const waitlistRoute = require("./routes/waitlist");
 
 const app = express();
@@ -57,6 +59,11 @@ app.use(waitlistRoute);
 // Every /api route below expects req.worldId, set by resolveTenant after
 // verifying the request's Supabase JWT (see middleware/resolveTenant.js).
 app.use("/api", resolveTenant);
+// Must run after resolveTenant (needs req.worldId/req.userId) and before
+// every route below, so all of them -- generation routes, wizard routes,
+// map -- carry cost-logging context. See middleware/attachCostContext.js
+// and lib/costContext.js.
+app.use("/api", attachCostContext);
 app.use("/api", generateRoute);
 app.use("/api", generateEnemyRoute);
 app.use("/api", generateItemRoute);
@@ -78,6 +85,7 @@ app.use("/api", wizardReviewRoute);
 app.use("/api", entriesRoute);
 app.use("/api", searchRoute);
 app.use("/api", deleteWorldRoute);
+app.use("/api", adminCostRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 
 // Catches errors passed via next(err) anywhere above (e.g. a Supabase/DB
