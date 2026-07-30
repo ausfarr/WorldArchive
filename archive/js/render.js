@@ -178,7 +178,12 @@ const REGENERATE_ENDPOINTS = {
 // for the order) -- factions first, more get added to this map as their
 // forms are built.
 const EDIT_FORM_BUILDERS = {
-  factions: showFactionEditForm
+  factions: showFactionEditForm,
+  npcs: showNpcEditForm,
+  enemies: showEnemyEditForm,
+  classes: showClassEditForm,
+  logs: showLogEditForm,
+  locations: showLocationEditForm
 };
 
 // Populates a faction <select>'s options from this world's LIVE Factions
@@ -418,6 +423,148 @@ async function editEntry(categoryPath, id, btnEl) {
 // dossier page's own color picker (renderFactionColorPicker(), PATCH
 // /api/wizard/factions/:id/accent-color) and isn't part of this raw
 // Deep Lore object at all.
+// ---------- Shared helpers for the bespoke Edit forms below ----------
+// (showFactionEditForm above predates these and keeps its own small
+// local `field()` helper rather than being refactored to use these --
+// low-risk to leave working, tested code alone.)
+
+// Fetches {id, name} pairs for a whole category, used to populate
+// dependent id-picker dropdowns (e.g. an NPC relationship pointing at
+// another npc/enemy/faction/class/survivor, or a Location/Log pointing
+// at an npc/location) without ever letting a manual edit invent an id
+// that doesn't actually exist -- same "exact list, never invent" rule
+// every generator already follows server-side.
+async function fetchCategoryOptions(category) {
+  try {
+    const res = await authFetch(`/api/entries/${category}`);
+    const data = await res.json();
+    return ((data && data.entries) || []).map((e) => ({ id: e.id, name: e.name }));
+  } catch (err) {
+    console.error(`Failed to load ${category} options:`, err);
+    return [];
+  }
+}
+
+// Renders <option> tags from an {id,name}[] list, marking currentId
+// selected (even if it's since gone missing from the list, so an edit
+// doesn't silently clobber a reference it didn't touch) and optionally
+// prepending a "none" option for optional fields.
+function idSelectOptionsHtml(options, currentId, noneLabel) {
+  const opts = [];
+  if (noneLabel !== undefined) opts.push(`<option value="" ${!currentId ? "selected" : ""}>${escapeHtmlForSearch(noneLabel)}</option>`);
+  options.forEach((o) => {
+    opts.push(`<option value="${escapeHtmlForSearch(o.id)}" ${o.id === currentId ? "selected" : ""}>${escapeHtmlForSearch(o.name)}</option>`);
+  });
+  if (currentId && !options.some((o) => o.id === currentId)) {
+    opts.push(`<option value="${escapeHtmlForSearch(currentId)}" selected>${escapeHtmlForSearch(currentId)} (not found)</option>`);
+  }
+  return opts.join("");
+}
+
+// Same field-row markup as showFactionEditForm's local helper, shared
+// across the 5 newer bespoke forms below.
+function efField(label, id, value, { textarea = false, rows = 3, type = "text" } = {}) {
+  const safeValue = escapeHtmlForSearch(value == null ? "" : value);
+  const inputStyle = "width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
+  return `
+    <div style="margin-bottom: 14px;">
+      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
+      ${textarea
+        ? `<textarea id="${id}" rows="${rows}" style="${inputStyle} resize: vertical;">${safeValue}</textarea>`
+        : `<input id="${id}" type="${type}" value="${safeValue}" style="${inputStyle}">`}
+    </div>`;
+}
+
+function efSelect(label, id, optionsHtml) {
+  const style = "width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
+  return `
+    <div style="margin-bottom: 14px;">
+      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
+      <select id="${id}" style="${style}">${optionsHtml}</select>
+    </div>`;
+}
+
+// Generic overlay shell (header/body/footer, Cancel/Save wiring, status
+// line) shared by the 5 newer bespoke forms. `bodyHtml` is the form's
+// field markup; `onSave(overlay)` builds and POSTs the updated entry to
+// /api/confirm-entry and should throw on failure (caught here to show
+// the error inline rather than losing the user's edits).
+function openEditOverlay(titleText, bodyHtml, onSave) {
+  const existingOverlay = document.getElementById("edit-form-overlay");
+  if (existingOverlay) existingOverlay.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "edit-form-overlay";
+  overlay.style.cssText = "position:fixed; inset:0; background:rgba(10,11,13,0.92); z-index:1000; overflow:auto; padding:40px 20px;";
+  overlay.innerHTML = `
+    <div style="max-width:900px; margin:0 auto; background:var(--bg-panel); border:1px solid var(--border-line);">
+      <div style="padding:20px 28px; border-bottom:1px solid var(--border-line-soft); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <h2 style="font-family:var(--font-display); text-transform:uppercase; margin:0; font-size:1.1rem;">Edit — ${escapeHtmlForSearch(titleText)}</h2>
+        <button id="edit-discard-x" type="button" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:6px 12px; cursor:pointer; font-family:var(--font-mono); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;">Cancel ✕</button>
+      </div>
+      <div id="edit-body" style="padding:24px 28px;">${bodyHtml}</div>
+      <div style="padding:20px 28px; border-top:1px solid var(--border-line-soft); display:flex; gap:12px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
+        <p id="edit-status" style="font-family: var(--font-mono); font-size:0.72rem; color: var(--ink-faint); margin:0; display:none;"></p>
+        <button id="edit-discard" type="button" style="background:var(--bg-panel-raised); border:1px solid var(--border-line); color:var(--ink-dim); padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer;">Cancel</button>
+        <button id="edit-save" type="button" style="background:var(--neon-primary); color:var(--bg-void); border:none; padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; font-weight:600;">Save Changes</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  document.getElementById("edit-discard").onclick = close;
+  document.getElementById("edit-discard-x").onclick = close;
+  document.getElementById("edit-save").onclick = async () => {
+    const saveBtn = document.getElementById("edit-save");
+    const status = document.getElementById("edit-status");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+    status.style.display = "block";
+    status.textContent = "Writing to the archive…";
+    try {
+      await onSave(overlay);
+      status.textContent = "Saved — reloading…";
+      setTimeout(() => window.location.reload(), 600);
+    } catch (err) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Changes";
+      status.textContent = "Error: " + err.message;
+    }
+  };
+  return overlay;
+}
+
+// Shared "row list" editor (relationships, abilities, notable NPCs,
+// etc.) -- renders `state` (an array of plain objects) into `hostId`
+// using `rowHtml(item, i)` for each row's inner markup, wires every
+// [data-idx][data-field] input inside a row to write straight back into
+// `state`, and wires any [data-idx].ef-row-remove button to splice it
+// out and re-render. Returns a render() function to call after mutating
+// `state` externally (e.g. an "Add" button pushing a new blank row).
+function wireRowEditor(hostId, state, rowHtml, emptyMessage) {
+  function render() {
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    host.innerHTML = state.length
+      ? state.map((item, i) => rowHtml(item, i)).join("")
+      : `<p style="color:var(--ink-faint); font-size:0.85rem; margin:0 0 8px;">${emptyMessage}</p>`;
+    host.querySelectorAll("[data-idx][data-field]").forEach((el) => {
+      const sync = (e) => { state[Number(e.target.dataset.idx)][e.target.dataset.field] = e.target.value; };
+      el.addEventListener("input", sync);
+      el.addEventListener("change", sync);
+    });
+    host.querySelectorAll(".ef-row-remove").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        state.splice(Number(e.currentTarget.dataset.idx), 1);
+        render();
+      });
+    });
+  }
+  render();
+  return render;
+}
+
 function showFactionEditForm(entry) {
   const existingOverlay = document.getElementById("edit-form-overlay");
   if (existingOverlay) existingOverlay.remove();
@@ -573,6 +720,587 @@ function showFactionEditForm(entry) {
       status.textContent = "Error: " + err.message;
     }
   };
+}
+
+// Bespoke NPCs edit form. Relationships can point at any of 5 categories
+// (factions/npcs/enemies/classes/survivors), so each relationship row's
+// "target" dropdown is populated dynamically based on that row's own
+// category picker -- never a free-text id field, matching the "exact
+// list, never invent" rule prompts/npcContentPrompt.js already enforces
+// server-side. Dialogue branches are a simpler tone/reply row pair.
+const NPC_ROLE_ARCHETYPES = ["Faction Leader", "Quest-Giver", "Community VIP", "Rival", "Informant/Fixer", "Merchant"];
+const RELATIONSHIP_CATEGORIES = ["factions", "npcs", "enemies", "classes", "survivors"];
+
+function showNpcEditForm(entry) {
+  const raw = entry.raw || {};
+  const speech = raw.speech || {};
+  const dialogue = raw.dialogue || {};
+
+  const bodyHtml = `
+    ${efField("Name", "ef-name", raw.name)}
+    ${efField("Callsign (optional)", "ef-callsign", raw.callsign)}
+    ${efSelect("Role Archetype", "ef-roleArchetype", NPC_ROLE_ARCHETYPES.map((r) => `<option value="${r}" ${r === raw.roleArchetype ? "selected" : ""}>${r}</option>`).join(""))}
+    <div id="ef-faction-wrap"></div>
+    ${efField("Age", "ef-age", raw.age, { type: "number" })}
+    ${efField("Signature Quote", "ef-signatureQuote", raw.signatureQuote, { textarea: true, rows: 2 })}
+    ${efField("Physical Description", "ef-physicalDescription", raw.physicalDescription, { textarea: true })}
+    ${efField("Traits (comma-separated)", "ef-traits", (raw.traits || []).join(", "))}
+    ${efField("The Contradiction", "ef-contradiction", raw.contradiction, { textarea: true, rows: 2 })}
+    ${efField("Wants", "ef-wants", raw.wants)}
+    ${efField("Actually Needs", "ef-actuallyNeeds", raw.actuallyNeeds)}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Speech Pattern</h3>
+    ${efField("Register", "ef-speech-register", speech.register)}
+    ${efField("Rhythm", "ef-speech-rhythm", speech.rhythm)}
+    ${efField("Tic", "ef-speech-tic", speech.tic)}
+    ${efField("Would Never Say", "ef-speech-neverSay", speech.neverSay)}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Relationships</h3>
+    <div id="ef-rel-rows"></div>
+    <button id="ef-add-rel" type="button" style="margin-top:6px; background: var(--bg-panel-raised); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">+ Add Relationship</button>
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Sample Dialogue</h3>
+    ${efField("Opening Line", "ef-dialogue-opening", dialogue.openingLine, { textarea: true, rows: 2 })}
+    <p style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 8px;">Branches</p>
+    <div id="ef-branch-rows"></div>
+    <button id="ef-add-branch" type="button" style="margin-top:6px; background: var(--bg-panel-raised); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">+ Add Branch</button>
+    ${efField("Quest Hook (optional)", "ef-questHook", raw.questHook, { textarea: true, rows: 2 })}
+    ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
+  `;
+
+  const overlay = openEditOverlay(raw.name || entry.name || "NPC", bodyHtml, async () => {
+    const val = (id) => document.getElementById(id).value;
+    const resolvedRelationships = await Promise.all(
+      relState.filter((r) => r.toId).map(async (r) => {
+        const options = await getCachedOptions(r.toCategory);
+        const match = options.find((o) => o.id === r.toId);
+        return { type: r.type, toId: r.toId, toCategory: r.toCategory, toLabel: (match && match.name) || r.toLabel, why: r.why };
+      })
+    );
+
+    const updatedNpc = {
+      ...raw,
+      id: raw.id,
+      name: val("ef-name"),
+      callsign: val("ef-callsign") || null,
+      roleArchetype: val("ef-roleArchetype"),
+      faction: val("ef-faction"),
+      age: val("ef-age") ? Number(val("ef-age")) : raw.age,
+      signatureQuote: val("ef-signatureQuote"),
+      physicalDescription: val("ef-physicalDescription"),
+      traits: val("ef-traits").split(",").map((t) => t.trim()).filter(Boolean),
+      contradiction: val("ef-contradiction"),
+      wants: val("ef-wants"),
+      actuallyNeeds: val("ef-actuallyNeeds"),
+      speech: {
+        register: val("ef-speech-register"),
+        rhythm: val("ef-speech-rhythm"),
+        tic: val("ef-speech-tic"),
+        neverSay: val("ef-speech-neverSay")
+      },
+      relationships: resolvedRelationships,
+      dialogue: {
+        openingLine: val("ef-dialogue-opening"),
+        branches: branchState.filter((b) => b.reply)
+      },
+      questHook: val("ef-questHook") || null,
+      designNotes: val("ef-designNotes")
+    };
+
+    const res = await authFetch("/api/confirm-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: "npcs", entry: updatedNpc })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Save failed");
+  });
+
+  // ---- Faction select (populated live, since faction ids/keys aren't fixed) ----
+  getFactionLookup().then((lookup) => {
+    const options = Object.keys(lookup).map((key) => ({ id: key, name: lookup[key].name }));
+    document.getElementById("ef-faction-wrap").innerHTML = efSelect(
+      "Faction",
+      "ef-faction",
+      `<option value="unaligned" ${raw.faction === "unaligned" ? "selected" : ""}>Unaligned</option>` + idSelectOptionsHtml(options, raw.faction)
+    );
+  });
+
+  // ---- Relationships: category-dependent target dropdown per row ----
+  const relState = (Array.isArray(raw.relationships) ? raw.relationships : [])
+    .map((r) => ({ type: r.type || "", toId: r.toId || "", toCategory: r.toCategory || "npcs", toLabel: r.toLabel || "", why: r.why || "" }));
+  const categoryOptionsCache = {};
+
+  async function getCachedOptions(category) {
+    if (!categoryOptionsCache[category]) categoryOptionsCache[category] = await fetchCategoryOptions(category);
+    return categoryOptionsCache[category];
+  }
+
+  async function relRowHtml(r, i) {
+    const options = await getCachedOptions(r.toCategory);
+    return `
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+        <input data-idx="${i}" data-field="type" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.type)}" placeholder="relationship type" style="flex:1; min-width:120px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        <select data-idx="${i}" data-field="toCategory" class="ef-rel-category" style="min-width:110px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+          ${RELATIONSHIP_CATEGORIES.map((c) => `<option value="${c}" ${c === r.toCategory ? "selected" : ""}>${CATEGORY_LABELS[c] || c}</option>`).join("")}
+        </select>
+        <select data-idx="${i}" data-field="toId" class="ef-rel-toid" style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+          ${idSelectOptionsHtml(options, r.toId)}
+        </select>
+        <input data-idx="${i}" data-field="why" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.why)}" placeholder="why" style="flex:2; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
+      </div>`;
+  }
+
+  async function renderRelRows() {
+    const host = document.getElementById("ef-rel-rows");
+    if (!host) return;
+    host.innerHTML = relState.length
+      ? (await Promise.all(relState.map((r, i) => relRowHtml(r, i)))).join("")
+      : `<p style="color:var(--ink-faint); font-size:0.85rem; margin:0 0 8px;">No relationships yet.</p>`;
+
+    host.querySelectorAll(".ef-rel-input, .ef-rel-toid").forEach((el) => {
+      const sync = (e) => { relState[Number(e.target.dataset.idx)][e.target.dataset.field] = e.target.value; };
+      el.addEventListener("input", sync);
+      el.addEventListener("change", sync);
+    });
+    host.querySelectorAll(".ef-rel-category").forEach((el) => {
+      el.addEventListener("change", async (e) => {
+        const idx = Number(e.target.dataset.idx);
+        relState[idx].toCategory = e.target.value;
+        relState[idx].toId = "";
+        await renderRelRows();
+      });
+    });
+    host.querySelectorAll(".ef-row-remove").forEach((el) => {
+      el.addEventListener("click", async (e) => {
+        relState.splice(Number(e.currentTarget.dataset.idx), 1);
+        await renderRelRows();
+      });
+    });
+  }
+
+  renderRelRows();
+  document.getElementById("ef-add-rel").addEventListener("click", () => {
+    relState.push({ type: "", toId: "", toCategory: "npcs", toLabel: "", why: "" });
+    renderRelRows();
+  });
+
+  // ---- Dialogue branches ----
+  const branchState = (Array.isArray(dialogue.branches) ? dialogue.branches : [])
+    .map((b) => ({ toneLabel: b.toneLabel || "", reply: b.reply || "" }));
+  const renderBranchRows = wireRowEditor("ef-branch-rows", branchState, (b, i) => `
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+      <input data-idx="${i}" data-field="toneLabel" type="text" value="${escapeHtmlForSearch(b.toneLabel)}" placeholder="tone label" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="reply" type="text" value="${escapeHtmlForSearch(b.reply)}" placeholder="reply" style="flex:2; min-width:200px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
+    </div>`, "No dialogue branches yet.");
+  document.getElementById("ef-add-branch").addEventListener("click", () => {
+    branchState.push({ toneLabel: "", reply: "" });
+    renderBranchRows();
+  });
+
+  return overlay;
+}
+
+// Bespoke Bestiary (enemies) edit form. Attributes are the only editable
+// numbers -- Max Health/Energy/Dodge/Crit/Accuracy/Move Speed are never
+// stored at all (lib/enemyTemplate.js's buildEnemyBodyHtml() computes
+// them fresh from attributes+tier on every render via statFormulas.js),
+// so there's nothing to "lock": editing an attribute here automatically
+// keeps every derived stat correct the next time the dossier renders.
+const ENEMY_TIERS = ["Trash", "Elite", "Boss"];
+const ABILITY_KINDS = ["Active", "Passive"];
+
+function showEnemyEditForm(entry) {
+  const raw = entry.raw || {};
+  const attrs = raw.attributes || {};
+  const combat = raw.combatNotes || {};
+  const phase = raw.phaseChange || {};
+
+  const bodyHtml = `
+    ${efField("Name", "ef-name", raw.name)}
+    <div id="ef-faction-wrap"></div>
+    ${efSelect("Tier", "ef-tier", ENEMY_TIERS.map((t) => `<option value="${t}" ${t === raw.tier ? "selected" : ""}>${t}</option>`).join(""))}
+    ${efField("Role", "ef-role", raw.role)}
+    ${efField("Signature Quote (leave blank for Trash tier)", "ef-signatureQuote", raw.signatureQuote, { textarea: true, rows: 2 })}
+    ${efField("Flavor", "ef-flavor", raw.flavor, { textarea: true })}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Attributes</h3>
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px;">
+      ${efField("Body", "ef-attr-body", attrs.body, { type: "number" })}
+      ${efField("Reflex", "ef-attr-reflex", attrs.reflex, { type: "number" })}
+      ${efField("Knowledge", "ef-attr-knowledge", attrs.knowledge, { type: "number" })}
+      ${efField("Presence", "ef-attr-presence", attrs.presence, { type: "number" })}
+      ${efField("Sanity", "ef-attr-sanity", attrs.sanity, { type: "number" })}
+      ${efField("Fate", "ef-attr-fate", attrs.fate, { type: "number" })}
+    </div>
+    <p style="color:var(--ink-faint); font-size:0.78rem; margin:-6px 0 14px;">Derived stats (Max Health, Dodge, Crit, etc.) recompute automatically from these on save -- not editable directly.</p>
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Abilities</h3>
+    <div id="ef-ability-rows"></div>
+    <button id="ef-add-ability" type="button" style="margin-top:6px; background: var(--bg-panel-raised); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">+ Add Ability</button>
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Phase Change (Boss tier only)</h3>
+    ${efField("HP Threshold (%)", "ef-phase-threshold", phase.hpThreshold, { type: "number" })}
+    ${efField("Description", "ef-phase-description", phase.description, { textarea: true, rows: 2 })}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Combat Notes</h3>
+    ${efField("Positioning", "ef-combat-positioning", combat.positioning)}
+    ${efField("Applies", "ef-combat-applies", combat.applies)}
+    ${efField("Vulnerable To", "ef-combat-vulnerableTo", combat.vulnerableTo)}
+    ${efField("Drops", "ef-combat-drops", combat.drops)}
+    ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
+  `;
+
+  const overlay = openEditOverlay(raw.name || entry.name || "Enemy", bodyHtml, async () => {
+    const val = (id) => document.getElementById(id).value;
+    const updatedEnemy = {
+      ...raw,
+      id: raw.id,
+      name: val("ef-name"),
+      faction: val("ef-faction") || null,
+      tier: val("ef-tier"),
+      role: val("ef-role"),
+      signatureQuote: val("ef-signatureQuote") || null,
+      flavor: val("ef-flavor"),
+      attributes: {
+        body: Number(val("ef-attr-body")) || 0,
+        reflex: Number(val("ef-attr-reflex")) || 0,
+        knowledge: Number(val("ef-attr-knowledge")) || 0,
+        presence: Number(val("ef-attr-presence")) || 0,
+        sanity: Number(val("ef-attr-sanity")) || 0,
+        fate: Number(val("ef-attr-fate")) || 0
+      },
+      abilities: abilityState.filter((a) => a.name),
+      phaseChange: val("ef-phase-description") ? { hpThreshold: Number(val("ef-phase-threshold")) || 50, description: val("ef-phase-description") } : null,
+      combatNotes: {
+        positioning: val("ef-combat-positioning"),
+        applies: val("ef-combat-applies"),
+        vulnerableTo: val("ef-combat-vulnerableTo"),
+        drops: val("ef-combat-drops")
+      },
+      designNotes: val("ef-designNotes")
+    };
+
+    const res = await authFetch("/api/confirm-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: "enemies", entry: updatedEnemy })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Save failed");
+  });
+
+  getFactionLookup().then((lookup) => {
+    const options = Object.keys(lookup).map((key) => ({ id: key, name: lookup[key].name }));
+    document.getElementById("ef-faction-wrap").innerHTML = efSelect("Faction", "ef-faction", idSelectOptionsHtml(options, raw.faction, "— faction-agnostic / wild —"));
+  });
+
+  const abilityState = (Array.isArray(raw.abilities) ? raw.abilities : [])
+    .map((a) => ({ name: a.name || "", kind: a.kind || "Active", flavor: a.flavor || "", effect: a.effect || "", scaling: a.scaling || "" }));
+  const renderAbilityRows = wireRowEditor("ef-ability-rows", abilityState, (a, i) => `
+    <div style="display:grid; grid-template-columns: 1fr 100px; gap:8px; margin-bottom:6px;">
+      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="ability name" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <select data-idx="${i}" data-field="kind" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        ${ABILITY_KINDS.map((k) => `<option value="${k}" ${k === a.kind ? "selected" : ""}>${k}</option>`).join("")}
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+      <input data-idx="${i}" data-field="flavor" type="text" value="${escapeHtmlForSearch(a.flavor)}" placeholder="flavor" style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="effect" type="text" value="${escapeHtmlForSearch(a.effect)}" placeholder="effect" style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="scaling" type="text" value="${escapeHtmlForSearch(a.scaling)}" placeholder="scaling formula" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
+    </div>`, "No abilities yet.");
+  document.getElementById("ef-add-ability").addEventListener("click", () => {
+    abilityState.push({ name: "", kind: "Active", flavor: "", effect: "", scaling: "" });
+    renderAbilityRows();
+  });
+
+  return overlay;
+}
+
+// Bespoke Logs edit form -- the flattest schema of the 5, no nested
+// arrays. locationId is a live dropdown (never a free-typed id) same as
+// every other cross-reference in this batch.
+const LOG_TYPES = ["Audio", "Journal", "Terminal"];
+
+function showLogEditForm(entry) {
+  const raw = entry.raw || {};
+
+  const bodyHtml = `
+    ${efField("Name / Title", "ef-name", raw.name)}
+    ${efSelect("Log Type", "ef-logType", LOG_TYPES.map((t) => `<option value="${t}" ${t === raw.logType ? "selected" : ""}>${t}</option>`).join(""))}
+    ${efField("Location Context (free text)", "ef-locationContext", raw.locationContext)}
+    <div id="ef-locationId-wrap"></div>
+    ${efField("Characters", "ef-characters", raw.characters)}
+    ${efField("Context", "ef-context", raw.context, { textarea: true, rows: 2 })}
+    ${efField("Body Text", "ef-bodyText", raw.bodyText, { textarea: true, rows: 10 })}
+    <div id="ef-faction-wrap"></div>
+    ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
+  `;
+
+  const overlay = openEditOverlay(raw.name || entry.name || "Log", bodyHtml, async () => {
+    const val = (id) => document.getElementById(id).value;
+    const updatedLog = {
+      ...raw,
+      id: raw.id,
+      name: val("ef-name"),
+      logType: val("ef-logType"),
+      locationContext: val("ef-locationContext"),
+      locationId: val("ef-locationId") || null,
+      characters: val("ef-characters"),
+      context: val("ef-context"),
+      bodyText: val("ef-bodyText"),
+      faction: val("ef-faction") || null,
+      designNotes: val("ef-designNotes")
+    };
+
+    const res = await authFetch("/api/confirm-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: "logs", entry: updatedLog })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Save failed");
+  });
+
+  fetchCategoryOptions("locations").then((options) => {
+    document.getElementById("ef-locationId-wrap").innerHTML = efSelect("Location (archived)", "ef-locationId", idSelectOptionsHtml(options, raw.locationId, "— none / not archived —"));
+  });
+  getFactionLookup().then((lookup) => {
+    const options = Object.keys(lookup).map((key) => ({ id: key, name: lookup[key].name }));
+    document.getElementById("ef-faction-wrap").innerHTML = efSelect("Faction", "ef-faction", idSelectOptionsHtml(options, raw.faction, "— personal / unaffiliated —"));
+  });
+
+  return overlay;
+}
+
+// Bespoke Locations edit form. notableNpcs.toId is a live npcs dropdown
+// (never free-typed), same pattern as everywhere else in this batch.
+function showLocationEditForm(entry) {
+  const raw = entry.raw || {};
+
+  const bodyHtml = `
+    ${efField("Name", "ef-name", raw.name)}
+    ${efField("Descriptor Line", "ef-descriptorLine", raw.descriptorLine, { textarea: true, rows: 2 })}
+    ${efField("Region / Biome", "ef-regionBiome", raw.regionBiome)}
+    <div id="ef-faction-wrap"></div>
+    ${efField("Notable Features", "ef-notableFeatures", raw.notableFeatures, { textarea: true })}
+    ${efField("Danger Tags (comma-separated)", "ef-dangerTags", (raw.dangerTags || []).join(", "))}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Notable NPCs</h3>
+    <div id="ef-npc-rows"></div>
+    <button id="ef-add-npc" type="button" style="margin-top:6px; background: var(--bg-panel-raised); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">+ Add Notable NPC</button>
+    ${efField("Hooks & Secrets (optional)", "ef-hooksSecrets", raw.hooksSecrets, { textarea: true, rows: 2 })}
+    ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
+  `;
+
+  const overlay = openEditOverlay(raw.name || entry.name || "Location", bodyHtml, async () => {
+    const val = (id) => document.getElementById(id).value;
+    const npcOptions = await fetchCategoryOptions("npcs");
+    const npcLookup = {};
+    npcOptions.forEach((o) => { npcLookup[o.id] = o.name; });
+
+    const updatedLocation = {
+      ...raw,
+      id: raw.id,
+      name: val("ef-name"),
+      descriptorLine: val("ef-descriptorLine"),
+      regionBiome: val("ef-regionBiome"),
+      faction: val("ef-faction"),
+      notableFeatures: val("ef-notableFeatures"),
+      dangerTags: val("ef-dangerTags").split(",").map((t) => t.trim()).filter(Boolean),
+      notableNpcs: npcState
+        .filter((n) => n.toId)
+        .map((n) => ({ toId: n.toId, toLabel: npcLookup[n.toId] || n.toLabel, why: n.why })),
+      hooksSecrets: val("ef-hooksSecrets") || null,
+      designNotes: val("ef-designNotes")
+    };
+
+    const res = await authFetch("/api/confirm-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: "locations", entry: updatedLocation })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Save failed");
+  });
+
+  getFactionLookup().then((lookup) => {
+    const options = Object.keys(lookup).map((key) => ({ id: key, name: lookup[key].name }));
+    document.getElementById("ef-faction-wrap").innerHTML = efSelect(
+      "Controlling Faction",
+      "ef-faction",
+      `<option value="unaligned" ${raw.faction === "unaligned" ? "selected" : ""}>Unaligned</option>` + idSelectOptionsHtml(options, raw.faction)
+    );
+  });
+
+  const npcState = (Array.isArray(raw.notableNpcs) ? raw.notableNpcs : [])
+    .map((n) => ({ toId: n.toId || "", toLabel: n.toLabel || "", why: n.why || "" }));
+
+  fetchCategoryOptions("npcs").then((npcOptions) => {
+    const renderNpcRows = wireRowEditor("ef-npc-rows", npcState, (n, i) => `
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+        <select data-idx="${i}" data-field="toId" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+          ${idSelectOptionsHtml(npcOptions, n.toId)}
+        </select>
+        <input data-idx="${i}" data-field="why" type="text" value="${escapeHtmlForSearch(n.why)}" placeholder="why" style="flex:2; min-width:180px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
+      </div>`, "No notable NPCs yet.");
+    document.getElementById("ef-add-npc").addEventListener("click", () => {
+      npcState.push({ toId: "", toLabel: "", why: "" });
+      renderNpcRows();
+    });
+  });
+
+  return overlay;
+}
+
+// Bespoke Classes edit form -- the largest schema of the 5 (a full
+// Level 1-99 tree). Each of the 4 tiers gets its own ability row editor
+// (level/name/kind/effectText), reusing wireRowEditor() 4 times rather
+// than writing 4 near-identical editors by hand. "Why This Progression
+// Works" is deliberately NOT a dynamic add/remove list -- the schema
+// requires exactly 3 named callouts, so this renders exactly 3 fixed
+// label+text rows.
+const CLASS_ABILITY_KINDS = ["Active", "Passive", "Ultimate Unlock", "Final Unlock"];
+
+function abilityRowHtml(a, i) {
+  return `
+    <div style="display:grid; grid-template-columns: 70px 1fr 150px; gap:8px; margin-bottom:6px;">
+      <input data-idx="${i}" data-field="level" type="number" value="${escapeHtmlForSearch(a.level)}" placeholder="lvl" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="ability name" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <select data-idx="${i}" data-field="kind" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        ${CLASS_ABILITY_KINDS.map((k) => `<option value="${k}" ${k === a.kind ? "selected" : ""}>${k}</option>`).join("")}
+      </select>
+    </div>
+    <div style="display:flex; gap:8px; margin-bottom:8px;">
+      <input data-idx="${i}" data-field="effectText" type="text" value="${escapeHtmlForSearch(a.effectText)}" placeholder="effect text (incl. scaling formula)" style="flex:1; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
+    </div>`;
+}
+
+function tierSectionHtml(tierKey, tierLabel, tier) {
+  return `
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">${tierLabel}</h3>
+    ${efField(`${tierLabel} — Title`, `ef-${tierKey}-title`, tier.title)}
+    ${efField(`${tierLabel} — Theme`, `ef-${tierKey}-theme`, tier.theme, { textarea: true, rows: 2 })}
+    <p style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin: 8px 0;">Abilities</p>
+    <div id="ef-${tierKey}-rows"></div>
+    <button id="ef-add-${tierKey}" type="button" style="margin-top:6px; background: var(--bg-panel-raised); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">+ Add Ability</button>
+  `;
+}
+
+function showClassEditForm(entry) {
+  const raw = entry.raw || {};
+  const skillEff = raw.skillEfficiency || {};
+  const evo = raw.evolutionEvent || {};
+  const whyItWorks = Array.isArray(raw.whyItWorks) ? raw.whyItWorks : [];
+  const tier1 = raw.tier1 || { abilities: [] };
+  const tier2 = raw.tier2 || { abilities: [] };
+  const tier3 = raw.tier3 || { abilities: [] };
+  const tier4 = raw.tier4 || { abilities: [] };
+
+  const why = (i) => whyItWorks[i] || { label: "", text: "" };
+
+  const bodyHtml = `
+    ${efField("Base Name", "ef-baseName", raw.baseName)}
+    ${efField("Evolved Name", "ef-evolvedName", raw.evolvedName)}
+    ${efField("Tagline", "ef-tagline", raw.tagline, { textarea: true, rows: 2 })}
+    ${efField("Archetype", "ef-archetype", raw.archetype)}
+    ${efField("Core Resource Name", "ef-coreResourceName", raw.coreResourceName)}
+    ${efField("Core Resource Description", "ef-coreResourceDescription", raw.coreResourceDescription, { textarea: true, rows: 2 })}
+    ${efField("Primary Attribute", "ef-primaryAttribute", raw.primaryAttribute)}
+    ${efField("Secondary Attribute", "ef-secondaryAttribute", raw.secondaryAttribute)}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Skill Efficiency</h3>
+    ${efField("Major (1.0x)", "ef-skill-major", skillEff.major)}
+    ${efField("Minor (0.5x)", "ef-skill-minor", skillEff.minor)}
+    ${efField("Misc (0.2x)", "ef-skill-misc", skillEff.misc)}
+    ${tierSectionHtml("tier1", "Tier 1 (Levels 1–20)", tier1)}
+    ${tierSectionHtml("tier2", "Tier 2 (Levels 21–49)", tier2)}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Evolution Event (Level 50)</h3>
+    ${efField("Requirement", "ef-evo-requirement", evo.requirement)}
+    ${efField("Cost", "ef-evo-cost", evo.cost)}
+    ${efField("Location (free text)", "ef-evo-location", evo.location)}
+    <div id="ef-evo-locationId-wrap"></div>
+    ${efField("Visual Shift", "ef-evo-visualShift", evo.visualShift, { textarea: true, rows: 2 })}
+    ${tierSectionHtml("tier3", "Tier 3 (Levels 50–75)", tier3)}
+    ${tierSectionHtml("tier4", "Tier 4 (Levels 76–99)", tier4)}
+    ${efField("Capstone Quote", "ef-capstoneQuote", raw.capstoneQuote, { textarea: true, rows: 2 })}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Why This Progression Works (exactly 3)</h3>
+    ${efField("Callout 1 — Label", "ef-why0-label", why(0).label)}
+    ${efField("Callout 1 — Text", "ef-why0-text", why(0).text, { textarea: true, rows: 2 })}
+    ${efField("Callout 2 — Label", "ef-why1-label", why(1).label)}
+    ${efField("Callout 2 — Text", "ef-why1-text", why(1).text, { textarea: true, rows: 2 })}
+    ${efField("Callout 3 — Label", "ef-why2-label", why(2).label)}
+    ${efField("Callout 3 — Text", "ef-why2-text", why(2).text, { textarea: true, rows: 2 })}
+    ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
+  `;
+
+  const overlay = openEditOverlay(raw.baseName || entry.name || "Class", bodyHtml, async () => {
+    const val = (id) => document.getElementById(id).value;
+    const buildTier = (key, abilityState) => ({
+      title: val(`ef-${key}-title`),
+      theme: val(`ef-${key}-theme`),
+      abilities: abilityState
+        .filter((a) => a.name)
+        .map((a) => ({ level: Number(a.level) || 0, name: a.name, kind: a.kind, effectText: a.effectText }))
+    });
+
+    const updatedClass = {
+      ...raw,
+      id: raw.id,
+      baseName: val("ef-baseName"),
+      evolvedName: val("ef-evolvedName"),
+      tagline: val("ef-tagline"),
+      archetype: val("ef-archetype"),
+      coreResourceName: val("ef-coreResourceName"),
+      coreResourceDescription: val("ef-coreResourceDescription"),
+      primaryAttribute: val("ef-primaryAttribute"),
+      secondaryAttribute: val("ef-secondaryAttribute"),
+      skillEfficiency: { major: val("ef-skill-major"), minor: val("ef-skill-minor"), misc: val("ef-skill-misc") },
+      tier1: buildTier("tier1", tier1State),
+      tier2: buildTier("tier2", tier2State),
+      evolutionEvent: {
+        requirement: val("ef-evo-requirement"),
+        cost: val("ef-evo-cost"),
+        location: val("ef-evo-location"),
+        locationId: val("ef-evo-locationId") || null,
+        visualShift: val("ef-evo-visualShift")
+      },
+      tier3: buildTier("tier3", tier3State),
+      tier4: buildTier("tier4", tier4State),
+      capstoneQuote: val("ef-capstoneQuote"),
+      whyItWorks: [
+        { label: val("ef-why0-label"), text: val("ef-why0-text") },
+        { label: val("ef-why1-label"), text: val("ef-why1-text") },
+        { label: val("ef-why2-label"), text: val("ef-why2-text") }
+      ],
+      designNotes: val("ef-designNotes")
+    };
+
+    const res = await authFetch("/api/confirm-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: "classes", entry: updatedClass })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Save failed");
+  });
+
+  fetchCategoryOptions("locations").then((options) => {
+    document.getElementById("ef-evo-locationId-wrap").innerHTML = efSelect("Location (archived, optional)", "ef-evo-locationId", idSelectOptionsHtml(options, evo.locationId, "— none / not archived —"));
+  });
+
+  function setupTierRows(key, tier) {
+    const state = (Array.isArray(tier.abilities) ? tier.abilities : []).map((a) => ({ level: a.level || 1, name: a.name || "", kind: a.kind || "Active", effectText: a.effectText || "" }));
+    const render = wireRowEditor(`ef-${key}-rows`, state, abilityRowHtml, "No abilities yet.");
+    document.getElementById(`ef-add-${key}`).addEventListener("click", () => {
+      state.push({ level: 1, name: "", kind: "Active", effectText: "" });
+      render();
+    });
+    return state;
+  }
+
+  const tier1State = setupTierRows("tier1", tier1);
+  const tier2State = setupTierRows("tier2", tier2);
+  const tier3State = setupTierRows("tier3", tier3);
+  const tier4State = setupTierRows("tier4", tier4);
+
+  return overlay;
 }
 
 // Replaces the old <script src="manifest.js"> + renderCategoryIndex(window.MANIFEST_X, ...)
