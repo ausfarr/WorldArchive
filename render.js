@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Archive — Echoes of the Neon</title>
+<link rel="stylesheet" href="css/style.css">
+<script>
+(function() {
+  try {
+    var cached = localStorage.getItem('worldforge_theme_cache');
+    if (!cached) return;
+    var t = JSON.parse(cached);
+    var hex = /^#[0-9a-fA-F]{6}$/;
+    var overrides = [];
+    if (hex.test(t.backgroundColor)) overrides.push('--bg-void: ' + t.backgroundColor + ';');
+    if (hex.test(t.panelColor)) overrides.push('--bg-panel: ' + t.panelColor + '; --bg-panel-raised: ' + t.panelColor + ';');
+    if (hex.test(t.inkColor)) overrides.push('--ink: ' + t.inkColor + ';');
+    if (hex.test(t.primaryColor)) overrides.push('--neon-primary: ' + t.primaryColor + ';');
+    if (hex.test(t.secondaryColor)) overrides.push('--neon-cyan: ' + t.secondaryColor + ';');
+    if (t.fontDisplay) {
+      overrides.push("--font-display: '" + t.fontDisplay + "', sans-serif;");
+      var l1 = document.createElement('link');
+      l1.rel = 'stylesheet';
+      l1.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontDisplay).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
+      document.head.appendChild(l1);
+    }
+    if (t.fontBody) {
+      overrides.push("--font-body: '" + t.fontBody + "', sans-serif;");
+      var l2 = document.createElement('link');
+      l2.rel = 'stylesheet';
+      l2.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontBody).replace(/%20/g, '+') + ':wght@400;500;600&display=swap';
+      document.head.appendChild(l2);
+    }
+    var styleTag = document.createElement('style');
+    styleTag.id = 'world-theme-cached';
+    styleTag.textContent = ':root { ' + overrides.join(' ') + ' }';
+    document.head.appendChild(styleTag);
+  } catch (e) { /* no cache yet, or malformed -- fall back to default theme, async apply will fix it */ }
+})();
+</script>
+
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html"><span id="site-title-text">The <span class="accent">Archive</span></span></a></div>
+    <nav class="site-nav">
+      <a href="factions/index.html" id="nav-factions">Factions</a>
+      <a href="npcs/index.html" id="nav-npcs">NPCs</a>
+      <a href="enemies/index.html" id="nav-enemies">Bestiary</a>
+      <a href="classes/index.html" id="nav-classes">Classes</a>
+      <a href="items/index.html" id="nav-items">Items</a>
+      <a href="logs/index.html" id="nav-logs">Logs</a>
+      <a href="survivors/index.html" id="nav-survivors">Survivors</a>
+      <a href="locations/index.html" id="nav-locations">Locations</a>
+      <a href="map.html" id="nav-map">Map</a>
+      <a href="world-info.html" id="nav-world-info">World Info</a>
+      <a href="settings.html" id="nav-settings">Settings</a>
+      <div class="site-search">
+        <input type="text" id="site-search-input" placeholder="Search the archive…" autocomplete="off">
+        <div id="site-search-results" class="site-search-results"></div>
+      </div>
+      <span id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></span>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1 class="flicker-title" id="hero-title-text">The Archive</h1>
+    <p class="dek" id="hero-tagline">Every record recovered from Corvale, cross-indexed and cross-filed — faction dossiers, named contacts, threat assessments, salvage, and intercepted transmissions. Compiled for internal Colony use.</p>
+    <div class="status-line"><span class="dot">●</span> <span id="hero-status-line">Year 27 YSS &nbsp;·&nbsp; Population 40,000–60,000 &nbsp;·&nbsp; Status: active development</span></div>
+  </div>
+</section>
+
+<div class="wrap">
+  <div id="world-status-panel"></div>
+  <div class="hub-grid">
+
+    <div class="category-card" id="card-factions">
+      <h2>Factions</h2>
+      <p id="card-desc-factions">The four powers of the Dome, plus what lives in the gaps between them.</p>
+      <span class="count" id="count-factions">— archived</span>
+      <a class="card-link" href="factions/index.html"></a>
+    </div>
+
+    <div class="category-card" id="card-npcs">
+      <h2>NPCs</h2>
+      <p id="card-desc-npcs">Faction leaders, rivals, quest-givers, informants — named and accounted for.</p>
+      <span class="count" id="count-npcs">— archived</span>
+      <a class="card-link" href="npcs/index.html"></a>
+    </div>
+
+    <div class="category-card" id="card-enemies">
+      <h2>Bestiary</h2>
+      <p id="card-desc-enemies">Trash, Elite, and Boss-tier threats. Stat blocks, ability kits, combat notes.</p>
+      <span class="count" id="count-enemies">— archived</span>
+      <a class="card-link" href="enemies/index.html"></a>
+    </div>
+
+    <div class="category-card" id="card-classes">
+      <h2>Classes</h2>
+      <p id="card-desc-classes">Professions turned combat. Full 1–99 progression trees and Level 50 evolutions.</p>
+      <span class="count" id="count-classes">— archived</span>
+      <a class="card-link" href="classes/index.html"></a>
+    </div>
+
+    <div class="category-card" id="card-items">
+      <h2>Items</h2>
+      <p id="card-desc-items">Found gear, crafted recipes, consumables, and relics.</p>
+      <span class="count" id="count-items">— archived</span>
+      <a class="card-link" href="items/index.html"></a>
+    </div>
+
+    <div class="category-card" id="card-logs">
+      <h2>Logs</h2>
+      <p id="card-desc-logs">Data drives, terminal records, and intercepted Hex-Tongue traffic.</p>
+      <span class="count" id="count-logs">— archived</span>
+      <a class="card-link" href="logs/index.html"></a>
+    </div>
+
+    <div class="category-card" id="card-survivors">
+      <h2>Survivors</h2>
+      <p id="card-desc-survivors">Colony roster — recruits, quirks, and short backstories.</p>
+      <span class="count" id="count-survivors">— archived</span>
+      <a class="card-link" href="survivors/index.html"></a>
+    </div>
+
+    <div class="category-card" id="card-locations">
+      <h2>Locations</h2>
+      <p id="card-desc-locations">Real places worth traveling to — strongholds, ruins, settlements, dungeons.</p>
+      <span class="count" id="count-locations">— archived</span>
+      <a class="card-link" href="locations/index.html"></a>
+    </div>
+
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7 · beta</span>
+  </div>
+</footer>
+
+<script>
+(function() {
+  try {
+    var cached = localStorage.getItem('worldforge_category_config_cache');
+    if (!cached) return;
+    var categoryConfig = JSON.parse(cached);
+    var site = categoryConfig._site || {};
+    if (site.title) {
+      var titleEl = document.getElementById('site-title-text');
+      if (titleEl) titleEl.textContent = site.title;
+      var heroTitleEl = document.getElementById('hero-title-text');
+      if (heroTitleEl) heroTitleEl.textContent = site.title;
+      document.title = document.title.indexOf(' \u2014 ') !== -1
+        ? document.title.replace(/ \u2014 .+$/, ' \u2014 ' + site.title)
+        : site.title;
+    }
+    if (site.tagline) {
+      var taglineEl = document.getElementById('hero-tagline');
+      if (taglineEl) taglineEl.textContent = site.tagline;
+    }
+    if (site.footer) {
+      var footerEl = document.getElementById('site-footer-text');
+      if (footerEl) footerEl.textContent = site.footer;
+    }
+    if (site.statusLine) {
+      var statusEl = document.getElementById('hero-status-line');
+      if (statusEl) statusEl.textContent = site.statusLine;
+    }
+    Object.keys(categoryConfig).forEach(function(key) {
+      if (key === '_site') return;
+      var cfg = categoryConfig[key];
+      var navLink = document.getElementById('nav-' + key);
+      if (navLink) {
+        if (cfg.enabled === false) navLink.style.display = 'none';
+        else if (cfg.label) navLink.textContent = cfg.label;
+      }
+      var card = document.getElementById('card-' + key);
+      if (card) {
+        if (cfg.enabled === false) {
+          card.style.display = 'none';
+        } else if (cfg.label) {
+          var h2 = card.querySelector('h2');
+          if (h2) h2.textContent = cfg.label;
+        }
+      }
+      if (cfg.blurb) {
+        var cardDesc = document.getElementById('card-desc-' + key);
+        if (cardDesc) cardDesc.textContent = cfg.blurb;
+      }
+      if (document.body.dataset.category === key) {
+        if (cfg.label) {
+          var pageTitle = document.getElementById('page-title');
+          var crumbLabel = document.getElementById('crumb-label');
+          if (pageTitle) pageTitle.textContent = cfg.label;
+          if (crumbLabel) crumbLabel.textContent = cfg.label;
+          document.title = document.title.replace(/^[^\u2014]+/, cfg.label + ' ');
+        }
+        if (cfg.blurb) {
+          var pageBlurb = document.getElementById('page-blurb');
+          if (pageBlurb) pageBlurb.textContent = cfg.blurb;
+        }
+      }
+    });
+  } catch (e) { /* no cache yet, or malformed -- async apply will fix it */ }
+})();
+</script>
+<script src="/config.js"></script>
+<script src="/version.js"></script>
+<script>
+  if (window.APP_VERSION) {
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+    });
+  }
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script src="js/render.js"></script>
+<script>
+  requireAuth().then(async (session) => {
+    if (!session) return;
+    // Safety net for anyone landing here directly (bookmark, back
+    // button) whose world hasn't finished setup yet -- a blank homepage
+    // with no world info is a bad thing for a new tester to hit.
+    const destination = await getPostLoginDestination();
+    if (destination !== "index.html") {
+      window.location.href = destination;
+      return;
+    }
+    renderAuthStatus();
+    applyCategoryConfig();
+    applySiteTheme();
+    loadAndRenderHomepageCounts();
+  });
+</script>
+</body>
+</html>
