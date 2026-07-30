@@ -1,35 +1,43 @@
 # Chronicled — Changelog
 
-Internal devlog. Reverse-chronological. Each entry is dated + tagged with
-the phase it belongs to (see `multi_tenant_pivot_scope.md` Section 3 for
-the phase list). Full detail for any entry lives in its linked addendum
-file — this is the scannable index, not the full record.
+Internal devlog. Reverse-chronological. **Versioning:** beta releases are
+`v0.1`, `v0.2`, `v0.3`... — one bump per meaningful shipped update, small
+fixes bundled into whichever version they rode with. Public launch becomes
+`v1.0.0`; after that, standard semver (major.minor.patch). Pure
+internal-only infra work doesn't burn its own number — it's noted here but
+folded into the next real version rather than given one of its own, so the
+public-facing changelog's numbers never have to skip anything real.
 
-**Note on backfilled entries below:** the source addenda this changelog
-was built from don't carry timestamps, so dates are marked `[DATE]` —
-fill in from memory if you want them precise, or leave blank. Ordering
-is correct (built from phase dependencies and cross-references between
-addenda); only the exact calendar dates are missing. Every entry from
-here forward gets a real date at write time.
+Full detail for any entry lives in its linked addendum file — this is the
+scannable index, not the full record.
+
+**Note on backfilled entries below:** the source addenda don't carry
+timestamps, so dates are marked `[DATE]` — fill in from memory if you want
+them precise, or leave blank. Version numbers and ordering are corrected
+and should be trusted; only the exact calendar dates are missing. Every
+entry from here forward gets both a real date and a version at write time.
 
 ---
 
-## [DATE] — Roadmap brainstorm: future phases + full-tool feature set
-**Phase:** Post-Locations / Unscoped Future
-- Logged three future-phase ideas (unranked, priority: quests → tables/
-  dungeons → solo-play): quest/questline generator, table/dungeon
-  generation (tied to the Locations map-tier decision), solo-play engine
-  (Ironsworn-style, positioned as a paid expansion/DLC tier, dependent on
-  Phase 5 supporting multi-tier billing).
-- Broader "full tool for DMs + worldbuilders" brainstorm: three buckets —
-  DM/running-the-game tools (session prep bundle flagged as flagship
-  feature), deeper worldbuilding content (timeline, culture/religion,
-  calendar, non-hostile flora/fauna, relationship graph), cross-cutting
-  platform features (full-text search, free-form tagging, export/print,
-  entry version history).
-- See: `session_addendum_future_phases_roadmap.md`
+## Unreleased
 
-## [DATE] — Persisted per-user cost tracking
+- **Locations (8th content category)** — scoped, schema drafted, map-tier
+  decision still open (illustrative image / clickable pins / computed
+  layout). See: `phase_locations_addendum.md`
+- **Archive search + category page grouping/ordering** — scoped, decisions
+  confirmed, not yet built. See: `session_addendum_search_and_grouping.md`
+- **Future roadmap ideas (unranked, no version yet):** quest/questline
+  generator, table/dungeon generation, solo-play engine (paid
+  expansion/DLC tier, pending Phase 5 multi-tier billing support). Broader
+  "full tool for DMs + worldbuilders" brainstorm: DM/session tools
+  (session prep bundle flagged as flagship), deeper worldbuilding content
+  (timeline, culture/religion, calendar, flora/fauna, relationship graph),
+  cross-cutting platform features (full-text search, tagging, export,
+  version history). See: `session_addendum_future_phases_roadmap.md`
+
+---
+
+## v0.7 — [DATE] — Persisted per-user cost tracking (internal only)
 **Phase:** Cross-cutting / Beta infra
 - New `cost_log` table (`migrations/008_cost_log.sql`), one row per
   Claude/Gemini call, tagged by world/user/category/provider with token
@@ -38,33 +46,10 @@ here forward gets a real date at write time.
 - No RLS policy — read only via service-role-equivalent client
   server-side (`routes/adminCost.js`), same reasoning as the earlier
   `world_config_by_user` lockdown.
+- **Internal only — no public-changelog entry for this version.**
 - See: `session_addendum_cost_tracking.md`
 
-## [DATE] — Archive search + category page grouping/ordering (scoped, not yet built)
-**Phase:** Cross-cutting / Read-side features
-- **Scoped only, not shipped.** Two independent, additive, pure read-side
-  features (no new Claude calls, no cap/cost impact):
-  - Full-text search: Postgres `ILIKE` against `entries.title`, scoped to
-    `world_id`. No embeddings/pgvector.
-  - Category page grouping/ordering — decisions confirmed, build pending.
-- See: `session_addendum_search_and_grouping.md`
-
-## [DATE] — Locations: 8th content category (scoped, in progress)
-**Phase:** Locations (post-Phase 4)
-- Locations confirmed as the 8th content category, following the NPC
-  generator pattern (full generator + art). Draft entry schema proposed:
-  Name/descriptor, Region/Biome, Controlling Faction (exact-list
-  grounding via `worldFlavor.js`), Notable Features, Danger/Tags, Notable
-  NPCs Tied Here (real entries only, no forced placeholders), optional
-  Hooks/Secrets.
-- Map generation confirmed **in scope** for this phase (not deferred as
-  originally assumed). Three tiers identified, effort increasing:
-  (1) illustrative AI image only, (2) image + hand-set clickable pins,
-  (3) code-computed generative layout. **Tier decision still open** —
-  blocks whether this phase is a template extension or new engineering.
-- See: `phase_locations_addendum.md`
-
-## [DATE] — Product renamed to Chronicled; Phase 6 cancelled; beta infra built
+## v0.6 — [DATE] — Chronicled is here; beta infra built
 **Phase:** Rebrand / Beta prep
 - **Phase 6 (migrate real Echoes archive as user #1) cancelled** — fresh-
   world wizard testing serves as the pipeline's proof instead.
@@ -80,7 +65,7 @@ here forward gets a real date at write time.
   design).
 - See: `session_addendum_chronicled_rebrand.md`
 
-## [DATE] — Phase 4 complete + Skills/Stats system overhaul + World Info tab
+## v0.5 — [DATE] — Custom look for every world + Skills/Stats overhaul
 **Phase:** Phase 4 (complete) + unscoped additions
 - **Phase 4 (genericize visual style) fully complete:** site-wide
   theming, per-faction accent colors (batched generation in Style Guide
@@ -104,7 +89,7 @@ here forward gets a real date at write time.
 - Dead-file audit performed (documented, not yet deleted).
 - See: `session_addendum.md`
 
-## [DATE] — Phase 3 complete: 7 content generators genericized
+## v0.4 — [DATE] — Every generator now grounded in your world's lore
 **Phase:** Phase 3 (complete)
 - All 7 `prompts/*ContentPrompt.js` builders rewritten to ground
   generation in a world's own saved data (lore, factions, stat/skill
@@ -113,8 +98,8 @@ here forward gets a real date at write time.
   originally scoped genericization work.
 - See: `phase3_complete_addendum.md`
 
-## [DATE] — Frontend read path closed + early Phase 3/4 slices
-**Phase:** Phase 1 cleanup + early Phase 3/4
+## v0.3 — [DATE] — Live archive read path + early theming
+**Phase:** Phase 1 cleanup + early Phase 3/4 (built after Phase 2 shipped)
 - Closed the original Phase 1 gap: `archive/js/render.js` and all 9
   archive pages now fetch from new `GET /api/entries/:category[/:id]`
   routes instead of injecting flat `manifest.js`/`data/*.js` files.
@@ -129,26 +114,24 @@ here forward gets a real date at write time.
   art-prompt generator.
 - See: `frontend_read_path_and_theming_addendum.md`
 
-## [DATE] — Progressive commit pattern adopted (deviation from original wizard spec)
-**Phase:** Phase 2 (mid-build decision)
-- Reversed the original "nothing commits until Step 8" design. Starting
-  with Step 3 (World Lore), each wizard step now writes directly to its
-  real destination on save, not held in `draft_json` until Review &
-  Confirm. Kept deliberately for every step going forward (Factions
-  included), trading cleaner "Start Over" semantics for crash-survival
-  and letting later steps ground in real, finalized prior-step data.
-- See: `scope_doc_addendum_progressive_commit.md`
-
-## [DATE] — Phase 2 complete: World Setup Wizard
+## v0.2 — [DATE] — Guided world setup wizard
 **Phase:** Phase 2 (complete)
 - All 8 wizard steps built, deployed, confirmed working end to end: Seed
   & Vision, Lore path choice + World Lore, Factions, Stat System, Style
   Guide, Category Configuration, Review & Confirm.
 - Shared infra: `lib/worldConfigRepo.js` and friends for typed
   read/write per step.
-- See: `phase2_complete_addendum.md`
+- **Progressive-commit pattern adopted mid-build**, correcting the
+  original "nothing commits until Step 8" design: starting with Step 3
+  (World Lore), each step now writes directly to its real destination on
+  save. Kept for every step going forward, trading cleaner "Start Over"
+  semantics for crash-survival and letting later steps ground in real,
+  already-finalized prior-step data. (Corrected from an earlier version
+  of this changelog, which had mis-ordered this after v0.3's work — it
+  was actually a mid-Phase-2 decision, not a later one.)
+- See: `phase2_complete_addendum.md`, `scope_doc_addendum_progressive_commit.md`
 
-## [DATE] — Phase 1 complete: multi-tenant foundations
+## v0.1 — [DATE] — Accounts & private worlds
 **Phase:** Phase 1 (complete)
 - Supabase auth + DB/storage isolation (no generator/content changes).
   Schema/RLS, `fileWriter`/`roster` rewrite, real auth wiring
@@ -158,6 +141,8 @@ here forward gets a real date at write time.
 
 ---
 
-*Add new entries at the top. Keep each entry to a few scannable bullets —
-anything needing full architectural detail gets its own addendum file,
-linked from the entry.*
+*Add new entries at the top of the numbered list (below Unreleased). Keep
+each entry to a few scannable bullets — anything needing full
+architectural detail gets its own addendum file, linked from the entry.
+Mark internal-only entries clearly so it's obvious they won't appear on
+the public changelog.*
