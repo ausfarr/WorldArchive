@@ -90,6 +90,14 @@
 </style>
 
 <script src="/config.js"></script>
+<script src="/version.js"></script>
+<script>
+  if (window.APP_VERSION) {
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+    });
+  }
+</script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/wizardSession.js"></script>

@@ -537,5 +537,13 @@
 
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "078134c3564245c3b137275f303acb50"}'></script><!-- End Cloudflare Web Analytics -->
   
+<script src="version.js"></script>
+<script>
+  if (window.APP_VERSION) {
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+    });
+  }
+</script>
 </body>
 </html>

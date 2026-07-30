@@ -25,6 +25,7 @@ const searchRoute = require("./routes/search");
 const deleteWorldRoute = require("./routes/deleteWorld");
 const adminCostRoute = require("./routes/adminCost");
 const waitlistRoute = require("./routes/waitlist");
+const { APP_VERSION } = require("./lib/version");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,6 +48,16 @@ app.get("/config.js", (req, res) => {
       publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY
     })};`
   );
+});
+
+// Single source of truth for the version stamp shown in every app page's
+// footer -- bump lib/version.js and every page picks it up on next load,
+// no per-file edits needed. Same pattern as /config.js above; deliberately
+// NOT under /api so it isn't gated by resolveTenant (the footer renders
+// before/regardless of auth, e.g. on the login page).
+app.get("/version.js", (req, res) => {
+  res.type("application/javascript");
+  res.send(`window.APP_VERSION = ${JSON.stringify(APP_VERSION)};`);
 });
 
 // Public marketing-site waitlist signup -- no account/session exists yet
