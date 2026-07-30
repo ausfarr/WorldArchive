@@ -167,6 +167,20 @@ const REGENERATE_ENDPOINTS = {
   locations: "/api/generate-location"
 };
 
+// Categories with a bespoke manual Edit form -- distinct from
+// REGENERATE_ENDPOINTS (an AI-assisted rewrite with a preview/confirm
+// step). Edit saves immediately (no AI call, no preview, doesn't count
+// against the beta generation cap) by mutating the entry's existing
+// `raw` JSON and writing it straight through the same /api/confirm-entry
+// endpoint Regenerate's "Save This Version" already uses. Both buttons
+// appear side by side on a card when present. Rolling out one category
+// at a time (see session_addendum_tester_feedback_editable_content.md
+// for the order) -- factions first, more get added to this map as their
+// forms are built.
+const EDIT_FORM_BUILDERS = {
+  factions: showFactionEditForm
+};
+
 // Populates a faction <select>'s options from this world's LIVE Factions
 // archive (via /api/entries/factions) instead of a hardcoded list. Used
 // by the NPC/Bestiary "Generate New Entry" panels, which used to ship a
@@ -363,6 +377,204 @@ function showRegeneratePreview(data) {
 }
 
 
+// Called from an already-filled card's "Edit" button. Fetches the
+// entry's current full content (same GET routes/entries.js uses for the
+// dossier page) and hands it to the category's bespoke form builder.
+// Unlike regenerateEntry(), there's no AI call here at all -- this just
+// loads what's already saved so it can be edited in place.
+async function editEntry(categoryPath, id, btnEl) {
+  const builder = EDIT_FORM_BUILDERS[categoryPath];
+  if (!builder) return;
+  const originalText = btnEl.textContent;
+  btnEl.disabled = true;
+  btnEl.textContent = "Loading…";
+  try {
+    const res = await authFetch(`/api/entries/${categoryPath}/${id}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to load entry.");
+    builder(data.entry);
+  } catch (err) {
+    alert("Couldn't open editor: " + err.message);
+  } finally {
+    btnEl.disabled = false;
+    btnEl.textContent = originalText;
+  }
+}
+
+// Bespoke Factions edit form. Full-screen overlay, same visual language
+// as showRegeneratePreview()'s panel, but real inputs instead of a
+// read-only diff, and no preview step -- Save writes straight through
+// POST /api/confirm-entry, the exact same endpoint Regenerate's "Save
+// This Version" button already uses. confirmEntry.js's factions branch
+// doesn't care whether the `entry` it receives came from a fresh AI
+// generation or a hand-edited form -- it just needs the same shape
+// lib/factionDeepLore.js produces (id, factionKey, name, + the Deep Lore
+// fields), which is exactly what entry.raw already contains. Computed/
+// derived data (the Roundup, reciprocal relationship sync) is recomputed
+// server-side on every confirm regardless of source, so it can't go
+// stale here either.
+//
+// Deliberately excludes accentColor -- that's edited separately via the
+// dossier page's own color picker (renderFactionColorPicker(), PATCH
+// /api/wizard/factions/:id/accent-color) and isn't part of this raw
+// Deep Lore object at all.
+function showFactionEditForm(entry) {
+  const existingOverlay = document.getElementById("edit-form-overlay");
+  if (existingOverlay) existingOverlay.remove();
+
+  const raw = entry.raw || {};
+  const ownName = raw.name || entry.name || "";
+
+  function field(label, id, value, { textarea = false, rows = 3 } = {}) {
+    const safeValue = escapeHtmlForSearch(value || "");
+    const inputStyle = "width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
+    return `
+      <div style="margin-bottom: 14px;">
+        <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
+        ${textarea
+          ? `<textarea id="${id}" rows="${rows}" style="${inputStyle} resize: vertical;">${safeValue}</textarea>`
+          : `<input id="${id}" type="text" value="${safeValue}" style="${inputStyle}">`}
+      </div>`;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.id = "edit-form-overlay";
+  overlay.style.cssText = "position:fixed; inset:0; background:rgba(10,11,13,0.92); z-index:1000; overflow:auto; padding:40px 20px;";
+  overlay.innerHTML = `
+    <div style="max-width:820px; margin:0 auto; background:var(--bg-panel); border:1px solid var(--border-line);">
+      <div style="padding:20px 28px; border-bottom:1px solid var(--border-line-soft); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <h2 style="font-family:var(--font-display); text-transform:uppercase; margin:0; font-size:1.1rem;">Edit — ${escapeHtmlForSearch(ownName)}</h2>
+        <button id="edit-discard-x" type="button" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:6px 12px; cursor:pointer; font-family:var(--font-mono); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;">Cancel ✕</button>
+      </div>
+      <div style="padding:24px 28px;">
+        ${field("Name", "ef-name", raw.name)}
+        ${field("Nickname / Epithet", "ef-nickname", raw.nickname)}
+        ${field("Overview Quote", "ef-overviewQuote", raw.overviewQuote, { textarea: true, rows: 2 })}
+        ${field("Core Philosophy", "ef-corePhilosophy", raw.corePhilosophy, { textarea: true, rows: 2 })}
+        ${field("Origin", "ef-origin", raw.origin, { textarea: true })}
+        ${field("Structure &amp; Hierarchy", "ef-structureHierarchy", raw.structureHierarchy, { textarea: true })}
+        ${field("Territory", "ef-territory", raw.territory, { textarea: true })}
+        ${field("Goals — Near-term", "ef-goalsNearTerm", raw.goalsNearTerm, { textarea: true, rows: 2 })}
+        ${field("Goals — Long-term", "ef-goalsLongTerm", raw.goalsLongTerm, { textarea: true, rows: 2 })}
+        ${field("Internal Tensions", "ef-internalTensions", raw.internalTensions, { textarea: true })}
+        ${field("Iconography", "ef-iconography", raw.iconography, { textarea: true })}
+        <div style="margin-bottom: 14px;">
+          <label style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Relationships</label>
+          <div id="ef-relationships-rows"></div>
+          <button id="ef-add-relationship" type="button" style="margin-top:6px; background: var(--bg-panel-raised); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">+ Add Relationship</button>
+        </div>
+        ${field("Economy &amp; Resources", "ef-economyResources", raw.economyResources, { textarea: true })}
+        ${field("Joining / Absorption", "ef-joining", raw.joining, { textarea: true })}
+      </div>
+      <div style="padding:20px 28px; border-top:1px solid var(--border-line-soft); display:flex; gap:12px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
+        <p id="edit-status" style="font-family: var(--font-mono); font-size:0.72rem; color: var(--ink-faint); margin:0; display:none;"></p>
+        <button id="edit-discard" type="button" style="background:var(--bg-panel-raised); border:1px solid var(--border-line); color:var(--ink-dim); padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer;">Cancel</button>
+        <button id="edit-save" type="button" style="background:var(--neon-primary); color:var(--bg-void); border:none; padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; font-weight:600;">Save Changes</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  // ---- Relationships: dynamic add/remove rows, faction dropdown
+  // populated from this world's real live faction list (never a free
+  // text field for the faction name -- matches the "exact list, never
+  // invent" rule applied everywhere else relationships are generated).
+  let relState = (Array.isArray(raw.relationships) ? raw.relationships : [])
+    .map((r) => ({ faction: r.faction || "", stance: r.stance || "", why: r.why || "" }));
+  let otherFactionNames = [];
+
+  function renderRelationshipRows() {
+    const host = document.getElementById("ef-relationships-rows");
+    if (!host) return;
+    const rowStyle = "flex:1; min-width:100px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
+    host.innerHTML = relState.length ? relState.map((r, i) => `
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+        <select data-idx="${i}" data-field="faction" class="ef-rel-input" style="${rowStyle} min-width:140px;">
+          ${otherFactionNames.map((n) => `<option value="${escapeHtmlForSearch(n)}" ${n === r.faction ? "selected" : ""}>${escapeHtmlForSearch(n)}</option>`).join("")}
+          ${r.faction && !otherFactionNames.includes(r.faction) ? `<option value="${escapeHtmlForSearch(r.faction)}" selected>${escapeHtmlForSearch(r.faction)}</option>` : ""}
+        </select>
+        <input data-idx="${i}" data-field="stance" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.stance)}" placeholder="stance" style="${rowStyle}">
+        <input data-idx="${i}" data-field="why" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.why)}" placeholder="why" style="${rowStyle} flex:2;">
+        <button type="button" data-idx="${i}" class="ef-rel-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
+      </div>`).join("") : `<p style="color:var(--ink-faint); font-size:0.85rem; margin:0 0 8px;">No relationships yet.</p>`;
+
+    host.querySelectorAll(".ef-rel-input").forEach((el) => {
+      const sync = (e) => { relState[Number(e.target.dataset.idx)][e.target.dataset.field] = e.target.value; };
+      el.addEventListener("input", sync);
+      el.addEventListener("change", sync);
+    });
+    host.querySelectorAll(".ef-rel-remove").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        relState.splice(Number(e.currentTarget.dataset.idx), 1);
+        renderRelationshipRows();
+      });
+    });
+  }
+
+  getFactionLookup().then((lookup) => {
+    otherFactionNames = Object.values(lookup).map((f) => f.name).filter((n) => n && n !== ownName);
+    renderRelationshipRows();
+  });
+
+  document.getElementById("ef-add-relationship").addEventListener("click", () => {
+    relState.push({ faction: otherFactionNames[0] || "", stance: "", why: "" });
+    renderRelationshipRows();
+  });
+
+  // ---- Cancel ----
+  const close = () => overlay.remove();
+  document.getElementById("edit-discard").onclick = close;
+  document.getElementById("edit-discard-x").onclick = close;
+
+  // ---- Save (immediate, no preview step -- see this session's addendum
+  // for why Edit skips the diff/confirm modal Regenerate uses) ----
+  document.getElementById("edit-save").onclick = async () => {
+    const saveBtn = document.getElementById("edit-save");
+    const status = document.getElementById("edit-status");
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving…";
+    status.style.display = "block";
+    status.textContent = "Writing to the archive…";
+
+    const val = (id) => document.getElementById(id).value;
+    const updatedFaction = {
+      ...raw,
+      id: raw.id,
+      factionKey: raw.factionKey,
+      name: val("ef-name"),
+      nickname: val("ef-nickname"),
+      overviewQuote: val("ef-overviewQuote"),
+      corePhilosophy: val("ef-corePhilosophy"),
+      origin: val("ef-origin"),
+      structureHierarchy: val("ef-structureHierarchy"),
+      territory: val("ef-territory"),
+      goalsNearTerm: val("ef-goalsNearTerm"),
+      goalsLongTerm: val("ef-goalsLongTerm"),
+      internalTensions: val("ef-internalTensions"),
+      iconography: val("ef-iconography"),
+      relationships: relState.filter((r) => r.faction),
+      economyResources: val("ef-economyResources"),
+      joining: val("ef-joining")
+    };
+
+    try {
+      const res = await authFetch("/api/confirm-entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category: "factions", entry: updatedFaction })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Save failed");
+      status.textContent = "Saved — reloading…";
+      setTimeout(() => window.location.reload(), 600);
+    } catch (err) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Changes";
+      status.textContent = "Error: " + err.message;
+    }
+  };
+}
+
 // Replaces the old <script src="manifest.js"> + renderCategoryIndex(window.MANIFEST_X, ...)
 // pattern -- fetches this world's entries for the category from the API
 // (see routes/entries.js) and renders them. Category pages now call this
@@ -407,7 +619,10 @@ function buildEntryCardHtml(entry, categoryPath, lookup) {
       <p class="role">${entry.subtitle || ""}</p>
       <div class="tags">${facTag}${tagsHtml}</div>
       <a class="card-link" href="../dossier.html?category=${categoryPath}&id=${entry.id}"></a>
-      ${REGENERATE_ENDPOINTS[categoryPath] ? `<button type="button" class="regen-btn" onclick="event.stopPropagation(); regenerateEntry('${categoryPath}', '${entry.id}', this)" style="position: relative; z-index: 2; margin-top: 10px; background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Regenerate</button>` : ""}
+      <div style="position: relative; z-index: 2; display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+        ${EDIT_FORM_BUILDERS[categoryPath] ? `<button type="button" class="edit-btn" onclick="event.stopPropagation(); editEntry('${categoryPath}', '${entry.id}', this)" style="background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Edit</button>` : ""}
+        ${REGENERATE_ENDPOINTS[categoryPath] ? `<button type="button" class="regen-btn" onclick="event.stopPropagation(); regenerateEntry('${categoryPath}', '${entry.id}', this)" style="background: var(--bg-panel); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">Regenerate</button>` : ""}
+      </div>
     </div>`;
 }
 
