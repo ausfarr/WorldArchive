@@ -183,7 +183,9 @@ const EDIT_FORM_BUILDERS = {
   enemies: showEnemyEditForm,
   classes: showClassEditForm,
   logs: showLogEditForm,
-  locations: showLocationEditForm
+  locations: showLocationEditForm,
+  items: showItemEditForm,
+  survivors: showSurvivorEditForm
 };
 
 // Populates a faction <select>'s options from this world's LIVE Factions
@@ -1299,6 +1301,185 @@ function showClassEditForm(entry) {
   const tier2State = setupTierRows("tier2", tier2);
   const tier3State = setupTierRows("tier3", tier3);
   const tier4State = setupTierRows("tier4", tier4);
+
+  return overlay;
+}
+
+// Bespoke Items edit form. Schema branches 4 ways by category (Weapon /
+// Armor / Consumable / QuestItem) -- the form shows all 4 field groups
+// and toggles visibility based on the Category select, rather than
+// swapping the DOM out entirely, so switching category never loses data
+// already typed into a group you might switch back to. Armor's Damage
+// Reduction is never stored (lib/itemTemplate.js computes it fresh from
+// effectorTier via computeArmorDR() on every render, same locked/
+// recomputed pattern as Bestiary derived stats) -- effectorTier is the
+// only editable Armor stat field.
+const ITEM_CATEGORIES = ["Weapon", "Armor", "Consumable", "QuestItem"];
+const ITEM_RARITIES = ["Common", "Uncommon", "Rare", "Legendary"];
+const WEAPON_SKILLS = ["Heavy Weapons", "Light Weapons", "Polearm", "Unarmed", "Ballistics", "Archery", "Catalysts"];
+
+function itemGroupDisplayStyle(category, forCategory) {
+  return category === forCategory ? "" : "display:none;";
+}
+
+function showItemEditForm(entry) {
+  const raw = entry.raw || {};
+  const cat = raw.category || "Weapon";
+
+  const bodyHtml = `
+    ${efField("Name", "ef-name", raw.name)}
+    ${efSelect("Category", "ef-category", ITEM_CATEGORIES.map((c) => `<option value="${c}" ${c === cat ? "selected" : ""}>${c}</option>`).join(""))}
+    <div id="ef-group-rarity" style="${itemGroupDisplayStyle(cat, "Weapon")}${cat === "Armor" ? "" : ""}">
+      ${efSelect("Rarity", "ef-rarity", `<option value="">— none —</option>` + ITEM_RARITIES.map((r) => `<option value="${r}" ${r === raw.rarity ? "selected" : ""}>${r}</option>`).join(""))}
+    </div>
+    ${efField("Flavor", "ef-flavor", raw.flavor, { textarea: true })}
+    <div id="ef-group-weapon">
+      <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Weapon Stats</h3>
+      ${efSelect("Weapon Skill", "ef-weaponSkill", WEAPON_SKILLS.map((w) => `<option value="${w}" ${w === raw.weaponSkill ? "selected" : ""}>${w}</option>`).join(""))}
+      ${efField("Weapon Type", "ef-weaponType", raw.weaponType)}
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0 16px;">
+        ${efField("Damage Min", "ef-damageMin", raw.damageMin, { type: "number" })}
+        ${efField("Damage Max", "ef-damageMax", raw.damageMax, { type: "number" })}
+      </div>
+      ${efField("Relevant Stat", "ef-relevantStat", raw.relevantStat)}
+      ${efField("Applies Status (optional)", "ef-appliesStatus", raw.appliesStatus)}
+    </div>
+    <div id="ef-group-armor">
+      <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Armor Stats</h3>
+      ${efField("Effector Tier (1–4)", "ef-effectorTier", raw.effectorTier, { type: "number" })}
+      <p style="color:var(--ink-faint); font-size:0.78rem; margin:-6px 0 14px;">Damage Reduction recomputes automatically from this on save.</p>
+    </div>
+    <div id="ef-group-rarityEffect">
+      ${efField("Rarity Effect (Uncommon+ Weapon/Armor)", "ef-rarityEffect", raw.rarityEffect)}
+    </div>
+    <div id="ef-group-consumable">
+      <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Consumable</h3>
+      ${efField("AP Cost", "ef-apCost", raw.apCost, { type: "number" })}
+      ${efField("Effect", "ef-effect", raw.effect, { textarea: true })}
+    </div>
+    <div id="ef-group-questitem">
+      <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Quest Item</h3>
+      ${efField("Where Found / Why It Matters", "ef-whereFoundWhyMatters", raw.whereFoundWhyMatters, { textarea: true })}
+      <div id="ef-foundAtLocationId-wrap"></div>
+    </div>
+    ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
+  `;
+
+  const overlay = openEditOverlay(raw.name || entry.name || "Item", bodyHtml, async () => {
+    const val = (id) => document.getElementById(id).value;
+    const category = val("ef-category");
+    const updatedItem = {
+      ...raw,
+      id: raw.id,
+      name: val("ef-name"),
+      category,
+      rarity: (category === "Weapon" || category === "Armor") ? (val("ef-rarity") || null) : null,
+      flavor: val("ef-flavor"),
+      weaponSkill: category === "Weapon" ? val("ef-weaponSkill") : null,
+      weaponType: category === "Weapon" ? val("ef-weaponType") : null,
+      damageMin: category === "Weapon" ? Number(val("ef-damageMin")) || 0 : null,
+      damageMax: category === "Weapon" ? Number(val("ef-damageMax")) || 0 : null,
+      relevantStat: category === "Weapon" ? val("ef-relevantStat") : null,
+      appliesStatus: category === "Weapon" ? (val("ef-appliesStatus") || null) : null,
+      effectorTier: category === "Armor" ? Number(val("ef-effectorTier")) || 1 : null,
+      rarityEffect: (category === "Weapon" || category === "Armor") ? (val("ef-rarityEffect") || null) : null,
+      apCost: category === "Consumable" ? Number(val("ef-apCost")) || 1 : null,
+      effect: category === "Consumable" ? val("ef-effect") : null,
+      whereFoundWhyMatters: category === "QuestItem" ? val("ef-whereFoundWhyMatters") : null,
+      foundAtLocationId: category === "QuestItem" ? (val("ef-foundAtLocationId") || null) : null,
+      designNotes: val("ef-designNotes")
+    };
+
+    const res = await authFetch("/api/confirm-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: "items", entry: updatedItem })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Save failed");
+  });
+
+  fetchCategoryOptions("locations").then((options) => {
+    document.getElementById("ef-foundAtLocationId-wrap").innerHTML = efSelect("Found At Location (optional)", "ef-foundAtLocationId", idSelectOptionsHtml(options, raw.foundAtLocationId, "— none / not archived —"));
+  });
+
+  function toggleGroups() {
+    const category = document.getElementById("ef-category").value;
+    document.getElementById("ef-group-rarity").style.display = (category === "Weapon" || category === "Armor") ? "" : "none";
+    document.getElementById("ef-group-weapon").style.display = category === "Weapon" ? "" : "none";
+    document.getElementById("ef-group-armor").style.display = category === "Armor" ? "" : "none";
+    document.getElementById("ef-group-rarityEffect").style.display = (category === "Weapon" || category === "Armor") ? "" : "none";
+    document.getElementById("ef-group-consumable").style.display = category === "Consumable" ? "" : "none";
+    document.getElementById("ef-group-questitem").style.display = category === "QuestItem" ? "" : "none";
+  }
+  toggleGroups();
+  document.getElementById("ef-category").addEventListener("change", toggleGroups);
+
+  return overlay;
+}
+
+// Bespoke Survivors edit form -- the simplest schema in the whole
+// rollout. className is stored as a bare base-class name (e.g.
+// "Tailor", not an id and not "The Tailor") -- lib/roster.js's
+// buildAvailableClassesText() derives that exact same string server-side
+// by splitting a class's "BaseName → EvolvedName" manifest name on "→"
+// and stripping a leading "The "; this dropdown replicates that
+// transform client-side so the saved value matches what the survivor
+// generator itself would have produced.
+function classDisplayNameToBareName(displayName) {
+  return (displayName || "").split("→")[0].replace(/^The\s+/i, "").trim();
+}
+
+function showSurvivorEditForm(entry) {
+  const raw = entry.raw || {};
+  const quirk = raw.quirk || {};
+
+  const bodyHtml = `
+    ${efField("Name", "ef-name", raw.name)}
+    ${efField("Callsign (optional)", "ef-callsign", raw.callsign)}
+    <div id="ef-className-wrap"></div>
+    ${efField("Backstory", "ef-backstory", raw.backstory, { textarea: true })}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Quirk</h3>
+    ${efField("Quirk Name", "ef-quirk-name", quirk.name)}
+    ${efField("Effect", "ef-quirk-effect", quirk.effect, { textarea: true, rows: 2 })}
+    ${efField("Flavor Line", "ef-quirk-flavorLine", quirk.flavorLine)}
+    ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
+  `;
+
+  const overlay = openEditOverlay(raw.name || entry.name || "Survivor", bodyHtml, async () => {
+    const val = (id) => document.getElementById(id).value;
+    const updatedSurvivor = {
+      ...raw,
+      id: raw.id,
+      name: val("ef-name"),
+      callsign: val("ef-callsign") || null,
+      className: val("ef-className"),
+      backstory: val("ef-backstory"),
+      quirk: {
+        name: val("ef-quirk-name"),
+        effect: val("ef-quirk-effect"),
+        flavorLine: val("ef-quirk-flavorLine")
+      },
+      designNotes: val("ef-designNotes")
+    };
+
+    const res = await authFetch("/api/confirm-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: "survivors", entry: updatedSurvivor })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Save failed");
+  });
+
+  fetchCategoryOptions("classes").then((classOptions) => {
+    const bareNames = [...new Set(classOptions.map((o) => classDisplayNameToBareName(o.name)).filter(Boolean))];
+    const optionsHtml = bareNames.map((n) => `<option value="${escapeHtmlForSearch(n)}" ${n === raw.className ? "selected" : ""}>${escapeHtmlForSearch(n)}</option>`).join("");
+    const fallback = raw.className && !bareNames.includes(raw.className)
+      ? `<option value="${escapeHtmlForSearch(raw.className)}" selected>${escapeHtmlForSearch(raw.className)} (not found)</option>`
+      : "";
+    document.getElementById("ef-className-wrap").innerHTML = efSelect("Class", "ef-className", optionsHtml + fallback);
+  });
 
   return overlay;
 }
