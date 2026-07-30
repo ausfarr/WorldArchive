@@ -321,3 +321,11 @@ footer.site-footer {
   border-top: 1px solid var(--border-line);
   padding: 28px 0 60px; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.7rem;
 }
+footer.site-footer .wrap {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px;
+}
+.app-version {
+  font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-faint);
+  letter-spacing: 0.04em; white-space: nowrap;
+}

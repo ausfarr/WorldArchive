@@ -21,9 +21,6 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
-- **Locations (8th content category)** — scoped, schema drafted, map-tier
-  decision still open (illustrative image / clickable pins / computed
-  layout). See: `phase_locations_addendum.md`
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`
 - **Future roadmap ideas (unranked, no version yet):** quest/questline
@@ -37,17 +34,25 @@ entry from here forward gets both a real date and a version at write time.
 
 ---
 
-## v0.7 — [DATE] — Persisted per-user cost tracking (internal only)
-**Phase:** Cross-cutting / Beta infra
-- New `cost_log` table (`migrations/008_cost_log.sql`), one row per
-  Claude/Gemini call, tagged by world/user/category/provider with token
-  counts + estimated cost. Replaces in-memory-only tracking that reset on
-  every Render redeploy and had no per-user breakdown.
-- No RLS policy — read only via service-role-equivalent client
-  server-side (`routes/adminCost.js`), same reasoning as the earlier
-  `world_config_by_user` lockdown.
-- **Internal only — no public-changelog entry for this version.**
-- See: `session_addendum_cost_tracking.md`
+## v0.7 — [DATE] — Locations & Maps
+**Phase:** Locations (complete)
+- **8th content category shipped.** Full generator + art, following the
+  NPC pattern: Name/descriptor, Region/Biome, Controlling Faction (exact-
+  list grounding via `worldFlavor.js`), Notable Features, Danger/Tags,
+  Notable NPCs Tied Here (real entries only, no forced placeholders),
+  optional Hooks/Secrets.
+- **Map tier decision resolved: full computed layout shipped** (tier 3 of
+  the three originally scoped — code-computes location positions, not
+  just an illustrative image or hand-set pins). Biggest engineering lift
+  of the three options; the other two tiers (illustrative-only,
+  image+pins) were not built as intermediate steps.
+- See: `phase_locations_addendum.md`
+- **Also folded into this version, internal only:** persisted per-user
+  cost tracking (`cost_log` table, `migrations/008_cost_log.sql`, one row
+  per Claude/Gemini call tagged by world/user/category/provider with
+  token counts + estimated cost — replaces the old in-memory-only
+  tracking that reset on every redeploy). No public-changelog entry for
+  this part. See: `session_addendum_cost_tracking.md`
 
 ## v0.6 — [DATE] — Chronicled is here; beta infra built
 **Phase:** Rebrand / Beta prep

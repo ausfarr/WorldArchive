@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roadmap — Chronicled</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg-void: #0a0b0d;
+  --bg-panel: #14161a;
+  --bg-panel-raised: #1c1f24;
+  --border-line: #2a2d33;
+  --border-line-soft: #202226;
+  --ink: #e4e1d6;
+  --ink-dim: #9a9ca3;
+  --ink-faint: #5c5f66;
+
+  --accent: #29f0d1;
+  --accent-2: #ff2f6e;
+
+  --font-display: 'Oswald', sans-serif;
+  --font-body: 'Work Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg-void);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+
+header.site-header {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(10,11,13,0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border-line);
+}
+header.site-header .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; padding-bottom: 14px; }
+.site-title {
+  font-family: var(--font-display); font-weight: 600; letter-spacing: 0.06em;
+  font-size: 1.1rem; text-transform: uppercase; color: var(--ink);
+}
+.site-title a { color: inherit; }
+.site-title a:hover { text-decoration: none; }
+.site-nav a {
+  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-dim);
+}
+.site-nav a:hover { color: var(--accent); text-decoration: none; }
+.site-nav a.active { color: var(--accent); }
+
+.hero { padding: 56px 0 36px; border-bottom: 1px solid var(--border-line); }
+.hero h1 {
+  font-family: var(--font-display); text-transform: uppercase; font-weight: 700;
+  letter-spacing: 0.02em; font-size: clamp(1.8rem, 5vw, 2.6rem); margin: 0 0 10px; color: var(--ink);
+}
+.hero p.dek { color: var(--ink-dim); max-width: 560px; font-size: 1rem; margin: 0; }
+.hero .disclaimer {
+  font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint);
+  margin-top: 20px; letter-spacing: 0.02em; text-transform: none;
+  border-left: 2px solid var(--border-line); padding-left: 12px;
+}
+
+.groups { padding: 44px 0 80px; }
+.group { margin-bottom: 48px; }
+.group:last-child { margin-bottom: 0; }
+.group-label {
+  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent); margin: 0 0 18px;
+  border-bottom: 1px solid var(--border-line-soft); padding-bottom: 10px;
+}
+.idea {
+  display: flex; gap: 16px; align-items: baseline;
+  padding: 14px 0; border-bottom: 1px solid var(--border-line-soft);
+}
+.idea:last-child { border-bottom: none; }
+.idea h3 {
+  font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.01em;
+  margin: 0; color: var(--ink); flex: 0 0 auto; white-space: nowrap;
+}
+.idea p { margin: 0; color: var(--ink-dim); font-size: 0.9rem; }
+
+@media (max-width: 560px) {
+  .idea { flex-direction: column; gap: 4px; }
+}
+
+footer.site-footer {
+  border-top: 1px solid var(--border-line);
+  padding: 24px 0 60px; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.68rem;
+}
+footer.site-footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.app-version { color: var(--ink-faint); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">Chronicled</a></div>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="changelog.html">Changelog</a>
+      <a href="roadmap.html" class="active">Roadmap</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>Roadmap</h1>
+    <p class="dek">Ideas we're exploring for Chronicled. Nothing here has a ship date, and not everything listed is guaranteed to happen — think of this as a window into what we're thinking about, not a promise.</p>
+    <p class="disclaimer">See the <a href="changelog.html">changelog</a> for what's already shipped, and what's next up in active development.</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="groups">
+
+    <div class="group">
+      <p class="group-label">New content types</p>
+      <div class="idea">
+        <h3>Quests</h3>
+        <p>Generate side quests or full questlines, grounded in your world's real NPCs, locations, and factions.</p>
+      </div>
+      <div class="idea">
+        <h3>Tables &amp; Dungeons</h3>
+        <p>Loot and encounter tables, plus generated dungeon layouts for smaller-scale spaces within a location.</p>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="group-label">For running the game</p>
+      <div class="idea">
+        <h3>Session Prep</h3>
+        <p>Pull everything relevant to your next session — NPCs, locations, factions — into one prep sheet, with gaps flagged.</p>
+      </div>
+      <div class="idea">
+        <h3>Player-Safe Sharing</h3>
+        <p>Share a version of your archive with players that hides GM secrets and notes automatically.</p>
+      </div>
+      <div class="idea">
+        <h3>Session Recaps</h3>
+        <p>Turn your rough post-session notes into a clean "previously on" recap, filed right into your world's timeline.</p>
+      </div>
+      <div class="idea">
+        <h3>Solo Play Mode</h3>
+        <p>An Ironsworn-style way to play in your world solo, pulling from everything you've already generated and creating more as you go.</p>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="group-label">Deeper worldbuilding</p>
+      <div class="idea">
+        <h3>Timelines</h3>
+        <p>A real chronology of your world's history and events, not just prose.</p>
+      </div>
+      <div class="idea">
+        <h3>Culture &amp; Religion</h3>
+        <p>Belief systems and daily customs, separate from faction politics.</p>
+      </div>
+      <div class="idea">
+        <h3>Calendar &amp; Holidays</h3>
+        <p>In-world dates and festivals to help ground session pacing.</p>
+      </div>
+      <div class="idea">
+        <h3>Relationship Graph</h3>
+        <p>A visual map of who knows who and how factions relate, built from data you've already generated.</p>
+      </div>
+    </div>
+
+    <div class="group">
+      <p class="group-label">Across the whole archive</p>
+      <div class="idea">
+        <h3>Free-Form Tagging</h3>
+        <p>Tag entries your own way, on top of category and faction.</p>
+      </div>
+      <div class="idea">
+        <h3>Export &amp; Print</h3>
+        <p>PDF or print-friendly views of any entry, or your whole archive.</p>
+      </div>
+      <div class="idea">
+        <h3>Entry History</h3>
+        <p>Keep previous versions of an entry around after you regenerate it.</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>Have a request or feedback on any of this? <a href="mailto:ausfarr@gmail.com">ausfarr@gmail.com</a></span>
+    <span class="app-version">v0.7 · beta</span>
+  </div>
+</footer>
+
+</body>
+</html>
