@@ -40,7 +40,7 @@ const ADMIN_EMAILS = ["ausfarr@gmail.com"];
 const RATES = {
   "claude-sonnet-4-6": [3.00, 15.00],
   "claude-haiku-4-5-20251001": [1.00, 5.00],
-  "gemini-3.1-pro": [2.00, 12.00],
+  "gemini-3.1-pro-preview": [2.00, 12.00],
   "gemini-3.6-flash": [1.50, 7.50],
   "gemini-3.5-flash-lite": [0.30, 2.50]
 };
@@ -121,7 +121,7 @@ router.get("/debug/compare-text-models", async (req, res) => {
       }
     }
 
-    for (const model of ["gemini-3.1-pro", "gemini-3.6-flash", "gemini-3.5-flash-lite"]) {
+    for (const model of ["gemini-3.1-pro-preview", "gemini-3.6-flash", "gemini-3.5-flash-lite"]) {
       const start = Date.now();
       try {
         const { text, inputTokens, outputTokens } = await callGeminiText(model, systemPromptFlat, userMessage);
