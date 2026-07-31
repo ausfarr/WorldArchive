@@ -94,7 +94,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   const btn = document.getElementById('gen-submit');
   const status = document.getElementById('gen-status');
   btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Recruiting a new face…', 'Writing a quirk…', 'Almost there…']);
+  showGenerationOverlay(['Recruiting a new face…', 'Writing a quirk…','Writing a rough backstory…','Deciding what they are good at…', 'Almost there…']);
   status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
   try {
     const res = await authFetch('/api/generate-survivor', {
