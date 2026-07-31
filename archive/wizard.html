@@ -208,7 +208,7 @@ document.querySelector(".generate-btn").addEventListener("click", async (e) => {
   const status = document.getElementById("status");
   btn.disabled = true;
   status.textContent = "Generating suggestions…";
-  showGenerationOverlay(["Weighing the genre…", "Drafting a core tension…", "Almost there…"]);
+  showGenerationOverlay(["Weighing the genre…", "Drafting a core tension…","Looking for inspiration…","Weighing the non-negotiables…","Almost there…"]);
   try {
     const body = {
       genre: getCheckedValues(document.getElementById("genre-checklist")).join(", "),
