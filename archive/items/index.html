@@ -136,6 +136,14 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
 </script>
 
 
+  <div class="sheet" style="margin: 0 0 20px; padding: 16px 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+  <button id="export-category-btn" style="background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 8px 16px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.78rem; cursor: pointer;">Download PDF</button>
+  <label style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim); display: flex; align-items: center; gap: 6px;">
+    <input type="checkbox" id="export-include-images" checked> Include images
+  </label>
+  <span id="export-category-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint);"></span>
+</div>
+
   <div class="entry-grid" id="entry-grid"></div>
 </div>
 
@@ -222,6 +230,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
     applyCategoryConfig();
     applySiteTheme();
     loadAndRenderCategoryIndex("items");
+    wireCategoryExportButton();
   });
 </script>
 

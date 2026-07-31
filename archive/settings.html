@@ -77,6 +77,18 @@
     <div id="usage-content" class="info-row">Loading…</div>
   </div>
 
+  <div class="info-section">
+    <h2>Export</h2>
+    <p class="info-row">Download the whole world as a PDF -- for reading, printing, or bringing to the table away from a screen. Category- and entry-level exports are also available from each category tab and dossier page.</p>
+    <div style="margin-top: 12px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+      <button id="export-world-btn" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer; font-weight: 600;">Download Whole World (PDF)</button>
+      <label style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim); display: flex; align-items: center; gap: 6px;">
+        <input type="checkbox" id="export-include-images" checked> Include images
+      </label>
+    </div>
+    <div id="export-world-status" style="margin-top: 10px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint);"></div>
+  </div>
+
   <div class="info-section" style="border-color: var(--danger, #c0392b);">
     <h2 style="color: var(--danger, #c0392b);">Delete World</h2>
     <p class="info-row">Permanently deletes every NPC, enemy, item, class, log, survivor, and faction this world has generated, along with all portraits and world lore/config. You'll be sent back into a fresh wizard to start over. Your login stays active -- this does not delete your account.</p>
@@ -141,6 +153,7 @@ async function init() {
   applyCategoryConfig();
   applySiteTheme();
   loadUsage();
+  wireWorldExportButton();
 
   document.getElementById("delete-world-btn").addEventListener("click", async () => {
     const confirmed = window.confirm(

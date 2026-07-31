@@ -1655,6 +1655,7 @@ function renderDossier(entry, factionLookup) {
   }
 
   wireDeleteEntryButton(entry);
+  wireEntryExportButton(entry);
 }
 
 // Wires the dossier page's "Delete This Entry" button to the entry
@@ -2157,3 +2158,96 @@ function initSiteSearch() {
 }
 
 document.addEventListener("DOMContentLoaded", initSiteSearch);
+
+// ---------------------------------------------------------------------
+// PDF export (Priority 4) -- three entry points sharing one download
+// helper: Settings tab (whole world), category tab (per-category), and
+// dossier page (per-entry). See routes/export.js + lib/pdfExport.js.
+//
+// Uses authFetch + blob download rather than a plain <a href="/api/...">
+// link -- the export routes are auth-gated like every other /api route,
+// and a plain link can't carry the Authorization header authFetch adds.
+// ---------------------------------------------------------------------
+
+// Shared by all three wiring functions below. `url` should already
+// include everything except the images= query param, which this adds
+// based on the shared "Include images" checkbox (id="export-include-images")
+// if one is present on the page -- defaults to including images if no
+// checkbox exists (e.g. a page that only ever exports one entry and
+// skips the control).
+async function downloadExportPdf(url, btn, statusEl) {
+  const includeImagesEl = document.getElementById("export-include-images");
+  const includeImages = includeImagesEl ? includeImagesEl.checked : true;
+  const separator = url.includes("?") ? "&" : "?";
+  const fullUrl = `${url}${separator}images=${includeImages ? "true" : "false"}`;
+
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Preparing PDF…";
+  if (statusEl) statusEl.textContent = "";
+
+  try {
+    const res = await authFetch(fullUrl);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || "Export failed.");
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = disposition.match(/filename="([^"]+)"/);
+    const filename = match ? match[1] : "export.pdf";
+
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    console.error("PDF export failed:", err);
+    if (statusEl) statusEl.textContent = "Export failed: " + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// Settings tab -- whole-world export.
+function wireWorldExportButton() {
+  const btn = document.getElementById("export-world-btn");
+  if (!btn) return;
+  const status = document.getElementById("export-world-status");
+  btn.addEventListener("click", () => downloadExportPdf("/api/export/world", btn, status));
+}
+
+// Category tab (Factions, NPCs, etc.) -- per-category export. Reads the
+// category off document.body.dataset.category, same source every
+// category index page already uses for category_config skinning, so
+// this needs no per-page argument.
+function wireCategoryExportButton() {
+  const btn = document.getElementById("export-category-btn");
+  if (!btn) return;
+  const category = document.body.dataset.category;
+  if (!category) return;
+  const status = document.getElementById("export-category-status");
+  btn.addEventListener("click", () =>
+    downloadExportPdf(`/api/export/category/${category}`, btn, status)
+  );
+}
+
+// Dossier page -- per-entry export. Re-wired on every renderDossier()
+// call (same pattern as wireDeleteEntryButton) since entry.category/
+// entry.id aren't known until the fetch in loadAndRenderDossier()
+// resolves.
+function wireEntryExportButton(entry) {
+  const btn = document.getElementById("export-entry-btn");
+  if (!btn) return;
+  const freshBtn = btn.cloneNode(true);
+  btn.parentNode.replaceChild(freshBtn, btn);
+  const status = document.getElementById("export-entry-status");
+  freshBtn.addEventListener("click", () =>
+    downloadExportPdf(`/api/export/entry/${entry.category}/${entry.id}`, freshBtn, status)
+  );
+}
