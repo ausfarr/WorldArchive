@@ -265,7 +265,7 @@ document.getElementById("generate-base").addEventListener("click", async () => {
   const status = document.getElementById("status");
   btn.disabled = true;
   status.textContent = "Generating…";
-  showGenerationOverlay(["Picking a palette…", "Choosing typography…", "Almost there…"]);
+  showGenerationOverlay(["Picking a palette…", "Choosing typography…","Setting the mood…","Building the visual language…", "Almost there…"]);
   try {
     const res = await authFetch("/api/wizard/generate-style-guide", { method: "POST" });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
@@ -287,7 +287,7 @@ document.getElementById("generate-accents").addEventListener("click", async () =
   if (factions.length === 0) { status.textContent = "No factions saved yet — nothing to assign colors to."; return; }
   btn.disabled = true;
   status.textContent = "Assigning faction accent colors…";
-  showGenerationOverlay(["Matching colors to factions…", "Almost there…"]);
+  showGenerationOverlay(["Matching colors to factions…","Matching hues to personalities…","Making sure nothing clashes…","Assigning identity colors…", "Almost there…"]);
   try {
     const baseStyle = readBaseFields();
     const res = await authFetch("/api/wizard/generate-faction-accents", {
