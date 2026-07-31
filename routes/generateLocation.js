@@ -1,15 +1,12 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
-const { generateImage } = require("../lib/imagegen");
+const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { buildLocationRosterContext, readLocationManifest, readLocationEntry, buildRosterContext } = require("../lib/roster");
 const { buildLocationContentSystemPrompt } = require("../prompts/locationContentPrompt");
-const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
-const { saveLocationEntry, saveImage } = require("../lib/fileWriter");
+const { saveLocationEntry } = require("../lib/fileWriter");
 const { slugify, buildLocationBodyHtml } = require("../lib/locationTemplate");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
-const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
 
 const router = express.Router();
 
@@ -88,43 +85,9 @@ router.post("/generate-location", enforceGenerationCap, async (req, res) => {
       });
     }
 
-    // Step 3: art prompt generation (ENVIRONMENT framing — see artPromptPrompt.js)
-    let imageBuffer = null;
-    let imageError = null;
-    try {
-      const styleGuide = await getStyleGuide(worldId);
-      const factionAccent = await getFactionAccent(worldId, styleGuide, location.faction);
-      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "locations", subjectJson: location, styleGuide, factionAccent });
-      const artPrompt = await callClaude({
-        systemPrompt: artSystemPrompt,
-        userMessage: "Write the prompt now.",
-        maxTokens: 500,
-        // Cheaper model for this call -- see lib/claude.js's HAIKU_MODEL
-        // comment. Writing an art-generation prompt from structured JSON
-        // + a strict template is a mechanical/templating task, not
-        // creative world-building judgment, so it doesn't need Sonnet.
-        model: HAIKU_MODEL
-      });
-
-      // Step 4: image generation — non-fatal if it fails
-      imageBuffer = await generateImage(artPrompt.trim());
-    } catch (imgErr) {
-      console.error("Image step failed, continuing without art:", imgErr.message);
-      imageError = imgErr.message;
-    }
-
-    // Step 5: upload image FIRST so its real public URL can be baked
-    // into the saved bodyHtml — same ordering fix as every other category.
-    let imageUrl = null;
-    if (imageBuffer) {
-      try {
-        imageUrl = await saveImage(worldId, location.id, imageBuffer);
-      } catch (uploadErr) {
-        console.error("Image upload failed:", uploadErr.message);
-        imageError = uploadErr.message;
-      }
-    }
-    await saveLocationEntry(worldId, location, imageUrl);
+    // Portrait/backdrop generation is now a separate on-demand action --
+    // see routes/generateEntryImage.js. Same rationale as generate.js.
+    await saveLocationEntry(worldId, location, null);
 
     res.json({
       preview: false,
@@ -132,9 +95,7 @@ router.post("/generate-location", enforceGenerationCap, async (req, res) => {
       name: location.name,
       regionBiome: location.regionBiome,
       faction: location.faction,
-      summary: location.designNotes,
-      imageGenerated: !!imageUrl,
-      imageError
+      summary: location.designNotes
     });
   } catch (err) {
     console.error("Location generation failed:", err);

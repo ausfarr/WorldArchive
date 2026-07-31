@@ -10,8 +10,8 @@ const generateLogRoute = require("./routes/generateLog");
 const generateClassRoute = require("./routes/generateClass");
 const generateFactionRoute = require("./routes/generateFaction");
 const generateLocationRoute = require("./routes/generateLocation");
+const generateEntryImageRoute = require("./routes/generateEntryImage");
 const mapRoute = require("./routes/map");
-const worldArtRoute = require("./routes/worldArt");
 const confirmEntryRoute = require("./routes/confirmEntry");
 const wizardRoute = require("./routes/wizard");
 const wizardLoreRoute = require("./routes/wizardLore");
@@ -26,13 +26,19 @@ const exportRoute = require("./routes/export");
 const searchRoute = require("./routes/search");
 const deleteWorldRoute = require("./routes/deleteWorld");
 const adminCostRoute = require("./routes/adminCost");
+const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
 const { APP_VERSION } = require("./lib/version");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+// Default express.json() limit is 100kb -- too small for a user-uploaded
+// portrait sent as a base64 data URL (routes/generateEntryImage.js's
+// /upload-image). 15mb covers a large uploaded image with room to spare
+// without meaningfully changing behavior for every other route's much
+// smaller JSON bodies.
+app.use(express.json({ limit: "15mb" }));
 
 // Public config for the frontend Supabase client (login page, authFetch
 // helper). SUPABASE_URL and the publishable/anon key are both meant to be
@@ -85,8 +91,8 @@ app.use("/api", generateLogRoute);
 app.use("/api", generateClassRoute);
 app.use("/api", generateFactionRoute);
 app.use("/api", generateLocationRoute);
+app.use("/api", generateEntryImageRoute);
 app.use("/api", mapRoute);
-app.use("/api", worldArtRoute);
 app.use("/api", confirmEntryRoute);
 app.use("/api", wizardRoute);
 app.use("/api", wizardLoreRoute);
@@ -101,6 +107,7 @@ app.use("/api", exportRoute);
 app.use("/api", searchRoute);
 app.use("/api", deleteWorldRoute);
 app.use("/api", adminCostRoute);
+app.use("/api", debugCompareTextModelsRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 
 // Catches errors passed via next(err) anywhere above (e.g. a Supabase/DB

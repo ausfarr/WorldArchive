@@ -1,15 +1,12 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
-const { generateImage } = require("../lib/imagegen");
+const { callClaude, parseJsonResponse } = require("../lib/claude");
 const { buildClassRosterContext, readClassManifest, readClassEntry, buildLocationRosterContext } = require("../lib/roster");
 const { buildClassContentSystemPrompt } = require("../prompts/classContentPrompt");
-const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
-const { saveClassEntry, saveImage } = require("../lib/fileWriter");
+const { saveClassEntry } = require("../lib/fileWriter");
 const { slugify, buildClassBodyHtml } = require("../lib/classTemplate");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent, getSkillSystem, formatFieldSkillsForPrompt, formatWeaponSkillsForPrompt } = require("../lib/worldFlavor");
-const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getSkillSystem, formatFieldSkillsForPrompt, formatWeaponSkillsForPrompt } = require("../lib/worldFlavor");
 
 const router = express.Router();
 
@@ -83,47 +80,16 @@ router.post("/generate-class", enforceGenerationCap, async (req, res) => {
       });
     }
 
-    let imageBuffer = null;
-    let imageError = null;
-    try {
-      const styleGuide = await getStyleGuide(worldId);
-      const factionAccent = await getFactionAccent(worldId, styleGuide, cls.faction);
-      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "classes", subjectJson: cls, styleGuide, factionAccent });
-      const artPrompt = await callClaude({
-        systemPrompt: artSystemPrompt,
-        userMessage: "Write the prompt now.",
-        maxTokens: 500,
-        // Cheaper model for this call -- see lib/claude.js's HAIKU_MODEL
-        // comment. Writing an art-generation prompt from structured JSON
-        // + a strict template is a mechanical/templating task, not
-        // creative world-building judgment, so it doesn't need Sonnet.
-        model: HAIKU_MODEL
-      });
-      imageBuffer = await generateImage(artPrompt.trim());
-    } catch (imgErr) {
-      console.error("Image step failed, continuing without art:", imgErr.message);
-      imageError = imgErr.message;
-    }
-
-    let imageUrl = null;
-    if (imageBuffer) {
-      try {
-        imageUrl = await saveImage(worldId, cls.id, imageBuffer);
-      } catch (uploadErr) {
-        console.error("Image upload failed:", uploadErr.message);
-        imageError = uploadErr.message;
-      }
-    }
-    await saveClassEntry(worldId, cls, imageUrl);
+    // Portrait generation is now a separate on-demand action -- see
+    // routes/generateEntryImage.js. Same rationale as routes/generate.js.
+    await saveClassEntry(worldId, cls, null);
 
     res.json({
       preview: false,
       id: cls.id,
       name: `${cls.baseName} → ${cls.evolvedName}`,
       archetype: cls.archetype,
-      summary: cls.designNotes,
-      imageGenerated: !!imageUrl,
-      imageError
+      summary: cls.designNotes
     });
   } catch (err) {
     console.error("Class generation failed:", err);
