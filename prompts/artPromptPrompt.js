@@ -42,16 +42,17 @@ const ENVIRONMENT_CATEGORIES = new Set(["locations"]);
 const MOOD_CATEGORIES = new Set(["world-mood", "faction-mood"]);
 // Map tiles (routes/map.js): one per faction actually represented on
 // the map, composited together into one backdrop with soft-blended seams
-// (see archive/map.html). Unlike every other category here, this ONE
-// needs an illustrated top-down cartographic vantage rather than an
-// eye-level photographic one -- two independently-generated eye-level
-// shots can never blend into each other (no shared horizon/camera
-// position), but an illustrated map style already reads as abstracted
-// and tiles far more forgivingly. Grounded directly in each faction's
-// own territory description (not a separate biome-tag guess) so the art
-// under a faction's cluster actually matches what that faction's own
-// lore says about its territory -- see this session's addendum for the
-// pivot away from the original biome-tag version of this feature.
+// (see archive/map.html). Framed as an aerial/elevated PAINTED
+// environment illustration, not a photographic eye-level shot and,
+// after a real failure this session, explicitly NOT a "map-style"
+// framing either -- asking for "cartographic"/"map" vantage caused the
+// image model to generate literal floor-plan/dungeon-map diagrams
+// instead of atmospheric terrain art. "Aerial establishing painting"
+// gets the elevated, blend-friendly vantage without triggering that
+// failure mode. Grounded directly in each faction's own territory
+// description (not a biome-tag guess) so the art under a faction's
+// cluster actually matches what that faction's own lore says about its
+// territory.
 const MAP_TILE_CATEGORIES = new Set(["map-tile"]);
 
 function buildStyleRulesBlock(styleGuide) {
@@ -93,14 +94,18 @@ function buildStaticInstructions(category) {
   // soft-edge requirement is load-bearing enough to state up front
   // rather than as one more bullet among several.
   if (isMapTile) {
-    return `You generate image-generation prompts for a tabletop/game world's map art -- you do not generate images. Output ONLY the prompt text, 60-120 words, as flowing natural-language prose (NOT a comma-separated tag list). No markdown, no preamble.
+    return `You generate image-generation prompts for a tabletop/game world's environment art -- you do not generate images. Output ONLY the prompt text, 60-120 words, as flowing natural-language prose (NOT a comma-separated tag list). No markdown, no preamble.
 
-ASSET TYPE: Illustrated Cartographic Tile -- a hand-painted/illustrated top-down or three-quarter map-style rendering of the physical terrain/architecture/environment implied by ONE faction's territory (see TERRITORY below), in the style of a painted tabletop campaign map, NOT a photographic establishing shot. This is environment art, NOT a portrait of the faction -- no figures, no faction insignia/banners/logos, no readable text or symbols anywhere. This tile will be blended edge-to-edge with other independently-generated tiles into one composite map, so:
-- The vantage MUST read as an illustrated map (painterly, stylized, or schematic), never an eye-level photo -- two photos can't share a horizon, but two map-style illustrations already read as abstracted and blend forgivingly.
-- Composition must be loose and edge-agnostic: no border, frame, vignette, or any element that implies a hard edge to the piece. Terrain/texture should feel like it could continue past every edge of the frame.
+ASSET TYPE: Aerial Environment Painting -- a painted/illustrated aerial or elevated three-quarter establishing view of terrain, architecture, and atmosphere, the way concept art for a video game establishing shot looks: brushwork, light, and atmosphere, viewed from a high vantage point over the scene. This is environment art, NOT a portrait of the faction, NOT floor-plan or dungeon-map artwork.
+
+DO NOT PRODUCE: a floor plan, a dungeon/battle map, a blueprint or architectural diagram, a top-down map with a grid, a game-board layout with rooms/corridors marked out, or anything resembling a technical/cartographic diagram. If in doubt, picture a painted landscape or cityscape seen from above -- not a map of one. This distinction matters more than any other instruction here.
+
+This piece will be blended edge-to-edge with other independently-generated pieces into one composite backdrop, so:
+- No figures, no faction insignia/banners/logos, no readable text, labels, or symbols anywhere.
+- Composition must be loose and edge-agnostic: no border, frame, or vignette. Terrain/texture should feel like it could continue past every edge of the frame.
 - Depict the KIND of place the territory description implies (a corporate tower's upper floors, a flooded storage vault, an open-air trade corridor -- whatever it actually says) rather than defaulting to generic ruin/wasteland imagery if the territory isn't literally destroyed. If the territory is intact/functioning, the art should look intact/functioning.
 
-Write the prompt now, in this order: (1) the terrain/environment in one sentence, grounded specifically in the territory description below, (2) key texture/color details pulled from the style rules below, (3) a closing phrase confirming top-down/illustrated map vantage with no border or frame.`;
+Write the prompt now, in this order: (1) the environment in one sentence, grounded specifically in the territory description below, as a painted aerial establishing view, (2) key texture/color details pulled from the style rules below, (3) a closing phrase confirming this is painted/illustrated environment art, not a diagram, with no border or frame.`;
   }
 
   const assetTypeBlock = isMood

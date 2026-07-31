@@ -146,19 +146,14 @@
   //
   // Builds the SVG <defs> + <image> markup for one faction's tile, soft-
   // edged via a radial-gradient luminance mask centered on its anchor.
-  // Overlapping tiles blend into each other naturally at their fading
-  // edges rather than showing a hard seam -- see this session's map-fix
-  // addendum for why an illustrated-map art style (not a photo) is what
-  // actually makes that blending read as intentional rather than sloppy.
-  //
-  // Radius is deliberately large relative to the faction-cluster anchors
-  // (which sit close to center, ~192px out at most -- see
-  // computeFactionAnchors' 0.32 multiplier) so a tile's soft edge still
-  // reaches every canvas corner (max corner distance from center is
-  // ~583px) rather than leaving gaps of bare panel color between tiles.
+  // Radius comes from the anchor itself (computeTileAnchors sizes each
+  // tile to its own nearest-neighbor spacing -- see that function's
+  // header comment for why a fixed radius was the second real bug this
+  // session: it guaranteed neighboring tiles' opaque cores fully
+  // overlapped instead of just their soft edges touching).
   function buildTileMarkup(tile, anchor, index) {
     const slug = `tile${index}`;
-    const radius = 620;
+    const radius = anchor.radius;
     return {
       defs: `
         <radialGradient id="grad-${slug}" cx="50%" cy="50%" r="50%">
@@ -180,10 +175,12 @@
     const legendEl = document.getElementById("map-legend");
     try {
       // Step 1: locations + faction order/lookup, fetched first so tile
-      // placement (Step 2 below) can share the EXACT same anchor
-      // positions node placement uses -- see mapLayout.js's
-      // computeFactionAnchors() header comment for why that structural
-      // guarantee is the whole point of this session's map-fix pivot.
+      // placement (Step 2 below) can share the same faction grouping/
+      // angular order node placement uses -- see mapLayout.js's
+      // computeTileAnchors() header comment for why tiles use a wider
+      // spread + per-tile radius than node anchors, while still keeping
+      // the same relative arrangement (so a faction's art still sits in
+      // the same general direction as that faction's own nodes).
       const [locRes, facRes, factionLookup] = await Promise.all([
         authFetch("/api/entries/locations"),
         authFetch("/api/entries/factions"),
@@ -201,7 +198,7 @@
       }
 
       const nodes = computeMapLayout(locations, factionOrder);
-      const anchors = computeFactionAnchors(locations, factionOrder);
+      const tileAnchors = computeTileAnchors(locations, factionOrder);
 
       // Step 2: which factions does this world's current location roster
       // need tile art for, and which of those already have it?
@@ -220,14 +217,16 @@
         tiles = (genData.results || []).map((r) => ({ factionKey: r.factionKey, exists: !!r.url, url: r.url }));
       }
 
-      // Step 3: composite tiles at their faction's actual anchor point --
-      // same anchors object nodes below are placed from, so a tile is
-      // guaranteed to sit where that faction's own nodes cluster.
+      // Step 3: composite tiles at their faction's wider-spread anchor
+      // point (same grouping/order as node clusters, larger radius --
+      // see computeTileAnchors), so a tile still sits in the same
+      // general direction as that faction's own nodes without its
+      // opaque core swallowing its neighbors.
       const defsParts = [];
       const imageParts = [];
       tiles.forEach((tile, i) => {
         if (!tile.url) return;
-        const anchor = anchors[tile.factionKey] || { x: 500, y: 300 };
+        const anchor = tileAnchors[tile.factionKey] || { x: 500, y: 300, radius: 400 };
         const built = buildTileMarkup(tile, anchor, i);
         defsParts.push(built.defs);
         imageParts.push(built.image);
