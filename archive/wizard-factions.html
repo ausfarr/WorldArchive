@@ -171,7 +171,7 @@ document.getElementById("factions-list").addEventListener("click", async (e) => 
   if (action === "generate-one") {
     e.target.disabled = true;
     status.textContent = "Generating…";
-    showGenerationOverlay(["Drafting a faction concept…", "Working out internal politics…", "Almost there…"]);
+    showGenerationOverlay(["Drafting a faction concept…", "Working out internal politics…","Sorting into sections…","Writing their origin story…","Working out their reach…", "Almost there…"]);
     try {
       const f = factions[index];
       const res = await authFetch("/api/wizard/generate-faction", {
@@ -201,7 +201,7 @@ document.getElementById("generate-step").addEventListener("click", async () => {
   const room = MAX_FACTIONS - factions.length;
   const count = Math.min(4, room);
   status.textContent = `Generating ${count} new faction(s) from scratch — this can take a moment…`;
-  showGenerationOverlay(["Drafting new factions…", "Working out who opposes whom…", "Almost there…"]);
+  showGenerationOverlay(["Founding several powers at once…","Making sure nobody agrees…","Drafting new factions…", "Working out who opposes whom…","Setting up old grudges…","Balancing the board…", "Almost there…"]);
   try {
     const res = await authFetch("/api/wizard/generate-factions-step", {
       method: "POST",
