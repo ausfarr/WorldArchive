@@ -99,6 +99,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   const btn = document.getElementById('gen-submit');
   const status = document.getElementById('gen-status');
   btn.disabled = true; btn.textContent = 'Generating…';
+  showGenerationOverlay(['Writing a found record…', 'Setting the scene…', 'Almost there…']);
   status.style.display = 'block'; status.textContent = 'Calling the generator…';
   try {
     const res = await authFetch('/api/generate-log', {
@@ -116,6 +117,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   } catch (err) {
     status.innerHTML = err.message;
   } finally {
+    hideGenerationOverlay();
     btn.disabled = false; btn.textContent = 'Generate Log';
   }
 });

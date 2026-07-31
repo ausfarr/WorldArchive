@@ -167,6 +167,58 @@ const REGENERATE_ENDPOINTS = {
   locations: "/api/generate-location"
 };
 
+// ---------- Full-screen generation-in-progress overlay ----------
+// For anything that actually calls the AI (real wait, 10-30+ seconds) --
+// NOT for fast DB-only saves, which keep the existing lighter
+// disable+status-text treatment those already had. Dims and blocks the
+// whole page (no clicking through it) with a spinner and rotating
+// status text, so a slow response never reads as "did my click even
+// register" -- directly from tester feedback: a few steps showed
+// something was happening, but not all, and a slow one with no
+// indicator invites a re-click, a reload, or someone giving up.
+// Messages default to genre-agnostic copy (the product spans many kinds
+// of worlds, not just Echoes) -- callers can pass their own array for a
+// bit of flavor at a specific call site.
+const GENERATION_OVERLAY_DEFAULT_MESSAGES = [
+  "Writing the details…",
+  "Consulting the archive…",
+  "Double-checking consistency…",
+  "Almost there…"
+];
+let generationOverlayInterval = null;
+
+function showGenerationOverlay(messages) {
+  hideGenerationOverlay();
+  const msgs = (messages && messages.length) ? messages : GENERATION_OVERLAY_DEFAULT_MESSAGES;
+  const overlay = document.createElement("div");
+  overlay.id = "gen-loading-overlay";
+  overlay.style.cssText = "position:fixed; inset:0; background:rgba(6,7,8,0.88); z-index:2000; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px;";
+  overlay.innerHTML = `
+    <style>
+      @keyframes gen-overlay-spin { to { transform: rotate(360deg); } }
+    </style>
+    <div style="width:36px; height:36px; border-radius:50%; border:3px solid var(--bg-panel-raised); border-top-color: var(--neon-primary); animation: gen-overlay-spin 0.9s linear infinite;"></div>
+    <p id="gen-loading-message" style="color: var(--ink); font-size: 0.9rem; margin: 0; letter-spacing: 0.02em; font-family: var(--font-body); max-width: 320px; text-align: center;">${escapeHtmlForSearch(msgs[0])}</p>
+    <p style="color: var(--ink-faint); font-size: 0.68rem; margin: 0; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;">This can take up to 30 seconds</p>
+  `;
+  document.body.appendChild(overlay);
+  let i = 0;
+  generationOverlayInterval = setInterval(() => {
+    i = (i + 1) % msgs.length;
+    const el = document.getElementById("gen-loading-message");
+    if (el) el.textContent = msgs[i];
+  }, 2200);
+}
+
+function hideGenerationOverlay() {
+  if (generationOverlayInterval) {
+    clearInterval(generationOverlayInterval);
+    generationOverlayInterval = null;
+  }
+  const existing = document.getElementById("gen-loading-overlay");
+  if (existing) existing.remove();
+}
+
 // Categories with a bespoke manual Edit form -- distinct from
 // REGENERATE_ENDPOINTS (an AI-assisted rewrite with a preview/confirm
 // step). Edit saves immediately (no AI call, no preview, doesn't count
@@ -263,6 +315,7 @@ async function fillInEntry(categoryPath, id, btnEl) {
   const originalText = btnEl.textContent;
   btnEl.disabled = true;
   btnEl.textContent = "Generating…";
+  showGenerationOverlay();
   try {
     const res = await authFetch(endpoint, {
       method: "POST",
@@ -274,6 +327,7 @@ async function fillInEntry(categoryPath, id, btnEl) {
     btnEl.textContent = "Done!";
     setTimeout(() => window.location.reload(), 800);
   } catch (err) {
+    hideGenerationOverlay();
     btnEl.disabled = false;
     btnEl.textContent = originalText;
     alert("Fill-in failed: " + err.message);
@@ -291,6 +345,7 @@ async function regenerateEntry(categoryPath, id, btnEl) {
   const originalText = btnEl.textContent;
   btnEl.disabled = true;
   btnEl.textContent = "Generating…";
+  showGenerationOverlay();
   try {
     const res = await authFetch(endpoint, {
       method: "POST",
@@ -299,6 +354,7 @@ async function regenerateEntry(categoryPath, id, btnEl) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(formatGenerationError(data, { asHtml: false }));
+    hideGenerationOverlay();
     btnEl.disabled = false;
     btnEl.textContent = originalText;
     if (data.preview) {
@@ -309,6 +365,7 @@ async function regenerateEntry(categoryPath, id, btnEl) {
       window.location.reload();
     }
   } catch (err) {
+    hideGenerationOverlay();
     btnEl.disabled = false;
     btnEl.textContent = originalText;
     alert("Regenerate failed: " + err.message);
@@ -1716,6 +1773,7 @@ async function loadAndRenderHomepageCounts() {
       return [cat, data.entries || []];
     }));
     renderHomepageCounts(Object.fromEntries(results));
+    renderWorldStatusPanel(Object.fromEntries(results));
   } catch (err) {
     console.error("Failed to load homepage counts:", err);
   }
@@ -1900,6 +1958,112 @@ function renderHomepageCounts(manifests) {
     const archived = list.filter(e => !e.locked).length;
     const el = document.getElementById(`count-${category}`);
     if (el) el.textContent = `${archived} / ${list.length} archived`;
+  });
+}
+
+// ---------- World status panel (homepage, above the category grid) ----------
+// Small per-category "how full is this" targets -- not a hard cap, just
+// what counts as "a decent start" for the progress bar and the
+// suggested-next-step logic below. Factions are a special case: they're
+// created (and auto-upgraded to full Deep Lore) during the wizard, not
+// generated one at a time like everything else, so their target is
+// "however many this world actually has" rather than a fixed number --
+// a world with 3 factions and a world with 8 should both read as
+// complete once none are locked, not be judged against someone else's
+// count.
+const CATEGORY_TARGETS = { npcs: 3, enemies: 3, items: 3, classes: 2, logs: 3, survivors: 3, locations: 3 };
+const WORLD_STATUS_DISMISS_KEY = "worldforge_hide_status_panel";
+
+function getEnabledCategoriesFromCache() {
+  try {
+    const cached = localStorage.getItem(CATEGORY_CACHE_KEY);
+    if (!cached) return null;
+    const config = JSON.parse(cached);
+    const enabled = {};
+    Object.keys(config).forEach((key) => {
+      if (key === "_site") return;
+      enabled[key] = config[key].enabled !== false;
+    });
+    return enabled;
+  } catch (e) {
+    return null;
+  }
+}
+
+function renderWorldStatusPanel(manifests) {
+  const host = document.getElementById("world-status-panel");
+  if (!host) return;
+
+  if (localStorage.getItem(WORLD_STATUS_DISMISS_KEY) === "true") {
+    host.innerHTML = `<p style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin: 0 0 16px; text-align: right;"><a href="#" id="world-status-show" style="color: var(--ink-faint);">Show world status</a></p>`;
+    document.getElementById("world-status-show").addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.removeItem(WORLD_STATUS_DISMISS_KEY);
+      renderWorldStatusPanel(manifests);
+    });
+    return;
+  }
+
+  const enabledMap = getEnabledCategoriesFromCache();
+  const rows = Object.keys(CATEGORY_LABELS)
+    .filter((cat) => !enabledMap || enabledMap[cat] !== false)
+    .map((cat) => {
+      const list = (manifests[cat] || []).filter((e) => !e.locked);
+      const target = cat === "factions" ? Math.max((manifests[cat] || []).length, 1) : CATEGORY_TARGETS[cat];
+      const pct = Math.min(list.length / target, 1);
+      return { category: cat, count: list.length, target, pct };
+    });
+
+  const overallPct = rows.length ? rows.reduce((sum, r) => sum + r.pct, 0) / rows.length : 1;
+  const startedCount = rows.filter((r) => r.count > 0).length;
+
+  if (overallPct >= 1) {
+    host.innerHTML = `
+      <p style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 0 0 16px; display: flex; justify-content: space-between; align-items: center;">
+        <span>World fully archived — nice.</span>
+        <a href="#" id="world-status-hide" style="color: var(--ink-faint);">Hide</a>
+      </p>`;
+    document.getElementById("world-status-hide").addEventListener("click", (e) => {
+      e.preventDefault();
+      localStorage.setItem(WORLD_STATUS_DISMISS_KEY, "true");
+      renderWorldStatusPanel(manifests);
+    });
+    return;
+  }
+
+  const suggestion = rows
+    .filter((r) => r.pct < 1)
+    .sort((a, b) => a.pct - b.pct)[0];
+
+  const suggestionHtml = suggestion
+    ? `<div style="display:flex; align-items:center; gap:12px; background: var(--bg-panel-raised); padding: 12px 14px; margin-top: 14px;">
+        <div style="flex:1;">
+          <p style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 3px;">Suggested next step</p>
+          <p style="margin:0; font-size: 0.88rem;">${suggestion.count === 0 ? `You haven't archived any ${CATEGORY_LABELS[suggestion.category]} yet.` : `${CATEGORY_LABELS[suggestion.category]} could use a bit more (${suggestion.count}/${suggestion.target}).`}</p>
+        </div>
+        <a href="${suggestion.category}/index.html" style="white-space:nowrap; background: var(--neon-primary); color: var(--bg-void); border: none; padding: 8px 16px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.78rem; font-weight: 600; text-decoration: none;">Go to ${CATEGORY_LABELS[suggestion.category]}</a>
+      </div>`
+    : "";
+
+  host.innerHTML = `
+    <div class="sheet" style="margin: 0 0 24px; padding: 20px 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <p class="sheet-eyebrow" style="margin:0;">World status</p>
+        <div style="display:flex; align-items:center; gap:14px;">
+          <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-dim);">${startedCount} of ${rows.length} categories started</span>
+          <a href="#" id="world-status-hide" style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint);">Hide</a>
+        </div>
+      </div>
+      <div style="height:6px; background: var(--bg-panel-raised); overflow:hidden;">
+        <div style="height:100%; width:${Math.round(overallPct * 100)}%; background: var(--neon-primary);"></div>
+      </div>
+      ${suggestionHtml}
+    </div>`;
+
+  document.getElementById("world-status-hide").addEventListener("click", (e) => {
+    e.preventDefault();
+    localStorage.setItem(WORLD_STATUS_DISMISS_KEY, "true");
+    renderWorldStatusPanel(manifests);
   });
 }
 

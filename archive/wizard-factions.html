@@ -101,6 +101,7 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/wizardSession.js"></script>
+<script src="js/render.js"></script>
 <script>
 const MAX_FACTIONS = 8;
 let factions = []; // each: { id, name, concept, politics, government, economy, military, tensions }
@@ -170,6 +171,7 @@ document.getElementById("factions-list").addEventListener("click", async (e) => 
   if (action === "generate-one") {
     e.target.disabled = true;
     status.textContent = "Generating…";
+    showGenerationOverlay(["Drafting a faction concept…", "Working out internal politics…", "Almost there…"]);
     try {
       const f = factions[index];
       const res = await authFetch("/api/wizard/generate-faction", {
@@ -185,6 +187,7 @@ document.getElementById("factions-list").addEventListener("click", async (e) => 
     } catch (err) {
       status.textContent = "Error: " + err.message;
     } finally {
+      hideGenerationOverlay();
       e.target.disabled = false;
     }
   }
@@ -198,6 +201,7 @@ document.getElementById("generate-step").addEventListener("click", async () => {
   const room = MAX_FACTIONS - factions.length;
   const count = Math.min(4, room);
   status.textContent = `Generating ${count} new faction(s) from scratch — this can take a moment…`;
+  showGenerationOverlay(["Drafting new factions…", "Working out who opposes whom…", "Almost there…"]);
   try {
     const res = await authFetch("/api/wizard/generate-factions-step", {
       method: "POST",
@@ -212,6 +216,7 @@ document.getElementById("generate-step").addEventListener("click", async () => {
   } catch (err) {
     status.textContent = "Error: " + err.message;
   } finally {
+    hideGenerationOverlay();
     btn.disabled = false;
   }
 });

@@ -159,8 +159,10 @@
         backdropUrl = statusData.url;
       } else {
         statusEl.textContent = "Generating your world's map backdrop — this only happens once, give it a moment…";
+        showGenerationOverlay(["Painting the backdrop…", "This only happens once…", "Almost there…"]);
         const genRes = await authFetch("/api/map/generate-backdrop", { method: "POST" });
         const genData = await genRes.json();
+        hideGenerationOverlay();
         if (!genRes.ok) throw new Error(genData.error || "Backdrop generation failed");
         backdropUrl = genData.url;
       }
