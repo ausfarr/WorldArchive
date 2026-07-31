@@ -43,15 +43,20 @@ function mulberry32(seed) {
 
 // locations: array of {id, name, faction} (faction may be null/undefined/"unaligned")
 // factionOrder: array of faction ids in this world's own display order (from /api/entries/factions)
+// anchorOverrides: optional { [factionKey]: {x, y} } in canvas-space
+// coordinates (0-1000 / 0-600), from a vision analysis of the actual
+// backdrop image (see routes/map.js's detectFactionAnchors -- normalized
+// 0-1 coordinates get multiplied up to canvas space before reaching
+// here). Per-faction: a faction WITH a real detected anchor uses it
+// exactly; any faction without one falls back to the circular default
+// below, same as if no overrides were passed at all. This is what
+// closes the gap every earlier attempt this session left open -- pin
+// placement can now be grounded in what the image actually shows,
+// instead of pure abstract geometry with zero relationship to the art.
 // Returns: { [factionKey]: {x, y} } -- one anchor per faction actually
 // represented among the given locations (plus "unaligned" if any
-// location has no faction), evenly spaced around a circle. Used by
-// computeMapLayout() below for node clustering. (An earlier version of
-// this session's map-fix work also used a wider-spread variant of this
-// for per-faction backdrop art -- that whole approach was abandoned in
-// favor of per-location vignettes, see archive/map.html, so this is back
-// to serving node placement only.)
-function computeFactionAnchors(locations, factionOrder, radiusMultiplier = 0.32) {
+// location has no faction).
+function computeFactionAnchors(locations, factionOrder, radiusMultiplier = 0.32, anchorOverrides = {}) {
   const WIDTH = 1000, HEIGHT = 600;
   const centerX = WIDTH / 2, centerY = HEIGHT / 2;
   const clusterRadius = Math.min(WIDTH, HEIGHT) * radiusMultiplier;
@@ -73,6 +78,10 @@ function computeFactionAnchors(locations, factionOrder, radiusMultiplier = 0.32)
   const clusterCount = orderedKeys.length;
   const anchors = {};
   orderedKeys.forEach((key, i) => {
+    if (anchorOverrides[key]) {
+      anchors[key] = anchorOverrides[key];
+      return;
+    }
     if (clusterCount <= 1) {
       anchors[key] = { x: centerX, y: centerY };
       return;
@@ -88,9 +97,9 @@ function computeFactionAnchors(locations, factionOrder, radiusMultiplier = 0.32)
 
 
 // Returns: array of {id, name, faction, x, y} in a 1000x600 canvas.
-function computeMapLayout(locations, factionOrder) {
+function computeMapLayout(locations, factionOrder, anchorOverrides = {}) {
   const WIDTH = 1000, HEIGHT = 600, PADDING = 60;
-  const anchors = computeFactionAnchors(locations, factionOrder);
+  const anchors = computeFactionAnchors(locations, factionOrder, 0.32, anchorOverrides);
 
   // Seed each node's initial position at its cluster anchor + a small
   // deterministic jitter, so the force simulation doesn't start every

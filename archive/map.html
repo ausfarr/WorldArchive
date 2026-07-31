@@ -190,24 +190,32 @@
       // generate if not -- this must never fire more than once per world
       // in the normal case (see routes/map.js's own idempotency check as
       // a second line of defense against a double-click/double-load
-      // race). Deliberately atmosphere-only art (see
-      // prompts/mapBackdropPrompt.js) -- it doesn't depict any specific
-      // faction's territory or any specific location; real depicted
-      // places live in each pin's popup instead (see extractPortraitUrl
-      // above).
+      // race). The art itself is still deliberately atmosphere-only (see
+      // prompts/mapBackdropPrompt.js) -- it's never told where any
+      // faction's territory should go. What connects the two is a
+      // separate vision pass run right after generation (see
+      // routes/map.js's detectFactionAnchors): Claude looks at the
+      // finished image and finds real structures/regions that plausibly
+      // match each faction's own territory description, returned here as
+      // `anchors`. A faction with a genuine visual match gets pinned
+      // there; anything else falls back to the existing circular layout
+      // (see anchorOverrides below).
       let backdropUrl = null;
+      let normalizedAnchors = {};
       const statusRes = await authFetch("/api/map/backdrop");
       const statusData = await statusRes.json();
       if (statusData.exists) {
         backdropUrl = statusData.url;
+        normalizedAnchors = statusData.anchors || {};
       } else {
         statusEl.textContent = "Generating your world's map backdrop — this only happens once, give it a moment…";
-        showGenerationOverlay(["Painting the backdrop…", "This only happens once…", "Setting the mood…", "Almost there…"]);
+        showGenerationOverlay(["Painting the backdrop…", "Studying the layout…", "This only happens once…", "Almost there…"]);
         const genRes = await authFetch("/api/map/generate-backdrop", { method: "POST" });
         const genData = await genRes.json();
         hideGenerationOverlay();
         if (!genRes.ok) throw new Error(genData.error || "Backdrop generation failed");
         backdropUrl = genData.url;
+        normalizedAnchors = genData.anchors || {};
       }
 
       // Step 2: locations + faction order/lookup
@@ -230,7 +238,18 @@
       // Same faction-clustered layout math as before -- pan/zoom is what
       // actually fixes crowding (room to spread out, not fighting for a
       // fixed pixel budget), not a change to the underlying coordinates.
-      const nodes = computeMapLayout(locations, factionOrder);
+      // Vision-detected anchors come back normalized (0-1, see
+      // prompts/mapAnchorPrompt.js) -- scaled up to canvas-space pixel
+      // coordinates here, once, before handing them to the shared layout
+      // function (which expects the same coordinate space the circular
+      // default already works in).
+      const anchorOverrides = {};
+      Object.entries(normalizedAnchors).forEach(([factionKey, coords]) => {
+        if (!coords) return;
+        anchorOverrides[factionKey] = { x: coords.x * CANVAS_WIDTH, y: coords.y * CANVAS_HEIGHT };
+      });
+
+      const nodes = computeMapLayout(locations, factionOrder, anchorOverrides);
       const bodyHtmlById = {};
       locations.forEach((loc) => { bodyHtmlById[loc.id] = loc.bodyHtml; });
 
