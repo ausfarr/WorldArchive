@@ -25,6 +25,7 @@ const exportRoute = require("./routes/export");
 const searchRoute = require("./routes/search");
 const deleteWorldRoute = require("./routes/deleteWorld");
 const adminCostRoute = require("./routes/adminCost");
+const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
 const { APP_VERSION } = require("./lib/version");
 
@@ -99,6 +100,7 @@ app.use("/api", exportRoute);
 app.use("/api", searchRoute);
 app.use("/api", deleteWorldRoute);
 app.use("/api", adminCostRoute);
+app.use("/api", debugCompareTextModelsRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 
 // Catches errors passed via next(err) anywhere above (e.g. a Supabase/DB
