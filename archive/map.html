@@ -8,8 +8,10 @@
 <style>
   .map-wrap { position: relative; width: 100%; max-width: 1100px; margin: 0 auto; }
   #map-svg { width: 100%; height: auto; border: 1px solid var(--border-line); background: var(--bg-panel); display: block; }
-  .map-node circle { stroke: var(--bg-void); stroke-width: 2; cursor: pointer; transition: r 0.15s ease; }
-  .map-node:hover circle { r: 10; }
+  .map-node circle { stroke: var(--bg-void); stroke-width: 2; cursor: pointer; transition: r 0.15s ease, stroke-width 0.15s ease; }
+  .map-node:hover .map-node-dot { r: 10; }
+  .map-node:hover .map-node-ring { stroke-width: 4; }
+  .map-node image { cursor: pointer; }
   .map-node text { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); paint-order: stroke; stroke: var(--bg-void); stroke-width: 3px; pointer-events: none; }
   .map-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0 0; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-dim); }
   .map-legend-item { display: flex; align-items: center; gap: 6px; }
@@ -142,31 +144,26 @@
 <script>
   // Faction accent colors reuse the same lookup NPC/Bestiary pages use
   // (see archive/js/render.js's getFactionLookup + facColorVar) so a
-  // location's pin matches its dossier's tag color exactly.
-  //
-  // Builds the SVG <defs> + <image> markup for one faction's tile, soft-
-  // edged via a radial-gradient luminance mask centered on its anchor.
-  // Radius comes from the anchor itself (computeTileAnchors sizes each
-  // tile to its own nearest-neighbor spacing -- see that function's
-  // header comment for why a fixed radius was the second real bug this
-  // session: it guaranteed neighboring tiles' opaque cores fully
-  // overlapped instead of just their soft edges touching).
-  function buildTileMarkup(tile, anchor, index) {
-    const slug = `tile${index}`;
-    const radius = anchor.radius;
-    return {
-      defs: `
-        <radialGradient id="grad-${slug}" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="white" stop-opacity="1"></stop>
-          <stop offset="65%" stop-color="white" stop-opacity="0.9"></stop>
-          <stop offset="100%" stop-color="white" stop-opacity="0"></stop>
-        </radialGradient>
-        <mask id="mask-${slug}" maskContentUnits="userSpaceOnUse">
-          <rect x="${anchor.x - radius}" y="${anchor.y - radius}" width="${radius * 2}" height="${radius * 2}" fill="url(#grad-${slug})"></rect>
-        </mask>
-      `,
-      image: `<image href="${tile.url}" x="0" y="0" width="1000" height="600" preserveAspectRatio="xMidYMid slice" mask="url(#mask-${slug})"></image>`
-    };
+  // location's vignette ring matches its dossier's tag color exactly.
+
+  // Pulls the portrait <img> src out of a location's own already-
+  // generated bodyHtml (see lib/locationTemplate.js's buildLocationBodyHtml
+  // -- every Location gets ENVIRONMENT-framed art the same way NPCs get
+  // portraits, via prompts/artPromptPrompt.js). Reusing that art here
+  // instead of generating anything new is the whole point of the
+  // vignette approach: real depicted places, zero new Gemini calls, and
+  // no blending/masking problem to get wrong, since each vignette shows
+  // its own image in full rather than a cropped window into a shared
+  // canvas-sized backdrop (see this session's earlier attempts for why
+  // that mattered). Uses a detached DOM parse rather than a regex --
+  // more robust against attribute-order/quoting differences in the
+  // stored HTML.
+  function extractPortraitUrl(bodyHtml) {
+    if (!bodyHtml) return null;
+    const holder = document.createElement("div");
+    holder.innerHTML = bodyHtml;
+    const img = holder.querySelector(".portrait-img");
+    return img ? img.getAttribute("src") : null;
   }
 
   async function loadAndRenderMap() {
@@ -174,13 +171,30 @@
     const svg = document.getElementById("map-svg");
     const legendEl = document.getElementById("map-legend");
     try {
-      // Step 1: locations + faction order/lookup, fetched first so tile
-      // placement (Step 2 below) can share the same faction grouping/
-      // angular order node placement uses -- see mapLayout.js's
-      // computeTileAnchors() header comment for why tiles use a wider
-      // spread + per-tile radius than node anchors, while still keeping
-      // the same relative arrangement (so a faction's art still sits in
-      // the same general direction as that faction's own nodes).
+      // Step 1: does a shared base backdrop already exist? Only auto-
+      // generate if not -- this must never fire more than once per world
+      // in the normal case (see routes/map.js's own idempotency check as
+      // a second line of defense against a double-click/double-load
+      // race). This is deliberately atmosphere-only art (see
+      // prompts/mapBackdropPrompt.js) -- it doesn't need to depict any
+      // specific faction's territory, since real depicted places are now
+      // handled per-location by the vignettes below instead.
+      let backdropUrl = null;
+      const statusRes = await authFetch("/api/map/backdrop");
+      const statusData = await statusRes.json();
+      if (statusData.exists) {
+        backdropUrl = statusData.url;
+      } else {
+        statusEl.textContent = "Generating your world's map backdrop — this only happens once, give it a moment…";
+        showGenerationOverlay(["Painting the backdrop…", "This only happens once…", "Setting the mood…", "Almost there…"]);
+        const genRes = await authFetch("/api/map/generate-backdrop", { method: "POST" });
+        const genData = await genRes.json();
+        hideGenerationOverlay();
+        if (!genRes.ok) throw new Error(genData.error || "Backdrop generation failed");
+        backdropUrl = genData.url;
+      }
+
+      // Step 2: locations + faction order/lookup
       const [locRes, facRes, factionLookup] = await Promise.all([
         authFetch("/api/entries/locations"),
         authFetch("/api/entries/factions"),
@@ -198,68 +212,45 @@
       }
 
       const nodes = computeMapLayout(locations, factionOrder);
-      const tileAnchors = computeTileAnchors(locations, factionOrder);
+      const bodyHtmlById = {};
+      locations.forEach((loc) => { bodyHtmlById[loc.id] = loc.bodyHtml; });
 
-      // Step 2: which factions does this world's current location roster
-      // need tile art for, and which of those already have it?
-      const tilesStatusRes = await authFetch("/api/map/tiles");
-      const tilesStatusData = await tilesStatusRes.json();
-      let tiles = tilesStatusData.tiles || [];
-      const anyMissing = tiles.some((t) => !t.exists);
+      // Step 3: render SVG -- base backdrop, then one vignette (or, for a
+      // location with no portrait yet, the old plain dot as a fallback)
+      // per node. Vignettes are drawn as a full circular clip of that
+      // location's own image plus a faction-colored ring -- no masking
+      // against the shared backdrop, so there's nothing to blend badly.
+      const backdropImg = backdropUrl
+        ? `<image href="${backdropUrl}" x="0" y="0" width="1000" height="600" preserveAspectRatio="xMidYMid slice"></image>
+           <rect x="0" y="0" width="1000" height="600" fill="var(--bg-void)" opacity="0.32"></rect>`
+        : `<rect x="0" y="0" width="1000" height="600" fill="var(--bg-panel)"></rect>`;
 
-      if (anyMissing) {
-        statusEl.textContent = "Painting this world's map tiles — this only happens once per faction, give it a moment…";
-        showGenerationOverlay(["Painting each faction's territory…", "Blending the regions…", "This only happens once per faction…", "Almost there…"]);
-        const genRes = await authFetch("/api/map/generate-tiles", { method: "POST" });
-        const genData = await genRes.json();
-        hideGenerationOverlay();
-        if (!genRes.ok) throw new Error(genData.error || "Tile generation failed");
-        tiles = (genData.results || []).map((r) => ({ factionKey: r.factionKey, exists: !!r.url, url: r.url }));
-      }
-
-      // Step 3: composite tiles at their faction's wider-spread anchor
-      // point (same grouping/order as node clusters, larger radius --
-      // see computeTileAnchors), so a tile still sits in the same
-      // general direction as that faction's own nodes without its
-      // opaque core swallowing its neighbors.
-      const defsParts = [];
-      const imageParts = [];
-      tiles.forEach((tile, i) => {
-        if (!tile.url) return;
-        const anchor = tileAnchors[tile.factionKey] || { x: 500, y: 300, radius: 400 };
-        const built = buildTileMarkup(tile, anchor, i);
-        defsParts.push(built.defs);
-        imageParts.push(built.image);
-      });
-
-      // Shared unifying overlay -- a low-opacity noise texture across the
-      // WHOLE composited result, plus a dimming rect for text legibility
-      // over the art. This is what actually sells "one object" on top of
-      // several independently-generated tiles underneath it.
-      const backdropImg = `
-        <defs>
-          ${defsParts.join("\n")}
-          <filter id="map-grain">
-            <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise"></feTurbulence>
-            <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0"></feColorMatrix>
-          </filter>
-        </defs>
-        <rect x="0" y="0" width="1000" height="600" fill="var(--bg-panel)"></rect>
-        ${imageParts.join("\n")}
-        <rect x="0" y="0" width="1000" height="600" fill="var(--bg-void)" opacity="0.22"></rect>
-        <rect x="0" y="0" width="1000" height="600" filter="url(#map-grain)"></rect>
-      `;
-
-      // Step 4: render SVG
+      const VIGNETTE_R = 26;
+      const clipDefs = [];
       const nodesHtml = nodes.map((n) => {
         const color = facColorVar(n.faction, factionLookup);
+        const portraitUrl = extractPortraitUrl(bodyHtmlById[n.id]);
+        let markerHtml;
+        if (portraitUrl) {
+          const clipId = `vig-clip-${n.id}`;
+          clipDefs.push(`<clipPath id="${clipId}"><circle cx="${n.x}" cy="${n.y}" r="${VIGNETTE_R}"></circle></clipPath>`);
+          markerHtml = `
+            <image href="${portraitUrl}" x="${n.x - VIGNETTE_R}" y="${n.y - VIGNETTE_R}" width="${VIGNETTE_R * 2}" height="${VIGNETTE_R * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>
+            <circle class="map-node-ring" cx="${n.x}" cy="${n.y}" r="${VIGNETTE_R}" fill="none" stroke="${color}" stroke-width="2.5"></circle>
+          `;
+        } else {
+          // Graceful fallback -- a location generated before art existed,
+          // or whose art generation failed, still shows up as a plain dot
+          // rather than a broken image.
+          markerHtml = `<circle class="map-node-dot" cx="${n.x}" cy="${n.y}" r="7" fill="${color}"></circle>`;
+        }
         return `<a href="dossier.html?category=locations&id=${n.id}" class="map-node">
-          <circle cx="${n.x}" cy="${n.y}" r="7" fill="${color}"></circle>
-          <text x="${n.x}" y="${n.y - 12}" text-anchor="middle">${n.name}</text>
+          ${markerHtml}
+          <text x="${n.x}" y="${n.y - VIGNETTE_R - 6}" text-anchor="middle">${n.name}</text>
         </a>`;
       }).join("\n");
 
-      svg.innerHTML = backdropImg + nodesHtml;
+      svg.innerHTML = `<defs>${clipDefs.join("\n")}</defs>` + backdropImg + nodesHtml;
       svg.style.display = "block";
       statusEl.style.display = "none";
 

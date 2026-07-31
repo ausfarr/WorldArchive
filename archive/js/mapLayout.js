@@ -43,12 +43,14 @@ function mulberry32(seed) {
 
 // locations: array of {id, name, faction} (faction may be null/undefined/"unaligned")
 // factionOrder: array of faction ids in this world's own display order (from /api/entries/factions)
-// radiusMultiplier: fraction of min(WIDTH,HEIGHT) used as the cluster
-// radius -- see computeTileAnchors() below for why this is a parameter
-// rather than a hardcoded constant.
 // Returns: { [factionKey]: {x, y} } -- one anchor per faction actually
 // represented among the given locations (plus "unaligned" if any
-// location has no faction), evenly spaced around a circle.
+// location has no faction), evenly spaced around a circle. Used by
+// computeMapLayout() below for node clustering. (An earlier version of
+// this session's map-fix work also used a wider-spread variant of this
+// for per-faction backdrop art -- that whole approach was abandoned in
+// favor of per-location vignettes, see archive/map.html, so this is back
+// to serving node placement only.)
 function computeFactionAnchors(locations, factionOrder, radiusMultiplier = 0.32) {
   const WIDTH = 1000, HEIGHT = 600;
   const centerX = WIDTH / 2, centerY = HEIGHT / 2;
@@ -84,51 +86,6 @@ function computeFactionAnchors(locations, factionOrder, radiusMultiplier = 0.32)
   return anchors;
 }
 
-// Tile anchors for the map-art backdrop (archive/map.html), DELIBERATELY
-// wider-spread than node anchors -- this session's second real bug:
-// tiles reused the SAME (tight, ~192px-from-center) radius node clusters
-// use, sized for keeping a handful of dots visually grouped, not for
-// giving each faction's terrain art its own non-overlapping region of a
-// 1000x600 canvas. At that tight radius, every tile's soft-edged circle
-// had to cover almost the whole canvas just to reach the corners, which
-// meant neighboring tiles' OPAQUE CORES fully overlapped each other --
-// not a gentle blend, just whichever tile drew last painting over the
-// one before it (reported directly: "one overlay seems to take over the
-// rest," "no sign of Board presence").
-//
-// Fix: reuse the exact same grouping/ordering (so direction still
-// corresponds to node clusters -- "Board's art is roughly where Board's
-// dots are" still holds), but spread anchors much further out AND give
-// each tile a radius sized to its own nearest-neighbor spacing, so
-// adjacent tiles' opaque centers no longer overlap -- only their soft
-// fading edges meet, which is what actually reads as a blend instead of
-// an overwrite.
-function computeTileAnchors(locations, factionOrder) {
-  const anchors = computeFactionAnchors(locations, factionOrder, 0.55);
-  const keys = Object.keys(anchors);
-  const CANVAS_DIAGONAL_HALF = Math.sqrt(500 * 500 + 300 * 300); // ~583, corner distance from center
-  const MAX_RADIUS = 620; // single-faction worlds: one tile must cover the whole canvas alone
-  const MIN_RADIUS = 260; // floor so even a crowded map's tiles aren't reduced to slivers
-
-  const result = {};
-  keys.forEach((key) => {
-    const a = anchors[key];
-    let nearestDist = Infinity;
-    keys.forEach((otherKey) => {
-      if (otherKey === key) return;
-      const b = anchors[otherKey];
-      const d = Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
-      if (d < nearestDist) nearestDist = d;
-    });
-    // No neighbor (single-faction world) -- must single-handedly reach
-    // the canvas corners.
-    const radius = Number.isFinite(nearestDist)
-      ? Math.max(MIN_RADIUS, Math.min(nearestDist * 0.62, MAX_RADIUS))
-      : Math.max(MAX_RADIUS, CANVAS_DIAGONAL_HALF + 40);
-    result[key] = { x: a.x, y: a.y, radius: Math.round(radius) };
-  });
-  return result;
-}
 
 // Returns: array of {id, name, faction, x, y} in a 1000x600 canvas.
 function computeMapLayout(locations, factionOrder) {

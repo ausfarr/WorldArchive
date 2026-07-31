@@ -40,20 +40,6 @@ const ENVIRONMENT_CATEGORIES = new Set(["locations"]);
 // the World Mood Board (one per world) and Faction Mood Banners (one per
 // faction) -- see routes/worldArt.js.
 const MOOD_CATEGORIES = new Set(["world-mood", "faction-mood"]);
-// Map tiles (routes/map.js): one per faction actually represented on
-// the map, composited together into one backdrop with soft-blended seams
-// (see archive/map.html). Framed as an aerial/elevated PAINTED
-// environment illustration, not a photographic eye-level shot and,
-// after a real failure this session, explicitly NOT a "map-style"
-// framing either -- asking for "cartographic"/"map" vantage caused the
-// image model to generate literal floor-plan/dungeon-map diagrams
-// instead of atmospheric terrain art. "Aerial establishing painting"
-// gets the elevated, blend-friendly vantage without triggering that
-// failure mode. Grounded directly in each faction's own territory
-// description (not a biome-tag guess) so the art under a faction's
-// cluster actually matches what that faction's own lore says about its
-// territory.
-const MAP_TILE_CATEGORIES = new Set(["map-tile"]);
 
 function buildStyleRulesBlock(styleGuide) {
   const s = styleGuide || {};
@@ -83,30 +69,9 @@ function buildFactionAccentLine(factionAccent) {
 // STATIC per category (see header comment) — same text every time for a
 // given category, so cacheable, just not universally across categories.
 function buildStaticInstructions(category) {
-  const isMapTile = MAP_TILE_CATEGORIES.has(category);
   const isMood = MOOD_CATEGORIES.has(category);
   const isObject = OBJECT_CATEGORIES.has(category);
   const isEnvironment = ENVIRONMENT_CATEGORIES.has(category);
-
-  // Map tiles get their own full instruction block rather than slotting
-  // into the shared STRUCTURE template below -- they don't have a
-  // subject/action/pose the way every other category does, and the
-  // soft-edge requirement is load-bearing enough to state up front
-  // rather than as one more bullet among several.
-  if (isMapTile) {
-    return `You generate image-generation prompts for a tabletop/game world's environment art -- you do not generate images. Output ONLY the prompt text, 60-120 words, as flowing natural-language prose (NOT a comma-separated tag list). No markdown, no preamble.
-
-ASSET TYPE: Aerial Environment Painting -- a painted/illustrated aerial or elevated three-quarter establishing view of terrain, architecture, and atmosphere, the way concept art for a video game establishing shot looks: brushwork, light, and atmosphere, viewed from a high vantage point over the scene. This is environment art, NOT a portrait of the faction, NOT floor-plan or dungeon-map artwork.
-
-DO NOT PRODUCE: a floor plan, a dungeon/battle map, a blueprint or architectural diagram, a top-down map with a grid, a game-board layout with rooms/corridors marked out, or anything resembling a technical/cartographic diagram. If in doubt, picture a painted landscape or cityscape seen from above -- not a map of one. This distinction matters more than any other instruction here.
-
-This piece will be blended edge-to-edge with other independently-generated pieces into one composite backdrop, so:
-- No figures, no faction insignia/banners/logos, no readable text, labels, or symbols anywhere.
-- Composition must be loose and edge-agnostic: no border, frame, or vignette. Terrain/texture should feel like it could continue past every edge of the frame.
-- Depict the KIND of place the territory description implies (a corporate tower's upper floors, a flooded storage vault, an open-air trade corridor -- whatever it actually says) rather than defaulting to generic ruin/wasteland imagery if the territory isn't literally destroyed. If the territory is intact/functioning, the art should look intact/functioning.
-
-Write the prompt now, in this order: (1) the environment in one sentence, grounded specifically in the territory description below, as a painted aerial establishing view, (2) key texture/color details pulled from the style rules below, (3) a closing phrase confirming this is painted/illustrated environment art, not a diagram, with no border or frame.`;
-  }
 
   const assetTypeBlock = isMood
     ? `ASSET TYPE: Atmospheric Mood Piece -- NOT a specific character, object, or named location. Depict this world's overall sensory register as an abstract/atmospheric scene (light quality, weather, texture, wreckage or growth, whatever the style rules below imply) that captures the palette/lighting/texture rules without depicting any identifiable person or a specific, nameable place. If this is a faction's piece specifically (see the faction accent notes below, if present), let its accent color and notes color the mood without inserting literal insignia, banners, or readable text/symbols.`
