@@ -143,3 +143,42 @@ function computeMapLayout(locations, factionOrder) {
     x: Math.round(n.x * 10) / 10, y: Math.round(n.y * 10) / 10
   }));
 }
+
+// ---------------------------------------------------------------------
+// Biome tile anchors (Option C map fix -- see this session's addendum).
+//
+// DELIBERATELY INDEPENDENT of computeMapLayout() above. Node position is
+// driven by Controlling Faction (locked design decision -- see this
+// file's header comment on why faction-clustering was chosen over pure
+// biome-clustering: it preserves the "whose territory is this" reading).
+// Biome tiles are an atmospheric BACKDROP layer, not a claim about where
+// any specific node geographically sits -- a location's dot is exactly
+// where its faction cluster puts it, same as before this feature;
+// nothing here changes that. Reconciling both into one true geography
+// simulation was explicitly scoped OUT this session as much bigger,
+// riskier work than compositing a backdrop is on its own.
+//
+// biomeTags: array of distinct biome tag strings actually represented
+// (see routes/map.js's getRepresentedBiomeTags). Returns: array of
+// {biomeTag, x, y} in the same 1000x600 canvas as computeMapLayout.
+function computeBiomeAnchors(biomeTags) {
+  const WIDTH = 1000, HEIGHT = 600;
+  const centerX = WIDTH / 2, centerY = HEIGHT / 2;
+  // Wider radius than the faction cluster anchors (0.32) -- tiles need
+  // to spread further toward the canvas edges so their soft-edged
+  // circles actually cover the corners, not just a ring around the
+  // center.
+  const spreadRadius = Math.min(WIDTH, HEIGHT) * 0.42;
+
+  return biomeTags.map((biomeTag, i) => {
+    if (biomeTags.length <= 1) {
+      return { biomeTag, x: centerX, y: centerY };
+    }
+    const angle = (i / biomeTags.length) * Math.PI * 2 - Math.PI / 2;
+    return {
+      biomeTag,
+      x: Math.round((centerX + spreadRadius * Math.cos(angle)) * 10) / 10,
+      y: Math.round((centerY + spreadRadius * Math.sin(angle)) * 10) / 10
+    };
+  });
+}

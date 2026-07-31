@@ -40,6 +40,16 @@ const ENVIRONMENT_CATEGORIES = new Set(["locations"]);
 // the World Mood Board (one per world) and Faction Mood Banners (one per
 // faction) -- see routes/worldArt.js.
 const MOOD_CATEGORIES = new Set(["world-mood", "faction-mood"]);
+// Map biome tiles (routes/map.js): several of these get composited
+// together into one map backdrop with soft-blended seams (see
+// archive/map.html), so unlike every other category here, this ONE
+// needs an illustrated top-down cartographic vantage rather than an
+// eye-level photographic one -- two independently-generated eye-level
+// shots can never blend into each other (no shared horizon/camera
+// position), but an illustrated map style already reads as abstracted
+// and tiles far more forgivingly. See this session's addendum for the
+// full reasoning.
+const MAP_TILE_CATEGORIES = new Set(["map-tile"]);
 
 function buildStyleRulesBlock(styleGuide) {
   const s = styleGuide || {};
@@ -69,9 +79,27 @@ function buildFactionAccentLine(factionAccent) {
 // STATIC per category (see header comment) — same text every time for a
 // given category, so cacheable, just not universally across categories.
 function buildStaticInstructions(category) {
+  const isMapTile = MAP_TILE_CATEGORIES.has(category);
   const isMood = MOOD_CATEGORIES.has(category);
   const isObject = OBJECT_CATEGORIES.has(category);
   const isEnvironment = ENVIRONMENT_CATEGORIES.has(category);
+
+  // Map tiles get their own full instruction block rather than slotting
+  // into the shared STRUCTURE template below -- they don't have a
+  // subject/action/pose the way every other category does, and the
+  // soft-edge requirement is load-bearing enough to state up front
+  // rather than as one more bullet among several.
+  if (isMapTile) {
+    return `You generate image-generation prompts for a tabletop/game world's map art -- you do not generate images. Output ONLY the prompt text, 60-120 words, as flowing natural-language prose (NOT a comma-separated tag list). No markdown, no preamble.
+
+ASSET TYPE: Illustrated Cartographic Tile -- a hand-painted/illustrated top-down or three-quarter map-style rendering of ONE terrain/biome type (see BIOME below), in the style of a painted tabletop campaign map, NOT a photographic establishing shot. This tile will be blended edge-to-edge with 1-5 other independently-generated tiles into one composite map, so:
+- The vantage MUST read as an illustrated map (painterly, stylized, or schematic), never an eye-level photo -- two photos can't share a horizon, but two map-style illustrations already read as abstracted and blend forgivingly.
+- Composition must be loose and edge-agnostic: no border, frame, vignette, compass rose, or any element that implies a hard edge to the piece. Terrain/texture should feel like it could continue past every edge of the frame.
+- No text, labels, legends, or readable symbols anywhere in the image.
+- Pull the specific terrain texture/color/mood from the BIOME and STYLE RULES below, but keep it a general terrain type, not a specific named place -- no buildings implying a specific settlement, no unique landmarks.
+
+Write the prompt now, in this order: (1) the terrain/biome in one sentence, (2) key texture/color details pulled from the style rules below, (3) a closing phrase confirming top-down/illustrated map vantage with no border or frame.`;
+  }
 
   const assetTypeBlock = isMood
     ? `ASSET TYPE: Atmospheric Mood Piece -- NOT a specific character, object, or named location. Depict this world's overall sensory register as an abstract/atmospheric scene (light quality, weather, texture, wreckage or growth, whatever the style rules below imply) that captures the palette/lighting/texture rules without depicting any identifiable person or a specific, nameable place. If this is a faction's piece specifically (see the faction accent notes below, if present), let its accent color and notes color the mood without inserting literal insignia, banners, or readable text/symbols.`
