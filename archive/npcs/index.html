@@ -108,7 +108,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   const btn = document.getElementById('gen-submit');
   const status = document.getElementById('gen-status');
   btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Sketching a face to match the name…', 'Writing dialogue…', 'Working out who they know…', 'Almost there…']);
+  showGenerationOverlay(['Sketching a face to match the name…', 'Writing dialogue…','Working out what they want…', 'Working out who they know…','Writing their opening line…', 'Almost there…']);
   status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
   try {
     const res = await authFetch('/api/generate-npc', {
