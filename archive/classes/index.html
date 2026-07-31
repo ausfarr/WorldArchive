@@ -91,7 +91,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   const btn = document.getElementById('gen-submit');
   const status = document.getElementById('gen-status');
   btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Mapping out a full career…', 'Balancing the skill tree…', 'Almost there…']);
+  showGenerationOverlay(['Planning a whole career…', 'Balancing the skill tree…','Naming the signature move…','Working out the endgame…','Deciding how this evolves…','Almost there…']);
   status.style.display = 'block'; status.textContent = 'Building the full progression tree — this can take a while…';
   try {
     const res = await authFetch('/api/generate-class', {
