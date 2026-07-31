@@ -105,7 +105,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   const btn = document.getElementById('gen-submit');
   const status = document.getElementById('gen-status');
   btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Rolling up a threat…', 'Balancing the stat block…', 'Sketching claws and teeth…', 'Almost there…']);
+  showGenerationOverlay(['Rolling up a threat…', 'Balancing the stat block…', 'Sketching claws and teeth…','Picking a fighting style…','Naming its favorite move…','Almost there…']);
   status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
   try {
     const res = await authFetch('/api/generate-enemy', {
