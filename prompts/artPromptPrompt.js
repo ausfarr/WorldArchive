@@ -32,6 +32,14 @@ const { buildCacheableSystemPrompt } = require("../lib/claude");
 
 const OBJECT_CATEGORIES = new Set(["items"]);
 const ENVIRONMENT_CATEGORIES = new Set(["locations"]);
+// Priority 6 (Generative Art for the World): a fourth framing, distinct
+// from ENVIRONMENT -- ENVIRONMENT depicts a specific named place with
+// faction control visible through architecture/damage; MOOD is
+// deliberately unanchored, no named location, character, or object, just
+// this world's palette/lighting/texture rendered as atmosphere. Used for
+// the World Mood Board (one per world) and Faction Mood Banners (one per
+// faction) -- see routes/worldArt.js.
+const MOOD_CATEGORIES = new Set(["world-mood", "faction-mood"]);
 
 function buildStyleRulesBlock(styleGuide) {
   const s = styleGuide || {};
@@ -61,16 +69,19 @@ function buildFactionAccentLine(factionAccent) {
 // STATIC per category (see header comment) — same text every time for a
 // given category, so cacheable, just not universally across categories.
 function buildStaticInstructions(category) {
+  const isMood = MOOD_CATEGORIES.has(category);
   const isObject = OBJECT_CATEGORIES.has(category);
   const isEnvironment = ENVIRONMENT_CATEGORIES.has(category);
 
-  const assetTypeBlock = isEnvironment
+  const assetTypeBlock = isMood
+    ? `ASSET TYPE: Atmospheric Mood Piece -- NOT a specific character, object, or named location. Depict this world's overall sensory register as an abstract/atmospheric scene (light quality, weather, texture, wreckage or growth, whatever the style rules below imply) that captures the palette/lighting/texture rules without depicting any identifiable person or a specific, nameable place. If this is a faction's piece specifically (see the faction accent notes below, if present), let its accent color and notes color the mood without inserting literal insignia, banners, or readable text/symbols.`
+    : isEnvironment
     ? `ASSET TYPE: Environment/Establishing Shot -- the subject is a PLACE, not a person or object. No figure should be the focal point (a small, distant, unnamed figure for scale is fine, but never a posed subject). Compose it as a wide landscape establishing shot: foreground, midground, and a sense of depth appropriate to the region/biome, with faction control (if any) visible through architecture, signage, upkeep, or damage rather than through a character. State the wide framing explicitly in the framing/aspect note.`
-    : isObject
-      ? `ASSET TYPE: Object/Item Render -- the subject is a single object (weapon, tool, wearable, consumable, relic, etc.), NOT a person. Compose it as the clear focal point of a WIDE LANDSCAPE frame: the object placed within a shallow, believable environment or surface consistent with this world (a workbench, bare ground, propped against a wall or ruin, held in a gloved hand -- whatever fits) that fills the negative space on either side, rather than a tall vertical product-shot isolated on a plain background. State the wide framing explicitly in the framing/aspect note.`
-      : `ASSET TYPE: Character Portrait -- waist-up or bust framing, composed for a WIDE LANDSCAPE frame, not a tall vertical one. Center the subject with visible environment/negative space on both sides rather than a tight vertical crop -- think cinematic character shot, not a phone-screen portrait. State the wide framing explicitly in the framing/aspect note (e.g. "a wide horizontal composition, subject centered with the environment visible on either side").`;
+      : isObject
+        ? `ASSET TYPE: Object/Item Render -- the subject is a single object (weapon, tool, wearable, consumable, relic, etc.), NOT a person. Compose it as the clear focal point of a WIDE LANDSCAPE frame: the object placed within a shallow, believable environment or surface consistent with this world (a workbench, bare ground, propped against a wall or ruin, held in a gloved hand -- whatever fits) that fills the negative space on either side, rather than a tall vertical product-shot isolated on a plain background. State the wide framing explicitly in the framing/aspect note.`
+        : `ASSET TYPE: Character Portrait -- waist-up or bust framing, composed for a WIDE LANDSCAPE frame, not a tall vertical one. Center the subject with visible environment/negative space on both sides rather than a tight vertical crop -- think cinematic character shot, not a phone-screen portrait. State the wide framing explicitly in the framing/aspect note (e.g. "a wide horizontal composition, subject centered with the environment visible on either side").`;
 
-  const ageBlock = (!isObject && !isEnvironment)
+  const ageBlock = (!isObject && !isEnvironment && !isMood)
     ? `\n\nAGE: if the subject data includes an age, let it visibly inform the depiction -- build, posture, skin/hair/hide texture, wear -- the same way gear and faction accents are pulled from the data rather than invented. Don't state the number in the prompt itself; translate it into how the subject actually looks.`
     : "";
 

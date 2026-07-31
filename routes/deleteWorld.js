@@ -2,7 +2,7 @@ const express = require("express");
 const { resetWorldConfig, getGenerationCount, GENERATION_CAP } = require("../lib/worldConfigRepo");
 const { clearLoreSections } = require("../lib/loreRepo");
 const { deleteAllEntries } = require("../lib/entriesRepo");
-const { deleteAllPortraits, deleteMapBackdrop } = require("../lib/fileWriter");
+const { deleteAllPortraits, deleteMapBackdrop, deleteAllWorldArt } = require("../lib/fileWriter");
 
 const router = express.Router();
 
@@ -40,6 +40,7 @@ router.post("/world/delete", async (req, res) => {
     await deleteAllEntries(worldId);
     await deleteAllPortraits(worldId);
     await deleteMapBackdrop(worldId);
+    await deleteAllWorldArt(worldId);
     await resetWorldConfig(worldId);
     await clearLoreSections(worldId);
     res.json({ deleted: true });

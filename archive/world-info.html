@@ -73,6 +73,7 @@
   <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 32px;">A living reference for everything set up about this world — genre, lore, attribute names, and skills. Always reflects the current state; nothing here is cached or pre-written.</p>
 
   <div id="loading" style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-faint);">Loading…</div>
+  <div id="world-mood-board" style="display:none; margin-bottom: 28px;"></div>
   <div id="content" style="display:none;"></div>
 </div>
 
@@ -220,6 +221,25 @@ async function init() {
   } catch (err) {
     console.error("Could not load world info:", err);
     document.getElementById("loading").textContent = "Could not load world info.";
+  }
+  loadWorldMoodBoard();
+}
+
+// Separate, independent fetch -- the mood board not existing yet (a
+// world that hasn't finished Step 6, or the Priority 6 generation step
+// failed silently) shouldn't block or blank out the rest of this page's
+// content.
+async function loadWorldMoodBoard() {
+  try {
+    const res = await authFetch("/api/world-art/mood-board");
+    if (!res.ok) return;
+    const { exists, url } = await res.json();
+    if (!exists || !url) return;
+    const host = document.getElementById("world-mood-board");
+    host.innerHTML = `<img src="${url}" alt="World mood board" style="width:100%; max-height:340px; object-fit:cover; border:1px solid var(--border-line);">`;
+    host.style.display = "block";
+  } catch (err) {
+    console.error("Could not load world mood board:", err);
   }
 }
 

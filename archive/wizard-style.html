@@ -341,11 +341,38 @@ document.getElementById("save-style").addEventListener("click", async () => {
       body: JSON.stringify({ styleGuide })
     });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
+
+    // Generative art (Priority 6) -- one world mood board + one banner
+    // per faction, both generate-once. Deliberately non-blocking to the
+    // wizard's progress: this is enhancement art, not required setup
+    // data, so a failure here is logged and shown briefly but never
+    // stops the redirect to Step 7. Runs the two independent calls in
+    // parallel (world art doesn't depend on faction banners or vice
+    // versa); faction banners are themselves generated sequentially
+    // inside that one call (see routes/worldArt.js) so this is at most
+    // two concurrent Gemini calls at a time, not one per faction.
+    status.textContent = "Saved — generating world art…";
+    showGenerationOverlay([
+      "Painting the world's mood board…",
+      "Assigning each faction a banner…",
+      "This can take a little while with several factions…",
+      "Almost there…"
+    ]);
+    try {
+      await Promise.allSettled([
+        authFetch("/api/world-art/generate-mood-board", { method: "POST" }),
+        authFetch("/api/world-art/generate-faction-banners", { method: "POST" })
+      ]);
+    } catch (artErr) {
+      console.error("Generative art step failed, continuing anyway:", artErr);
+    }
+
     status.textContent = "Saved — continuing…";
     window.location.href = "wizard-categories.html";
   } catch (err) {
     status.textContent = "Error: " + err.message;
   } finally {
+    hideGenerationOverlay();
     btn.disabled = false;
   }
 });

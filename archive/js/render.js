@@ -1653,9 +1653,29 @@ function renderDossier(entry, factionLookup) {
   if (entry.category === "factions") {
     renderFactionColorPicker(entry, facColor);
   }
+  renderFactionBanner(entry);
 
   wireDeleteEntryButton(entry);
   wireEntryExportButton(entry);
+}
+
+// Faction dossier pages only -- shows the Priority 6 mood banner if this
+// faction has one (entry.bannerImageUrl, written by
+// routes/worldArt.js's generate-faction-banners onto the entry's
+// raw_json the same way accentColor already is). Silently does nothing
+// for every other category, and for a faction that hasn't gotten a
+// banner yet (worlds created before this feature, or a failed
+// generation) -- there's no regenerate button yet, matching this
+// session's decision to stub "generate once" rather than build general
+// art-regeneration infrastructure.
+function renderFactionBanner(entry) {
+  const host = document.getElementById("faction-banner");
+  if (!host) return;
+  if (entry.category !== "factions" || !entry.bannerImageUrl) {
+    host.innerHTML = "";
+    return;
+  }
+  host.innerHTML = `<img src="${entry.bannerImageUrl}" alt="${stripHtml(entry.name)} mood banner" style="width:100%; max-height:280px; object-fit:cover; display:block; border-bottom: 1px solid var(--border-line-soft);">`;
 }
 
 // Wires the dossier page's "Delete This Entry" button to the entry
