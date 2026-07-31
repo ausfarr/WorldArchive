@@ -1861,6 +1861,14 @@ function applyCategoryConfigToDom(categoryConfig) {
     if (navLink) {
       if (cfg.enabled === false) navLink.style.display = "none";
       else if (cfg.label) navLink.textContent = cfg.label;
+      // Per-world category labels ("Powers," "Roster," etc.) aren't
+      // always self-explanatory out of context -- a tester read "Powers"
+      // as player/NPC abilities rather than ruling factions. Rather than
+      // hardcode a relabel (these labels are legitimately AI-generated
+      // per world, not a bug), surface the category's own blurb as a
+      // native hover tooltip -- zero new UI chrome, works everywhere a
+      // title attribute works.
+      if (cfg.blurb) navLink.title = cfg.blurb;
     }
     const card = document.getElementById(`card-${key}`);
     if (card) {
@@ -1870,6 +1878,7 @@ function applyCategoryConfigToDom(categoryConfig) {
         const h2 = card.querySelector("h2");
         if (h2) h2.textContent = cfg.label;
       }
+      if (cfg.blurb) card.title = cfg.blurb;
     }
     if (cfg.blurb) {
       const cardDesc = document.getElementById(`card-desc-${key}`);
@@ -1886,6 +1895,7 @@ function applyCategoryConfigToDom(categoryConfig) {
       if (cfg.blurb) {
         const pageBlurb = document.getElementById("page-blurb");
         if (pageBlurb) pageBlurb.textContent = cfg.blurb;
+        if (pageTitle) pageTitle.title = cfg.blurb;
       }
     }
   });
