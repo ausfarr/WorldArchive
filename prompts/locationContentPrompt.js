@@ -13,30 +13,11 @@
 
 const { buildCacheableSystemPrompt } = require("../lib/claude");
 
-// Fixed, small canonical set for map biome-tile grouping (routes/map.js) --
-// deliberately separate from the free-text `regionBiome` field below,
-// which stays prose/lore-grounded and unchanged. regionBiome couldn't
-// reliably drive grouping on its own (two arctic locations could be
-// worded completely differently), so this gives the map compositor
-// something bounded to key tile art off, while regionBiome keeps
-// describing the actual place in the dossier body text.
-const BIOME_TAGS = [
-  "Arctic / Frozen",
-  "Desert / Arid",
-  "Urban Ruin",
-  "Wilderness / Overgrown",
-  "Industrial / Mechanical",
-  "Underground / Subterranean",
-  "Coastal / Aquatic",
-  "Wasteland / Blighted"
-];
-
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
   "name": "Full location name",
   "descriptorLine": "one evocative sentence — the location's equivalent of an NPC's signature quote, but third-person scene-setting rather than dialogue",
   "regionBiome": "free text, grounded in world lore (e.g. a district, wilderness type, structure type)",
-  "biomeTag": "exactly one of: ${BIOME_TAGS.join(" | ")} — pick whichever is the closest analog even if this world's actual biome doesn't literally match any of these (e.g. a frozen digital wasteland still picks \\"Arctic / Frozen\\"); used only for map art grouping, never shown to the player",
   "faction": "one of this world's faction ids (see FACTIONS below), or \\"unaligned\\" if no faction controls this location",
   "notableFeatures": "2-4 sentences, physical/atmospheric description",
   "dangerTags": ["short free-text tag", "e.g. Hostile, Ruins, Trade Hub"],
@@ -92,4 +73,4 @@ Faction: ${faction || "choose one that fills a gap in the existing roster, or un
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
-module.exports = { buildLocationContentSystemPrompt, BIOME_TAGS };
+module.exports = { buildLocationContentSystemPrompt };

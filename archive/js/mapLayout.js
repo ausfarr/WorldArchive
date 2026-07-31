@@ -43,15 +43,25 @@ function mulberry32(seed) {
 
 // locations: array of {id, name, faction} (faction may be null/undefined/"unaligned")
 // factionOrder: array of faction ids in this world's own display order (from /api/entries/factions)
-// Returns: array of {id, name, faction, x, y} in a 1000x600 canvas.
-function computeMapLayout(locations, factionOrder) {
-  const WIDTH = 1000, HEIGHT = 600, PADDING = 60;
+// Returns: { [factionKey]: {x, y} } -- one anchor per faction actually
+// represented among the given locations (plus "unaligned" if any
+// location has no faction), evenly spaced around a circle.
+//
+// Pulled out of computeMapLayout() as its own function (this session's
+// map-fix pivot) specifically so map.html can call the EXACT same anchor
+// positions for faction-territory tile placement as computeMapLayout
+// uses for node placement -- same inputs, same pure function, same
+// output, so tiles and nodes are guaranteed to agree by construction.
+// The original version of this feature computed tile anchors completely
+// independently (see git history / this session's chat) and that
+// mismatch was exactly the problem reported: a faction's art could land
+// anywhere on the canvas regardless of where that faction's own nodes
+// actually clustered. This fixes that structurally, not by coincidence.
+function computeFactionAnchors(locations, factionOrder) {
+  const WIDTH = 1000, HEIGHT = 600;
   const centerX = WIDTH / 2, centerY = HEIGHT / 2;
   const clusterRadius = Math.min(WIDTH, HEIGHT) * 0.32;
 
-  // Group locations by faction, preserving the world's own faction
-  // order first, then any leftover faction key not in that list (e.g. a
-  // stale/renamed faction), then "unaligned" last.
   const byFaction = {};
   locations.forEach((loc) => {
     const key = loc.faction && loc.faction !== "unaligned" ? loc.faction : "unaligned";
@@ -67,9 +77,6 @@ function computeMapLayout(locations, factionOrder) {
   if (byFaction["unaligned"]) orderedKeys.push("unaligned");
 
   const clusterCount = orderedKeys.length;
-
-  // Anchor point for each cluster: evenly spaced around a circle
-  // (single-cluster worlds just anchor at dead center).
   const anchors = {};
   orderedKeys.forEach((key, i) => {
     if (clusterCount <= 1) {
@@ -82,13 +89,20 @@ function computeMapLayout(locations, factionOrder) {
       y: centerY + clusterRadius * Math.sin(angle)
     };
   });
+  return anchors;
+}
+
+// Returns: array of {id, name, faction, x, y} in a 1000x600 canvas.
+function computeMapLayout(locations, factionOrder) {
+  const WIDTH = 1000, HEIGHT = 600, PADDING = 60;
+  const anchors = computeFactionAnchors(locations, factionOrder);
 
   // Seed each node's initial position at its cluster anchor + a small
   // deterministic jitter, so the force simulation doesn't start every
   // node in a cluster stacked exactly on top of each other.
   const nodes = locations.map((loc) => {
     const key = loc.faction && loc.faction !== "unaligned" ? loc.faction : "unaligned";
-    const anchor = anchors[key] || { x: centerX, y: centerY };
+    const anchor = anchors[key] || { x: WIDTH / 2, y: HEIGHT / 2 };
     const rand = mulberry32(hashString(loc.id));
     const jitterAngle = rand() * Math.PI * 2;
     const jitterR = 15 + rand() * 25;
@@ -142,43 +156,4 @@ function computeMapLayout(locations, factionOrder) {
     id: n.id, name: n.name, faction: n.faction,
     x: Math.round(n.x * 10) / 10, y: Math.round(n.y * 10) / 10
   }));
-}
-
-// ---------------------------------------------------------------------
-// Biome tile anchors (Option C map fix -- see this session's addendum).
-//
-// DELIBERATELY INDEPENDENT of computeMapLayout() above. Node position is
-// driven by Controlling Faction (locked design decision -- see this
-// file's header comment on why faction-clustering was chosen over pure
-// biome-clustering: it preserves the "whose territory is this" reading).
-// Biome tiles are an atmospheric BACKDROP layer, not a claim about where
-// any specific node geographically sits -- a location's dot is exactly
-// where its faction cluster puts it, same as before this feature;
-// nothing here changes that. Reconciling both into one true geography
-// simulation was explicitly scoped OUT this session as much bigger,
-// riskier work than compositing a backdrop is on its own.
-//
-// biomeTags: array of distinct biome tag strings actually represented
-// (see routes/map.js's getRepresentedBiomeTags). Returns: array of
-// {biomeTag, x, y} in the same 1000x600 canvas as computeMapLayout.
-function computeBiomeAnchors(biomeTags) {
-  const WIDTH = 1000, HEIGHT = 600;
-  const centerX = WIDTH / 2, centerY = HEIGHT / 2;
-  // Wider radius than the faction cluster anchors (0.32) -- tiles need
-  // to spread further toward the canvas edges so their soft-edged
-  // circles actually cover the corners, not just a ring around the
-  // center.
-  const spreadRadius = Math.min(WIDTH, HEIGHT) * 0.42;
-
-  return biomeTags.map((biomeTag, i) => {
-    if (biomeTags.length <= 1) {
-      return { biomeTag, x: centerX, y: centerY };
-    }
-    const angle = (i / biomeTags.length) * Math.PI * 2 - Math.PI / 2;
-    return {
-      biomeTag,
-      x: Math.round((centerX + spreadRadius * Math.cos(angle)) * 10) / 10,
-      y: Math.round((centerY + spreadRadius * Math.sin(angle)) * 10) / 10
-    };
-  });
 }

@@ -95,36 +95,58 @@ router.post("/map/generate-backdrop", async (req, res) => {
   }
 });
 
-// Returns the distinct biomeTag values actually represented among this
-// world's current locations (see prompts/locationContentPrompt.js's
-// BIOME_TAGS), each with a stable display order (first-seen). Locations
-// generated before this feature landed won't have a biomeTag at all --
-// silently skipped here rather than backfilled, same graceful-degradation
-// approach as everywhere else biomeTag is optional.
-async function getRepresentedBiomeTags(worldId) {
+// Returns the distinct faction keys actually represented among this
+// world's current locations, "unaligned" included if any location has
+// no faction (or an unrecognized one) -- every location has SOME key
+// here, unlike the old biomeTag-based version of this feature where the
+// field could simply be missing. First-seen order, not display order
+// (archive/js/mapLayout.js's computeFactionAnchors() computes the real
+// display/anchor order client-side from the same location list).
+async function getRepresentedFactionKeys(worldId) {
   const locations = await listEntries(worldId, "locations");
   const seen = [];
   locations.forEach((loc) => {
-    const tag = loc.raw && loc.raw.biomeTag;
-    if (tag && !seen.includes(tag)) seen.push(tag);
+    const key = loc.faction && loc.faction !== "unaligned" ? loc.faction : "unaligned";
+    if (!seen.includes(key)) seen.push(key);
   });
   return seen;
 }
 
-// GET status -- which biomes does this world's current location roster
+// Builds the {factionName, territory} (or, for unaligned, a generic
+// world-grounded equivalent) subject data for one tile's art prompt.
+// Reuses each faction's own .territory field (see
+// prompts/factionContentPrompt.js's schema) rather than inventing new
+// terrain descriptions -- this is what actually makes the art match that
+// faction's own dossier instead of guessing from a fixed biome list (see
+// this session's pivot away from the original biomeTag version).
+async function buildTileSubject(worldId, factionKey) {
+  if (factionKey === "unaligned") {
+    const settingContext = await getSettingContext(worldId);
+    return {
+      factionName: "Unaligned / contested ground",
+      territory: `No single faction controls this ground. General world context for tone: ${settingContext}`
+    };
+  }
+  const entry = await readFactionEntry(worldId, factionKey);
+  return {
+    factionName: (entry && entry.name) || factionKey,
+    territory: (entry && entry.raw && entry.raw.territory) || null
+  };
+}
+
+// GET status -- which factions does this world's current location roster
 // need tile art for, and which of those already have it? The Map page
-// calls this on load; archive/js/mapLayout.js's computeBiomeAnchors()
-// positions each represented biome around the canvas independently of
-// node/faction placement (see this session's map-fix scoping notes --
-// tiles are an atmospheric backdrop layer, not a literal claim about
-// where any specific node sits).
+// calls this on load; archive/js/mapLayout.js's computeFactionAnchors()
+// positions each represented faction at the SAME anchor point node
+// placement already uses (see that file's header comment) -- tiles and
+// nodes are guaranteed to agree on where a faction's territory sits.
 router.get("/map/tiles", async (req, res) => {
   try {
-    const biomeTags = await getRepresentedBiomeTags(req.worldId);
+    const factionKeys = await getRepresentedFactionKeys(req.worldId);
     const tiles = await Promise.all(
-      biomeTags.map(async (biomeTag) => {
-        const exists = await mapTileExists(req.worldId, biomeTag);
-        return { biomeTag, exists, url: exists ? getMapTileUrl(req.worldId, biomeTag) : null };
+      factionKeys.map(async (factionKey) => {
+        const exists = await mapTileExists(req.worldId, factionKey);
+        return { factionKey, exists, url: exists ? getMapTileUrl(req.worldId, factionKey) : null };
       })
     );
     res.json({ tiles });
@@ -134,33 +156,34 @@ router.get("/map/tiles", async (req, res) => {
   }
 });
 
-// POST generate -- fills in art for whichever represented biomes don't
+// POST generate -- fills in art for whichever represented factions don't
 // have a tile yet. Sequential with per-tile try/catch (mirrors
 // routes/worldArt.js's faction-banner batching): one bad prompt/API
-// hiccup for one biome shouldn't cost every other tile. Deliberately NOT
-// gated by enforceGenerationCap -- same bounded, auto-triggered,
-// one-time-per-biome reasoning as the single-backdrop generation below.
+// hiccup for one faction shouldn't cost every other tile. Deliberately
+// NOT gated by enforceGenerationCap -- same bounded, auto-triggered,
+// one-time-per-faction reasoning as the single-backdrop generation above.
 router.post("/map/generate-tiles", async (req, res) => {
   try {
     const worldId = req.worldId;
-    const biomeTags = await getRepresentedBiomeTags(worldId);
-    if (biomeTags.length === 0) {
+    const factionKeys = await getRepresentedFactionKeys(worldId);
+    if (factionKeys.length === 0) {
       return res.json({ results: [] });
     }
 
     const styleGuide = await getStyleGuide(worldId);
     const results = [];
 
-    for (const biomeTag of biomeTags) {
+    for (const factionKey of factionKeys) {
       try {
-        const alreadyExists = await mapTileExists(worldId, biomeTag);
+        const alreadyExists = await mapTileExists(worldId, factionKey);
         if (alreadyExists) {
-          results.push({ biomeTag, url: getMapTileUrl(worldId, biomeTag), generated: false });
+          results.push({ factionKey, url: getMapTileUrl(worldId, factionKey), generated: false });
           continue;
         }
+        const subjectJson = await buildTileSubject(worldId, factionKey);
         const artSystemPrompt = buildArtPromptSystemPrompt({
           category: "map-tile",
-          subjectJson: { biome: biomeTag },
+          subjectJson,
           styleGuide,
           factionAccent: null
         });
@@ -171,11 +194,11 @@ router.post("/map/generate-tiles", async (req, res) => {
           model: HAIKU_MODEL
         });
         const imageBuffer = await generateImage(artPrompt.trim());
-        const url = await saveMapTile(worldId, biomeTag, imageBuffer);
-        results.push({ biomeTag, url, generated: true });
+        const url = await saveMapTile(worldId, factionKey, imageBuffer);
+        results.push({ factionKey, url, generated: true });
       } catch (tileErr) {
-        console.error(`Map tile generation failed for '${biomeTag}':`, tileErr.message);
-        results.push({ biomeTag, url: null, error: tileErr.message });
+        console.error(`Map tile generation failed for '${factionKey}':`, tileErr.message);
+        results.push({ factionKey, url: null, error: tileErr.message });
       }
     }
 
