@@ -208,7 +208,7 @@ document.getElementById("run-import").addEventListener("click", async () => {
   if (!text.trim()) { status.textContent = "Paste or upload some text first."; return; }
   btn.disabled = true;
   status.textContent = "Parsing document…";
-  showGenerationOverlay(["Reading through your document…", "Sorting it into sections…", "Almost there…"]);
+  showGenerationOverlay(["Reading through your document…", "Sorting it into sections…","Making sense of your notes…","Organizing what you gave me…", "Almost there…"]);
   try {
     const res = await authFetch("/api/wizard/import-lore", {
       method: "POST",
