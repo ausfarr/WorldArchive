@@ -56,10 +56,29 @@ function mulberry32(seed) {
 // Returns: { [factionKey]: {x, y} } -- one anchor per faction actually
 // represented among the given locations (plus "unaligned" if any
 // location has no faction).
+function normalizeFactionKey(key) {
+  return String(key || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function computeFactionAnchors(locations, factionOrder, radiusMultiplier = 0.32, anchorOverrides = {}) {
   const WIDTH = 1000, HEIGHT = 600;
   const centerX = WIDTH / 2, centerY = HEIGHT / 2;
   const clusterRadius = Math.min(WIDTH, HEIGHT) * radiusMultiplier;
+
+  // Normalized lookup as a fallback for exact-match misses -- a real bug
+  // this session: a faction's locations can store a `faction` value that
+  // doesn't byte-for-byte match that faction's actual entry id (stray
+  // casing, a hyphen/underscore difference from an earlier point in a
+  // long testing session, etc.), which made a real, correctly-detected
+  // vision anchor silently fail to apply and fall all the way back to
+  // the old circular default -- with no visible error, since a missing
+  // key just looks like "no override for this faction" by design (see
+  // the header comment above). Exact match is still tried first and
+  // preferred; this only kicks in when that fails.
+  const normalizedOverrides = {};
+  Object.entries(anchorOverrides).forEach(([k, v]) => {
+    normalizedOverrides[normalizeFactionKey(k)] = v;
+  });
 
   const byFaction = {};
   locations.forEach((loc) => {
@@ -80,6 +99,12 @@ function computeFactionAnchors(locations, factionOrder, radiusMultiplier = 0.32,
   orderedKeys.forEach((key, i) => {
     if (anchorOverrides[key]) {
       anchors[key] = anchorOverrides[key];
+      return;
+    }
+    const normalizedMatch = normalizedOverrides[normalizeFactionKey(key)];
+    if (normalizedMatch) {
+      console.warn(`computeFactionAnchors: '${key}' didn't exactly match any detected anchor key, but matched after normalization -- this faction's locations likely have a faction id that doesn't byte-for-byte match its actual faction entry id. Using the anchor anyway; worth fixing the underlying id mismatch when convenient.`);
+      anchors[key] = normalizedMatch;
       return;
     }
     if (clusterCount <= 1) {

@@ -249,6 +249,15 @@
         anchorOverrides[factionKey] = { x: coords.x * CANVAS_WIDTH, y: coords.y * CANVAS_HEIGHT };
       });
 
+      // Diagnostic logging -- prints exactly what came back from the
+      // vision detection vs. what faction keys this world's locations
+      // actually use, so a real id mismatch (see mapLayout.js's
+      // normalizeFactionKey fallback + console.warn) is visible directly
+      // in the browser console without needing to inspect Supabase.
+      const locationFactionKeys = [...new Set(locations.map((l) => (l.faction && l.faction !== "unaligned" ? l.faction : "unaligned")))];
+      console.log("Map: vision-detected anchors (normalized 0-1):", normalizedAnchors);
+      console.log("Map: faction keys actually used by this world's locations:", locationFactionKeys);
+
       const nodes = computeMapLayout(locations, factionOrder, anchorOverrides);
       const bodyHtmlById = {};
       locations.forEach((loc) => { bodyHtmlById[loc.id] = loc.bodyHtml; });
@@ -326,7 +335,21 @@
           ${portraitUrl ? `<img class="map-popup-img" src="${portraitUrl}" alt="${n.name}">` : ""}
           <div class="map-popup-hint">Click to view dossier</div>
         `;
-        const marker = L.circleMarker([n.y, n.x], {
+        // Y-AXIS FLIP: Leaflet's CRS.Simple treats [0,0] as the
+        // BOTTOM-left of the map, with the first coordinate ("lat")
+        // increasing UPWARD -- confirmed directly against Leaflet's own
+        // documented image-overlay pattern, not assumed. Every layout
+        // calculation in this app (computeMapLayout's jitter/clustering,
+        // the vision-detected anchors, CANVAS_HEIGHT itself) uses normal
+        // top-down image convention instead, where y=0 is the TOP and y
+        // increases downward -- the same convention the vision prompt
+        // told Claude to use, and the only sane one for describing "where
+        // in the image" something is. Passing n.y straight through as
+        // Leaflet's lat mirrored every pin vertically: a location meant
+        // to sit near the top of the image (small y) rendered near the
+        // bottom instead, and vice versa. This is the ONE place these two
+        // conventions meet, so it's the one place that needs to flip.
+        const marker = L.circleMarker([CANVAS_HEIGHT - n.y, n.x], {
           radius: 8,
           color: markerStrokeColor,
           weight: 2,

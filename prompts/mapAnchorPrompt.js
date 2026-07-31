@@ -23,7 +23,7 @@ function buildMapAnchorSystemPrompt({ factions }) {
 
   return `You are analyzing a fictional world's map backdrop image to help place location markers accurately on it. You will be shown the generated backdrop image. Below is a list of this world's factions with their own territory descriptions (each faction's own dossier text, not your invention).
 
-For each faction, look at the actual image and decide: is there a specific visible structure, region, or area in the image that plausibly matches that faction's described territory (e.g. a tall tower/spire for a faction described as controlling a corporate skyscraper; a flooded/waterlogged area for a faction described as controlling sealed vaults with a frost-line; open trade corridors for a faction built around commerce)?
+For each faction, look at the actual image and decide: is there a specific visible structure, region, or area in the image that plausibly matches that faction's described territory (e.g. a tall tower/spire for a faction described as controlling a corporate skyscraper; a flooded/waterlogged area for a faction described as controlling sealed vaults with a frost-line; open trade corridors for a faction built around commerce)? The backdrop may include environmental signage/labels (stenciled sector names, building signage, hazard placards) -- if any visible text plausibly names or describes something matching a faction's territory, treat that as strong, direct evidence for that match, not just a nice-to-have.
 
 If a genuine visual match exists, report its approximate center point as normalized coordinates: x and y each between 0.0 and 1.0, where (0,0) is the top-left corner of the image and (1,1) is the bottom-right corner.
 
