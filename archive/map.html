@@ -22,10 +22,9 @@
      left to clash against the dark theme everywhere else. */
   .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); border-radius: 0; box-shadow: none; }
   .leaflet-popup-content { margin: 14px 16px; font-family: var(--font-body); }
-  .map-popup-title { font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; margin: 0 0 6px; }
-  .map-popup-title a { color: var(--ink); text-decoration: none; }
-  .map-popup-title a:hover { color: var(--neon-cyan); }
+  .map-popup-title { font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; margin: 0 0 6px; color: var(--ink); }
   .map-popup-faction { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin: 0 0 10px; }
+  .map-popup-hint { font-family: var(--font-mono); font-size: 0.65rem; color: var(--neon-cyan); margin-top: 8px; }
   .map-popup-img { width: 100%; max-width: 220px; display: block; margin-top: 8px; border: 1px solid var(--border-line); }
   .leaflet-container { background: var(--bg-panel); font-family: var(--font-body); }
   .leaflet-control-zoom a { background: var(--bg-panel-raised); color: var(--ink); border-color: var(--border-line); }
@@ -235,6 +234,17 @@
       const bodyHtmlById = {};
       locations.forEach((loc) => { bodyHtmlById[loc.id] = loc.bodyHtml; });
 
+      // Cache-busting query param -- Supabase's public URL for the
+      // backdrop is the same deterministic path every time
+      // (.../backdrop.png), so after a regenerate with the same
+      // filename, browsers (and possibly CDN edge caching in front of
+      // Supabase Storage) will keep serving the OLD cached bytes at that
+      // exact URL unless something makes it look like a different
+      // request. This is almost certainly why a freshly-regenerated
+      // backdrop looked identical to the deleted one -- the generation
+      // itself was genuinely new, the browser just never re-fetched it.
+      const bustedBackdropUrl = backdropUrl ? `${backdropUrl}?v=${Date.now()}` : null;
+
       // Step 3: initialize the Leaflet map. L.CRS.Simple is Leaflet's
       // flat, non-geographic coordinate mode -- built for exactly this
       // (game maps, floor plans, fictional worlds), not real-world lat/
@@ -251,8 +261,8 @@
         maxZoom: 3,
         zoomSnap: 0.25
       });
-      if (backdropUrl) {
-        L.imageOverlay(backdropUrl, bounds).addTo(map);
+      if (bustedBackdropUrl) {
+        L.imageOverlay(bustedBackdropUrl, bounds).addTo(map);
       }
       map.fitBounds(bounds);
       map.setMaxBounds([[-CANVAS_HEIGHT * 0.4, -CANVAS_WIDTH * 0.4], [CANVAS_HEIGHT * 1.4, CANVAS_WIDTH * 1.4]]);
@@ -292,17 +302,30 @@
           : "Unaligned";
         const portraitUrl = extractPortraitUrl(bodyHtmlById[n.id]);
         const popupHtml = `
-          <div class="map-popup-title"><a href="dossier.html?category=locations&id=${n.id}">${n.name}</a></div>
+          <div class="map-popup-title">${n.name}</div>
           <div class="map-popup-faction">${facName}</div>
           ${portraitUrl ? `<img class="map-popup-img" src="${portraitUrl}" alt="${n.name}">` : ""}
+          <div class="map-popup-hint">Click to view dossier</div>
         `;
-        L.circleMarker([n.y, n.x], {
+        const marker = L.circleMarker([n.y, n.x], {
           radius: 8,
           color: markerStrokeColor,
           weight: 2,
           fillColor: color,
           fillOpacity: 1
-        }).addTo(map).bindPopup(popupHtml);
+        }).addTo(map);
+
+        // Hover shows the info card; click navigates. closeButton:false
+        // since hover (not an explicit user action) opens it -- a close
+        // button implies something the user chose to open. autoPan:false
+        // stops the map recentering itself just because the mouse
+        // happened to pass near the edge of a pin's popup.
+        marker.bindPopup(popupHtml, { closeButton: false, autoPan: false });
+        marker.on("mouseover", () => marker.openPopup());
+        marker.on("mouseout", () => marker.closePopup());
+        marker.on("click", () => {
+          window.location.href = `dossier.html?category=locations&id=${n.id}`;
+        });
       });
 
       // Legend: one swatch per faction actually represented on the map.

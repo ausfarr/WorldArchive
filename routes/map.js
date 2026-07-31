@@ -87,7 +87,7 @@ router.post("/map/generate-backdrop", async (req, res) => {
       maxTokens: 500
     });
 
-    const imageBuffer = await generateImage(artPrompt.trim());
+    const imageBuffer = await generateImage(artPrompt.trim(), { imageSize: "2K" });
     const url = await saveMapBackdrop(worldId, imageBuffer);
 
     res.json({ url, generated: true });

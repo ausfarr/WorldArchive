@@ -7,11 +7,21 @@
 // from artPromptPrompt.js's ENVIRONMENT branch (which frames one
 // specific named place) rather than reusing it with a fake synthetic
 // "location" object -- the composition requirements are genuinely
-// different: this needs to read as a top-down/angled OVERVIEW with
-// deliberate open negative space, since SVG location pins + text labels
-// render on top of it client-side (see archive/js/mapLayout.js). A
-// prompt tuned for one detailed named place would produce something too
-// busy to be legible once labels are overlaid.
+// different: this needs to read as a top-down/angled OVERVIEW, not one
+// detailed named place.
+//
+// Full terrain coverage (not deliberate open negative space) is
+// requested below -- an earlier version of this prompt asked for large
+// empty sky/water/haze areas, back when location names were rendered
+// directly on top of the backdrop as SVG text and needed blank space to
+// stay legible. That's no longer how this works: locations render as
+// pan/zoomable Leaflet pins with popups (see archive/map.html), nothing
+// draws text on the image itself, so there's no legibility reason left
+// to leave big blank areas -- and leaving them was actively working
+// against pin placement, since clustered pins land wherever the layout
+// math puts them regardless of what's actually drawn there, so a
+// backdrop dominated by empty sky just meant more pins visibly sitting
+// over nothing.
 
 function buildMapBackdropSystemPrompt({ settingContext, loreContext, styleGuide, factionSummaryText }) {
   const s = styleGuide || {};
@@ -31,7 +41,7 @@ STRUCTURE, IN THIS ORDER:
 1. Framing: an overview/cartographic vantage (top-down or high three-quarter angle), showing broad terrain types/regions rather than any single detailed structure.
 2. Terrain variety pulled from the world's own lore below -- distinct visual zones a viewer could tell apart at a glance (e.g. a district, a wilderness belt, a ruin field), loosely echoing this world's faction territories without depicting any named character.
 3. Style + lighting sentence, pulled from the style rules below.
-4. A closing sentence explicitly requesting OPEN, UNCLUTTERED negative space across large portions of the image -- calm sky, water, plains, or haze -- because location markers and text labels will be overlaid on top of this image afterward, and dense detail everywhere would make those labels unreadable. Avoid embedding any text, legend, compass rose, or labels directly in the image itself.
+4. A closing sentence establishing that this is a full, richly-detailed terrain overview -- ground, structures, and terrain features should fill most of the frame, not just a few small areas surrounded by large empty sky/water/haze. (This backdrop is no longer overlaid with on-canvas text labels -- location info now shows in a popup when a pin is clicked, so there's no legibility reason to leave big blank areas; full terrain coverage is preferred, since more of the canvas actually being "somewhere" is what makes clustered location pins land somewhere plausible.) Avoid embedding any text, legend, compass rose, or labels directly in the image itself.
 
 STYLE RULES (stay inside these):
 ${styleRules}
