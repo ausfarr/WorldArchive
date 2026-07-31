@@ -64,7 +64,7 @@ async function getFactionsForAnchorDetection(worldId) {
 // anchor, so results are validated defensively: malformed entries,
 // out-of-range coordinates, and factions not in the original list are
 // all dropped rather than trusted as-is.
-async function detectFactionAnchors(worldId, imageBuffer) {
+async function detectFactionAnchors(worldId, imageBuffer, mimeType) {
   const factions = await getFactionsForAnchorDetection(worldId);
   if (factions.length === 0) return {};
 
@@ -72,7 +72,7 @@ async function detectFactionAnchors(worldId, imageBuffer) {
   const raw = await callClaude({
     systemPrompt,
     userMessage: [
-      { type: "image", source: { type: "base64", media_type: "image/png", data: imageBuffer.toString("base64") } },
+      { type: "image", source: { type: "base64", media_type: mimeType, data: imageBuffer.toString("base64") } },
       { type: "text", text: "Analyze the image and return the JSON now." }
     ],
     maxTokens: 800
@@ -165,7 +165,7 @@ router.post("/map/generate-backdrop", async (req, res) => {
       maxTokens: 500
     });
 
-    const imageBuffer = await generateImage(artPrompt.trim(), { imageSize: "2K" });
+    const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim(), { imageSize: "2K" });
     const url = await saveMapBackdrop(worldId, imageBuffer);
 
     // Non-fatal: the backdrop itself is already saved and usable even if
@@ -174,7 +174,7 @@ router.post("/map/generate-backdrop", async (req, res) => {
     // into a failed response.
     let anchors = {};
     try {
-      anchors = await detectFactionAnchors(worldId, imageBuffer);
+      anchors = await detectFactionAnchors(worldId, imageBuffer, mimeType);
       await saveMapAnchors(worldId, anchors);
     } catch (anchorErr) {
       console.error("Faction anchor detection failed, continuing without it:", anchorErr.message);

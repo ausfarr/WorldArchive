@@ -80,7 +80,7 @@ router.post("/world-art/generate-mood-board", async (req, res) => {
       model: HAIKU_MODEL
     });
 
-    const imageBuffer = await generateImage(artPrompt.trim());
+    const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
     const url = await saveWorldMoodBoard(worldId, imageBuffer);
 
     res.json({ url, generated: true });
@@ -128,7 +128,7 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
           model: HAIKU_MODEL
         });
 
-        const imageBuffer = await generateImage(artPrompt.trim());
+        const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
         const imageUrl = await saveFactionBanner(worldId, faction.id, imageBuffer);
 
         // Bridges into the entries table the same way accentColor already

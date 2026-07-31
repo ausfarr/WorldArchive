@@ -1,12 +1,15 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
+const { generateImage } = require("../lib/imagegen");
 const { buildRosterContext, readNpcManifest, readNpcEntry } = require("../lib/roster");
 const { buildNpcContentSystemPrompt } = require("../prompts/npcContentPrompt");
-const { saveNpcEntry } = require("../lib/fileWriter");
+const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
+const { saveNpcEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildBodyHtml } = require("../lib/entryTemplate");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
+const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
+const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -91,18 +94,46 @@ router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
       });
     }
 
-    // Portrait generation is a separate, on-demand action now (see
-    // routes/generateEntryImage.js) instead of blocking here -- this
-    // used to be 3 more sequential network calls (art-prompt write,
-    // image generation, image upload) before the entry was even saved,
-    // which was the dominant chunk of a ~20-40s wait for something the
-    // user didn't ask to wait on. The entry saves and returns
-    // immediately with no portrait; the dossier page's existing
-    // portrait <img onerror> fallback already shows a "pending" state
-    // for this, and the entry panel now offers Generate/Upload actions
-    // that call generateEntryImage.js whenever the user actually wants
-    // art, without blocking entry creation on it.
-    await saveNpcEntry(worldId, npc, null);
+    // Step 3: art prompt generation
+    let imageBuffer = null;
+    let imageError = null;
+    try {
+      const styleGuide = await getStyleGuide(worldId);
+      const factionAccent = await getFactionAccent(worldId, styleGuide, npc.faction);
+      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "npcs", subjectJson: npc, styleGuide, factionAccent });
+      const artPrompt = await callClaude({
+        systemPrompt: artSystemPrompt,
+        userMessage: "Write the prompt now.",
+        maxTokens: 500,
+        // Cheaper model for this call -- see lib/claude.js's HAIKU_MODEL
+        // comment. Writing an art-generation prompt from structured JSON
+        // + a strict template is a mechanical/templating task, not
+        // creative world-building judgment, so it doesn't need Sonnet.
+        model: HAIKU_MODEL
+      });
+
+      // Step 4: image generation — non-fatal if it fails
+      ({ buffer: imageBuffer } = await generateImage(artPrompt.trim()));
+    } catch (imgErr) {
+      console.error("Image step failed, continuing without art:", imgErr.message);
+      imageError = imgErr.message;
+    }
+
+    // Step 5: upload image FIRST (if any) so its real public URL can be
+    // baked into the saved bodyHtml -- saving the entry before the image
+    // exists left a dead relative-path <img src> permanently in the
+    // stored HTML, which is why portraits never actually displayed even
+    // when generation/upload succeeded (see this session's chat).
+    let imageUrl = null;
+    if (imageBuffer) {
+      try {
+        imageUrl = await saveImage(worldId, npc.id, imageBuffer);
+      } catch (uploadErr) {
+        console.error("Image upload failed:", uploadErr.message);
+        imageError = uploadErr.message;
+      }
+    }
+    await saveNpcEntry(worldId, npc, imageUrl);
 
     res.json({
       preview: false,
@@ -110,7 +141,9 @@ router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
       name: npc.name,
       roleArchetype: npc.roleArchetype,
       faction: npc.faction,
-      summary: npc.designNotes
+      summary: npc.designNotes,
+      imageGenerated: !!imageUrl,
+      imageError
     });
   } catch (err) {
     console.error("NPC generation failed:", err);
