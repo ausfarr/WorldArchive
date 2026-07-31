@@ -5,18 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Map — The Archive</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
   .map-wrap { position: relative; width: 100%; max-width: 1100px; margin: 0 auto; }
-  #map-svg { width: 100%; height: auto; border: 1px solid var(--border-line); background: var(--bg-panel); display: block; }
-  .map-node circle { stroke: var(--bg-void); stroke-width: 2; cursor: pointer; transition: r 0.15s ease, stroke-width 0.15s ease; }
-  .map-node:hover .map-node-dot { r: 10; }
-  .map-node:hover .map-node-ring { stroke-width: 4; }
-  .map-node image { cursor: pointer; }
-  .map-node text { font-family: var(--font-mono); font-size: 11px; fill: var(--ink); paint-order: stroke; stroke: var(--bg-void); stroke-width: 3px; pointer-events: none; }
+  /* Fixed pixel height (not aspect-ratio-locked like the old SVG) --
+     Leaflet needs a concrete container size to compute its own tiling/
+     pan bounds against; percentage/auto height doesn't work here the
+     way it did for a plain <svg viewBox>. */
+  #map-canvas { width: 100%; height: 640px; border: 1px solid var(--border-line); background: var(--bg-panel); }
+  #map-status { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint); padding: 40px 0; text-align: center; }
   .map-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0 0; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-dim); }
   .map-legend-item { display: flex; align-items: center; gap: 6px; }
   .map-legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-  #map-status { font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint); padding: 40px 0; text-align: center; }
+  /* Leaflet's default popup/control chrome is light-themed and doesn't
+     know about this site's CSS variables -- overridden here rather than
+     left to clash against the dark theme everywhere else. */
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); border-radius: 0; box-shadow: none; }
+  .leaflet-popup-content { margin: 14px 16px; font-family: var(--font-body); }
+  .map-popup-title { font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; margin: 0 0 6px; }
+  .map-popup-title a { color: var(--ink); text-decoration: none; }
+  .map-popup-title a:hover { color: var(--neon-cyan); }
+  .map-popup-faction { font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); margin: 0 0 10px; }
+  .map-popup-img { width: 100%; max-width: 220px; display: block; margin-top: 8px; border: 1px solid var(--border-line); }
+  .leaflet-container { background: var(--bg-panel); font-family: var(--font-body); }
+  .leaflet-control-zoom a { background: var(--bg-panel-raised); color: var(--ink); border-color: var(--border-line); }
+  .leaflet-control-zoom a:hover { background: var(--bg-void); color: var(--neon-cyan); }
 </style>
 <script>
 (function() {
@@ -83,11 +96,11 @@
 <div class="wrap">
   <div class="crumb"><a href="index.html">Archive</a><span class="sep">/</span><span id="crumb-label">Map</span></div>
   <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Map</h1>
-  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb">Every archived location, laid out by territory.</p>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb">Every archived location, laid out by territory. Scroll to zoom, drag to pan, click a pin for details.</p>
 
   <div class="map-wrap">
     <div id="map-status">Loading…</div>
-    <svg id="map-svg" viewBox="0 0 1000 600" xmlns="http://www.w3.org/2000/svg" style="display:none;"></svg>
+    <div id="map-canvas" style="display:none;"></div>
     <div class="map-legend" id="map-legend"></div>
   </div>
 </div>
@@ -141,23 +154,23 @@
 <script src="/js/auth.js"></script>
 <script src="js/render.js"></script>
 <script src="js/mapLayout.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
   // Faction accent colors reuse the same lookup NPC/Bestiary pages use
   // (see archive/js/render.js's getFactionLookup + facColorVar) so a
-  // location's vignette ring matches its dossier's tag color exactly.
+  // location's pin matches its dossier's tag color exactly.
 
   // Pulls the portrait <img> src out of a location's own already-
   // generated bodyHtml (see lib/locationTemplate.js's buildLocationBodyHtml
   // -- every Location gets ENVIRONMENT-framed art the same way NPCs get
-  // portraits, via prompts/artPromptPrompt.js). Reusing that art here
-  // instead of generating anything new is the whole point of the
-  // vignette approach: real depicted places, zero new Gemini calls, and
-  // no blending/masking problem to get wrong, since each vignette shows
-  // its own image in full rather than a cropped window into a shared
-  // canvas-sized backdrop (see this session's earlier attempts for why
-  // that mattered). Uses a detached DOM parse rather than a regex --
-  // more robust against attribute-order/quoting differences in the
-  // stored HTML.
+  // portraits, via prompts/artPromptPrompt.js). Shown inside each pin's
+  // popup rather than composited into the map canvas itself -- after
+  // several attempts this session at blending independently-generated
+  // art into one shared scene (biome tiles, faction-territory tiles,
+  // in-canvas vignettes), the pin+popup pattern sidesteps the whole
+  // problem: nothing needs to visually merge with anything else, so
+  // there's no blending/masking/registration bug left to have. See
+  // multi_tenant_pivot_scope.md's map-fix addenda for the full history.
   function extractPortraitUrl(bodyHtml) {
     if (!bodyHtml) return null;
     const holder = document.createElement("div");
@@ -166,19 +179,23 @@
     return img ? img.getAttribute("src") : null;
   }
 
+  const CANVAS_WIDTH = 1000;
+  const CANVAS_HEIGHT = 600;
+
   async function loadAndRenderMap() {
     const statusEl = document.getElementById("map-status");
-    const svg = document.getElementById("map-svg");
+    const canvasEl = document.getElementById("map-canvas");
     const legendEl = document.getElementById("map-legend");
     try {
       // Step 1: does a shared base backdrop already exist? Only auto-
       // generate if not -- this must never fire more than once per world
       // in the normal case (see routes/map.js's own idempotency check as
       // a second line of defense against a double-click/double-load
-      // race). This is deliberately atmosphere-only art (see
-      // prompts/mapBackdropPrompt.js) -- it doesn't need to depict any
-      // specific faction's territory, since real depicted places are now
-      // handled per-location by the vignettes below instead.
+      // race). Deliberately atmosphere-only art (see
+      // prompts/mapBackdropPrompt.js) -- it doesn't depict any specific
+      // faction's territory or any specific location; real depicted
+      // places live in each pin's popup instead (see extractPortraitUrl
+      // above).
       let backdropUrl = null;
       const statusRes = await authFetch("/api/map/backdrop");
       const statusData = await statusRes.json();
@@ -211,48 +228,82 @@
         return;
       }
 
+      // Same faction-clustered layout math as before -- pan/zoom is what
+      // actually fixes crowding (room to spread out, not fighting for a
+      // fixed pixel budget), not a change to the underlying coordinates.
       const nodes = computeMapLayout(locations, factionOrder);
       const bodyHtmlById = {};
       locations.forEach((loc) => { bodyHtmlById[loc.id] = loc.bodyHtml; });
 
-      // Step 3: render SVG -- base backdrop, then one vignette (or, for a
-      // location with no portrait yet, the old plain dot as a fallback)
-      // per node. Vignettes are drawn as a full circular clip of that
-      // location's own image plus a faction-colored ring -- no masking
-      // against the shared backdrop, so there's nothing to blend badly.
-      const backdropImg = backdropUrl
-        ? `<image href="${backdropUrl}" x="0" y="0" width="1000" height="600" preserveAspectRatio="xMidYMid slice"></image>
-           <rect x="0" y="0" width="1000" height="600" fill="var(--bg-void)" opacity="0.32"></rect>`
-        : `<rect x="0" y="0" width="1000" height="600" fill="var(--bg-panel)"></rect>`;
-
-      const VIGNETTE_R = 26;
-      const clipDefs = [];
-      const nodesHtml = nodes.map((n) => {
-        const color = facColorVar(n.faction, factionLookup);
-        const portraitUrl = extractPortraitUrl(bodyHtmlById[n.id]);
-        let markerHtml;
-        if (portraitUrl) {
-          const clipId = `vig-clip-${n.id}`;
-          clipDefs.push(`<clipPath id="${clipId}"><circle cx="${n.x}" cy="${n.y}" r="${VIGNETTE_R}"></circle></clipPath>`);
-          markerHtml = `
-            <image href="${portraitUrl}" x="${n.x - VIGNETTE_R}" y="${n.y - VIGNETTE_R}" width="${VIGNETTE_R * 2}" height="${VIGNETTE_R * 2}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"></image>
-            <circle class="map-node-ring" cx="${n.x}" cy="${n.y}" r="${VIGNETTE_R}" fill="none" stroke="${color}" stroke-width="2.5"></circle>
-          `;
-        } else {
-          // Graceful fallback -- a location generated before art existed,
-          // or whose art generation failed, still shows up as a plain dot
-          // rather than a broken image.
-          markerHtml = `<circle class="map-node-dot" cx="${n.x}" cy="${n.y}" r="7" fill="${color}"></circle>`;
-        }
-        return `<a href="dossier.html?category=locations&id=${n.id}" class="map-node">
-          ${markerHtml}
-          <text x="${n.x}" y="${n.y - VIGNETTE_R - 6}" text-anchor="middle">${n.name}</text>
-        </a>`;
-      }).join("\n");
-
-      svg.innerHTML = `<defs>${clipDefs.join("\n")}</defs>` + backdropImg + nodesHtml;
-      svg.style.display = "block";
+      // Step 3: initialize the Leaflet map. L.CRS.Simple is Leaflet's
+      // flat, non-geographic coordinate mode -- built for exactly this
+      // (game maps, floor plans, fictional worlds), not real-world lat/
+      // lng projections. Bounds/coordinates below are [y, x] pairs (top-
+      // left origin, y increasing downward) to match a normal image's
+      // own coordinate system -- unintuitive if you're used to [x, y],
+      // but standard for this Leaflet mode.
       statusEl.style.display = "none";
+      canvasEl.style.display = "block";
+      const bounds = [[0, 0], [CANVAS_HEIGHT, CANVAS_WIDTH]];
+      const map = L.map("map-canvas", {
+        crs: L.CRS.Simple,
+        minZoom: -1,
+        maxZoom: 3,
+        zoomSnap: 0.25
+      });
+      if (backdropUrl) {
+        L.imageOverlay(backdropUrl, bounds).addTo(map);
+      }
+      map.fitBounds(bounds);
+      map.setMaxBounds([[-CANVAS_HEIGHT * 0.4, -CANVAS_WIDTH * 0.4], [CANVAS_HEIGHT * 1.4, CANVAS_WIDTH * 1.4]]);
+
+      // Step 4: one circle marker per location, faction-colored, with a
+      // popup showing that location's own name/faction/art -- clicking
+      // opens the popup; the dossier link inside it is the real
+      // navigation target (kept as a separate step rather than
+      // navigating straight from a marker click, since a map you're
+      // actively panning/zooming shouldn't eat a click as "leave the
+      // page" by accident).
+      // Leaflet's SVG renderer applies marker stroke/fill via
+      // setAttribute(), which does NOT reliably resolve CSS custom
+      // properties the way an inline style="" does -- passing the raw
+      // string "var(--bg-void)" risks silently not rendering in some
+      // browsers. Reading the actual computed value once, up front,
+      // keeps this both correct and still theme-aware (per-world color
+      // overrides still apply, since this reads whatever --bg-void
+      // currently resolves to on the page).
+      const markerStrokeColor = getComputedStyle(document.documentElement).getPropertyValue("--bg-void").trim() || "#0a0b0d";
+
+      // Same setAttribute-vs-CSS-variable issue as markerStrokeColor
+      // above, but for fillColor -- facColorVar() returns either a real
+      // hex string (the common case, once a faction has an accent color
+      // set) or the literal fallback string "var(--neon-cyan)" for
+      // factions without one. Resolves that fallback the same way.
+      function resolveColor(value) {
+        const match = /^var\((--[a-zA-Z0-9-]+)\)$/.exec(value || "");
+        if (!match) return value;
+        return getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim() || "#29f0d1";
+      }
+
+      nodes.forEach((n) => {
+        const color = resolveColor(facColorVar(n.faction, factionLookup));
+        const facName = n.faction && n.faction !== "unaligned"
+          ? ((factionLookup[n.faction] && factionLookup[n.faction].name) || n.faction)
+          : "Unaligned";
+        const portraitUrl = extractPortraitUrl(bodyHtmlById[n.id]);
+        const popupHtml = `
+          <div class="map-popup-title"><a href="dossier.html?category=locations&id=${n.id}">${n.name}</a></div>
+          <div class="map-popup-faction">${facName}</div>
+          ${portraitUrl ? `<img class="map-popup-img" src="${portraitUrl}" alt="${n.name}">` : ""}
+        `;
+        L.circleMarker([n.y, n.x], {
+          radius: 8,
+          color: markerStrokeColor,
+          weight: 2,
+          fillColor: color,
+          fillOpacity: 1
+        }).addTo(map).bindPopup(popupHtml);
+      });
 
       // Legend: one swatch per faction actually represented on the map.
       const seen = new Set();
@@ -269,6 +320,7 @@
     } catch (err) {
       console.error("Failed to load map:", err);
       statusEl.textContent = "Could not load the map: " + err.message;
+      statusEl.style.display = "block";
     }
   }
 
