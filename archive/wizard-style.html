@@ -382,12 +382,13 @@ async function init() {
   renderAuthStatus();
   await ensureWizardSession();
 
+  let styleGuide = null;
   try {
     const [styleRes, factionsRes] = await Promise.all([
       authFetch("/api/wizard/style-guide"),
       authFetch("/api/wizard/factions")
     ]);
-    const { styleGuide } = await styleRes.json();
+    ({ styleGuide } = await styleRes.json());
     const { factions: loadedFactions } = await factionsRes.json();
     factions = loadedFactions || [];
     fillBaseFields(styleGuide);
@@ -397,7 +398,20 @@ async function init() {
     console.error("Could not load existing style guide/factions:", err);
   }
   renderAccents();
-  previewThemeOnThisPage();
+  // Only auto-preview if a real, previously-saved style guide was
+  // loaded -- calling this unconditionally applied whatever the color
+  // inputs' default value happens to be, and an unset <input
+  // type="color"> defaults to pure black (#000000) per the HTML spec.
+  // That's a fully valid 6-digit hex, so the regex check inside
+  // previewThemeOnThisPage() couldn't distinguish "genuinely black" from
+  // "never set" -- a brand-new world with no saved style guide yet would
+  // silently preview an all-black theme (background/panel/text/both
+  // accents at once) before the user ever touched the page, making
+  // every button and border on the page blend invisibly into the
+  // background until Generate finally put real colors in.
+  if (styleGuide && styleGuide.backgroundColor) {
+    previewThemeOnThisPage();
+  }
 }
 
 init();
