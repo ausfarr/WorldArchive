@@ -132,11 +132,16 @@ function cmRenderViewMode(mod) {
       <h2>Entries</h2>
       ${entriesHtml}
     </div>
-    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-line-soft);">
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-line-soft); display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
       <button type="button" id="cm-edit-btn" class="bm-btn">Edit</button>
+      <button type="button" id="cm-export-btn" class="bm-btn bm-btn-secondary">Download PDF</button>
+      <span id="cm-export-status" class="bm-status"></span>
     </div>
   `;
   document.getElementById("cm-edit-btn").addEventListener("click", cmEnterEditMode);
+  document.getElementById("cm-export-btn").addEventListener("click", () =>
+    downloadExportPdf(`/api/export/campaign/${mod.id}`, document.getElementById("cm-export-btn"), document.getElementById("cm-export-status"))
+  );
 }
 
 function cmEnterEditMode() {

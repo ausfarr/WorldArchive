@@ -20,11 +20,11 @@ const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { buildCampaignModuleSystemPrompt } = require("../prompts/campaignModulePrompt");
-const { buildRosterContext, buildLocationRosterContext, buildItemRosterContext, buildLogRosterContext } = require("../lib/roster");
+const { buildRosterContext, buildLocationRosterContext, buildItemRosterContext, buildLogRosterContext, buildEnemyRosterContext } = require("../lib/roster");
 const { getSettingContext } = require("../lib/worldFlavor");
 const { getLoreContext } = require("../lib/loreContext");
 const { getEntry } = require("../lib/entriesRepo");
-const { createNewNpc, createNewLocation, createNewItem, createNewLog } = require("../lib/campaignEntryGenerators");
+const { createNewNpc, createNewLocation, createNewItem, createNewLog, createNewEnemy } = require("../lib/campaignEntryGenerators");
 const {
   listCampaignModules,
   getCampaignModule,
@@ -35,8 +35,8 @@ const {
 
 const router = express.Router();
 
-const VALID_ENTRY_CATEGORIES = new Set(["npcs", "locations", "items", "logs"]);
-const SLOT_GENERATORS = { npcs: createNewNpc, locations: createNewLocation, items: createNewItem, logs: createNewLog };
+const VALID_ENTRY_CATEGORIES = new Set(["npcs", "locations", "items", "logs", "enemies"]);
+const SLOT_GENERATORS = { npcs: createNewNpc, locations: createNewLocation, items: createNewItem, logs: createNewLog, enemies: createNewEnemy };
 
 router.get("/campaign-modules", async (req, res) => {
   try {
@@ -69,16 +69,17 @@ router.post("/campaign-modules/generate", enforceGenerationCap, async (req, res)
     const worldId = req.worldId;
     const { concept } = req.body || {};
 
-    const [npcRosterText, locationRosterText, itemRosterText, logRosterText, settingContext, loreContext] = await Promise.all([
+    const [npcRosterText, locationRosterText, itemRosterText, logRosterText, enemyRosterText, settingContext, loreContext] = await Promise.all([
       buildRosterContext(worldId),
       buildLocationRosterContext(worldId),
       buildItemRosterContext(worldId),
       buildLogRosterContext(worldId),
+      buildEnemyRosterContext(worldId),
       getSettingContext(worldId),
       getLoreContext(worldId, {})
     ]);
 
-    const systemPrompt = buildCampaignModuleSystemPrompt({ settingContext, loreContext, npcRosterText, locationRosterText, itemRosterText, logRosterText, concept });
+    const systemPrompt = buildCampaignModuleSystemPrompt({ settingContext, loreContext, npcRosterText, locationRosterText, itemRosterText, logRosterText, enemyRosterText, concept });
     const proposal = await callClaudeExpectingJson({ systemPrompt, userMessage: "Assemble the Campaign Module now.", maxTokens: 2000 });
 
     const rawEntries = Array.isArray(proposal.entries) ? proposal.entries : [];

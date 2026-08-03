@@ -24,8 +24,8 @@ const SCHEMA_DESCRIPTION = `{
   "summary": "1-2 sentence DM-facing summary of the throughline",
   "entries": [
     {
-      "category": "npcs" | "locations" | "items" | "logs",
-      "role": "short free-text role, e.g. \\"quest-giver\\", \\"encounter site\\", \\"reward\\", \\"clue\\"",
+      "category": "npcs" | "locations" | "items" | "logs" | "enemies",
+      "role": "short free-text role, e.g. \\"quest-giver\\", \\"encounter site\\", \\"encounter monster\\", \\"reward\\", \\"clue\\"",
       "matched": true or false,
       "entryId": "the exact id of an existing roster entry -- ONLY when matched is true, otherwise null",
       "note": "short DM-facing note on how this piece fits the quest",
@@ -34,20 +34,20 @@ const SCHEMA_DESCRIPTION = `{
   ]
 }`;
 
-const STATIC_INSTRUCTIONS = `You are assembling a Campaign Module (a quest/adventure structure) for a tabletop RPG world archive, by picking from EXISTING NPCs, Locations, Items, and Logs already generated for this world -- not by inventing new content. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
+const STATIC_INSTRUCTIONS = `You are assembling a Campaign Module (a quest/adventure structure) for a tabletop RPG world archive, by picking from EXISTING NPCs, Locations, Items, Logs, and Enemies already generated for this world -- not by inventing new content. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
-WHAT A CAMPAIGN MODULE IS: a DM-facing structure that ties together a quest-giver, one or more encounter sites (Locations), rewards (Items), and optionally clues/lore (Logs) into something a DM could run at the table. It references existing archive content -- it does not create new lore beyond the short connective summary and per-entry notes.
+WHAT A CAMPAIGN MODULE IS: a DM-facing structure that ties together a quest-giver, one or more encounter sites (Locations) with what actually populates them (Enemies), rewards (Items), and optionally clues/lore (Logs) into something a DM could run at the table. It references existing archive content -- it does not create new lore beyond the short connective summary and per-entry notes.
 
-MATCHING RULE (the most important rule here): for every role the quest needs, first look for a real existing entry from the rosters below that genuinely fits. Only set "matched": false if nothing in the roster is a reasonable fit -- do not force a loose match just to avoid an unmatched slot, and do not invent a new NPC/Location/Item/Log id that isn't on the roster. An unmatched slot with a clear neededConcept is a GOOD outcome, not a failure -- the DM will decide whether to generate something new to fill it.
+MATCHING RULE (the most important rule here): for every role the quest needs, first look for a real existing entry from the rosters below that genuinely fits. Only set "matched": false if nothing in the roster is a reasonable fit -- do not force a loose match just to avoid an unmatched slot, and do not invent a new NPC/Location/Item/Log/Enemy id that isn't on the roster. An unmatched slot with a clear neededConcept is a GOOD outcome, not a failure -- the DM will decide whether to generate something new to fill it.
 
-ROLE VARIETY: a typical module has 3-6 entries -- usually at least one NPC (quest-giver or key contact), one Location (the encounter/destination), and often an Item (reward) and/or a Log (a clue or piece of lore). Not every module needs all four categories -- fit the roles to what actually makes sense for the concept, don't pad.
+ROLE VARIETY: a typical module has 3-7 entries -- usually at least one NPC (quest-giver or key contact), one Location (the encounter/destination), and often one or more Enemies (what the party actually fights there), an Item (reward), and/or a Log (a clue or piece of lore). Not every module needs all five categories -- fit the roles to what actually makes sense for the concept, don't pad. An "encounter" without at least one Enemy attached is usually incomplete for a combat-capable quest -- if the concept implies a fight, look for a real Enemy that fits the same Location's faction/danger tags before leaving that slot unmatched.
 
-NOTES: each entry's "note" is a short DM-facing line on how that specific piece fits this specific quest (e.g. "Withholds the tower's location until paid" for an NPC, "The cipher only decodes once the tower's signal is silenced" for an Item) -- not a restatement of what the entry already says on its own dossier page.
+NOTES: each entry's "note" is a short DM-facing line on how that specific piece fits this specific quest (e.g. "Withholds the tower's location until paid" for an NPC, "The cipher only decodes once the tower's signal is silenced" for an Item, "Guards the tower's lower level" for an Enemy) -- not a restatement of what the entry already says on its own dossier page.
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildCampaignModuleSystemPrompt({ settingContext, loreContext, npcRosterText, locationRosterText, itemRosterText, logRosterText, concept }) {
+function buildCampaignModuleSystemPrompt({ settingContext, loreContext, npcRosterText, locationRosterText, itemRosterText, logRosterText, enemyRosterText, concept }) {
   const dynamicContext = `SETTING (stay consistent with this):
 ${settingContext}
 
@@ -65,6 +65,9 @@ ${itemRosterText}
 
 LOG ROSTER (pick "entryId" values only from this list for category "logs"):
 ${logRosterText}
+
+ENEMY ROSTER (pick "entryId" values only from this list for category "enemies" -- prefer an enemy whose faction matches the encounter Location's controlling faction, where that's on record):
+${enemyRosterText}
 
 USER INPUT:
 Concept: ${concept || "invent a quest concept fitting this world's lore and existing roster -- look for pieces that already connect (shared faction, shared location) and build around that"}`;

@@ -90,4 +90,22 @@ router.get("/export/entry/:category/:id", async (req, res) => {
   }
 });
 
+// Campaign Module export -- "Download PDF" button on a module's view
+// page. A full session-prep packet (every referenced entry's complete
+// sheet, in module order), not just the reference list -- see
+// lib/pdfExport.js's "campaign" scope for why.
+router.get("/export/campaign/:id", async (req, res) => {
+  try {
+    const includeImages = parseIncludeImages(req);
+    const built = await buildExportHtml(req.worldId, "campaign", { moduleId: req.params.id }, includeImages);
+    if (!built) return res.status(404).json({ error: "Campaign Module not found." });
+    const buffer = await renderPdfBuffer(built.html);
+    sendPdfHeaders(res, built.filename);
+    res.send(buffer);
+  } catch (err) {
+    console.error(`Campaign Module export (${req.params.id}) failed:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

@@ -62,7 +62,7 @@ ABILITIES: every ability needs a Scaling line tied to an attribute — write bot
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent }) {
+function buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent, campaignContext }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -86,7 +86,7 @@ ${rosterContext}
 USER INPUT:
 Name: ${name || "generate one fitting the faction/tier"}
 Faction: ${faction || "choose one that fills a gap in the existing roster, or null if faction-agnostic"}
-Tier: ${tier || "choose one that fills a gap in the existing roster (Elite is a reasonable default if genuinely unspecified)"}`;
+Tier: ${tier || "choose one that fills a gap in the existing roster (Elite is a reasonable default if genuinely unspecified)"}${campaignContext ? `\nCampaign context (this enemy is needed for a specific quest encounter -- ground the concept in this, not just the roster gap): ${campaignContext}` : ""}`;
 
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }

@@ -11,6 +11,7 @@ const { attributeBudgetWarning } = require("../lib/statFormulas");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { createNewEnemy } = require("../lib/campaignEntryGenerators");
 
 const router = express.Router();
 
@@ -18,6 +19,12 @@ router.post("/generate-enemy", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, faction, tier, fillExistingId } = req.body || {};
+
+    if (!fillExistingId) {
+      const result = await createNewEnemy(worldId, { name, faction, tier });
+      return res.json({ preview: false, ...result });
+    }
+
     let existingEntry = null;
     let priorRaw = null;
     let priorBodyHtml = null;
