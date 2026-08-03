@@ -226,12 +226,52 @@ function cmRenderPreviewEntries(entries) {
         <p style="margin:4px 0 8px; font-size:0.8rem; color: var(--ink-dim);">${cmEscapeHtml(e.neededConcept || e.note || "")}</p>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button type="button" class="bm-btn" onclick="cmGenerateSlot(${i})">Generate one (1 generation)</button>
+          <button type="button" class="bm-btn bm-btn-secondary" onclick="cmOpenSlotPicker(${i})">Pick existing instead</button>
           <button type="button" class="bm-btn bm-btn-secondary" onclick="cmLeaveSlotEmpty(${i})">Leave empty</button>
         </div>
         <p id="cm-preview-slot-status-${i}" class="bm-status"></p>
       </div>
     `;
   }).join("");
+}
+
+// "Pick existing instead" -- the AI proposal said nothing existing fit,
+// but that's a judgment call the DM can override. Toggles a small inline
+// picker within the slot card (reuses the same per-category entry cache
+// the manual "Add entry" form already builds, so this doesn't cost an
+// extra round trip if that form was already used this session).
+async function cmOpenSlotPicker(index) {
+  const slot = cmCurrentPreview.entries[index];
+  const existingPicker = document.getElementById(`cm-slot-picker-${index}`);
+  if (existingPicker) { existingPicker.remove(); return; }
+
+  if (!cmEntryOptionsCache[slot.category]) {
+    const res = await authFetch(`/api/entries/${slot.category}`);
+    const data = await res.json();
+    cmEntryOptionsCache[slot.category] = (data.entries || []).map((e) => ({ id: e.id, name: e.name, subtitle: e.subtitle || "" }));
+  }
+  const options = cmEntryOptionsCache[slot.category];
+  const container = document.getElementById(`cm-preview-slot-${index}`);
+  const picker = document.createElement("div");
+  picker.id = `cm-slot-picker-${index}`;
+  picker.style.cssText = "margin-top:8px; display:flex; gap:8px; align-items:center;";
+  picker.innerHTML = `
+    <select id="cm-slot-picker-select-${index}" style="flex:1; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px;">
+      ${options.length ? options.map((o) => `<option value="${cmEscapeHtml(o.id)}">${cmEscapeHtml(o.name)}${o.subtitle ? " — " + cmEscapeHtml(o.subtitle) : ""}</option>`).join("") : `<option value="">No ${CATEGORY_LABELS[slot.category] || slot.category} yet</option>`}
+    </select>
+    <button type="button" class="bm-btn" onclick="cmConfirmSlotPick(${index})">Use this</button>
+  `;
+  container.appendChild(picker);
+}
+
+function cmConfirmSlotPick(index) {
+  const select = document.getElementById(`cm-slot-picker-select-${index}`);
+  const entryId = select.value;
+  if (!entryId) return;
+  const slot = cmCurrentPreview.entries[index];
+  const opt = (cmEntryOptionsCache[slot.category] || []).find((o) => o.id === entryId);
+  cmCurrentPreview.entries[index] = { ...slot, matched: true, entryId, name: opt ? opt.name : entryId, subtitle: opt ? opt.subtitle : "" };
+  cmRenderPreviewEntries(cmCurrentPreview.entries);
 }
 
 function cmAcceptPreview(proposal) {
