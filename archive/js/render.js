@@ -1784,6 +1784,8 @@ function renderLocationBattleMap(entry) {
     return;
   }
 
+  const cacheBustedImageUrl = `${map.imageUrl}${map.imageUrl.includes("?") ? "&" : "?"}v=${map.generatedAt || Date.now()}`;
+
   host.innerHTML = `
     <h2>Battle Map</h2>
     <div class="battle-map-toolbar">
@@ -1792,7 +1794,7 @@ function renderLocationBattleMap(entry) {
       <span id="battle-map-status" class="bm-status"></span>
     </div>
     <div class="battle-map-stage">
-      <img src="${map.imageUrl}" alt="${stripHtml(entry.name)} battle map" class="battle-map-img">
+      <img src="${cacheBustedImageUrl}" alt="${stripHtml(entry.name)} battle map" class="battle-map-img">
     </div>
   `;
 

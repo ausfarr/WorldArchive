@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Campaign Module — The Archive</title>
+<title>Quest — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
 <script>
 (function() {
@@ -54,7 +54,8 @@
       <a href="../logs/index.html" id="nav-logs">Logs</a>
       <a href="../survivors/index.html" id="nav-survivors">Survivors</a>
       <a href="../locations/index.html" id="nav-locations">Locations</a>
-      <a href="../campaigns/index.html" id="nav-campaigns">Campaigns</a>
+      <a href="../campaigns/index.html" id="nav-quests">Quests</a>
+      <a href="../campaign-arcs/index.html" id="nav-campaign-arcs">Campaigns</a>
       <a href="../map.html" id="nav-map">Map</a>
       <a href="../world-info.html" id="nav-world-info">World Info</a>
       <a href="../settings.html" id="nav-settings">Settings</a>
@@ -68,15 +69,15 @@
 </header>
 
 <div class="wrap">
-  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><a href="index.html">Campaigns</a><span class="sep">/</span><span id="crumb-name">New</span></div>
+  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><a href="index.html">Quests</a><span class="sep">/</span><span id="crumb-name">New</span></div>
 
   <div class="sheet" style="margin: 20px 0;">
     <div id="cm-view-mode"></div>
 
     <div id="cm-edit-mode">
     <div class="sheet-header">
-      <p class="sheet-eyebrow">Campaign Module</p>
-      <input id="cm-name" type="text" placeholder="Name this Campaign Module…" style="width:100%; background: transparent; border: none; border-bottom: 1px solid var(--border-line); color: var(--ink); font-family: var(--font-display); text-transform: uppercase; font-size: 1.8rem; padding: 4px 0; margin: 6px 0 12px;">
+      <p class="sheet-eyebrow">Quest</p>
+      <input id="cm-name" type="text" placeholder="Name this Quest…" style="width:100%; background: transparent; border: none; border-bottom: 1px solid var(--border-line); color: var(--ink); font-family: var(--font-display); text-transform: uppercase; font-size: 1.8rem; padding: 4px 0; margin: 6px 0 12px;">
       <textarea id="cm-summary" placeholder="Short DM-facing summary…" rows="2" style="width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); font-family: var(--font-body); padding: 8px 10px; resize: vertical;"></textarea>
       <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
         <label style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint);">STATUS</label>
@@ -95,7 +96,7 @@
           <label for="cm-concept" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CONCEPT (optional)</label>
           <input id="cm-concept" type="text" placeholder="leave blank to let it invent one" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
         </div>
-        <button type="button" id="cm-generate-btn" class="bm-btn">Generate Campaign Module</button>
+        <button type="button" id="cm-generate-btn" class="bm-btn">Generate Quest</button>
       </div>
       <p id="cm-generate-status" class="bm-status"></p>
       <div id="cm-preview-zone"></div>
@@ -132,14 +133,14 @@
     </div>
 
     <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-line-soft); display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-      <button type="button" id="cm-save-btn" class="bm-btn" style="background: var(--neon-primary); color: var(--bg-void); border: none; font-weight: 600;">Save Campaign Module</button>
+      <button type="button" id="cm-save-btn" class="bm-btn" style="background: var(--neon-primary); color: var(--bg-void); border: none; font-weight: 600;">Save Quest</button>
       <button type="button" id="cm-cancel-edit-btn" class="bm-btn bm-btn-secondary" style="display:none;">Cancel</button>
       <span id="cm-save-status" class="bm-status"></span>
     </div>
     </div>
 
     <div id="cm-danger-zone" style="display:none; margin-top: 16px; padding-top: 20px; border-top: 1px solid var(--border-line-soft);">
-      <button type="button" id="cm-delete-btn" class="bm-btn bm-btn-danger">Delete This Campaign Module</button>
+      <button type="button" id="cm-delete-btn" class="bm-btn bm-btn-danger">Delete This Quest</button>
     </div>
   </div>
 </div>

@@ -42,13 +42,14 @@ async function loadAndRenderCampaignList() {
     `).join("");
   } catch (err) {
     console.error("Loading campaign modules failed:", err);
-    host.innerHTML = `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">Couldn't load Campaign Modules: ${cmEscapeHtml(err.message)}</p>`;
+    host.innerHTML = `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">Couldn't load Quests: ${cmEscapeHtml(err.message)}</p>`;
   }
 }
 
 // ---------- Builder page (campaigns/builder.html) ----------
 
 let cmEditingId = null;
+let cmArcId = null; // set when arriving from a Campaign's unmatched stage (?arcId=...)
 let cmEntries = []; // [{category, entryId, name, subtitle, role, note}]
 let cmEntryOptionsCache = {}; // category -> [{id, name, subtitle}]
 let cmLoadedModule = null; // last fetched/saved module, used to render view mode and to reset on Cancel
@@ -56,6 +57,8 @@ let cmLoadedModule = null; // last fetched/saved module, used to render view mod
 async function initCampaignBuilder() {
   const params = new URLSearchParams(window.location.search);
   cmEditingId = params.get("id");
+  cmArcId = params.get("arcId");
+  const prefillConcept = params.get("prefillConcept");
 
   await cmPopulateAddEntrySelect();
   document.getElementById("cm-add-category").addEventListener("change", cmPopulateAddEntrySelect);
@@ -77,7 +80,7 @@ async function initCampaignBuilder() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load.");
       const mod = data.module;
-      document.getElementById("crumb-name").textContent = mod.name || "Campaign Module";
+      document.getElementById("crumb-name").textContent = mod.name || "Quest";
       cmEntries = await cmHydrateExistingEntries(mod.entries || []);
       cmPopulateEditForm(mod);
       // Load finished in a saved, real state -- show it as finalized (view
@@ -86,7 +89,7 @@ async function initCampaignBuilder() {
       cmRenderViewMode({ ...mod, entries: cmEntries });
       document.getElementById("cm-edit-mode").style.display = "none";
     } catch (err) {
-      document.getElementById("cm-save-status").textContent = "Couldn't load this Campaign Module: " + err.message;
+      document.getElementById("cm-save-status").textContent = "Couldn't load this Quest: " + err.message;
       document.getElementById("cm-edit-mode").style.display = "block";
     }
   } else {
@@ -94,6 +97,9 @@ async function initCampaignBuilder() {
     // "finalized." Go straight to the build form.
     document.getElementById("cm-edit-mode").style.display = "block";
     cmRenderEntriesList();
+    if (prefillConcept) {
+      document.getElementById("cm-concept").value = prefillConcept;
+    }
   }
 }
 
@@ -123,7 +129,7 @@ function cmRenderViewMode(mod) {
 
   host.innerHTML = `
     <div class="sheet-header">
-      <p class="sheet-eyebrow">Campaign Module</p>
+      <p class="sheet-eyebrow">Quest</p>
       <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 6px 0 10px;">${cmEscapeHtml(mod.name)}</h1>
       ${mod.summary ? `<p class="subtitle" style="margin:0 0 12px;">${cmEscapeHtml(mod.summary)}</p>` : ""}
       <span class="tag">${CM_STATUS_LABELS[mod.status] || mod.status}</span>
@@ -370,7 +376,7 @@ function cmBuildSlotContext(slot) {
   const parts = [];
   const moduleName = document.getElementById("cm-name").value.trim() || (cmCurrentPreview && cmCurrentPreview.name) || "";
   const moduleSummary = document.getElementById("cm-summary").value.trim() || (cmCurrentPreview && cmCurrentPreview.summary) || "";
-  if (moduleName) parts.push(`This is for a Campaign Module called "${moduleName}".`);
+  if (moduleName) parts.push(`This is for a Quest called "${moduleName}".`);
   if (moduleSummary) parts.push(`Quest summary: ${moduleSummary}`);
   parts.push(`This entry fills the role: ${slot.role || "unspecified"}.`);
   if (slot.neededConcept || slot.note) parts.push(`Concept for this specific piece: ${slot.neededConcept || slot.note}`);
@@ -425,7 +431,7 @@ async function cmSaveModule() {
   const status = document.getElementById("cm-save-status");
   const name = document.getElementById("cm-name").value.trim();
   if (!name) {
-    status.textContent = "Give this Campaign Module a name first.";
+    status.textContent = "Give this Quest a name first.";
     return;
   }
   btn.disabled = true;
@@ -453,6 +459,19 @@ async function cmSaveModule() {
     if (!res.ok) throw new Error(data.error || "Save failed.");
     status.textContent = "Saved.";
     if (!cmEditingId && data.module) {
+      if (cmArcId) {
+        try {
+          await authFetch(`/api/campaign-arcs/${encodeURIComponent(cmArcId)}/append-quest`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ questId: data.module.id })
+          });
+        } catch (err) {
+          console.error("Linking this Quest back to its Campaign failed:", err);
+        }
+        window.location.href = `../campaign-arcs/builder.html?id=${encodeURIComponent(cmArcId)}`;
+        return;
+      }
       window.location.href = `builder.html?id=${encodeURIComponent(data.module.id)}`;
     } else if (cmEditingId) {
       document.getElementById("crumb-name").textContent = name;
@@ -468,7 +487,7 @@ async function cmSaveModule() {
 
 async function cmDeleteModule() {
   if (!cmEditingId) return;
-  const confirmed = window.confirm("Delete this Campaign Module? This doesn't delete any of the NPCs/Locations/Items/Logs it references, only the module itself.");
+  const confirmed = window.confirm("Delete this Quest? This doesn't delete any of the NPCs/Locations/Items/Logs it references, only the Quest itself.");
   if (!confirmed) return;
   try {
     const res = await authFetch(`/api/campaign-modules/${encodeURIComponent(cmEditingId)}`, { method: "DELETE" });

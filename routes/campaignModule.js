@@ -1,5 +1,16 @@
 // routes/campaignModule.js
 //
+// NAMING NOTE: this file, its table (campaign_modules), its repo
+// (lib/campaignModuleRepo.js), and the archive/campaigns/ folder all
+// still use "Campaign Module" internally -- but every user-facing string
+// now says "Quest" (see the later addendum: "Campaign" was reframed to
+// mean a higher-level container of multiple Quests, built separately as
+// campaign_arcs/routes/campaignArc.js). Renaming the internal
+// identifiers to match would touch 15+ files for a purely cosmetic
+// change with real regression risk, so this file kept its original name
+// -- if grepping for "quest" turns up nothing, search "campaign module"
+// instead.
+//
 // Campaign Structure -- see session_addendum_campaign_structure_scope.md.
 // Storage: the new campaign_modules table (lib/campaignModuleRepo.js),
 // not the shared `entries` table -- a Campaign Module isn't a 9th
@@ -51,7 +62,7 @@ router.get("/campaign-modules", async (req, res) => {
 router.get("/campaign-modules/:id", async (req, res) => {
   try {
     const mod = await getCampaignModule(req.worldId, req.params.id);
-    if (!mod) return res.status(404).json({ error: "Campaign Module not found." });
+    if (!mod) return res.status(404).json({ error: "Quest not found." });
     res.json({ module: mod });
   } catch (err) {
     console.error("Loading campaign module failed:", err);
@@ -80,7 +91,7 @@ router.post("/campaign-modules/generate", enforceGenerationCap, async (req, res)
     ]);
 
     const systemPrompt = buildCampaignModuleSystemPrompt({ settingContext, loreContext, npcRosterText, locationRosterText, itemRosterText, logRosterText, enemyRosterText, concept });
-    const proposal = await callClaudeExpectingJson({ systemPrompt, userMessage: "Assemble the Campaign Module now.", maxTokens: 2000 });
+    const proposal = await callClaudeExpectingJson({ systemPrompt, userMessage: "Assemble the Quest now.", maxTokens: 2000 });
 
     const rawEntries = Array.isArray(proposal.entries) ? proposal.entries : [];
     const hydratedEntries = await Promise.all(rawEntries.map(async (e) => {
@@ -100,12 +111,12 @@ router.post("/campaign-modules/generate", enforceGenerationCap, async (req, res)
 
     res.json({
       preview: true,
-      name: proposal.name || "New Campaign Module",
+      name: proposal.name || "New Quest",
       summary: proposal.summary || "",
       entries: hydratedEntries
     });
   } catch (err) {
-    console.error("Campaign Module generation failed:", err);
+    console.error("Quest generation failed:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -124,7 +135,7 @@ router.post("/campaign-modules/generate-slot-entry", enforceGenerationCap, async
     const { category, concept } = req.body || {};
     const generator = SLOT_GENERATORS[category];
     if (!generator) {
-      return res.status(400).json({ error: `Unknown category '${category}' for a Campaign Module slot.` });
+      return res.status(400).json({ error: `Unknown category '${category}' for a Quest slot.` });
     }
     const result = await generator(worldId, { campaignContext: concept });
     res.json({
@@ -135,7 +146,7 @@ router.post("/campaign-modules/generate-slot-entry", enforceGenerationCap, async
       matched: true
     });
   } catch (err) {
-    console.error("Campaign Module slot-entry generation failed:", err);
+    console.error("Quest slot-entry generation failed:", err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -148,7 +159,7 @@ router.post("/campaign-modules", async (req, res) => {
   try {
     const { name, summary, status, entries, createdVia } = req.body || {};
     if (!name || !String(name).trim()) {
-      return res.status(400).json({ error: "A Campaign Module needs a name." });
+      return res.status(400).json({ error: "A Quest needs a name." });
     }
     const cleanEntries = (Array.isArray(entries) ? entries : [])
       .filter((e) => e && e.entryId && VALID_ENTRY_CATEGORIES.has(e.category))

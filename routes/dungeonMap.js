@@ -69,7 +69,7 @@ router.post("/entries/locations/:id/dungeon-map/generate", enforceGenerationCap,
     const compositedBuffer = await compositeGridOntoImage(rawImageBuffer, mimeType, DEFAULT_GRID_SIZE);
     const imageUrl = await saveDungeonMapImage(req.worldId, id, compositedBuffer);
 
-    const dungeonMap = { imageUrl, gridSize: DEFAULT_GRID_SIZE };
+    const dungeonMap = { imageUrl, gridSize: DEFAULT_GRID_SIZE, generatedAt: Date.now() };
     await patchEntryMeta(req.worldId, "locations", id, { dungeonMap });
 
     res.json({ dungeonMap });
