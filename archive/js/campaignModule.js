@@ -248,6 +248,36 @@ function cmAcceptPreview(proposal) {
   document.getElementById("cm-preview-zone").innerHTML = "";
 }
 
+// Builds the full context a "Generate one" call sends, not just the
+// slot's own neededConcept -- includes the module's own name/summary
+// and every OTHER entry already part of it (both AI-matched picks in
+// the current preview and anything the DM already added manually via
+// cmEntries), so a newly-generated NPC/Location/Item/Log actually knows
+// what quest it's for and who/what else is already in it, instead of
+// being generated in isolation from a single role description.
+function cmBuildSlotContext(slot) {
+  const parts = [];
+  const moduleName = document.getElementById("cm-name").value.trim() || (cmCurrentPreview && cmCurrentPreview.name) || "";
+  const moduleSummary = document.getElementById("cm-summary").value.trim() || (cmCurrentPreview && cmCurrentPreview.summary) || "";
+  if (moduleName) parts.push(`This is for a Campaign Module called "${moduleName}".`);
+  if (moduleSummary) parts.push(`Quest summary: ${moduleSummary}`);
+  parts.push(`This entry fills the role: ${slot.role || "unspecified"}.`);
+  if (slot.neededConcept || slot.note) parts.push(`Concept for this specific piece: ${slot.neededConcept || slot.note}`);
+
+  const others = [];
+  cmEntries.forEach((e) => {
+    if (e.name) others.push(`${e.name} (${CATEGORY_LABELS[e.category] || e.category}${e.role ? ", " + e.role : ""})`);
+  });
+  if (cmCurrentPreview) {
+    cmCurrentPreview.entries.forEach((e) => {
+      if (e.matched && e.name) others.push(`${e.name} (${CATEGORY_LABELS[e.category] || e.category}${e.role ? ", " + e.role : ""})`);
+    });
+  }
+  if (others.length) parts.push(`Other pieces already part of this quest -- make this entry feel connected to them where it makes sense: ${others.join("; ")}.`);
+
+  return parts.join(" ");
+}
+
 async function cmGenerateSlot(index) {
   if (!cmCurrentPreview) return;
   const slot = cmCurrentPreview.entries[index];
@@ -258,7 +288,7 @@ async function cmGenerateSlot(index) {
     const res = await authFetch("/api/campaign-modules/generate-slot-entry", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ category: slot.category, concept: slot.neededConcept || slot.note })
+      body: JSON.stringify({ category: slot.category, concept: cmBuildSlotContext(slot) })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(formatGenerationError(data, { asHtml: false }));
