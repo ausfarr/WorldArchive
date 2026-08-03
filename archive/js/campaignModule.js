@@ -51,6 +51,7 @@ async function loadAndRenderCampaignList() {
 let cmEditingId = null;
 let cmEntries = []; // [{category, entryId, name, subtitle, role, note}]
 let cmEntryOptionsCache = {}; // category -> [{id, name, subtitle}]
+let cmLoadedModule = null; // last fetched/saved module, used to render view mode and to reset on Cancel
 
 async function initCampaignBuilder() {
   const params = new URLSearchParams(window.location.search);
@@ -61,6 +62,12 @@ async function initCampaignBuilder() {
   document.getElementById("cm-add-btn").addEventListener("click", cmAddEntryManually);
   document.getElementById("cm-generate-btn").addEventListener("click", cmGenerateWithAi);
   document.getElementById("cm-save-btn").addEventListener("click", cmSaveModule);
+  document.getElementById("cm-cancel-edit-btn").addEventListener("click", () => {
+    if (cmLoadedModule) {
+      cmPopulateEditForm(cmLoadedModule);
+      cmExitEditMode();
+    }
+  });
 
   if (cmEditingId) {
     document.getElementById("cm-danger-zone").style.display = "block";
@@ -70,18 +77,77 @@ async function initCampaignBuilder() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to load.");
       const mod = data.module;
-      document.getElementById("cm-name").value = mod.name || "";
-      document.getElementById("cm-summary").value = mod.summary || "";
-      document.getElementById("cm-status").value = mod.status || "planned";
       document.getElementById("crumb-name").textContent = mod.name || "Campaign Module";
       cmEntries = await cmHydrateExistingEntries(mod.entries || []);
-      cmRenderEntriesList();
+      cmPopulateEditForm(mod);
+      // Load finished in a saved, real state -- show it as finalized (view
+      // mode), same as any other archive entry. Edit is an explicit action
+      // from here, not the default landing state.
+      cmRenderViewMode({ ...mod, entries: cmEntries });
+      document.getElementById("cm-edit-mode").style.display = "none";
     } catch (err) {
       document.getElementById("cm-save-status").textContent = "Couldn't load this Campaign Module: " + err.message;
+      document.getElementById("cm-edit-mode").style.display = "block";
     }
   } else {
+    // Brand new -- nothing saved yet, so there's nothing to show as
+    // "finalized." Go straight to the build form.
+    document.getElementById("cm-edit-mode").style.display = "block";
     cmRenderEntriesList();
   }
+}
+
+function cmPopulateEditForm(mod) {
+  document.getElementById("cm-name").value = mod.name || "";
+  document.getElementById("cm-summary").value = mod.summary || "";
+  document.getElementById("cm-status").value = mod.status || "planned";
+  cmRenderEntriesList();
+}
+
+// Read-only display for a saved module -- the default state when opening
+// an existing Campaign Module, matching every other category's Edit/
+// Regenerate-sit-beside-a-finalized-view pattern instead of always
+// landing on an editable form.
+function cmRenderViewMode(mod) {
+  cmLoadedModule = mod;
+  const host = document.getElementById("cm-view-mode");
+  const entriesHtml = (mod.entries || []).length
+    ? mod.entries.map((e) => `
+        <div style="border: 1px solid var(--border-line); padding: 10px 12px; margin-bottom: 8px;">
+          <span class="tag">${CATEGORY_LABELS[e.category] || e.category}</span>
+          <strong style="margin-left:6px; ${e.broken ? "color: var(--danger, #c0392b);" : ""}">${cmEscapeHtml(e.name || e.entryId)}${e.broken ? " (missing)" : ""}</strong>
+          <p style="margin:4px 0 0; font-size:0.85rem; color: var(--ink-dim);">${cmEscapeHtml(e.role || "")}${e.role && e.note ? " — " : ""}${cmEscapeHtml(e.note || "")}</p>
+        </div>
+      `).join("")
+    : `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">No entries yet.</p>`;
+
+  host.innerHTML = `
+    <div class="sheet-header">
+      <p class="sheet-eyebrow">Campaign Module</p>
+      <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 6px 0 10px;">${cmEscapeHtml(mod.name)}</h1>
+      ${mod.summary ? `<p class="subtitle" style="margin:0 0 12px;">${cmEscapeHtml(mod.summary)}</p>` : ""}
+      <span class="tag">${CM_STATUS_LABELS[mod.status] || mod.status}</span>
+    </div>
+    <div class="sheet-body">
+      <h2>Entries</h2>
+      ${entriesHtml}
+    </div>
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-line-soft);">
+      <button type="button" id="cm-edit-btn" class="bm-btn">Edit</button>
+    </div>
+  `;
+  document.getElementById("cm-edit-btn").addEventListener("click", cmEnterEditMode);
+}
+
+function cmEnterEditMode() {
+  document.getElementById("cm-view-mode").style.display = "none";
+  document.getElementById("cm-edit-mode").style.display = "block";
+  document.getElementById("cm-cancel-edit-btn").style.display = "inline-block";
+}
+
+function cmExitEditMode() {
+  document.getElementById("cm-edit-mode").style.display = "none";
+  document.getElementById("cm-view-mode").style.display = "block";
 }
 
 // Existing saved entries only carry {category, entryId, role, note} --
@@ -383,6 +449,10 @@ async function cmSaveModule() {
     status.textContent = "Saved.";
     if (!cmEditingId && data.module) {
       window.location.href = `builder.html?id=${encodeURIComponent(data.module.id)}`;
+    } else if (cmEditingId) {
+      document.getElementById("crumb-name").textContent = name;
+      cmRenderViewMode({ id: cmEditingId, name, summary: payload.summary, status: payload.status, entries: cmEntries });
+      cmExitEditMode();
     }
   } catch (err) {
     status.textContent = "Save failed: " + err.message;
