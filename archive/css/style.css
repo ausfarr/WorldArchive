@@ -351,3 +351,143 @@ footer.site-footer .wrap {
   font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-faint);
   letter-spacing: 0.04em; white-space: nowrap;
 }
+
+/* ---------- Dungeon / Battle Maps (Location dossier pages) ---------- */
+.battle-map-empty-note {
+  color: var(--ink-dim);
+  font-size: 0.9rem;
+  max-width: 640px;
+  margin: 8px 0 16px;
+}
+.bm-btn {
+  background: var(--bg-panel-raised);
+  color: var(--ink);
+  border: 1px solid var(--border-line);
+  padding: 8px 16px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.bm-btn:hover { border-color: var(--ink-faint); }
+.bm-btn:disabled { opacity: 0.5; cursor: default; }
+.bm-btn-secondary { background: transparent; }
+.bm-btn-danger {
+  background: transparent;
+  color: var(--danger, #c0392b);
+  border-color: var(--danger, #c0392b);
+}
+.battle-map-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.bm-hint {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  flex-basis: 100%;
+}
+.bm-status {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+.battle-map-stage {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--border-line);
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+}
+.battle-map-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.battle-map-grid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.battle-map-grid line {
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 0.15;
+}
+.battle-map-markers {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.bm-marker {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  cursor: grab;
+}
+.bm-marker:active { cursor: grabbing; }
+.bm-popover {
+  position: absolute;
+  transform: translate(-50%, 12px);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-line);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 170px;
+  z-index: 20;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.bm-label-input {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-line);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 6px 8px;
+}
+.bm-swatches {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.bm-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+.bm-swatch.selected { border-color: var(--ink); }
+.bm-popover-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}

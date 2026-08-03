@@ -1657,6 +1657,7 @@ function renderDossier(entry, factionLookup) {
 
   wireDeleteEntryButton(entry);
   wireEntryExportButton(entry);
+  renderLocationBattleMap(entry);
 }
 
 // Faction dossier pages only -- shows the Priority 6 mood banner if this
@@ -1748,6 +1749,311 @@ function renderFactionColorPicker(entry, currentColorCss) {
       setTimeout(() => window.location.reload(), 500);
     } catch (err) {
       status.textContent = "Error: " + err.message;
+    }
+  });
+}
+
+// ============================================================
+// Dungeon / Battle Maps -- Location dossier pages only.
+// See session_addendum_dungeon_maps_campaign_structure_scope.md for the
+// locked scope. Storage lives at entry.dungeonMap (raw_json.dungeonMap
+// on the row, spread onto the entry object by entriesRepo -- see
+// routes/dungeonMap.js's header comment). Grid + markers are both drawn
+// here in code, never baked into the AI image -- same "don't draw the
+// thing we're adding ourselves" principle as the world map's pins.
+//
+// currentBattleMap* module-level state mirrors the single-entry-at-a-time
+// nature of the dossier page (same pattern implicitly relied on by
+// wireDeleteEntryButton/wireEntryExportButton, which re-wire fresh
+// listeners against the currently-viewed entry on every renderDossier()
+// call rather than tracking multiple entries at once).
+let currentBattleMapEntryId = null;
+let currentBattleMapMarkers = [];
+let battleMapDragState = null; // { markerId, moved, stageEl } while a drag is in progress
+
+const BATTLE_MAP_COLORS = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#e67e22", "#1abc9c", "#ecf0f1"];
+
+function renderLocationBattleMap(entry) {
+  const host = document.getElementById("dungeon-map-zone");
+  if (!host) return;
+  if (entry.category !== "locations") {
+    host.innerHTML = "";
+    return;
+  }
+
+  currentBattleMapEntryId = entry.id;
+  const map = entry.dungeonMap;
+
+  if (!map || !map.imageUrl) {
+    host.innerHTML = `
+      <h2>Battle Map</h2>
+      <p class="battle-map-empty-note">Generate an AI battle map for this location to use at the table. The grid and any tokens you place are drawn on top -- never baked into the art -- so they stay crisp and adjustable.</p>
+      <button id="generate-battle-map-btn" class="bm-btn">Generate Battle Map</button>
+      <span id="battle-map-status" class="bm-status"></span>
+    `;
+    wireGenerateBattleMapButton(entry.id);
+    return;
+  }
+
+  currentBattleMapMarkers = (map.markers || []).map((m) => ({ ...m }));
+
+  host.innerHTML = `
+    <h2>Battle Map</h2>
+    <div class="battle-map-toolbar">
+      <span class="bm-hint">Click the map to drop a token. Drag a token to move it. Click a token to rename or remove it.</span>
+      <button id="reset-encounter-btn" class="bm-btn bm-btn-secondary">Reset Encounter</button>
+      <button id="regenerate-battle-map-btn" class="bm-btn bm-btn-secondary">Regenerate Map</button>
+      <span id="battle-map-status" class="bm-status"></span>
+    </div>
+    <div class="battle-map-stage" id="battle-map-stage">
+      <img src="${map.imageUrl}" alt="${stripHtml(entry.name)} battle map" class="battle-map-img" draggable="false">
+      <svg class="battle-map-grid" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+      <div class="battle-map-markers" id="battle-map-markers"></div>
+    </div>
+  `;
+
+  drawBattleMapGrid(map.gridSize || 20);
+  renderBattleMapMarkers();
+  wireBattleMapStage();
+  wireResetEncounterButton(entry.id);
+  wireRegenerateBattleMapButton(entry.id);
+}
+
+function drawBattleMapGrid(gridSize) {
+  const svg = document.querySelector("#battle-map-stage .battle-map-grid");
+  if (!svg) return;
+  const cell = 100 / gridSize;
+  const lines = [];
+  for (let i = 0; i <= gridSize; i++) {
+    const pos = (i * cell).toFixed(3);
+    lines.push(`<line x1="${pos}" y1="0" x2="${pos}" y2="100" />`);
+    lines.push(`<line x1="0" y1="${pos}" x2="100" y2="${pos}" />`);
+  }
+  svg.innerHTML = lines.join("\n");
+}
+
+function renderBattleMapMarkers() {
+  const host = document.getElementById("battle-map-markers");
+  if (!host) return;
+  host.innerHTML = "";
+  currentBattleMapMarkers.forEach((marker) => {
+    const el = document.createElement("div");
+    el.className = "bm-marker";
+    el.style.left = `${marker.x}%`;
+    el.style.top = `${marker.y}%`;
+    el.style.background = marker.color || BATTLE_MAP_COLORS[0];
+    el.dataset.markerId = marker.id;
+    el.title = marker.label || "";
+    el.textContent = (marker.label || "?").trim().slice(0, 2).toUpperCase();
+    host.appendChild(el);
+  });
+}
+
+// Persists the current marker array in full (see routes/dungeonMap.js's
+// PATCH /dungeon-map/markers -- always a full replace, never a delta).
+async function persistBattleMapMarkers() {
+  if (!currentBattleMapEntryId) return;
+  try {
+    await authFetch(`/api/entries/locations/${currentBattleMapEntryId}/dungeon-map/markers`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markers: currentBattleMapMarkers })
+    });
+  } catch (err) {
+    console.error("Saving battle map markers failed:", err);
+  }
+}
+
+function closeBattleMapPopover() {
+  const existing = document.getElementById("bm-popover");
+  if (existing) existing.remove();
+}
+
+// One popover handles both "add a new token at this spot" (existingMarker
+// is null) and "edit/remove this token" (existingMarker is set) -- same
+// small form either way, just pre-filled and with a Delete button added
+// for the edit case.
+function openBattleMapPopover({ x, y, existingMarker }) {
+  closeBattleMapPopover();
+  const stage = document.getElementById("battle-map-stage");
+  if (!stage) return;
+
+  const pop = document.createElement("div");
+  pop.id = "bm-popover";
+  pop.className = "bm-popover";
+  pop.style.left = `${x}%`;
+  pop.style.top = `${y}%`;
+
+  const swatches = BATTLE_MAP_COLORS.map((c) => `<button type="button" class="bm-swatch" data-color="${c}" style="background:${c}"></button>`).join("");
+
+  pop.innerHTML = `
+    <input type="text" id="bm-label-input" class="bm-label-input" placeholder="Token name" maxlength="24" value="${existingMarker ? escapeAttr(existingMarker.label || "") : ""}">
+    <div class="bm-swatches">${swatches}</div>
+    <div class="bm-popover-actions">
+      ${existingMarker ? '<button type="button" id="bm-delete-btn" class="bm-btn bm-btn-danger">Remove</button>' : ""}
+      <button type="button" id="bm-save-btn" class="bm-btn">${existingMarker ? "Save" : "Add"}</button>
+    </div>
+  `;
+  stage.appendChild(pop);
+
+  let selectedColor = (existingMarker && existingMarker.color) || BATTLE_MAP_COLORS[0];
+  pop.querySelectorAll(".bm-swatch").forEach((sw) => {
+    if (sw.dataset.color === selectedColor) sw.classList.add("selected");
+    sw.addEventListener("click", () => {
+      selectedColor = sw.dataset.color;
+      pop.querySelectorAll(".bm-swatch").forEach((s) => s.classList.remove("selected"));
+      sw.classList.add("selected");
+    });
+  });
+
+  document.getElementById("bm-label-input").focus();
+
+  document.getElementById("bm-save-btn").addEventListener("click", () => {
+    const label = document.getElementById("bm-label-input").value.trim() || "Token";
+    if (existingMarker) {
+      existingMarker.label = label;
+      existingMarker.color = selectedColor;
+    } else {
+      currentBattleMapMarkers.push({ id: `mk-${Date.now()}-${Math.floor(Math.random() * 1000)}`, x, y, label, color: selectedColor });
+    }
+    renderBattleMapMarkers();
+    persistBattleMapMarkers();
+    closeBattleMapPopover();
+  });
+
+  const deleteBtn = document.getElementById("bm-delete-btn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", () => {
+      currentBattleMapMarkers = currentBattleMapMarkers.filter((m) => m.id !== existingMarker.id);
+      renderBattleMapMarkers();
+      persistBattleMapMarkers();
+      closeBattleMapPopover();
+    });
+  }
+}
+
+function escapeAttr(str) {
+  return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Wires click-to-add, drag-to-move, and click-to-edit on the stage.
+// Distinguishes a click from a drag by total pointer movement -- a
+// marker mousedown followed by <6px of movement before mouseup opens the
+// edit popover; anything past that threshold commits a new position
+// instead.
+function wireBattleMapStage() {
+  const stage = document.getElementById("battle-map-stage");
+  if (!stage) return;
+
+  stage.addEventListener("click", (e) => {
+    if (e.target.closest(".bm-marker") || e.target.closest(".bm-popover")) return;
+    closeBattleMapPopover();
+    const rect = stage.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    openBattleMapPopover({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)), existingMarker: null });
+  });
+
+  const markersHost = document.getElementById("battle-map-markers");
+  markersHost.addEventListener("mousedown", (e) => {
+    const markerEl = e.target.closest(".bm-marker");
+    if (!markerEl) return;
+    e.stopPropagation();
+    battleMapDragState = { markerId: markerEl.dataset.markerId, moved: false, stageEl: stage };
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!battleMapDragState) return;
+    const marker = currentBattleMapMarkers.find((m) => m.id === battleMapDragState.markerId);
+    if (!marker) return;
+    const rect = battleMapDragState.stageEl.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+    marker.x = x;
+    marker.y = y;
+    battleMapDragState.moved = true;
+    renderBattleMapMarkers();
+  });
+
+  document.addEventListener("mouseup", () => {
+    if (!battleMapDragState) return;
+    const { markerId, moved } = battleMapDragState;
+    const marker = currentBattleMapMarkers.find((m) => m.id === markerId);
+    battleMapDragState = null;
+    if (!marker) return;
+    if (moved) {
+      persistBattleMapMarkers();
+    } else {
+      openBattleMapPopover({ x: marker.x, y: marker.y, existingMarker: marker });
+    }
+  });
+}
+
+function wireGenerateBattleMapButton(locationId) {
+  const btn = document.getElementById("generate-battle-map-btn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const status = document.getElementById("battle-map-status");
+    btn.disabled = true;
+    status.textContent = "Generating battle map… this can take a bit.";
+    try {
+      const res = await authFetch(`/api/entries/locations/${locationId}/dungeon-map/generate`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generation failed.");
+      status.textContent = "Done — reloading…";
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      console.error("Battle map generation failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+      btn.disabled = false;
+    }
+  });
+}
+
+function wireRegenerateBattleMapButton(locationId) {
+  const btn = document.getElementById("regenerate-battle-map-btn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const confirmed = window.confirm("Regenerate the battle map art? This replaces the image and clears any tokens currently placed.");
+    if (!confirmed) return;
+    const status = document.getElementById("battle-map-status");
+    btn.disabled = true;
+    status.textContent = "Regenerating…";
+    try {
+      const res = await authFetch(`/api/entries/locations/${locationId}/dungeon-map/generate`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Regeneration failed.");
+      status.textContent = "Done — reloading…";
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      console.error("Battle map regeneration failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+      btn.disabled = false;
+    }
+  });
+}
+
+function wireResetEncounterButton(locationId) {
+  const btn = document.getElementById("reset-encounter-btn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const confirmed = window.confirm("Clear every token from this battle map? The map image itself is kept.");
+    if (!confirmed) return;
+    const status = document.getElementById("battle-map-status");
+    btn.disabled = true;
+    status.textContent = "Resetting…";
+    try {
+      const res = await authFetch(`/api/entries/locations/${locationId}/dungeon-map/reset`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Reset failed.");
+      currentBattleMapMarkers = [];
+      renderBattleMapMarkers();
+      status.textContent = "Encounter reset.";
+      btn.disabled = false;
+    } catch (err) {
+      console.error("Reset encounter failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+      btn.disabled = false;
     }
   });
 }
