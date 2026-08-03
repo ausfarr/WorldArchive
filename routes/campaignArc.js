@@ -104,15 +104,19 @@ router.post("/campaign-arcs/generate", enforceGenerationCap, async (req, res) =>
 // their Quest created yet simply aren't included until they are.
 router.post("/campaign-arcs", async (req, res) => {
   try {
-    const { name, summary, questIds, createdVia } = req.body || {};
+    const { name, summary, questIds, pendingStages, createdVia } = req.body || {};
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: "A Campaign needs a name." });
     }
     const cleanQuestIds = Array.isArray(questIds) ? questIds.filter((id) => typeof id === "string" && id) : [];
+    const cleanPendingStages = Array.isArray(pendingStages)
+      ? pendingStages.filter((s) => s && s.id).map((s) => ({ id: s.id, title: s.title || "", concept: s.concept || "" }))
+      : [];
     const arc = await createCampaignArc(req.worldId, {
       name: String(name).trim(),
       summary: summary || "",
       questIds: cleanQuestIds,
+      pendingStages: cleanPendingStages,
       createdVia: createdVia === "ai" ? "ai" : "manual"
     });
     res.json({ arc });
@@ -124,12 +128,17 @@ router.post("/campaign-arcs", async (req, res) => {
 
 router.patch("/campaign-arcs/:id", async (req, res) => {
   try {
-    const { name, summary, questIds } = req.body || {};
+    const { name, summary, questIds, pendingStages } = req.body || {};
     const patch = {};
     if (name !== undefined) patch.name = String(name).trim();
     if (summary !== undefined) patch.summary = summary;
     if (questIds !== undefined) {
       patch.questIds = Array.isArray(questIds) ? questIds.filter((id) => typeof id === "string" && id) : [];
+    }
+    if (pendingStages !== undefined) {
+      patch.pendingStages = Array.isArray(pendingStages)
+        ? pendingStages.filter((s) => s && s.id).map((s) => ({ id: s.id, title: s.title || "", concept: s.concept || "" }))
+        : [];
     }
     const arc = await updateCampaignArc(req.worldId, req.params.id, patch);
     res.json({ arc });
@@ -141,13 +150,15 @@ router.patch("/campaign-arcs/:id", async (req, res) => {
 
 // POST append-quest -- called by the Quest builder after saving a new
 // Quest that was created from this arc's unmatched stage
-// (?arcId=...&prefillConcept=...). Idempotent (appendQuestToArc no-ops
-// if the id is already present).
+// (?arcId=...&prefillConcept=...&stageId=...). Idempotent for questIds
+// (appendQuestToArc no-ops if already present); stageId, if given,
+// removes that entry from pendingStages so the "still needs a Quest"
+// list shrinks as stages get fulfilled.
 router.post("/campaign-arcs/:id/append-quest", async (req, res) => {
   try {
-    const { questId } = req.body || {};
+    const { questId, stageId } = req.body || {};
     if (!questId) return res.status(400).json({ error: "questId is required." });
-    const arc = await appendQuestToArc(req.worldId, req.params.id, questId);
+    const arc = await appendQuestToArc(req.worldId, req.params.id, questId, stageId);
     res.json({ arc });
   } catch (err) {
     console.error("Appending quest to campaign failed:", err);

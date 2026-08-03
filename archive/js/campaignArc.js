@@ -48,7 +48,7 @@ let caQuestIds = []; // ordered array of Quest ids
 let caQuestDetails = {}; // id -> {name, summary, broken}
 let caLoadedArc = null;
 let caQuestOptionsCache = null;
-let caCurrentPreview = null;
+let caPendingStages = []; // [{id, title, concept}] -- unmatched stages still needing a Quest, persisted server-side
 
 async function initCampaignArcBuilder() {
   const params = new URLSearchParams(window.location.search);
@@ -75,6 +75,7 @@ async function initCampaignArcBuilder() {
       const arc = data.arc;
       document.getElementById("crumb-name").textContent = arc.name || "Campaign";
       caQuestIds = [...(arc.questIds || [])];
+      caPendingStages = [...(arc.pendingStages || [])];
       await caHydrateQuestDetails(caQuestIds);
       caPopulateEditForm(arc);
       caRenderViewMode(arc);
@@ -139,6 +140,7 @@ function caRenderViewMode(arc) {
     <div class="sheet-body">
       <h2>Stages</h2>
       ${stagesHtml}
+      ${caRenderPendingStagesHtml()}
     </div>
     <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-line-soft);">
       <button type="button" id="ca-edit-btn" class="bm-btn">Edit</button>
@@ -192,26 +194,81 @@ function caRemoveQuest(index) {
 
 function caRenderStagesList() {
   const host = document.getElementById("ca-stages-list");
-  if (caQuestIds.length === 0) {
-    host.innerHTML = `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.8rem;">No stages yet -- add existing Quests below, or plan with AI above.</p>`;
-    return;
-  }
-  host.innerHTML = caQuestIds.map((id, i) => {
-    const q = caQuestDetails[id] || { name: id, summary: "" };
+  const linkedHtml = caQuestIds.length
+    ? caQuestIds.map((id, i) => {
+        const q = caQuestDetails[id] || { name: id, summary: "" };
+        return `
+          <div style="border: 1px solid var(--border-line); padding: 10px 12px; display: flex; align-items: center; gap: 10px;">
+            <span class="tag" style="flex-shrink:0;">Stage ${i + 1}</span>
+            <div style="flex: 1; min-width: 0;">
+              <p style="margin:0; font-weight:600; ${q.broken ? "color: var(--danger, #c0392b);" : ""}">${caEscapeHtml(q.name)}${q.broken ? " (missing)" : ""}</p>
+              <p style="margin:2px 0 0; font-size:0.78rem; color: var(--ink-dim);">${caEscapeHtml(q.summary || "")}</p>
+            </div>
+            <button type="button" onclick="caRemoveQuest(${i})" class="bm-btn bm-btn-secondary" style="flex-shrink:0;">Remove</button>
+          </div>
+        `;
+      }).join("")
+    : "";
+  const emptyNote = (caQuestIds.length === 0 && caPendingStages.length === 0)
+    ? `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.8rem;">No stages yet -- add existing Quests below, or plan with AI above.</p>`
+    : "";
+  host.innerHTML = linkedHtml + emptyNote + caRenderPendingStagesHtml();
+}
+
+// Shared between view mode and edit mode -- a stage that's still
+// waiting on a Quest to be created for it. Persisted server-side (see
+// migrations/011_campaign_arc_pending_stages.sql) specifically so this
+// list survives navigating away to the Quest builder and back, instead
+// of only ever existing in a discarded in-memory preview.
+function caRenderPendingStagesHtml() {
+  if (!caPendingStages.length) return "";
+  return caPendingStages.map((s, i) => {
+    const prefill = [s.title, s.concept].filter(Boolean).join(" — ");
     return `
-      <div style="border: 1px solid var(--border-line); padding: 10px 12px; display: flex; align-items: center; gap: 10px;">
-        <span class="tag" style="flex-shrink:0;">Stage ${i + 1}</span>
-        <div style="flex: 1; min-width: 0;">
-          <p style="margin:0; font-weight:600; ${q.broken ? "color: var(--danger, #c0392b);" : ""}">${caEscapeHtml(q.name)}${q.broken ? " (missing)" : ""}</p>
-          <p style="margin:2px 0 0; font-size:0.78rem; color: var(--ink-dim);">${caEscapeHtml(q.summary || "")}</p>
+      <div style="border: 1px dashed var(--border-line); padding: 8px 10px; margin-top: 8px;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+          <div>
+            <strong style="color: var(--ink-faint);">${caEscapeHtml(s.title)}</strong>
+            <p style="margin:4px 0 8px; font-size:0.8rem; color: var(--ink-dim);">${caEscapeHtml(s.concept || "")}</p>
+          </div>
+          <button type="button" onclick="caRemovePendingStage(${i})" class="bm-btn bm-btn-secondary" style="flex-shrink:0;">Remove</button>
         </div>
-        <button type="button" onclick="caRemoveQuest(${i})" class="bm-btn bm-btn-secondary" style="flex-shrink:0;">Remove</button>
+        <a href="../campaigns/builder.html?arcId=${encodeURIComponent(caEditingId || "")}&stageId=${encodeURIComponent(s.id)}&prefillConcept=${encodeURIComponent(prefill)}" class="bm-btn" style="text-decoration:none; display:inline-block;">Create this Quest →</a>
       </div>
     `;
   }).join("");
 }
 
-// ---------- AI planning + preview ----------
+// Discards a stage the DM doesn't want without creating its Quest --
+// persists immediately since pendingStages is server-side state now,
+// same reasoning as everything else in this file post-generate.
+async function caRemovePendingStage(index) {
+  caPendingStages.splice(index, 1);
+  caRenderStagesList();
+  if (caEditingId) {
+    try {
+      await authFetch(`/api/campaign-arcs/${encodeURIComponent(caEditingId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pendingStages: caPendingStages })
+      });
+    } catch (err) {
+      console.error("Removing pending stage failed:", err);
+    }
+  }
+}
+
+// ---------- AI planning ----------
+//
+// Unlike the old design, there is no separate "preview, then Accept"
+// step here -- a generated plan commits to the Campaign immediately
+// (matched stages into questIds, unmatched stages into pendingStages,
+// both persisted server-side in the same save/patch call). This is what
+// fixes the real bug this addendum exists for: the old in-memory-only
+// preview was wiped the instant a DM navigated to the Quest builder to
+// fill an unmatched stage, forcing them to regenerate a whole new plan
+// just to see the OTHER stages again. Persisting immediately means
+// leaving and coming back always shows the true current state.
 
 async function caGenerateWithAi() {
   const btn = document.getElementById("ca-generate-btn");
@@ -229,14 +286,8 @@ async function caGenerateWithAi() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(formatGenerationError(data, { asHtml: false }));
-    // A brand-new (unsaved) Campaign needs a real id before an unmatched
-    // stage's "Create this Quest" link can carry ?arcId= back to it --
-    // silently save a draft here so that link always works, same spirit
-    // as slot-fill generation creating real content before the parent
-    // container's own explicit save.
-    await caEnsureSaved(data);
-    status.textContent = "Plan ready — review below before accepting.";
-    caRenderPreview(data);
+    await caCommitPlan(data);
+    status.textContent = "Plan saved — matched stages are in, unmatched ones are below.";
   } catch (err) {
     status.textContent = "Planning failed: " + err.message;
   } finally {
@@ -245,82 +296,57 @@ async function caGenerateWithAi() {
   }
 }
 
-async function caEnsureSaved(proposal) {
-  if (caEditingId) return caEditingId;
-  try {
-    const res = await authFetch("/api/campaign-arcs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: proposal.name, summary: proposal.summary, questIds: caQuestIds, createdVia: "ai" })
-    });
-    const data = await res.json();
-    if (res.ok && data.arc) {
-      caEditingId = data.arc.id;
-      document.getElementById("crumb-name").textContent = data.arc.name;
-      document.getElementById("ca-danger-zone").style.display = "block";
-      document.getElementById("ca-delete-btn").addEventListener("click", caDeleteArc);
-      window.history.replaceState(null, "", `builder.html?id=${encodeURIComponent(caEditingId)}`);
-    }
-  } catch (err) {
-    console.error("Auto-saving campaign draft failed:", err);
-  }
-  return caEditingId;
-}
-
-function caRenderPreview(proposal) {
-  caCurrentPreview = proposal;
-  const zone = document.getElementById("ca-preview-zone");
-  zone.innerHTML = `
-    <div style="border: 1px solid var(--border-accent, var(--neon-primary)); padding: 14px; margin: 10px 0;">
-      <p style="margin:0 0 4px; font-weight:600;">${caEscapeHtml(proposal.name)}</p>
-      <p style="margin:0 0 12px; color: var(--ink-dim); font-size:0.85rem;">${caEscapeHtml(proposal.summary)}</p>
-      <div id="ca-preview-stages" style="display:flex; flex-direction:column; gap:8px;"></div>
-      <div style="margin-top:12px; display:flex; gap:10px;">
-        <button type="button" id="ca-accept-preview-btn" class="bm-btn">Accept matched stages into Campaign</button>
-        <button type="button" id="ca-discard-preview-btn" class="bm-btn bm-btn-secondary">Discard</button>
-      </div>
-    </div>
-  `;
-  caRenderPreviewStages(proposal.stages);
-  document.getElementById("ca-accept-preview-btn").addEventListener("click", () => caAcceptPreview(proposal));
-  document.getElementById("ca-discard-preview-btn").addEventListener("click", () => { zone.innerHTML = ""; });
-}
-
-function caRenderPreviewStages(stages) {
-  const host = document.getElementById("ca-preview-stages");
-  host.innerHTML = stages.map((s, i) => {
-    if (s.matched) {
-      return `
-        <div style="border: 1px solid var(--border-line); padding: 8px 10px;">
-          <span class="tag">Stage ${i + 1}</span>
-          <strong style="margin-left:6px;">${caEscapeHtml(s.questName)}</strong>
-          <p style="margin:4px 0 0; font-size:0.8rem; color: var(--ink-dim);">${caEscapeHtml(s.questSummary || "")}</p>
-        </div>
-      `;
-    }
-    const prefill = [s.title, s.concept].filter(Boolean).join(" — ");
-    return `
-      <div style="border: 1px dashed var(--border-line); padding: 8px 10px;">
-        <span class="tag">Stage ${i + 1}</span>
-        <strong style="margin-left:6px; color: var(--ink-faint);">${caEscapeHtml(s.title)}</strong>
-        <p style="margin:4px 0 8px; font-size:0.8rem; color: var(--ink-dim);">${caEscapeHtml(s.concept || "")}</p>
-        <a href="../campaigns/builder.html?arcId=${encodeURIComponent(caEditingId || "")}&prefillConcept=${encodeURIComponent(prefill)}" class="bm-btn" style="text-decoration:none; display:inline-block;">Create this Quest →</a>
-      </div>
-    `;
-  }).join("");
-}
-
-function caAcceptPreview(proposal) {
+// Folds a freshly-generated plan into the Campaign's real, persisted
+// state in one round trip -- creates the Campaign first if this is a
+// brand-new one (no id yet). Matched stages merge into questIds
+// (deduped); unmatched stages become new pendingStages entries, each
+// given a stable client-generated id so a later append-quest call can
+// remove exactly the right one.
+async function caCommitPlan(proposal) {
   if (!document.getElementById("ca-name").value.trim()) document.getElementById("ca-name").value = proposal.name;
   if (!document.getElementById("ca-summary").value.trim()) document.getElementById("ca-summary").value = proposal.summary;
-  proposal.stages.filter((s) => s.matched).forEach((s) => {
-    if (!caQuestIds.includes(s.questId)) {
-      caQuestIds.push(s.questId);
-      caQuestDetails[s.questId] = { name: s.questName, summary: s.questSummary, broken: false };
+
+  proposal.stages.forEach((s) => {
+    if (s.matched) {
+      if (!caQuestIds.includes(s.questId)) {
+        caQuestIds.push(s.questId);
+        caQuestDetails[s.questId] = { name: s.questName, summary: s.questSummary, broken: false };
+      }
+    } else {
+      caPendingStages.push({ id: `stage-${Date.now()}-${Math.floor(Math.random() * 1000)}`, title: s.title || "Untitled stage", concept: s.concept || "" });
     }
   });
+
+  const name = document.getElementById("ca-name").value.trim();
+  const summary = document.getElementById("ca-summary").value.trim();
+  const payload = { name, summary, questIds: caQuestIds, pendingStages: caPendingStages };
+
+  try {
+    if (caEditingId) {
+      await authFetch(`/api/campaign-arcs/${encodeURIComponent(caEditingId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      const res = await authFetch("/api/campaign-arcs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...payload, createdVia: "ai" })
+      });
+      const data = await res.json();
+      if (res.ok && data.arc) {
+        caEditingId = data.arc.id;
+        document.getElementById("crumb-name").textContent = data.arc.name;
+        document.getElementById("ca-danger-zone").style.display = "block";
+        document.getElementById("ca-delete-btn").addEventListener("click", caDeleteArc);
+        window.history.replaceState(null, "", `builder.html?id=${encodeURIComponent(caEditingId)}`);
+      }
+    }
+  } catch (err) {
+    console.error("Saving generated plan failed:", err);
+  }
   caRenderStagesList();
-  document.getElementById("ca-preview-zone").innerHTML = "";
 }
 
 // ---------- Save / delete ----------

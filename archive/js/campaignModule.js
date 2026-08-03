@@ -50,6 +50,7 @@ async function loadAndRenderCampaignList() {
 
 let cmEditingId = null;
 let cmArcId = null; // set when arriving from a Campaign's unmatched stage (?arcId=...)
+let cmStageId = null; // the specific pending stage this Quest fulfills, so it can be removed from the Campaign's list
 let cmEntries = []; // [{category, entryId, name, subtitle, role, note}]
 let cmEntryOptionsCache = {}; // category -> [{id, name, subtitle}]
 let cmLoadedModule = null; // last fetched/saved module, used to render view mode and to reset on Cancel
@@ -58,6 +59,7 @@ async function initCampaignBuilder() {
   const params = new URLSearchParams(window.location.search);
   cmEditingId = params.get("id");
   cmArcId = params.get("arcId");
+  cmStageId = params.get("stageId");
   const prefillConcept = params.get("prefillConcept");
 
   await cmPopulateAddEntrySelect();
@@ -464,7 +466,7 @@ async function cmSaveModule() {
           await authFetch(`/api/campaign-arcs/${encodeURIComponent(cmArcId)}/append-quest`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ questId: data.module.id })
+            body: JSON.stringify({ questId: data.module.id, stageId: cmStageId })
           });
         } catch (err) {
           console.error("Linking this Quest back to its Campaign failed:", err);
