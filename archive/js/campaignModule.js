@@ -186,7 +186,10 @@ async function cmGenerateWithAi() {
   }
 }
 
+let cmCurrentPreview = null;
+
 function cmRenderPreview(proposal) {
+  cmCurrentPreview = proposal;
   const zone = document.getElementById("cm-preview-zone");
   zone.innerHTML = `
     <div style="border: 1px solid var(--border-accent, var(--neon-primary)); padding: 14px; margin: 10px 0;">
@@ -231,10 +234,7 @@ function cmRenderPreviewEntries(entries) {
   }).join("");
 }
 
-let cmCurrentPreview = null;
-
 function cmAcceptPreview(proposal) {
-  cmCurrentPreview = proposal;
   if (!document.getElementById("cm-name").value.trim()) {
     document.getElementById("cm-name").value = proposal.name;
   }
