@@ -102,7 +102,7 @@ router.post("/entries/:category/:id/generate-image", async (req, res) => {
       model: HAIKU_MODEL
     });
 
-    const imageBuffer = await generateImage(artPrompt.trim());
+    const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
     const imageUrl = await saveImage(req.worldId, id, imageBuffer);
     await saveFn(req.worldId, subjectJson, imageUrl);
 

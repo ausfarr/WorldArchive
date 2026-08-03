@@ -78,47 +78,21 @@ router.post("/generate-survivor", enforceGenerationCap, async (req, res) => {
       });
     }
 
-    let imageBuffer = null;
-    let imageError = null;
-    try {
-      const styleGuide = await getStyleGuide(worldId);
-      const factionAccent = await getFactionAccent(worldId, styleGuide, survivor.faction);
-      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "survivors", subjectJson: survivor, styleGuide, factionAccent });
-      const artPrompt = await callClaude({
-        systemPrompt: artSystemPrompt,
-        userMessage: "Write the prompt now.",
-        maxTokens: 500,
-        // Cheaper model for this call -- see lib/claude.js's HAIKU_MODEL
-        // comment. Writing an art-generation prompt from structured JSON
-        // + a strict template is a mechanical/templating task, not
-        // creative world-building judgment, so it doesn't need Sonnet.
-        model: HAIKU_MODEL
-      });
-      ({ buffer: imageBuffer } = await generateImage(artPrompt.trim()));
-    } catch (imgErr) {
-      console.error("Image step failed, continuing without art:", imgErr.message);
-      imageError = imgErr.message;
-    }
-
-    let imageUrl = null;
-    if (imageBuffer) {
-      try {
-        imageUrl = await saveImage(worldId, survivor.id, imageBuffer);
-      } catch (uploadErr) {
-        console.error("Image upload failed:", uploadErr.message);
-        imageError = uploadErr.message;
-      }
-    }
-    await saveSurvivorEntry(worldId, survivor, imageUrl);
+    // Portrait generation is no longer bundled into entry creation --
+    // saved immediately with imageUrl: null, and the dossier page offers
+    // Generate/Upload actions via archive/js/portraitActions.js +
+    // routes/generateEntryImage.js instead. (This decoupling was
+    // originally done in a separate chat session in this project; being
+    // restored here after it was accidentally reverted by an unrelated
+    // later delivery that touched this same file.)
+    await saveSurvivorEntry(worldId, survivor, null);
 
     res.json({
       preview: false,
       id: survivor.id,
       name: survivor.name,
       className: survivor.className,
-      summary: survivor.designNotes,
-      imageGenerated: !!imageUrl,
-      imageError
+      summary: survivor.designNotes
     });
   } catch (err) {
     console.error("Survivor generation failed:", err);

@@ -94,46 +94,14 @@ router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
       });
     }
 
-    // Step 3: art prompt generation
-    let imageBuffer = null;
-    let imageError = null;
-    try {
-      const styleGuide = await getStyleGuide(worldId);
-      const factionAccent = await getFactionAccent(worldId, styleGuide, npc.faction);
-      const artSystemPrompt = buildArtPromptSystemPrompt({ category: "npcs", subjectJson: npc, styleGuide, factionAccent });
-      const artPrompt = await callClaude({
-        systemPrompt: artSystemPrompt,
-        userMessage: "Write the prompt now.",
-        maxTokens: 500,
-        // Cheaper model for this call -- see lib/claude.js's HAIKU_MODEL
-        // comment. Writing an art-generation prompt from structured JSON
-        // + a strict template is a mechanical/templating task, not
-        // creative world-building judgment, so it doesn't need Sonnet.
-        model: HAIKU_MODEL
-      });
-
-      // Step 4: image generation — non-fatal if it fails
-      ({ buffer: imageBuffer } = await generateImage(artPrompt.trim()));
-    } catch (imgErr) {
-      console.error("Image step failed, continuing without art:", imgErr.message);
-      imageError = imgErr.message;
-    }
-
-    // Step 5: upload image FIRST (if any) so its real public URL can be
-    // baked into the saved bodyHtml -- saving the entry before the image
-    // exists left a dead relative-path <img src> permanently in the
-    // stored HTML, which is why portraits never actually displayed even
-    // when generation/upload succeeded (see this session's chat).
-    let imageUrl = null;
-    if (imageBuffer) {
-      try {
-        imageUrl = await saveImage(worldId, npc.id, imageBuffer);
-      } catch (uploadErr) {
-        console.error("Image upload failed:", uploadErr.message);
-        imageError = uploadErr.message;
-      }
-    }
-    await saveNpcEntry(worldId, npc, imageUrl);
+    // Portrait generation is no longer bundled into entry creation --
+    // saved immediately with imageUrl: null, and the dossier page offers
+    // Generate/Upload actions via archive/js/portraitActions.js +
+    // routes/generateEntryImage.js instead. (This decoupling was
+    // originally done in a separate chat session in this project; being
+    // restored here after it was accidentally reverted by an unrelated
+    // later delivery that touched this same file.)
+    await saveNpcEntry(worldId, npc, null);
 
     res.json({
       preview: false,
@@ -141,9 +109,7 @@ router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
       name: npc.name,
       roleArchetype: npc.roleArchetype,
       faction: npc.faction,
-      summary: npc.designNotes,
-      imageGenerated: !!imageUrl,
-      imageError
+      summary: npc.designNotes
     });
   } catch (err) {
     console.error("NPC generation failed:", err);
