@@ -23,14 +23,81 @@ entry from here forward gets both a real date and a version at write time.
 
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`
-- **Future roadmap ideas (unranked, no version yet):** quest/questline
-  generator, table/dungeon generation, solo-play engine (paid
-  expansion/DLC tier, pending Phase 5 multi-tier billing support). Broader
-  "full tool for DMs + worldbuilders" brainstorm: DM/session tools
-  (session prep bundle flagged as flagship), deeper worldbuilding content
-  (timeline, culture/religion, calendar, flora/fauna, relationship graph),
-  cross-cutting platform features (full-text search, tagging, export,
-  version history). See: `session_addendum_future_phases_roadmap.md`
+- **Future roadmap ideas (unranked, no version yet):** table/dungeon
+  generation, solo-play engine (paid expansion/DLC tier, pending Phase 5
+  multi-tier billing support). Broader "full tool for DMs +
+  worldbuilders" brainstorm: deeper worldbuilding content (timeline,
+  culture/religion, calendar, flora/fauna, relationship graph),
+  cross-cutting platform features (full-text search, tagging, version
+  history). See: `session_addendum_future_phases_roadmap.md`. (Notes:
+  the quest/questline generator idea originally logged here shipped in
+  v0.8 as Quests + Campaigns, and the "session prep bundle" DM-tool idea
+  is substantially covered by v0.8's Quest PDF export — both removed
+  from this list; a query-driven "aggregate everything tagged to a
+  location/scenario" version distinct from the Quest structure itself is
+  still unbuilt if that's ever wanted as its own thing.)
+
+---
+
+## v0.8 — [DATE] — Quests, Campaigns & Battle Maps
+**Phase:** Unscoped additions (post-Locations)
+
+- **New: Dungeon/Battle Maps.** AI-illustrated top-down battle map per
+  Location, generated on demand. The grid is baked directly into the
+  saved PNG server-side (a small Puppeteer-based compositor, reusing the
+  same dependency already installed for PDF export — no new package)
+  rather than drawn client-side, so a plain right-click "Save image as"
+  gives a GM a print/VTT-ready gridded map, exactly like every other
+  image in the app. Marker/token placement was built, then deliberately
+  removed — token management is left to whatever tool a GM actually runs
+  the table with; this app's job stops at handing over a clean map.
+- **New: Quests.** (Shipped internally as "Campaign Module" — every
+  user-facing string now says "Quest," internal table/route/file names
+  were deliberately left unchanged; see the addendum for why.) Ties
+  together NPCs, Locations, Enemies, Items, and Logs into a DM-buildable
+  structure. Build one by hand from real existing entries, or let the
+  archive propose one via AI — grounded in the world's actual roster,
+  never inventing placeholder entries; any role nothing existing fits
+  gets flagged with a concept for the DM to fill in on demand (with a
+  choice to generate, pick something else, or leave it open).
+- **New: Campaigns.** A higher-level container sequencing multiple
+  Quests into an ordered story arc. AI planning is one lightweight call
+  — proposes named stages, matches existing Quests where they genuinely
+  fit (a much higher bar than matching a single NPC — a whole Quest
+  already has its own committed story), and flags the rest for on-demand
+  creation, which round-trips back into the Campaign automatically once
+  built.
+- **Quest & Campaign PDF export.** A Quest's export bundles every
+  referenced entry's full sheet (stat blocks, dialogue, everything) into
+  one printable session-prep packet, not just the reference list.
+- **Bestiary/Enemies added as a referenceable category in Quests** —
+  closes the gap where "encounters" had no way to specify what's
+  actually being fought.
+- **Reliability: retry-once-on-parse-failure**, added to every content
+  generator (all 8 categories + every wizard step). A malformed or
+  truncated model response now gets exactly one automatic retry (with a
+  bumped token budget, since truncation is the most common real cause)
+  before surfacing as a user-facing failure — reduces wasted
+  generation-cap spend and token cost from transient failures.
+- **Quote craft guidance strengthened** (Classes/Factions/NPCs/Enemies).
+  The existing anti-cliché guidance only named the literal "I don't X —
+  I Y" phrasing; broadened to catch the same negate-then-reframe
+  structure regardless of wording, plus a concrete self-check the model
+  applies before finalizing any signature line.
+- **Bug fixes:** regenerated battle maps now actually show the new image
+  (browser was caching the old one under the same storage URL); a
+  generated Campaign plan no longer gets lost when navigating away to
+  create a stage's Quest (now persists immediately server-side instead
+  of living only in browser memory); Quest pages now show a finalized
+  read-only view by default with an explicit Edit action, matching every
+  other category, instead of always opening in edit mode; fixed
+  `routes/worldArt.js` (World Mood Board / Faction Banners, shipped
+  earlier) never having actually been mounted, so those endpoints had
+  been unreachable since that feature originally shipped.
+- See: `session_addendum_dungeon_maps_shipped.md`,
+  `session_addendum_campaign_structure_shipped.md`,
+  `session_addendum_campaign_encounters_battlemap_export.md`,
+  `session_addendum_campaign_arcs_shipped.md`
 
 ---
 

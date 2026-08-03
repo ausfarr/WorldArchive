@@ -6,4 +6,4 @@
 // this site is a separate static deployment with no backend of its own,
 // so it can't read that file directly. Bump both together when you cut
 // a new version.
-window.APP_VERSION = "v0.7";
+window.APP_VERSION = "v0.8";
