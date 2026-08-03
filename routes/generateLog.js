@@ -7,6 +7,7 @@ const { saveLogEntry } = require("../lib/fileWriter");
 const { slugify, buildLogBodyHtml } = require("../lib/logTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
+const { createNewLog } = require("../lib/campaignEntryGenerators");
 
 const router = express.Router();
 
@@ -14,6 +15,12 @@ router.post("/generate-log", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, logType, fillExistingId } = req.body || {};
+
+    if (!fillExistingId) {
+      const result = await createNewLog(worldId, { name, logType });
+      return res.json({ preview: false, ...result });
+    }
+
     let existingEntry = null;
     let priorRaw = null;
     let priorBodyHtml = null;

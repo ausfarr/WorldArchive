@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campaigns — The Archive</title>
+<link rel="stylesheet" href="../css/style.css">
+<script>
+(function() {
+  try {
+    var cached = localStorage.getItem('worldforge_theme_cache');
+    if (!cached) return;
+    var t = JSON.parse(cached);
+    var hex = /^#[0-9a-fA-F]{6}$/;
+    var overrides = [];
+    if (hex.test(t.backgroundColor)) overrides.push('--bg-void: ' + t.backgroundColor + ';');
+    if (hex.test(t.panelColor)) overrides.push('--bg-panel: ' + t.panelColor + '; --bg-panel-raised: ' + t.panelColor + ';');
+    if (hex.test(t.inkColor)) overrides.push('--ink: ' + t.inkColor + ';');
+    if (hex.test(t.primaryColor)) overrides.push('--neon-primary: ' + t.primaryColor + ';');
+    if (hex.test(t.secondaryColor)) overrides.push('--neon-cyan: ' + t.secondaryColor + ';');
+    if (t.fontDisplay) {
+      overrides.push("--font-display: '" + t.fontDisplay + "', sans-serif;");
+      var l1 = document.createElement('link');
+      l1.rel = 'stylesheet';
+      l1.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontDisplay).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
+      document.head.appendChild(l1);
+    }
+    if (t.fontBody) {
+      overrides.push("--font-body: '" + t.fontBody + "', sans-serif;");
+      var l2 = document.createElement('link');
+      l2.rel = 'stylesheet';
+      l2.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontBody).replace(/%20/g, '+') + ':wght@400;500;600&display=swap';
+      document.head.appendChild(l2);
+    }
+    var styleTag = document.createElement('style');
+    styleTag.id = 'world-theme-cached';
+    styleTag.textContent = ':root { ' + overrides.join(' ') + ' }';
+    document.head.appendChild(styleTag);
+  } catch (e) { /* no cache yet, or malformed -- async apply will fix it */ }
+})();
+</script>
+</head>
+<body data-category="campaigns">
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="../index.html"><span id="site-title-text">The <span class="accent">Archive</span></span></a></div>
+    <nav class="site-nav">
+      <a href="../factions/index.html" id="nav-factions">Factions</a>
+      <a href="../npcs/index.html" id="nav-npcs">NPCs</a>
+      <a href="../enemies/index.html" id="nav-enemies">Bestiary</a>
+      <a href="../classes/index.html" id="nav-classes">Classes</a>
+      <a href="../items/index.html" id="nav-items">Items</a>
+      <a href="../logs/index.html" id="nav-logs">Logs</a>
+      <a href="../survivors/index.html" id="nav-survivors">Survivors</a>
+      <a href="../locations/index.html" id="nav-locations">Locations</a>
+      <a href="../campaigns/index.html" id="nav-campaigns">Campaigns</a>
+      <a href="../map.html" id="nav-map">Map</a>
+      <a href="../world-info.html" id="nav-world-info">World Info</a>
+      <a href="../settings.html" id="nav-settings">Settings</a>
+      <div class="site-search">
+        <input type="text" id="site-search-input" placeholder="Search the archive…" autocomplete="off">
+        <div id="site-search-results" class="site-search-results"></div>
+      </div>
+      <span id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></span>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span id="crumb-label">Campaigns</span></div>
+  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Campaigns</h1>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb">Quests and adventure modules built from your NPCs, Locations, Items, and Logs.</p>
+
+  <div class="sheet" style="margin: 0 0 24px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <p style="margin: 0; color: var(--ink-dim); font-size: 0.9rem;">Build one by hand, or let the archive propose one from what's already here.</p>
+    <a href="builder.html" class="bm-btn" style="text-decoration: none; display: inline-block; background: var(--neon-primary); color: var(--bg-void); border: none; font-weight: 600;">New Campaign Module</a>
+  </div>
+
+  <div id="campaign-list" class="entry-grid"></div>
+  <p id="campaign-list-empty" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">No Campaign Modules yet — build your first one above.</p>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap"><span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7 · beta</span></div>
+</footer>
+
+<script src="/config.js"></script>
+<script src="/version.js"></script>
+<script>
+  if (window.APP_VERSION) {
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+    });
+  }
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js"></script>
+<script src="../js/render.js"></script>
+<script src="../js/campaignModule.js"></script>
+<script>
+  requireAuth().then((session) => {
+    if (!session) return;
+    renderAuthStatus();
+    applyCategoryConfig();
+    applySiteTheme();
+    loadAndRenderCampaignList();
+  });
+</script>
+
+</body>
+</html>

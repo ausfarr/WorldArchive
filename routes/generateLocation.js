@@ -10,6 +10,7 @@ const { slugify, buildLocationBodyHtml } = require("../lib/locationTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { createNewLocation } = require("../lib/campaignEntryGenerators");
 
 const router = express.Router();
 
@@ -17,6 +18,12 @@ router.post("/generate-location", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, regionBiome, faction, fillExistingId } = req.body || {};
+
+    if (!fillExistingId) {
+      const result = await createNewLocation(worldId, { name, regionBiome, faction });
+      return res.json({ preview: false, ...result });
+    }
+
     let existingEntry = null;
     let priorRaw = null;
     let priorBodyHtml = null;

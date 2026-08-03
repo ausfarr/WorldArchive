@@ -76,7 +76,7 @@ QUEST HOOK: only if the archetype is Quest-Giver, or a hook falls out naturally 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent }) {
+function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent, campaignContext }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -97,7 +97,7 @@ ${rosterContext}
 USER INPUT:
 Name: ${name || "generate one fitting the faction/role"}
 Role: ${role || "choose one that fills a gap in the existing roster"}
-Faction: ${faction || "choose one that fills a gap in the existing roster"}`;
+Faction: ${faction || "choose one that fills a gap in the existing roster"}${campaignContext ? `\nCampaign context (this NPC is needed for a specific quest role -- ground the concept in this, not just the roster gap): ${campaignContext}` : ""}`;
 
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }

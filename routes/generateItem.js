@@ -11,6 +11,7 @@ const { clampDamageRange } = require("../lib/itemFormulas");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent, getSkillSystem, formatWeaponSkillsForPrompt, resolveWeaponSkillLabel } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { createNewItem } = require("../lib/campaignEntryGenerators");
 
 const router = express.Router();
 
@@ -30,6 +31,12 @@ router.post("/generate-item", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, category, rarity, fillExistingId } = req.body || {};
+
+    if (!fillExistingId) {
+      const result = await createNewItem(worldId, { name, category, rarity });
+      return res.json({ preview: false, ...result });
+    }
+
     let existingEntry = null;
     let priorRaw = null;
     let priorBodyHtml = null;

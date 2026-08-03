@@ -10,6 +10,7 @@ const { slugify, buildBodyHtml } = require("../lib/entryTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { createNewNpc } = require("../lib/campaignEntryGenerators");
 
 const router = express.Router();
 
@@ -17,6 +18,12 @@ router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, role, faction, fillExistingId } = req.body || {};
+
+    if (!fillExistingId) {
+      const result = await createNewNpc(worldId, { name, role, faction });
+      return res.json({ preview: false, ...result });
+    }
+
     let existingEntry = null;
     let priorRaw = null;
     let priorBodyHtml = null;

@@ -85,7 +85,7 @@ ARMOR (Armor category only): pick an effectorTier 1 (light) to 4 (heavy) reflect
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent }) {
+function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent, campaignContext }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -112,7 +112,7 @@ ${rosterContext}
 USER INPUT:
 Name: ${name || "generate one fitting the category/rarity"}
 Category: ${category || "infer from context, or choose one that fills a gap in the existing roster"}
-Rarity: ${rarity || "default to Uncommon for Weapon/Armor unless context implies otherwise; null for Consumable/QuestItem"}`;
+Rarity: ${rarity || "default to Uncommon for Weapon/Armor unless context implies otherwise; null for Consumable/QuestItem"}${campaignContext ? `\nCampaign context (this Item is needed for a specific quest role -- ground the concept in this, not just the roster gap): ${campaignContext}` : ""}`;
 
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }

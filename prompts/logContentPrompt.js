@@ -41,7 +41,7 @@ KEEP IT SHORT: this is a found artifact, not a short story. A few lines of audio
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, locationRosterText, name, logType, existingContent }) {
+function buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, locationRosterText, name, logType, existingContent, campaignContext }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -64,7 +64,7 @@ ${rosterContext}
 
 USER INPUT:
 Name/Title: ${name || "invent one fitting the content"}
-Log Type: ${logType || "choose whichever fits best (Terminal is the safest default)"}`;
+Log Type: ${logType || "choose whichever fits best (Terminal is the safest default)"}${campaignContext ? `\nCampaign context (this Log is needed for a specific quest role -- ground the concept in this, not just the roster gap): ${campaignContext}` : ""}`;
 
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
