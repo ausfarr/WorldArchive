@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
+const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildSurvivorRosterContext, buildAvailableClassesText, readSurvivorManifest, readSurvivorEntry } = require("../lib/roster");
 const { buildSurvivorContentSystemPrompt } = require("../prompts/survivorContentPrompt");
@@ -47,19 +47,11 @@ router.post("/generate-survivor", enforceGenerationCap, async (req, res) => {
     const fieldSkillsText = formatFieldSkillsForPrompt(await getSkillSystem(worldId));
 
     const contentSystemPrompt = buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, rosterContext, availableClasses, name, className, existingContent: priorRaw });
-    const contentRaw = await callClaude({
+    const survivor = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the survivor now.",
       maxTokens: 1500
     });
-    let survivor;
-    try {
-      survivor = parseJsonResponse(contentRaw);
-    } catch (parseErr) {
-      console.error("Failed to parse survivor JSON. Raw response length:", contentRaw.length);
-      console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
-      throw new Error(`Survivor content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
-    }
     if (!survivor.id) survivor.id = slugify(survivor.name);
     if (fillExistingId) survivor.id = fillExistingId;
     if (existingEntry) survivor.name = existingEntry.name;

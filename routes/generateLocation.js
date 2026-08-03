@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
+const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildLocationRosterContext, readLocationManifest, readLocationEntry, buildRosterContext } = require("../lib/roster");
 const { buildLocationContentSystemPrompt } = require("../prompts/locationContentPrompt");
@@ -60,19 +60,11 @@ router.post("/generate-location", enforceGenerationCap, async (req, res) => {
 
     // Step 2: content generation
     const contentSystemPrompt = buildLocationContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, npcRosterText, name, regionBiome, faction, existingContent: priorRaw });
-    const contentRaw = await callClaude({
+    const location = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the Location now.",
       maxTokens: 2500
     });
-    let location;
-    try {
-      location = parseJsonResponse(contentRaw);
-    } catch (parseErr) {
-      console.error("Failed to parse Location JSON. Raw response length:", contentRaw.length);
-      console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
-      throw new Error(`Location content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
-    }
     // For fill-existing, force the id/name to match the placeholder exactly.
     location.id = fillExistingId || location.id || slugify(location.name);
     if (existingEntry) location.name = existingEntry.name;

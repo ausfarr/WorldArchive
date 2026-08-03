@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { buildLogRosterContext, readLogManifest, readLogEntry, buildLocationRosterContext } = require("../lib/roster");
 const { buildLogContentSystemPrompt } = require("../prompts/logContentPrompt");
 const { saveLogEntry } = require("../lib/fileWriter");
@@ -56,19 +56,11 @@ router.post("/generate-log", enforceGenerationCap, async (req, res) => {
     const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
 
     const contentSystemPrompt = buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, locationRosterText, name, logType, existingContent: priorRaw });
-    const contentRaw = await callClaude({
+    const log = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the log now.",
       maxTokens: 1500
     });
-    let log;
-    try {
-      log = parseJsonResponse(contentRaw);
-    } catch (parseErr) {
-      console.error("Failed to parse log JSON. Raw response length:", contentRaw.length);
-      console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
-      throw new Error(`Log content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
-    }
     log.id = fillExistingId || log.id || slugify(log.name);
     if (existingEntry) log.name = existingEntry.name;
 

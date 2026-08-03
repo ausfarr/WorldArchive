@@ -18,7 +18,7 @@
 
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { buildCampaignModuleSystemPrompt } = require("../prompts/campaignModulePrompt");
 const { buildRosterContext, buildLocationRosterContext, buildItemRosterContext, buildLogRosterContext } = require("../lib/roster");
 const { getSettingContext } = require("../lib/worldFlavor");
@@ -79,14 +79,7 @@ router.post("/campaign-modules/generate", enforceGenerationCap, async (req, res)
     ]);
 
     const systemPrompt = buildCampaignModuleSystemPrompt({ settingContext, loreContext, npcRosterText, locationRosterText, itemRosterText, logRosterText, concept });
-    const contentRaw = await callClaude({ systemPrompt, userMessage: "Assemble the Campaign Module now.", maxTokens: 2000 });
-
-    let proposal;
-    try {
-      proposal = parseJsonResponse(contentRaw);
-    } catch (parseErr) {
-      throw new Error(`Campaign Module content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
-    }
+    const proposal = await callClaudeExpectingJson({ systemPrompt, userMessage: "Assemble the Campaign Module now.", maxTokens: 2000 });
 
     const rawEntries = Array.isArray(proposal.entries) ? proposal.entries : [];
     const hydratedEntries = await Promise.all(rawEntries.map(async (e) => {

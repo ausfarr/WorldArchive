@@ -1,5 +1,5 @@
 const express = require("express");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft, getSkillSystem, saveSkillSystem } = require("../lib/worldConfigRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
@@ -28,19 +28,11 @@ router.post("/wizard/generate-skill-system", async (req, res) => {
     const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
 
     const systemPrompt = buildWizardSkillSystemPrompt({ step1, loreContext, statLabelsText });
-    const raw = await callClaude({
+    const skillSystem = await callClaudeExpectingJson({
       systemPrompt,
       userMessage: "Generate the skill system now.",
       maxTokens: 2000
     });
-    let skillSystem;
-    try {
-      skillSystem = parseJsonResponse(raw);
-    } catch (parseErr) {
-      console.error("Failed to parse skill system JSON. Raw response length:", raw.length);
-      console.error("Raw response (last 300 chars):", raw.slice(-300));
-      throw new Error(`Skill system was not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
-    }
     res.json({ skillSystem });
   } catch (err) {
     console.error("Skill system generation failed:", err);

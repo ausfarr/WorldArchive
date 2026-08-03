@@ -1,5 +1,5 @@
 const express = require("express");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft, getStatSystem, saveStatSystem } = require("../lib/worldConfigRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { buildWizardStatSystemPrompt } = require("../prompts/wizardStatSystemPrompt");
@@ -28,19 +28,11 @@ router.post("/wizard/generate-stat-system", async (req, res) => {
     const loreContext = await getLoreContext(req.worldId, {});
 
     const systemPrompt = buildWizardStatSystemPrompt({ step1, loreContext });
-    const raw = await callClaude({
+    const statSystem = await callClaudeExpectingJson({
       systemPrompt,
       userMessage: "Generate the stat system now.",
       maxTokens: 1200
     });
-    let statSystem;
-    try {
-      statSystem = parseJsonResponse(raw);
-    } catch (parseErr) {
-      console.error("Failed to parse stat system JSON. Raw response length:", raw.length);
-      console.error("Raw response (last 300 chars):", raw.slice(-300));
-      throw new Error(`Stat system was not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
-    }
     res.json({ statSystem });
   } catch (err) {
     console.error("Stat system generation failed:", err);

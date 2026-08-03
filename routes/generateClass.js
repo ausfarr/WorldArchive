@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
+const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildClassRosterContext, readClassManifest, readClassEntry, buildLocationRosterContext } = require("../lib/roster");
 const { buildClassContentSystemPrompt } = require("../prompts/classContentPrompt");
@@ -53,19 +53,11 @@ router.post("/generate-class", enforceGenerationCap, async (req, res) => {
     const contentSystemPrompt = buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, locationRosterText, name, existingContent: priorRaw });
     // Generous budget - a full 1-99 tree with ~21 abilities across 4 tiers
     // is genuinely long content, not a truncation risk we're guessing at.
-    const contentRaw = await callClaude({
+    const cls = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the class now.",
       maxTokens: 8000
     });
-    let cls;
-    try {
-      cls = parseJsonResponse(contentRaw);
-    } catch (parseErr) {
-      console.error("Failed to parse class JSON. Raw response length:", contentRaw.length);
-      console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
-      throw new Error(`Class content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
-    }
     cls.id = fillExistingId || cls.id || slugify(cls.baseName);
     if (existingBaseName) cls.baseName = existingBaseName;
 

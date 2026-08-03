@@ -1,5 +1,5 @@
 const express = require("express");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft } = require("../lib/worldConfigRepo");
 const { listLoreSections, replaceLoreSections } = require("../lib/loreRepo");
 const { parseLoreDocument } = require("../lib/loreParsing");
@@ -40,18 +40,11 @@ router.post("/wizard/generate-lore", async (req, res) => {
     const step1 = draft["1"] || {};
 
     const systemPrompt = buildWizardStep3SystemPrompt({ step1 });
-    const raw = await callClaude({
+    const doc = await callClaudeExpectingJson({
       systemPrompt,
       userMessage: "Generate the lore document now.",
       maxTokens: 3000
     });
-    let doc;
-    try {
-      doc = parseJsonResponse(raw);
-    } catch (parseErr) {
-      console.error("Failed to parse wizard Step 3 JSON. Raw response length:", raw.length);
-      throw new Error(`Lore document was not valid JSON (possibly truncated): ${parseErr.message}`);
-    }
 
     const sections = Object.keys(GENERATED_SECTION_META)
       .filter((key) => doc[key])

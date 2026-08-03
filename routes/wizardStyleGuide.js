@@ -1,5 +1,5 @@
 const express = require("express");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft, getFactions, getStyleGuide, saveStyleGuide } = require("../lib/worldConfigRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { buildWizardStyleGuideSystemPrompt, buildFactionAccentsSystemPrompt } = require("../prompts/wizardStyleGuidePrompt");
@@ -33,19 +33,11 @@ router.post("/wizard/generate-style-guide", async (req, res) => {
     const loreContext = await getLoreContext(req.worldId, {});
 
     const systemPrompt = buildWizardStyleGuideSystemPrompt({ step1, loreContext });
-    const raw = await callClaude({
+    const styleGuide = await callClaudeExpectingJson({
       systemPrompt,
       userMessage: "Generate the style guide now.",
       maxTokens: 2000
     });
-    let styleGuide;
-    try {
-      styleGuide = parseJsonResponse(raw);
-    } catch (parseErr) {
-      console.error("Failed to parse style guide JSON. Raw response length:", raw.length);
-      console.error("Raw response (last 300 chars):", raw.slice(-300));
-      throw new Error(`Style guide was not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
-    }
     res.json({ styleGuide });
   } catch (err) {
     console.error("Style guide generation failed:", err);
@@ -66,18 +58,11 @@ router.post("/wizard/generate-faction-accents", async (req, res) => {
       return res.status(400).json({ error: "No factions saved yet for this world (Step 4) -- nothing to assign accent colors to." });
     }
     const systemPrompt = buildFactionAccentsSystemPrompt({ baseStyle, factions });
-    const raw = await callClaude({
+    const result = await callClaudeExpectingJson({
       systemPrompt,
       userMessage: "Assign the faction accent colors now.",
       maxTokens: 1200
     });
-    let result;
-    try {
-      result = parseJsonResponse(raw);
-    } catch (parseErr) {
-      console.error("Failed to parse faction accents JSON. Raw response length:", raw.length);
-      throw new Error(`Faction accents were not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
-    }
     res.json(result);
   } catch (err) {
     console.error("Faction accent generation failed:", err);

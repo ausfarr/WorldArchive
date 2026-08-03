@@ -1,5 +1,5 @@
 const express = require("express");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { getFactions, saveFactions } = require("../lib/worldConfigRepo");
 const { backfillFactionTags } = require("../lib/loreRepo");
 const { getLoreContext } = require("../lib/loreContext");
@@ -63,19 +63,11 @@ ${nl2p(faction.tensions)}
 async function generateOneFaction(worldId, existingFactions, { name, concept, mode }) {
   const loreContext = await getLoreContext(worldId, { category: "factions" });
   const systemPrompt = buildWizardFactionSystemPrompt({ loreContext, existingFactions, name, concept, mode });
-  const raw = await callClaude({
+  const faction = await callClaudeExpectingJson({
     systemPrompt,
     userMessage: "Generate the faction now.",
     maxTokens: 2500
   });
-  let faction;
-  try {
-    faction = parseJsonResponse(raw);
-  } catch (parseErr) {
-    console.error("Failed to parse faction JSON. Raw response length:", raw.length);
-    console.error("Raw response (last 300 chars):", raw.slice(-300));
-    throw new Error(`Faction content was not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
-  }
   faction.id = slugify(faction.name);
   return faction;
 }

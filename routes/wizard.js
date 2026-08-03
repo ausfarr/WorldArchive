@@ -1,5 +1,5 @@
 const express = require("express");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft, saveDraftStep, resetWorldConfig } = require("../lib/worldConfigRepo");
 const { clearLoreSections } = require("../lib/loreRepo");
 const { buildWizardStep1SystemPrompt } = require("../prompts/wizardStep1Prompt");
@@ -64,18 +64,11 @@ router.post("/wizard/generate-step1", async (req, res) => {
   try {
     const { genre, scale, era, supernaturalSystem } = req.body || {};
     const systemPrompt = buildWizardStep1SystemPrompt({ genre, scale, era, supernaturalSystem });
-    const raw = await callClaude({
+    const suggestions = await callClaudeExpectingJson({
       systemPrompt,
       userMessage: "Generate the suggestions now.",
       maxTokens: 600
     });
-    let suggestions;
-    try {
-      suggestions = parseJsonResponse(raw);
-    } catch (parseErr) {
-      console.error("Failed to parse wizard Step 1 JSON. Raw response:", raw);
-      throw new Error(`Step 1 suggestions were not valid JSON: ${parseErr.message}`);
-    }
     res.json(suggestions);
   } catch (err) {
     console.error("Wizard Step 1 generation failed:", err);

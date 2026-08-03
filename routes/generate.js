@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
+const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildRosterContext, readNpcManifest, readNpcEntry } = require("../lib/roster");
 const { buildNpcContentSystemPrompt } = require("../prompts/npcContentPrompt");
@@ -59,19 +59,11 @@ router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
 
     // Step 2: content generation
     const contentSystemPrompt = buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent: priorRaw });
-    const contentRaw = await callClaude({
+    const npc = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",
       maxTokens: 3000
     });
-    let npc;
-    try {
-      npc = parseJsonResponse(contentRaw);
-    } catch (parseErr) {
-      console.error("Failed to parse NPC JSON. Raw response length:", contentRaw.length);
-      console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
-      throw new Error(`NPC content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
-    }
     // For fill-existing, force the id/name to match the placeholder exactly
     // (other pages may already link to this id/display this name).
     npc.id = fillExistingId || npc.id || slugify(npc.name);

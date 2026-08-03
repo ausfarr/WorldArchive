@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
+const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildEnemyRosterContext, readEnemyManifest, readEnemyEntry } = require("../lib/roster");
 const { buildEnemyContentSystemPrompt } = require("../prompts/enemyContentPrompt");
@@ -48,19 +48,11 @@ router.post("/generate-enemy", enforceGenerationCap, async (req, res) => {
     const statLabelsText = formatStatLabelsForPrompt(statLabels);
 
     const contentSystemPrompt = buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent: priorRaw });
-    const contentRaw = await callClaude({
+    const enemy = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the enemy now.",
       maxTokens: 3000
     });
-    let enemy;
-    try {
-      enemy = parseJsonResponse(contentRaw);
-    } catch (parseErr) {
-      console.error("Failed to parse enemy JSON. Raw response length:", contentRaw.length);
-      console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
-      throw new Error(`Enemy content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
-    }
     enemy.id = fillExistingId || enemy.id || slugify(enemy.name);
     if (existingEntry) enemy.name = existingEntry.name;
 

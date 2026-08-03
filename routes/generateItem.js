@@ -1,6 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
-const { callClaude, parseJsonResponse, HAIKU_MODEL } = require("../lib/claude");
+const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildItemRosterContext, readItemManifest, readItemEntry, buildLocationRosterContext } = require("../lib/roster");
 const { buildItemContentSystemPrompt } = require("../prompts/itemContentPrompt");
@@ -69,19 +69,11 @@ router.post("/generate-item", enforceGenerationCap, async (req, res) => {
     const weaponSkillsText = formatWeaponSkillsForPrompt(skillSystem);
 
     const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent: priorRaw });
-    const contentRaw = await callClaude({
+    const item = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the item now.",
       maxTokens: 2000
     });
-    let item;
-    try {
-      item = parseJsonResponse(contentRaw);
-    } catch (parseErr) {
-      console.error("Failed to parse item JSON. Raw response length:", contentRaw.length);
-      console.error("Raw response (last 300 chars):", contentRaw.slice(-300));
-      throw new Error(`Item content was not valid JSON (likely truncated — response was ${contentRaw.length} chars): ${parseErr.message}`);
-    }
     item.id = fillExistingId || item.id || slugify(item.name);
     if (existingEntry) item.name = existingEntry.name;
 

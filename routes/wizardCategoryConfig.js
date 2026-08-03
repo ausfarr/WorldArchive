@@ -1,5 +1,5 @@
 const express = require("express");
-const { callClaude, parseJsonResponse } = require("../lib/claude");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft, getCategoryConfig, saveCategoryConfig } = require("../lib/worldConfigRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { buildWizardCategoryConfigSystemPrompt, CANONICAL_CATEGORIES } = require("../prompts/wizardCategoryConfigPrompt");
@@ -25,19 +25,11 @@ router.post("/wizard/generate-category-config", async (req, res) => {
     const loreContext = await getLoreContext(req.worldId, {});
 
     const systemPrompt = buildWizardCategoryConfigSystemPrompt({ step1, loreContext });
-    const raw = await callClaude({
+    const categoryConfig = await callClaudeExpectingJson({
       systemPrompt,
       userMessage: "Generate the category labels now.",
       maxTokens: 1200
     });
-    let categoryConfig;
-    try {
-      categoryConfig = parseJsonResponse(raw);
-    } catch (parseErr) {
-      console.error("Failed to parse category config JSON. Raw response length:", raw.length);
-      console.error("Raw response (last 300 chars):", raw.slice(-300));
-      throw new Error(`Category config was not valid JSON (likely truncated — response was ${raw.length} chars): ${parseErr.message}`);
-    }
     res.json({ categoryConfig });
   } catch (err) {
     console.error("Category config generation failed:", err);
