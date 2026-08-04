@@ -23,13 +23,19 @@
 // artPromptPrompt.js's CHARACTER/OBJECT/ENVIRONMENT category framing,
 // which only covers the same 6 categories.
 //
-// NOTE FOR AUSTIN: this route is NOT currently rate-limited by
-// enforceGenerationCap the way entry creation is. Each call here is one
-// real Claude (art-prompt) + one real Gemini (image) call, i.e. real
-// cost, same as before -- it's just no longer bundled into the entry's
-// own generation. Worth deciding deliberately whether portrait
-// regeneration should count against (or have its own) usage cap before
-// this ships to real users, rather than leaving it uncapped by default.
+// /generate-image now runs behind enforceGenerationCap, same as the 7
+// content-generation routes -- resolved the gap flagged in this file's
+// prior version, where portrait regeneration was real Claude+Gemini
+// spend with no limit at all, independent of plan/trial/credits. Shares
+// the SAME pool rather than getting its own separate cap: simplest
+// option, avoids a second quota concept to explain to users, and
+// consistent with "a generation is a generation" regardless of whether
+// it's text or a portrait. Revisit as a split cap later if real usage
+// data shows portraits are disproportionately expensive relative to
+// text content.
+//
+// /upload-image is NOT capped -- it's a user's own file with no AI
+// spend, nothing to protect against.
 
 const express = require("express");
 const { callClaude, HAIKU_MODEL } = require("../lib/claude");
@@ -47,6 +53,7 @@ const {
 } = require("../lib/fileWriter");
 const { getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 
 const router = express.Router();
 
@@ -85,7 +92,7 @@ async function loadEntryOrRespondError(req, res) {
 // Generates a brand-new (or regenerated) portrait from the entry's
 // existing content via the art-prompt-writer -> Gemini pipeline, same
 // as entry creation used to do inline.
-router.post("/entries/:category/:id/generate-image", async (req, res) => {
+router.post("/entries/:category/:id/generate-image", enforceGenerationCap, async (req, res) => {
   try {
     const { category, id } = req.params;
     const loaded = await loadEntryOrRespondError(req, res);
