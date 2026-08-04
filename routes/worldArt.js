@@ -29,7 +29,9 @@ const {
   saveWorldMoodBoard,
   worldMoodBoardExists,
   getWorldMoodBoardUrl,
-  saveFactionBanner
+  saveFactionBanner,
+  factionBannerExists,
+  getFactionBannerUrl
 } = require("../lib/fileWriter");
 const { getFactions, getStyleGuide } = require("../lib/worldConfigRepo");
 const { getSettingContext, getFactionAccent } = require("../lib/worldFlavor");
@@ -86,6 +88,21 @@ router.post("/world-art/generate-mood-board", async (req, res) => {
     res.json({ url, generated: true });
   } catch (err) {
     console.error("World mood board generation failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET status -- does this specific faction have a banner? Storage-truth
+// check (see factionBannerExists in lib/fileWriter.js for why this
+// bypasses the entries.raw_json.bannerImageUrl field entirely). The
+// dossier page calls this directly rather than trusting the field it
+// already got back on entry.bannerImageUrl.
+router.get("/world-art/faction-banner/:factionId", async (req, res) => {
+  try {
+    const exists = await factionBannerExists(req.worldId, req.params.factionId);
+    res.json({ exists, url: exists ? getFactionBannerUrl(req.worldId, req.params.factionId) : null });
+  } catch (err) {
+    console.error(`Checking faction banner (${req.params.factionId}) failed:`, err);
     res.status(500).json({ error: err.message });
   }
 });

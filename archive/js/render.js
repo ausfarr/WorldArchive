@@ -1661,22 +1661,32 @@ function renderDossier(entry, factionLookup) {
 }
 
 // Faction dossier pages only -- shows the Priority 6 mood banner if this
-// faction has one (entry.bannerImageUrl, written by
-// routes/worldArt.js's generate-faction-banners onto the entry's
-// raw_json the same way accentColor already is). Silently does nothing
-// for every other category, and for a faction that hasn't gotten a
-// banner yet (worlds created before this feature, or a failed
-// generation) -- there's no regenerate button yet, matching this
-// session's decision to stub "generate once" rather than build general
-// art-regeneration infrastructure.
-function renderFactionBanner(entry) {
+// faction has one. Checks Storage directly via GET
+// /api/world-art/faction-banner/:factionId (same "storage is the source
+// of truth" pattern loadWorldMoodBoard() already uses on world-info.html)
+// rather than trusting entry.bannerImageUrl on the entries row -- that
+// DB field can go unset even after a successful image generation, since
+// the write is a separate step (patchEntryMeta) that can silently fail
+// to run if the wizard's multi-minute sequential banner generation gets
+// interrupted before reaching it. A generated image showing up in
+// Storage is now sufficient for it to display, independent of that
+// write ever having succeeded. Fire-and-forget / non-blocking, same as
+// loadWorldMoodBoard -- a missing banner shouldn't delay or blank out
+// the rest of the dossier page.
+async function renderFactionBanner(entry) {
   const host = document.getElementById("faction-banner");
   if (!host) return;
-  if (entry.category !== "factions" || !entry.bannerImageUrl) {
-    host.innerHTML = "";
-    return;
+  host.innerHTML = "";
+  if (entry.category !== "factions") return;
+  try {
+    const res = await authFetch(`/api/world-art/faction-banner/${encodeURIComponent(entry.id)}`);
+    if (!res.ok) return;
+    const { exists, url } = await res.json();
+    if (!exists || !url) return;
+    host.innerHTML = `<img src="${url}" alt="${stripHtml(entry.name)} mood banner" style="width:100%; max-height:280px; object-fit:cover; display:block; border-bottom: 1px solid var(--border-line-soft);">`;
+  } catch (err) {
+    console.error(`Could not load faction banner for '${entry.id}':`, err);
   }
-  host.innerHTML = `<img src="${entry.bannerImageUrl}" alt="${stripHtml(entry.name)} mood banner" style="width:100%; max-height:280px; object-fit:cover; display:block; border-bottom: 1px solid var(--border-line-soft);">`;
 }
 
 // Wires the dossier page's "Delete This Entry" button to the entry
