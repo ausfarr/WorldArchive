@@ -195,6 +195,18 @@ async function loadUsage() {
     if (!res.ok) throw new Error("Failed to load billing status.");
     const data = await res.json();
 
+    if (data.state === "beta") {
+      const pct = Math.min(100, Math.round((data.used / data.cap) * 100));
+      el.innerHTML = `
+        <div>${data.remaining} of ${data.cap} generations remaining (${data.used} used) — counts NPCs, enemies, items, classes, logs, survivors, and factions generated or regenerated from the archive. Wizard setup doesn't count against this.</div>
+        <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
+          <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
+        </div>
+      `;
+      actions.innerHTML = "";
+      return;
+    }
+
     if (data.state === "trial") {
       const pct = Math.min(100, Math.round((data.trialUsed / data.trialCap) * 100));
       el.innerHTML = `

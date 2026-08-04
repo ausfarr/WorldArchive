@@ -10,9 +10,15 @@
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
 const { getPlan, getSubscription, getCreditBalance, DEFAULT_PLAN_ID, TRIAL_CAP } = require("../lib/billingRepo");
-const { getGenerationCount } = require("../lib/worldConfigRepo");
+const { getGenerationCount, GENERATION_CAP } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
+
+// Same kill switch as middleware/enforceGenerationCap.js -- see that
+// file's header comment for the full explanation. Guarded here too
+// (not just hidden in the Settings UI) so a direct API call can't start
+// a real checkout while billing is supposed to be off.
+const BILLING_ENABLED = process.env.BILLING_ENABLED === "true";
 
 // Base URL for Checkout/Portal redirects. Defaults to the production
 // app domain -- override with APP_BASE_URL in Render for any other
@@ -26,6 +32,16 @@ const CREDIT_PRICE_ID = process.env.STRIPE_CREDIT_PRICE_ID;
 // Combined trial/subscription/credit status for the Settings page.
 router.get("/billing/status", async (req, res) => {
   try {
+    if (!BILLING_ENABLED) {
+      const used = await getGenerationCount(req.worldId);
+      return res.json({
+        state: "beta",
+        used,
+        cap: GENERATION_CAP,
+        remaining: Math.max(0, GENERATION_CAP - used)
+      });
+    }
+
     const subscription = await getSubscription(req.userId);
     const creditBalance = await getCreditBalance(req.userId);
 
@@ -61,6 +77,9 @@ router.get("/billing/status", async (req, res) => {
 // Returns a URL the frontend redirects the browser to -- Stripe hosts
 // the actual payment form, nothing card-related ever touches our server.
 router.post("/billing/checkout/subscribe", async (req, res) => {
+  if (!BILLING_ENABLED) {
+    return res.status(403).json({ error: "Billing isn't turned on yet." });
+  }
   try {
     const plan = await getPlan(DEFAULT_PLAN_ID);
     const existing = await getSubscription(req.userId);
@@ -85,6 +104,9 @@ router.post("/billing/checkout/subscribe", async (req, res) => {
 // Kicks off a one-time Checkout Session for credit packs. `packs` is the
 // number of 5-credit/$2 units to buy (e.g. packs: 4 = 20 credits / $8).
 router.post("/billing/checkout/credits", async (req, res) => {
+  if (!BILLING_ENABLED) {
+    return res.status(403).json({ error: "Billing isn't turned on yet." });
+  }
   try {
     const packs = parseInt(req.body.packs, 10);
     if (!Number.isInteger(packs) || packs < 1) {
@@ -117,6 +139,9 @@ router.post("/billing/checkout/credits", async (req, res) => {
 // invoices. Only available once a Stripe customer exists (i.e. they've
 // subscribed or bought credits at least once).
 router.post("/billing/portal", async (req, res) => {
+  if (!BILLING_ENABLED) {
+    return res.status(403).json({ error: "Billing isn't turned on yet." });
+  }
   try {
     const subscription = await getSubscription(req.userId);
     if (!subscription) {

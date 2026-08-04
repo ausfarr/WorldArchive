@@ -1,37 +1,52 @@
 // middleware/enforceGenerationCap.js
 //
 // Gates the 7 non-wizard content-generation routes (/generate-npc,
-// -enemy, -item, -survivor, -log, -class, -faction) behind real usage
-// limits. Phase 5 replaced the flat 25-generation beta stopgap with:
-//   - Trial (no subscriptions row for this user): 10 lifetime
-//     generations, no card required. Reuses the existing
-//     world_config.generation_count + check_and_increment_generation_count
-//     machinery from 006_generation_usage_cap.sql -- see
-//     lib/billingRepo.js's TRIAL_CAP.
-//   - Subscribed (has a subscriptions row): monthly quota (resets each
-//     billing cycle) then rollover credit balance -- see
-//     migrations/012_billing.sql's check_and_spend_subscription_generation.
-//     This path applies even if status is past_due/canceled -- those
-//     users just get 0 effective monthly quota and fall straight to
-//     credits, per session_addendum_phase5_billing_scope.md.
+// -enemy, -item, -survivor, -log, -class, -faction) behind usage limits.
 //
-// Deliberately NOT applied to any /api/wizard/* route -- same reasoning
-// as before Phase 5: wizard "generate for me" calls are a bounded,
-// one-time setup cost per world, not the open-ended per-action risk this
-// cap exists to bound.
+// BILLING_ENABLED env var is the kill switch for the entire Phase 5
+// billing system:
+//   - unset or "false" (default): LEGACY beta behavior -- flat 25-
+//     generation lifetime cap, no trial/subscription/credit concepts at
+//     all. This is deliberately the default so re-deploying this code
+//     doesn't retroactively lock out existing beta testers who already
+//     used more than the new 10-generation trial cap under the old
+//     25-cap system -- see session_addendum_billing_toggle.md.
+//   - "true": full Phase 5 behavior -- trial (10, no card) then
+//     subscription monthly quota then rollover credits. See
+//     lib/billingRepo.js and migrations/012_billing.sql.
+//
+// Flip BILLING_ENABLED=true in Render (env var, no code change, no
+// redeploy needed beyond the restart Render does automatically) when
+// ready to actually turn billing on for everyone.
 //
 // Must run BEFORE any Claude/Gemini call in the route it guards -- the
 // point is preventing spend, not reporting it after the fact. Apply as
 // route-level middleware, e.g.:
 //   router.post("/generate-npc", enforceGenerationCap, async (req, res) => {...
-const { checkAndIncrementGenerationCount } = require("../lib/worldConfigRepo");
+const { checkAndIncrementGenerationCount, GENERATION_CAP } = require("../lib/worldConfigRepo");
 const { getSubscription, spendSubscriptionGeneration, TRIAL_CAP } = require("../lib/billingRepo");
 
 // TODO(Austin): swap in a real contact address before beta testers see this.
 const CONTACT_EMAIL = "ausfarr@gmail.com";
 
+const BILLING_ENABLED = process.env.BILLING_ENABLED === "true";
+
 async function enforceGenerationCap(req, res, next) {
   try {
+    if (!BILLING_ENABLED) {
+      // Legacy beta flow -- same behavior as before Phase 5 existed.
+      const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, GENERATION_CAP);
+      if (!allowed) {
+        return res.status(403).json({
+          error: "generation_cap_reached",
+          message: `You've used all ${GENERATION_CAP} generations included in this beta -- thanks for putting it through its paces! Email ${CONTACT_EMAIL} if you'd like more.`,
+          cap: GENERATION_CAP
+        });
+      }
+      req.generationCount = count;
+      return next();
+    }
+
     const subscription = await getSubscription(req.userId);
 
     if (subscription) {
@@ -64,4 +79,4 @@ async function enforceGenerationCap(req, res, next) {
   }
 }
 
-module.exports = { enforceGenerationCap };
+module.exports = { enforceGenerationCap, BILLING_ENABLED };
