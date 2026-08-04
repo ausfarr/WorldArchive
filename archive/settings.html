@@ -75,8 +75,10 @@
   <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 32px;">Account and world-level actions.</p>
 
   <div class="info-section">
-    <h2>Beta Usage</h2>
+    <h2>Billing &amp; Usage</h2>
     <div id="usage-content" class="info-row">Loading…</div>
+    <div id="billing-actions" style="margin-top: 14px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;"></div>
+    <div id="billing-status-msg" style="margin-top: 10px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint);"></div>
   </div>
 
   <div class="info-section">
@@ -129,24 +131,122 @@
 <script src="/js/auth.js"></script>
 <script src="js/render.js"></script>
 <script>
-async function loadUsage() {
-  const el = document.getElementById("usage-content");
+const BTN_PRIMARY = "background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer; font-weight: 600;";
+const BTN_SECONDARY = "background: transparent; color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer;";
+
+async function startCheckout(path, body) {
+  const msg = document.getElementById("billing-status-msg");
+  msg.textContent = "Redirecting to secure checkout…";
   try {
-    const res = await authFetch("/api/generation-usage");
-    if (!res.ok) throw new Error("Failed to load usage.");
-    const { used, cap, remaining } = await res.json();
-    const pct = Math.min(100, Math.round((used / cap) * 100));
-    el.innerHTML = `
-      <div>${remaining} of ${cap} generations remaining (${used} used) — counts NPCs, enemies, items, classes, logs, survivors, and factions generated or regenerated from the archive. Wizard setup doesn't count against this.</div>
-      <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
-        <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
-      </div>
-    `;
+    const res = await authFetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {})
+    });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || "Could not start checkout.");
+    }
+    const { url } = await res.json();
+    window.location.href = url;
   } catch (err) {
-    console.error("Could not load generation usage:", err);
-    el.textContent = "Could not load usage.";
+    console.error("Checkout failed:", err);
+    msg.textContent = "Something went wrong: " + err.message;
   }
 }
+
+async function openBillingPortal() {
+  const msg = document.getElementById("billing-status-msg");
+  msg.textContent = "Opening billing portal…";
+  try {
+    const res = await authFetch("/api/billing/portal", { method: "POST" });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.error || "Could not open billing portal.");
+    }
+    const { url } = await res.json();
+    window.location.href = url;
+  } catch (err) {
+    console.error("Opening billing portal failed:", err);
+    msg.textContent = "Something went wrong: " + err.message;
+  }
+}
+
+function renderCreditsControls() {
+  return `
+    <label style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-dim); display: flex; align-items: center; gap: 8px;">
+      Buy credits:
+      <select id="credit-packs-select" style="background: var(--bg-void); color: var(--ink); border: 1px solid var(--border-line); padding: 6px 8px; font-family: var(--font-mono);">
+        <option value="1">5 credits — $2</option>
+        <option value="2">10 credits — $4</option>
+        <option value="4">20 credits — $8</option>
+        <option value="10">50 credits — $20</option>
+      </select>
+    </label>
+    <button id="buy-credits-btn" style="${BTN_SECONDARY}">Buy Credits</button>
+  `;
+}
+
+async function loadUsage() {
+  const el = document.getElementById("usage-content");
+  const actions = document.getElementById("billing-actions");
+  try {
+    const res = await authFetch("/api/billing/status");
+    if (!res.ok) throw new Error("Failed to load billing status.");
+    const data = await res.json();
+
+    if (data.state === "trial") {
+      const pct = Math.min(100, Math.round((data.trialUsed / data.trialCap) * 100));
+      el.innerHTML = `
+        <div>${data.trialRemaining} of ${data.trialCap} free trial generations remaining (${data.trialUsed} used) — no card required. Counts NPCs, enemies, items, classes, logs, survivors, and factions generated or regenerated from the archive. Wizard setup doesn't count against this.</div>
+        ${data.creditBalance > 0 ? `<div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available.</div>` : ""}
+        <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
+          <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
+        </div>
+      `;
+      actions.innerHTML = `<button id="subscribe-btn" style="${BTN_PRIMARY}">Subscribe — $5/month (25 generations/mo)</button>` + renderCreditsControls();
+      document.getElementById("subscribe-btn").addEventListener("click", () => startCheckout("/api/billing/checkout/subscribe"));
+    } else {
+      const pct = Math.min(100, Math.round((data.usedThisCycle / data.monthlyQuota) * 100));
+      const renewsOn = new Date(data.currentPeriodEnd).toLocaleDateString();
+      const statusLabel = data.status === "active" ? "" : ` — ${data.status === "past_due" ? "payment issue, update your card" : "canceled"}`;
+      el.innerHTML = `
+        <div>${data.planName}${statusLabel}: ${data.remainingThisCycle} of ${data.monthlyQuota} generations remaining this cycle (${data.usedThisCycle} used). Renews ${renewsOn}.</div>
+        <div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available (never expire, used after your monthly quota).</div>
+        <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
+          <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
+        </div>
+      `;
+      actions.innerHTML = `<button id="manage-billing-btn" style="${BTN_SECONDARY}">Manage Billing</button>` + renderCreditsControls();
+      document.getElementById("manage-billing-btn").addEventListener("click", openBillingPortal);
+    }
+
+    document.getElementById("buy-credits-btn").addEventListener("click", () => {
+      const packs = parseInt(document.getElementById("credit-packs-select").value, 10);
+      startCheckout("/api/billing/checkout/credits", { packs });
+    });
+  } catch (err) {
+    console.error("Could not load billing status:", err);
+    el.textContent = "Could not load billing status.";
+  }
+}
+
+// Stripe redirects back here with ?billing=success or ?billing=canceled.
+// Webhook processing can lag a second or two behind the redirect, so a
+// success message doesn't guarantee loadUsage() below already reflects
+// it -- reloading the page a moment later will.
+(function showBillingRedirectMessage() {
+  const params = new URLSearchParams(window.location.search);
+  const billing = params.get("billing");
+  if (!billing) return;
+  const msg = document.getElementById("billing-status-msg");
+  if (billing === "success") {
+    msg.textContent = "Payment received — this may take a few seconds to reflect below.";
+  } else if (billing === "canceled") {
+    msg.textContent = "Checkout canceled.";
+  }
+  window.history.replaceState({}, "", window.location.pathname);
+})();
 
 async function init() {
   const session = await requireAuth();

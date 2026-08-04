@@ -32,10 +32,20 @@ const deleteWorldRoute = require("./routes/deleteWorld");
 const adminCostRoute = require("./routes/adminCost");
 const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
+const stripeWebhookRoute = require("./routes/stripeWebhook");
+const billingRoute = require("./routes/billing");
 const { APP_VERSION } = require("./lib/version");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// MUST be registered before express.json() below. Stripe signature
+// verification (routes/stripeWebhook.js) needs the raw request body
+// bytes -- if express.json() ran first, it would parse the body into an
+// object and the raw bytes needed for constructEvent() would be gone.
+// Also deliberately NOT behind resolveTenant: Stripe calls this
+// directly, authenticated by its own signature, not a user JWT.
+app.use("/api/webhooks/stripe", express.raw({ type: "application/json" }), stripeWebhookRoute);
 
 // Default express.json() limit is 100kb -- too small for a user-uploaded
 // portrait sent as a base64 data URL (routes/generateEntryImage.js's
@@ -114,6 +124,7 @@ app.use("/api", entriesRoute);
 app.use("/api", exportRoute);
 app.use("/api", searchRoute);
 app.use("/api", deleteWorldRoute);
+app.use("/api", billingRoute);
 app.use("/api", adminCostRoute);
 app.use("/api", debugCompareTextModelsRoute);
 app.use(express.static(path.join(__dirname, "archive")));

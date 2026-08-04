@@ -9,6 +9,7 @@
     "express": "^4.19.2",
     "@supabase/supabase-js": "^2.110.8",
     "puppeteer-core": "^23.9.0",
-    "@sparticuz/chromium": "^131.0.1"
+    "@sparticuz/chromium": "^131.0.1",
+    "stripe": "^17.4.0"
   }
 }
