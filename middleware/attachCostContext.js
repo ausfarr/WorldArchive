@@ -21,7 +21,8 @@ const ROUTE_CATEGORY_MAP = {
   "/generate-class": "classes",
   "/generate-faction": "factions",
   "/generate-location": "locations",
-  "/map/generate-backdrop": "map"
+  "/map/generate-backdrop": "map",
+  "/field-assist": "field_assist"
 };
 
 function deriveCategory(originalUrl) {

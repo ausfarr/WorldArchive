@@ -21,7 +21,7 @@
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
 const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, getSubscriptionByStripeId, addCredits } = require("../lib/billingRepo");
-const { addPurchasedEntries } = require("../lib/worldConfigRepo");
+const { addPurchasedEntries, POINTS_PER_GENERATION } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -30,6 +30,12 @@ const router = express.Router();
 // this (see routes/billing.js's createCreditsCheckout, which sets
 // quantity = packs directly). Kept here rather than imported from
 // billing.js to avoid a circular require between the two route files.
+//
+// This constant still means "generations," not points -- customer-facing
+// meaning is unchanged (buy 1 unit, get 5 generations' worth of spend).
+// v0.9 Manual Mode, Piece 2 converts to points only at the addCredits()
+// call site below, right before writing to credit_ledger, since that's
+// the one place the unit switch actually matters.
 const CREDITS_PER_PACK_UNIT = 5;
 
 // Entries granted per entry-pack unit purchased at the $5 entry-pack
@@ -92,7 +98,11 @@ async function handleCheckoutCompleted(session) {
       return;
     }
 
-    const credits = quantity * CREDITS_PER_PACK_UNIT;
+    // credit_ledger stores points, not raw generations (see
+    // migrations/015_field_assist_points.sql) -- multiply here so a
+    // purchase's real spending power (in generations) is unchanged,
+    // while it's also usable a la carte on cheaper field assists.
+    const credits = quantity * CREDITS_PER_PACK_UNIT * POINTS_PER_GENERATION;
     await addCredits({ userId, amount: credits, stripePaymentIntentId: session.payment_intent });
     return;
   }

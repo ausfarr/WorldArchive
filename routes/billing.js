@@ -10,10 +10,24 @@
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
 const { getPlan, getSubscription, getCreditBalance, DEFAULT_PLAN_ID, TRIAL_CAP } = require("../lib/billingRepo");
-const { getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP } = require("../lib/worldConfigRepo");
+const { getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP, POINTS_PER_GENERATION } = require("../lib/worldConfigRepo");
 const { countEntries } = require("../lib/entriesRepo");
 
 const router = express.Router();
+
+// v0.9 Manual Mode, Piece 2 -- every counter this route reads
+// (generation_count, used_this_cycle, monthly_quota, credit_ledger sums)
+// is now stored in POINTS, not raw generations (see
+// migrations/015_field_assist_points.sql). This route is the one place
+// that unit gets converted back for display -- the Settings page and
+// every other consumer of /billing/status still sees plain "generations"
+// numbers, unaware points exist at all. Floors rather than rounds, so a
+// user never sees a "remaining" count that implies a full generation is
+// available when it isn't (e.g. 4 leftover points is 0 generations, even
+// though it's still spendable as 4 field assists).
+function pointsToGenerations(points) {
+  return Math.floor(points / POINTS_PER_GENERATION);
+}
 
 // Same kill switch as middleware/enforceGenerationCap.js -- see that
 // file's header comment for the full explanation. Guarded here too
@@ -55,42 +69,46 @@ async function buildEntryCapStatus(worldId, subscriptionActive) {
 router.get("/billing/status", async (req, res) => {
   try {
     if (!BILLING_ENABLED) {
-      const used = await getGenerationCount(req.worldId);
+      const usedPoints = await getGenerationCount(req.worldId);
       return res.json({
         state: "beta",
-        used,
-        cap: GENERATION_CAP,
-        remaining: Math.max(0, GENERATION_CAP - used),
+        used: pointsToGenerations(usedPoints),
+        cap: pointsToGenerations(GENERATION_CAP),
+        remaining: pointsToGenerations(Math.max(0, GENERATION_CAP - usedPoints)),
+        fieldAssistsRemaining: Math.max(0, GENERATION_CAP - usedPoints),
         entryCap: await buildEntryCapStatus(req.worldId, false)
       });
     }
 
     const subscription = await getSubscription(req.userId);
-    const creditBalance = await getCreditBalance(req.userId);
+    const creditBalancePoints = await getCreditBalance(req.userId);
     const subscriptionActive = !!(subscription && subscription.status === "active");
 
     if (!subscription) {
-      const trialUsed = await getGenerationCount(req.worldId);
+      const trialUsedPoints = await getGenerationCount(req.worldId);
       return res.json({
         state: "trial",
-        trialUsed,
-        trialCap: TRIAL_CAP,
-        trialRemaining: Math.max(0, TRIAL_CAP - trialUsed),
-        creditBalance,
+        trialUsed: pointsToGenerations(trialUsedPoints),
+        trialCap: pointsToGenerations(TRIAL_CAP),
+        trialRemaining: pointsToGenerations(Math.max(0, TRIAL_CAP - trialUsedPoints)),
+        creditBalance: pointsToGenerations(creditBalancePoints),
+        fieldAssistsRemaining: Math.max(0, TRIAL_CAP - trialUsedPoints) + creditBalancePoints,
         entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive)
       });
     }
 
     const plan = await getPlan(subscription.plan_id);
+    const remainingThisCyclePoints = Math.max(0, plan.monthly_quota - subscription.used_this_cycle);
     res.json({
       state: "subscribed",
       status: subscription.status,
       planName: plan.name,
-      monthlyQuota: plan.monthly_quota,
-      usedThisCycle: subscription.used_this_cycle,
-      remainingThisCycle: Math.max(0, plan.monthly_quota - subscription.used_this_cycle),
+      monthlyQuota: pointsToGenerations(plan.monthly_quota),
+      usedThisCycle: pointsToGenerations(subscription.used_this_cycle),
+      remainingThisCycle: pointsToGenerations(remainingThisCyclePoints),
       currentPeriodEnd: subscription.current_period_end,
-      creditBalance,
+      creditBalance: pointsToGenerations(creditBalancePoints),
+      fieldAssistsRemaining: remainingThisCyclePoints + creditBalancePoints,
       entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive)
     });
   } catch (err) {

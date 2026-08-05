@@ -2,6 +2,11 @@
 //
 // Gates the 7 non-wizard content-generation routes (/generate-npc,
 // -enemy, -item, -survivor, -log, -class, -faction) behind usage limits.
+// As of v0.9 Manual Mode, Piece 2, also gates /api/field-assist, at a
+// cheaper points cost (see below) -- reused rather than duplicated into
+// a parallel middleware, since it's the exact same three-tier check
+// (legacy beta / trial / subscription+credits), just spending a
+// different number of points.
 //
 // BILLING_ENABLED env var is the kill switch for the entire Phase 5
 // billing system:
@@ -19,11 +24,19 @@
 // redeploy needed beyond the restart Render does automatically) when
 // ready to actually turn billing on for everyone.
 //
+// POINTS (v0.9 Piece 2): every cap/quota/credit number this file reads
+// is now in points, not raw generations -- 1 full generation = 5 points,
+// 1 field assist = 1 point (see migrations/015_field_assist_points.sql
+// for the full reasoning). enforceGenerationCap() takes an `amount` of
+// points to spend, defaulting to a full generation's cost so the 7
+// existing call sites below don't need to change at all.
+//
 // Must run BEFORE any Claude/Gemini call in the route it guards -- the
 // point is preventing spend, not reporting it after the fact. Apply as
 // route-level middleware, e.g.:
 //   router.post("/generate-npc", enforceGenerationCap, async (req, res) => {...
-const { checkAndIncrementGenerationCount, GENERATION_CAP } = require("../lib/worldConfigRepo");
+//   router.post("/field-assist", enforceFieldAssist, async (req, res) => {...
+const { checkAndIncrementGenerationCount, GENERATION_CAP, POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 const { getSubscription, spendSubscriptionGeneration, TRIAL_CAP } = require("../lib/billingRepo");
 
 // TODO(Austin): swap in a real contact address before beta testers see this.
@@ -31,15 +44,24 @@ const CONTACT_EMAIL = "ausfarr@gmail.com";
 
 const BILLING_ENABLED = process.env.BILLING_ENABLED === "true";
 
-async function enforceGenerationCap(req, res, next) {
+async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATION) {
   try {
     if (!BILLING_ENABLED) {
       // Legacy beta flow -- same behavior as before Phase 5 existed.
-      const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, GENERATION_CAP);
+      const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, GENERATION_CAP, amount);
       if (!allowed) {
+        // `count` is the unchanged current count on a rejected call --
+        // remainingPoints can be > 0 here even when a full generation
+        // (amount=5) gets blocked, e.g. 3 points left isn't enough for a
+        // generation but is still 3 spendable field assists. Message
+        // reflects that instead of implying nothing at all is left.
+        const remainingPoints = Math.max(0, GENERATION_CAP - count);
+        const partialNote = (amount === POINTS_PER_GENERATION && remainingPoints > 0)
+          ? ` You do still have enough left for ${remainingPoints} more field assist${remainingPoints === 1 ? "" : "s"}, if that helps.`
+          : "";
         return res.status(403).json({
           error: "generation_cap_reached",
-          message: `You've used all ${GENERATION_CAP} generations included in this beta -- thanks for putting it through its paces! Email ${CONTACT_EMAIL} if you'd like more.`,
+          message: `You've used all ${Math.floor(GENERATION_CAP / POINTS_PER_GENERATION)} generations included in this beta -- thanks for putting it through its paces!${partialNote} Email ${CONTACT_EMAIL} if you'd like more.`,
           cap: GENERATION_CAP
         });
       }
@@ -50,11 +72,14 @@ async function enforceGenerationCap(req, res, next) {
     const subscription = await getSubscription(req.userId);
 
     if (subscription) {
-      const result = await spendSubscriptionGeneration(req.userId);
+      const result = await spendSubscriptionGeneration(req.userId, amount);
       if (!result.allowed) {
+        const outOfEverything = amount === POINTS_PER_FIELD_ASSIST
+          ? "You're out of generations and credits, so there's nothing left to spend on a field assist either."
+          : "You've used this cycle's included generations and have no credits left.";
         return res.status(403).json({
           error: "generation_limit_reached",
-          message: `You've used this cycle's included generations and have no credits left. Buy more credits or wait for your plan to renew.`,
+          message: `${outOfEverything} Buy more credits or wait for your plan to renew.`,
           usedThisCycle: result.usedThisCycle,
           creditBalance: result.creditBalance
         });
@@ -64,11 +89,15 @@ async function enforceGenerationCap(req, res, next) {
     }
 
     // No subscriptions row -- trial user.
-    const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, TRIAL_CAP);
+    const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, TRIAL_CAP, amount);
     if (!allowed) {
+      const remainingPoints = Math.max(0, TRIAL_CAP - count);
+      const partialNote = (amount === POINTS_PER_GENERATION && remainingPoints > 0)
+        ? ` You do still have enough left for ${remainingPoints} more field assist${remainingPoints === 1 ? "" : "s"}, if that helps.`
+        : "";
       return res.status(403).json({
         error: "trial_cap_reached",
-        message: `You've used all ${TRIAL_CAP} free trial generations. Subscribe to keep creating, or email ${CONTACT_EMAIL} with questions.`,
+        message: `You've used all ${Math.floor(TRIAL_CAP / POINTS_PER_GENERATION)} free trial generations.${partialNote} Subscribe to keep creating, or email ${CONTACT_EMAIL} with questions.`,
         cap: TRIAL_CAP
       });
     }
@@ -79,4 +108,13 @@ async function enforceGenerationCap(req, res, next) {
   }
 }
 
-module.exports = { enforceGenerationCap, BILLING_ENABLED };
+// Field-assist variant -- same three-tier check, spends
+// POINTS_PER_FIELD_ASSIST (1) instead of a full generation's 5. A plain
+// wrapper rather than a default param at the route-mounting call site,
+// so it reads the same way as every other named middleware in this
+// codebase (router.post("/field-assist", enforceFieldAssist, ...)).
+function enforceFieldAssist(req, res, next) {
+  return enforceGenerationCap(req, res, next, POINTS_PER_FIELD_ASSIST);
+}
+
+module.exports = { enforceGenerationCap, enforceFieldAssist, BILLING_ENABLED };

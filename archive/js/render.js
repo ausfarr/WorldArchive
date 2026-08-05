@@ -293,6 +293,7 @@ function wireManualCreateButton() {
   btn.addEventListener("click", () => {
     const id = generateManualEntryId(category);
     const stub = buildBlankEntryStub(category, id);
+    currentEditCategory = category;
     EDIT_FORM_BUILDERS[category](stub);
   });
 }
@@ -634,6 +635,7 @@ async function editEntry(categoryPath, id, btnEl) {
     const res = await authFetch(`/api/entries/${categoryPath}/${id}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load entry.");
+    currentEditCategory = categoryPath;
     builder(data.entry);
   } catch (err) {
     alert("Couldn't open editor: " + err.message);
@@ -811,6 +813,51 @@ const FIELD_HINTS = {
   "ef-economyResources": "How this faction sustains itself — what it produces, trades, or extracts.",
   "ef-joining": "What it takes for an outsider to join, or for this faction to absorb another group."
 };
+
+// v0.9 Manual Mode, Piece 2 -- which of the FIELD_HINTS ids also get a
+// "✨ Help me" button. Deliberately NOT every FIELD_HINTS key -- mirrors
+// lib/fieldAssistFields.js server-side exactly (keep both in sync by
+// hand if a field's eligibility ever changes): excludes fields that
+// render as a dropdown despite having a stale FIELD_HINTS entry
+// (locationId, weaponSkill, className, foundAtLocationId,
+// evo-locationId, rarity, category, tier, logType, primaryAttribute,
+// secondaryAttribute, relevantStat), numeric fields (the six attributes,
+// age, damageMin/Max, effectorTier, apCost, phase-threshold -- no
+// canonical value range exists to suggest a number against, see
+// session_addendum_manual_mode_polish_round3.md), and the stale
+// ef-skill-major/minor/misc keys (real ids are the *-fallback variants,
+// included below instead).
+const FIELD_ASSIST_ELIGIBLE = new Set([
+  "ef-callsign", "ef-roleArchetype", "ef-signatureQuote", "ef-physicalDescription",
+  "ef-traits", "ef-contradiction", "ef-wants", "ef-actuallyNeeds",
+  "ef-speech-register", "ef-speech-rhythm", "ef-speech-tic", "ef-speech-neverSay",
+  "ef-dialogue-opening", "ef-questHook", "ef-role", "ef-flavor",
+  "ef-phase-description", "ef-combat-positioning", "ef-combat-applies",
+  "ef-combat-vulnerableTo", "ef-combat-drops", "ef-designNotes",
+  "ef-locationContext", "ef-characters", "ef-context", "ef-bodyText",
+  "ef-descriptorLine", "ef-regionBiome", "ef-notableFeatures", "ef-dangerTags",
+  "ef-hooksSecrets", "ef-baseName", "ef-evolvedName", "ef-tagline",
+  "ef-archetype", "ef-coreResourceName", "ef-coreResourceDescription",
+  "ef-skill-major-fallback", "ef-skill-minor-fallback", "ef-skill-misc-fallback",
+  "ef-evo-requirement", "ef-evo-cost", "ef-evo-location", "ef-evo-visualShift",
+  "ef-capstoneQuote", "ef-why0-label", "ef-why0-text", "ef-why1-label",
+  "ef-why1-text", "ef-why2-label", "ef-why2-text", "ef-weaponType",
+  "ef-appliesStatus", "ef-rarityEffect", "ef-effect", "ef-whereFoundWhyMatters",
+  "ef-playerName", "ef-backstory", "ef-personality-trait", "ef-personality-contradiction",
+  "ef-personality-wants", "ef-personality-actuallyNeeds", "ef-bond-name",
+  "ef-bond-effect", "ef-bond-flavorLine", "ef-nickname", "ef-overviewQuote",
+  "ef-corePhilosophy", "ef-origin", "ef-structureHierarchy", "ef-territory",
+  "ef-goalsNearTerm", "ef-goalsLongTerm", "ef-internalTensions", "ef-iconography",
+  "ef-economyResources", "ef-joining"
+]);
+
+// Set right before an edit overlay opens -- the two entry points are
+// wireManualCreateButton's click handler and editEntry(), both of which
+// already know their own category as a real value (data-category /
+// categoryPath), so this is just where that value gets stashed for the
+// field-assist click handler below to read later, rather than plumbing
+// `category` through efField's signature at all ~90 call sites.
+let currentEditCategory = null;
 // v0.9 Manual Mode polish round 2 -- switched from a hover ⓘ icon
 // (native `title` tooltips can't be restyled by CSS at all, which is
 // exactly why they sometimes rendered hard to read against the dark
@@ -835,9 +882,17 @@ function efField(label, id, value, { textarea = false, rows = 3, type = "text", 
   const placeholderText = placeholder != null ? escapeHtmlForSearch(placeholder) : fieldPlaceholder(id);
   const placeholderAttr = placeholderText ? ` placeholder="${placeholderText}"` : "";
   const listAttr = datalistId ? ` list="${datalistId}"` : "";
+  // v0.9 Manual Mode, Piece 2 -- "✨ Help me" button, only for fields in
+  // FIELD_ASSIST_ELIGIBLE. Sits next to the label rather than inside the
+  // field itself (that's where round 3's placeholder-text hint already
+  // lives) -- see the delegated click handler wired near
+  // wireFieldAssistButtons() below for what happens on click.
+  const assistBtn = FIELD_ASSIST_ELIGIBLE.has(id)
+    ? `<button type="button" class="field-assist-btn" data-field-id="${id}" title="Get an AI suggestion for this field (uses a small amount of your generation quota)" style="background:none; border:none; color:var(--neon-primary); cursor:pointer; font-size:0.68rem; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.05em; padding:0 0 0 8px;">✨ Help me</button>`
+    : "";
   return `
     <div style="margin-bottom: 14px;">
-      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
+      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}${assistBtn}</label>
       ${textarea
         ? `<textarea id="${id}" rows="${rows}" class="ef-input" style="${inputStyle} resize: vertical;"${placeholderAttr}>${safeValue}</textarea>`
         : `<input id="${id}" type="${type}" value="${safeValue}" class="ef-input" style="${inputStyle}"${placeholderAttr}${listAttr}>`}
@@ -853,6 +908,75 @@ function efSelect(label, id, optionsHtml) {
       <select id="${id}" style="${style}">${optionsHtml}</select>
     </div>`;
 }
+
+// v0.9 Manual Mode, Piece 2 -- "✨ Help me" wiring. A single delegated
+// listener on `document` (registered once, at script load, below)
+// rather than per-overlay wiring, so it works for every edit overlay
+// automatically -- including showFactionEditForm's own hand-rolled
+// overlay markup, which doesn't go through openEditOverlay at all but
+// DOES reuse the same "#edit-form-overlay" id, which is all this needs.
+
+// Reads every currently-visible .ef-input inside the open overlay and
+// turns it into flat {strippedKey: value} context for the prompt --
+// server-side lib/fieldAssist.js's formatEntryContext just lists
+// whatever keys it's given, so a dotted string like "attr.body" prints
+// fine as a plain top-level line; no need to reconstruct nested objects
+// here. Deliberately reads LIVE DOM values, not the original `raw`
+// object the form opened with, so context includes anything the user
+// has already typed into other fields this session, not just what was
+// already saved. Excludes the target field itself and empty values.
+function gatherFieldAssistContext(excludeFieldId) {
+  const overlay = document.getElementById("edit-form-overlay");
+  if (!overlay) return {};
+  const context = {};
+  overlay.querySelectorAll(".ef-input").forEach((el) => {
+    if (el.id === excludeFieldId || !el.id) return;
+    const value = el.value;
+    if (value == null || value === "") return;
+    const key = el.id.replace(/^ef-/, "").replace(/-/g, ".");
+    context[key] = value;
+  });
+  return context;
+}
+
+async function triggerFieldAssist(fieldId, btn) {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  const originalBtnText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "✨ Thinking…";
+  try {
+    const res = await authFetch("/api/field-assist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: currentEditCategory,
+        fieldId,
+        currentEntryData: gatherFieldAssistContext(fieldId)
+      })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.message || result.error || "Help me failed");
+    // Overwrites unconditionally, using whatever was already there as
+    // context (gatherFieldAssistContext above includes the field's own
+    // current value too, since it only excludes it from being read back
+    // in as a DIFFERENT field's context) -- matches Austin's call:
+    // "overwrite, but use what was written as context."
+    field.value = result.suggestion;
+  } catch (err) {
+    alert("Help me failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalBtnText;
+  }
+}
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".field-assist-btn");
+  if (!btn) return;
+  e.preventDefault();
+  triggerFieldAssist(btn.dataset.fieldId, btn);
+});
 
 // Generic overlay shell (header/body/footer, Cancel/Save wiring, status
 // line) shared by the 5 newer bespoke forms. `bodyHtml` is the form's
