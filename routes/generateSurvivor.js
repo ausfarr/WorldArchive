@@ -70,7 +70,8 @@ router.post("/generate-survivor", enforceGenerationCap, enforceEntryCapOnGenerat
     if (faction) survivor.faction = faction;
 
     if (mode === "regenerate") {
-      const newBodyHtmlPreview = buildSurvivorBodyHtml(survivor);
+      const statLabels = await getStatLabels(worldId);
+      const newBodyHtmlPreview = buildSurvivorBodyHtml(survivor, null, null, statLabels);
       return res.json({
         preview: true,
         mode: "regenerate",
