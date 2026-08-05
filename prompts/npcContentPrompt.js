@@ -76,9 +76,23 @@ QUEST HOOK: only if the archetype is Quest-Giver, or a hook falls out naturally 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent, campaignContext }) {
+function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent, campaignContext, importSourceText }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    : "";
+
+  // Import path: the user already has a character written up somewhere
+  // else (their own notes, another tool's export, a pasted character
+  // sheet) and wants it brought into this world's archive rather than
+  // invented from scratch. Every concrete fact stated in the source text
+  // is ground truth and must not be contradicted or replaced -- this is
+  // the same "preserve what's already there" principle as regenerate,
+  // just applied to externally-authored source material instead of a
+  // prior AI-generated entry. Gaps the source text doesn't cover (speech
+  // pattern, dialogue tree, some relationships) get invented normally,
+  // grounded in whatever facts ARE given plus this world's own lore.
+  const importBlock = importSourceText
+    ? `\n\nIMPORTING AN EXISTING CHARACTER -- the user already wrote this character up elsewhere (their own notes, another tool's export, a character sheet). Treat every concrete fact stated below as ground truth: do not contradict, rename, or replace anything it explicitly says. Only invent to fill in whatever it leaves unstated (e.g. speech pattern details, the dialogue tree, additional relationships) -- and when inventing, stay consistent with what IS given plus this world's lore below, don't override the source's tone/personality with a generic one.\n\nSOURCE TEXT (as provided by the user, verbatim):\n"""\n${importSourceText}\n"""\n`
     : "";
 
   // DYNAMIC — this world's data plus this specific call's input. Uncached.
@@ -90,12 +104,12 @@ ${factionOptionsText}
 
 WORLD LORE — GROUND TRUTH (stay consistent with this; don't contradict it):
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}
-${regenerateBlock}
+${regenerateBlock}${importBlock}
 EXISTING ROSTER (avoid repeating a role+faction combo, contradiction, or tic already used; these are the only NPC/enemy/class/survivor ids you may reference in relationships):
 ${rosterContext}
 
 USER INPUT:
-Name: ${name || "generate one fitting the faction/role"}
+Name: ${name || (importSourceText ? "use the name given in the source text above" : "generate one fitting the faction/role")}
 Role: ${role || "choose one that fills a gap in the existing roster"}
 Faction: ${faction || "choose one that fills a gap in the existing roster"}${campaignContext ? `\nCampaign context (this NPC is needed for a specific quest role -- ground the concept in this, not just the roster gap): ${campaignContext}` : ""}`;
 

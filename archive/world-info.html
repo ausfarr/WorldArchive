@@ -53,7 +53,7 @@
       <a href="classes/index.html" id="nav-classes">Classes</a>
       <a href="items/index.html" id="nav-items">Items</a>
       <a href="logs/index.html" id="nav-logs">Logs</a>
-      <a href="survivors/index.html" id="nav-survivors">Survivors</a>
+      <a href="survivors/index.html" id="nav-survivors">PCs</a>
       <a href="locations/index.html" id="nav-locations">Locations</a>
       <a href="campaigns/index.html" id="nav-quests">Quests</a>
       <a href="campaign-arcs/index.html" id="nav-campaign-arcs">Campaigns</a>
@@ -95,6 +95,7 @@
   .info-row { font-size: 0.88rem; margin: 6px 0; color: var(--ink-dim); line-height: 1.5; }
   .info-row strong { color: var(--ink); }
   .info-empty { color: var(--ink-faint); font-size: 0.85rem; font-style: italic; }
+  .info-hint { font-size: 0.82rem; color: var(--ink-faint); line-height: 1.5; margin: 0 0 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border-line-soft); }
   .stat-grid, .skill-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;
   }
@@ -157,7 +158,8 @@ function renderContent(data) {
     s1.inspirations ? `<div class="info-row"><strong>Inspirations:</strong> ${s1.inspirations}</div>` : "",
     s1.nonNegotiables ? `<div class="info-row"><strong>Non-Negotiables:</strong> ${s1.nonNegotiables}</div>` : ""
   ].filter(Boolean).join("");
-  html += section("World Identity", identityRows || '<div class="info-empty">Not filled in yet.</div>');
+  const identityHint = '<p class="info-hint">"World" here means this entire setting/universe as a whole — not necessarily one planet. Scale is where that gets defined (e.g. a single city, a whole planet, a multi-system span, or something bigger); everything else on this page inherits from what\'s set here.</p>';
+  html += section("World Identity", identityHint + (identityRows || '<div class="info-empty">Not filled in yet.</div>'));
 
   // Lore
   const sections = data.loreSections || [];

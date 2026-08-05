@@ -60,9 +60,9 @@ ${nl2p(faction.tensions)}
   };
 }
 
-async function generateOneFaction(worldId, existingFactions, { name, concept, mode }) {
+async function generateOneFaction(worldId, existingFactions, { name, concept, mode, existingFields }) {
   const loreContext = await getLoreContext(worldId, { category: "factions" });
-  const systemPrompt = buildWizardFactionSystemPrompt({ loreContext, existingFactions, name, concept, mode });
+  const systemPrompt = buildWizardFactionSystemPrompt({ loreContext, existingFactions, name, concept, mode, existingFields });
   const faction = await callClaudeExpectingJson({
     systemPrompt,
     userMessage: "Generate the faction now.",
@@ -87,12 +87,13 @@ router.get("/wizard/factions", async (req, res) => {
 // generate/import endpoints.
 router.post("/wizard/generate-faction", async (req, res) => {
   try {
-    const { name, concept } = req.body || {};
+    const { name, concept, politics, government, economy, military, tensions } = req.body || {};
     const existingFactions = await getFactions(req.worldId);
     const faction = await generateOneFaction(req.worldId, existingFactions, {
       name,
       concept,
-      mode: name ? "fill" : "invent"
+      mode: name ? "fill" : "invent",
+      existingFields: { politics, government, economy, military, tensions }
     });
     res.json({ faction });
   } catch (err) {

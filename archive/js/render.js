@@ -10,7 +10,7 @@ const CATEGORY_LABELS = {
   classes: "Classes",
   items: "Items",
   logs: "Logs",
-  survivors: "Survivors",
+  survivors: "PCs",
   locations: "Locations"
 };
 
@@ -1475,48 +1475,94 @@ function showItemEditForm(entry) {
   return overlay;
 }
 
-// Bespoke Survivors edit form -- the simplest schema in the whole
-// rollout. className is stored as a bare base-class name (e.g.
-// "Tailor", not an id and not "The Tailor") -- lib/roster.js's
-// buildAvailableClassesText() derives that exact same string server-side
-// by splitting a class's "BaseName → EvolvedName" manifest name on "→"
-// and stripping a leading "The "; this dropdown replicates that
-// transform client-side so the saved value matches what the survivor
-// generator itself would have produced.
+// Bespoke PC (formerly "Survivors") edit form. className is stored as a
+// bare base-class name (e.g. "Tailor", not an id and not "The Tailor")
+// -- lib/roster.js's buildAvailableClassesText() derives that exact same
+// string server-side by splitting a class's "BaseName → EvolvedName"
+// manifest name on "→" and stripping a leading "The "; this dropdown
+// replicates that transform client-side so the saved value matches what
+// the PC generator itself would have produced.
 function classDisplayNameToBareName(displayName) {
   return (displayName || "").split("→")[0].replace(/^The\s+/i, "").trim();
 }
 
 function showSurvivorEditForm(entry) {
   const raw = entry.raw || {};
-  const quirk = raw.quirk || {};
+  const attrs = raw.attributes || {};
+  const personality = raw.personality || {};
+  const bond = raw.bond || {};
 
   const bodyHtml = `
     ${efField("Name", "ef-name", raw.name)}
     ${efField("Callsign (optional)", "ef-callsign", raw.callsign)}
+    ${efField("Player Name (optional)", "ef-playerName", raw.playerName)}
+    <div id="ef-faction-wrap"></div>
     <div id="ef-className-wrap"></div>
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Attributes</h3>
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px;">
+      ${efField("Body", "ef-attr-body", attrs.body, { type: "number" })}
+      ${efField("Reflex", "ef-attr-reflex", attrs.reflex, { type: "number" })}
+      ${efField("Knowledge", "ef-attr-knowledge", attrs.knowledge, { type: "number" })}
+      ${efField("Presence", "ef-attr-presence", attrs.presence, { type: "number" })}
+      ${efField("Sanity", "ef-attr-sanity", attrs.sanity, { type: "number" })}
+      ${efField("Fate", "ef-attr-fate", attrs.fate, { type: "number" })}
+    </div>
     ${efField("Backstory", "ef-backstory", raw.backstory, { textarea: true })}
-    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Quirk</h3>
-    ${efField("Quirk Name", "ef-quirk-name", quirk.name)}
-    ${efField("Effect", "ef-quirk-effect", quirk.effect, { textarea: true, rows: 2 })}
-    ${efField("Flavor Line", "ef-quirk-flavorLine", quirk.flavorLine)}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Personality</h3>
+    ${efField("Trait", "ef-personality-trait", personality.trait)}
+    ${efField("The Contradiction", "ef-personality-contradiction", personality.contradiction, { textarea: true, rows: 2 })}
+    ${efField("Wants", "ef-personality-wants", personality.wants)}
+    ${efField("Actually Needs", "ef-personality-actuallyNeeds", personality.actuallyNeeds)}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Bond</h3>
+    <p style="color:var(--ink-faint); font-size:0.78rem; margin:-4px 0 10px;">A roleplay hook for the GM -- not a mechanical modifier. This character's real stats come from Class + Attributes above.</p>
+    ${efField("Bond Name", "ef-bond-name", bond.name)}
+    ${efField("Effect", "ef-bond-effect", bond.effect, { textarea: true, rows: 2 })}
+    ${efField("Flavor Line", "ef-bond-flavorLine", bond.flavorLine)}
+    <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Relationships</h3>
+    <div id="ef-rel-rows"></div>
+    <button id="ef-add-rel" type="button" style="margin-top:6px; background: var(--bg-panel-raised); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">+ Add Relationship</button>
     ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
   `;
 
-  const overlay = openEditOverlay(raw.name || entry.name || "Survivor", bodyHtml, async () => {
+  const overlay = openEditOverlay(raw.name || entry.name || "PC", bodyHtml, async () => {
     const val = (id) => document.getElementById(id).value;
+    const resolvedRelationships = await Promise.all(
+      relState.filter((r) => r.toId).map(async (r) => {
+        const options = await getCachedOptions(r.toCategory);
+        const match = options.find((o) => o.id === r.toId);
+        return { type: r.type, toId: r.toId, toCategory: r.toCategory, toLabel: (match && match.name) || r.toLabel, why: r.why };
+      })
+    );
+
     const updatedSurvivor = {
       ...raw,
       id: raw.id,
       name: val("ef-name"),
       callsign: val("ef-callsign") || null,
+      playerName: val("ef-playerName") || null,
+      faction: val("ef-faction"),
       className: val("ef-className"),
-      backstory: val("ef-backstory"),
-      quirk: {
-        name: val("ef-quirk-name"),
-        effect: val("ef-quirk-effect"),
-        flavorLine: val("ef-quirk-flavorLine")
+      attributes: {
+        body: Number(val("ef-attr-body")) || 0,
+        reflex: Number(val("ef-attr-reflex")) || 0,
+        knowledge: Number(val("ef-attr-knowledge")) || 0,
+        presence: Number(val("ef-attr-presence")) || 0,
+        sanity: Number(val("ef-attr-sanity")) || 0,
+        fate: Number(val("ef-attr-fate")) || 0
       },
+      backstory: val("ef-backstory"),
+      personality: {
+        trait: val("ef-personality-trait"),
+        contradiction: val("ef-personality-contradiction"),
+        wants: val("ef-personality-wants"),
+        actuallyNeeds: val("ef-personality-actuallyNeeds")
+      },
+      bond: {
+        name: val("ef-bond-name"),
+        effect: val("ef-bond-effect"),
+        flavorLine: val("ef-bond-flavorLine")
+      },
+      relationships: resolvedRelationships,
       designNotes: val("ef-designNotes")
     };
 
@@ -1529,6 +1575,16 @@ function showSurvivorEditForm(entry) {
     if (!res.ok) throw new Error(result.error || "Save failed");
   });
 
+  // ---- Faction select (populated live, since faction ids/keys aren't fixed) ----
+  getFactionLookup().then((lookup) => {
+    const options = Object.keys(lookup).map((key) => ({ id: key, name: lookup[key].name }));
+    document.getElementById("ef-faction-wrap").innerHTML = efSelect(
+      "Faction",
+      "ef-faction",
+      `<option value="unaligned" ${raw.faction === "unaligned" ? "selected" : ""}>Unaligned</option>` + idSelectOptionsHtml(options, raw.faction)
+    );
+  });
+
   fetchCategoryOptions("classes").then((classOptions) => {
     const bareNames = [...new Set(classOptions.map((o) => classDisplayNameToBareName(o.name)).filter(Boolean))];
     const optionsHtml = bareNames.map((n) => `<option value="${escapeHtmlForSearch(n)}" ${n === raw.className ? "selected" : ""}>${escapeHtmlForSearch(n)}</option>`).join("");
@@ -1536,6 +1592,68 @@ function showSurvivorEditForm(entry) {
       ? `<option value="${escapeHtmlForSearch(raw.className)}" selected>${escapeHtmlForSearch(raw.className)} (not found)</option>`
       : "";
     document.getElementById("ef-className-wrap").innerHTML = efSelect("Class", "ef-className", optionsHtml + fallback);
+  });
+
+  // ---- Relationships: category-dependent target dropdown per row ----
+  // Same pattern as showNpcEditForm -- duplicated rather than shared,
+  // matching this rollout's existing "bespoke per category" precedent.
+  const relState = (Array.isArray(raw.relationships) ? raw.relationships : [])
+    .map((r) => ({ type: r.type || "", toId: r.toId || "", toCategory: r.toCategory || "factions", toLabel: r.toLabel || "", why: r.why || "" }));
+  const categoryOptionsCache = {};
+
+  async function getCachedOptions(category) {
+    if (!categoryOptionsCache[category]) categoryOptionsCache[category] = await fetchCategoryOptions(category);
+    return categoryOptionsCache[category];
+  }
+
+  async function relRowHtml(r, i) {
+    const options = await getCachedOptions(r.toCategory);
+    return `
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+        <input data-idx="${i}" data-field="type" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.type)}" placeholder="relationship type" style="flex:1; min-width:120px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        <select data-idx="${i}" data-field="toCategory" class="ef-rel-category" style="min-width:110px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+          ${RELATIONSHIP_CATEGORIES.map((c) => `<option value="${c}" ${c === r.toCategory ? "selected" : ""}>${CATEGORY_LABELS[c] || c}</option>`).join("")}
+        </select>
+        <select data-idx="${i}" data-field="toId" class="ef-rel-toid" style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+          ${idSelectOptionsHtml(options, r.toId)}
+        </select>
+        <input data-idx="${i}" data-field="why" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.why)}" placeholder="why" style="flex:2; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
+      </div>`;
+  }
+
+  async function renderRelRows() {
+    const host = document.getElementById("ef-rel-rows");
+    if (!host) return;
+    host.innerHTML = relState.length
+      ? (await Promise.all(relState.map((r, i) => relRowHtml(r, i)))).join("")
+      : `<p style="color:var(--ink-faint); font-size:0.85rem; margin:0 0 8px;">No relationships yet.</p>`;
+
+    host.querySelectorAll(".ef-rel-input, .ef-rel-toid").forEach((el) => {
+      const sync = (e) => { relState[Number(e.target.dataset.idx)][e.target.dataset.field] = e.target.value; };
+      el.addEventListener("input", sync);
+      el.addEventListener("change", sync);
+    });
+    host.querySelectorAll(".ef-rel-category").forEach((el) => {
+      el.addEventListener("change", async (e) => {
+        const idx = Number(e.target.dataset.idx);
+        relState[idx].toCategory = e.target.value;
+        relState[idx].toId = "";
+        await renderRelRows();
+      });
+    });
+    host.querySelectorAll(".ef-row-remove").forEach((el) => {
+      el.addEventListener("click", async (e) => {
+        relState.splice(Number(e.currentTarget.dataset.idx), 1);
+        await renderRelRows();
+      });
+    });
+  }
+
+  renderRelRows();
+  document.getElementById("ef-add-rel").addEventListener("click", () => {
+    relState.push({ type: "", toId: "", toCategory: "factions", toLabel: "", why: "" });
+    renderRelRows();
   });
 
   return overlay;

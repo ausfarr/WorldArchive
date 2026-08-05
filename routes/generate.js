@@ -17,7 +17,41 @@ const router = express.Router();
 router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
-    let { name, role, faction, fillExistingId } = req.body || {};
+    let { name, role, faction, fillExistingId, importText } = req.body || {};
+
+    // Import path: no fillExistingId (brand new entry, same as a normal
+    // "Generate New Entry"), but grounded in user-provided source text
+    // instead of invented from scratch. Deliberately bypasses
+    // createNewNpc() (used by the plain no-input path and by Quest
+    // auto-fill) since that helper has no slot for source text -- this
+    // stays close to the regular fillExistingId=false branch below
+    // instead, just with importSourceText threaded through.
+    if (!fillExistingId && importText && importText.trim()) {
+      const rosterContext = await buildRosterContext(worldId);
+      const loreContext = await getLoreContext(worldId, { category: "npcs", faction });
+      const settingContext = await getSettingContext(worldId);
+      const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+      const contentSystemPrompt = buildNpcContentSystemPrompt({
+        settingContext, loreContext, factionOptionsText, rosterContext,
+        name, role, faction, importSourceText: importText.trim()
+      });
+      const npc = await callClaudeExpectingJson({
+        systemPrompt: contentSystemPrompt,
+        userMessage: "Import and structure this character now.",
+        maxTokens: 3000
+      });
+      npc.id = npc.id || slugify(npc.name);
+      if (faction) npc.faction = faction;
+      await saveNpcEntry(worldId, npc, null);
+      return res.json({
+        preview: false,
+        id: npc.id,
+        name: npc.name,
+        roleArchetype: npc.roleArchetype,
+        faction: npc.faction,
+        summary: npc.designNotes
+      });
+    }
 
     if (!fillExistingId) {
       const result = await createNewNpc(worldId, { name, role, faction });

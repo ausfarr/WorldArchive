@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Survivors — The Archive</title>
+<title>PCs — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
 <script>
 (function() {
@@ -53,7 +53,7 @@
       <a href="../classes/index.html" id="nav-classes">Classes</a>
       <a href="../items/index.html" id="nav-items">Items</a>
       <a href="../logs/index.html" id="nav-logs">Logs</a>
-      <a href="../survivors/index.html" id="nav-survivors">Survivors</a>
+      <a href="../survivors/index.html" id="nav-survivors">PCs</a>
       <a href="../locations/index.html" id="nav-locations">Locations</a>
       <a href="../campaigns/index.html" id="nav-quests">Quests</a>
       <a href="../campaign-arcs/index.html" id="nav-campaign-arcs">Campaigns</a>
@@ -70,9 +70,9 @@
 </header>
 
 <div class="wrap">
-  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span id="crumb-label">Survivors</span></div>
-  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Survivors</h1>
-  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb">Colony roster — recruits, quirks, and short backstories.</p>
+  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span id="crumb-label">PCs</span></div>
+  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">PCs</h1>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb">The player characters actually being played at the table — class, attributes, backstory, and how they connect to the world.</p>
 
   
 <div class="sheet" style="margin: 0 0 40px; padding: 24px 32px;">
@@ -83,20 +83,31 @@
       <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
     </div>
     <div style="flex: 1; min-width: 160px;">
+      <label for="gen-player-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">PLAYER NAME (optional)</label>
+      <input id="gen-player-name" type="text" placeholder="who's playing this character?" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
       <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CLASS (optional)</label>
       <input id="gen-field-2" type="text" placeholder="leave blank to vary the roster" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
     </div>
-    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate Survivor</button>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate PC</button>
   </form>
   <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
 </div>
 <script>
+document.addEventListener('DOMContentLoaded', () => populateFactionSelect('gen-field-3', { includeUnaligned: true }));
 document.getElementById('gen-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = document.getElementById('gen-submit');
   const status = document.getElementById('gen-status');
   btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Recruiting a new face…', 'Writing a quirk…','Writing a rough backstory…','Deciding what they are good at…', 'Almost there…']);
+  showGenerationOverlay(['Rolling up a new character…', 'Working out their attributes…','Writing a rough backstory…','Working out who they know…', 'Almost there…']);
   status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
   try {
     const res = await authFetch('/api/generate-survivor', {
@@ -104,7 +115,8 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: document.getElementById('gen-name').value,
-        className: document.getElementById('gen-field-2').value
+        className: document.getElementById('gen-field-2').value,
+        faction: document.getElementById('gen-field-3').value
       })
     });
     const data = await res.json();
@@ -115,7 +127,59 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
     status.innerHTML = err.message;
   } finally {
     hideGenerationOverlay();
-    btn.disabled = false; btn.textContent = 'Generate Survivor';
+    btn.disabled = false; btn.textContent = 'Generate PC';
+  }
+});
+</script>
+
+<div class="sheet" style="margin: 0 0 40px; padding: 24px 32px;">
+  <p class="sheet-eyebrow" style="margin: 0 0 4px;">Import Existing Character</p>
+  <p style="color: var(--ink-dim); font-size: 0.82rem; margin: 0 0 16px;">Already have this PC's sheet written up somewhere? Paste it in or upload a .txt file — whatever facts you've already got (name, class, backstory) are kept as-is, and the AI only fills in what's missing (attributes, relationships) to fit this world's archive format.</p>
+  <form id="import-form">
+    <textarea id="import-text" rows="6" placeholder="Paste a character sheet, notes, or an old write-up here…" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 10px 12px; font-family: var(--font-body); resize: vertical; margin-bottom: 10px;"></textarea>
+    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <label style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint);">
+        or upload a .txt file:
+        <input type="file" id="import-file" accept=".txt" style="display:block; margin-top:6px; color: var(--ink-dim); font-family: var(--font-body); font-size: 0.82rem;">
+      </label>
+      <button type="submit" id="import-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600; margin-left: auto;">Import Character</button>
+    </div>
+  </form>
+  <p id="import-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
+</div>
+<script>
+document.getElementById('import-file').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { document.getElementById('import-text').value = reader.result; };
+  reader.readAsText(file);
+});
+
+document.getElementById('import-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('import-submit');
+  const status = document.getElementById('import-status');
+  const text = document.getElementById('import-text').value.trim();
+  if (!text) { status.style.display = 'block'; status.textContent = 'Paste some text or choose a file first.'; return; }
+  btn.disabled = true; btn.textContent = 'Importing…';
+  showGenerationOverlay(['Reading through the sheet…', 'Matching it to this world\'s archive format…', 'Filling in whatever\'s missing…', 'Almost there…']);
+  status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
+  try {
+    const res = await authFetch('/api/generate-survivor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ importText: text })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(formatGenerationError(data));
+    status.textContent = `Imported: ${data.name} (The ${data.className})`;
+    setTimeout(() => window.location.reload(), 1200);
+  } catch (err) {
+    status.innerHTML = err.message;
+  } finally {
+    hideGenerationOverlay();
+    btn.disabled = false; btn.textContent = 'Import Character';
   }
 });
 </script>

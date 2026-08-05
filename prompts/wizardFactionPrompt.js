@@ -18,9 +18,33 @@ const SCHEMA_DESCRIPTION = `{
   "accentColor": "A single hex color, e.g. #c9502e -- an accent color that fits this faction's visual identity and mood (its iconography, territory, or tone). Must be visually distinct from any colors already claimed in this world, listed below. Avoid near-black/near-white (needs to read clearly against a dark UI panel)."
 }`;
 
+// Builds a block describing any fields the user has already typed by hand
+// into this faction's slot (Politics/Government/Economy/Military/Tensions)
+// before hitting "Generate for me." Without this, the model has no idea
+// those fields aren't blank, and the generated response silently
+// overwrites them -- the wizard equivalent of the "regenerate blank-slates
+// instead of revising" bug already fixed elsewhere in the app. Only
+// fields with real content are included; empty ones are left for the
+// model to invent freely.
+function formatExistingFieldsBlock(existingFields) {
+  if (!existingFields) return "";
+  const labels = {
+    politics: "Politics",
+    government: "Government",
+    economy: "Economy",
+    military: "Military",
+    tensions: "Tensions"
+  };
+  const lines = Object.keys(labels)
+    .filter((key) => (existingFields[key] || "").trim().length > 0)
+    .map((key) => `${labels[key]}: ${existingFields[key].trim()}`);
+  if (!lines.length) return "";
+  return `\n\nTHE USER HAS ALREADY WRITTEN SOME OF THIS BY HAND -- do not discard or contradict it. Keep these fields as-is (light polish for grammar/flow is fine, but preserve their meaning and intent) and only invent fresh content for the fields NOT listed here:\n${lines.join("\n")}\n`;
+}
+
 // mode: "fill" (name/concept given, fill in the rest) or "invent" (name
 // not given, invent everything including the name/concept).
-function buildWizardFactionSystemPrompt({ loreContext, existingFactions, name, concept, mode }) {
+function buildWizardFactionSystemPrompt({ loreContext, existingFactions, name, concept, mode, existingFields }) {
   const existingNames = (existingFactions || []).map((f) => f.name).filter(Boolean);
   const overlapBlock = existingNames.length
     ? `\n\nALREADY-DEFINED FACTIONS IN THIS WORLD (don't reinvent these, don't duplicate their core concept, but you may reference tension/rivalry with them where it fits naturally): ${existingNames.join(", ")}\n`
@@ -35,17 +59,19 @@ function buildWizardFactionSystemPrompt({ loreContext, existingFactions, name, c
     ? "Invent a faction name and one-line concept, then fill out the rest. Make sure it's distinct from anything already defined below."
     : `Faction Name: ${name}\nConcept: ${concept || "(not given -- infer a fitting one-line concept from the name and the world's lore below)"}`;
 
+  const existingFieldsBlock = formatExistingFieldsBlock(existingFields);
+
   return `You are writing a faction profile for a tabletop/game world, grounded in the world's established lore. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
 Stay consistent with the world's lore given below -- don't contradict its geography, history, tone, or established peoples/culture. A faction should feel like it grew out of this specific world's conditions, not a generic archetype dropped in.
 
 WORLD LORE — GROUND TRUTH (stay consistent with this):
 ${loreContext || "(no lore saved yet for this world -- invent a faction consistent with general genre conventions)"}
-${overlapBlock}${colorBlock}
+${overlapBlock}${colorBlock}${existingFieldsBlock}
 YOUR TASK:
 ${inputBlock}
 
-Return JSON matching this exact schema:
+Return JSON matching this exact schema (still include every field, including any listed above as already-written -- just return them unchanged/lightly polished rather than blank):
 ${SCHEMA_DESCRIPTION}`;
 }
 

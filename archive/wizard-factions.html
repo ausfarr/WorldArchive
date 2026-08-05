@@ -177,7 +177,18 @@ document.getElementById("factions-list").addEventListener("click", async (e) => 
       const res = await authFetch("/api/wizard/generate-faction", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: f.name || undefined, concept: f.concept || undefined })
+        body: JSON.stringify({
+          name: f.name || undefined,
+          concept: f.concept || undefined,
+          // Anything the user already typed by hand gets sent along so
+          // the generator revises/completes it instead of silently
+          // overwriting it -- see prompts/wizardFactionPrompt.js.
+          politics: f.politics || undefined,
+          government: f.government || undefined,
+          economy: f.economy || undefined,
+          military: f.military || undefined,
+          tensions: f.tensions || undefined
+        })
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
       const { faction } = await res.json();

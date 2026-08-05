@@ -13,7 +13,7 @@ const CANONICAL_CATEGORIES = {
   items: "Weapons, armor, consumables, and quest items.",
   classes: "Playable character professions/archetypes with a full progression tree.",
   logs: "Found-text lore artifacts -- recordings, journals, terminal dumps.",
-  survivors: "Rank-and-file recruits for the player's own roster/base.",
+  survivors: "The player characters (PCs) actually being played at the table -- full character sheets: class, attributes, backstory, personality, and their bond/relationships to the world.",
   factions: "The major organized powers/groups in the world.",
   locations: "Real, specific places the player can travel to -- strongholds, ruins, settlements, dungeons -- not vague region labels."
 };
