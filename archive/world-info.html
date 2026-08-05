@@ -114,6 +114,18 @@
     font-family: var(--font-mono); font-size: 0.68rem; border: 1px solid var(--border-line);
     padding: 3px 8px; color: var(--ink-dim);
   }
+  .lore-section { margin-bottom: 22px; }
+  .lore-section:last-child { margin-bottom: 0; }
+  .lore-section h3 {
+    font-family: var(--font-display); text-transform: uppercase; font-size: 0.88rem;
+    color: var(--ink); margin: 0 0 8px; letter-spacing: 0.02em;
+  }
+  .lore-optional-tag {
+    font-family: var(--font-mono); font-size: 0.6rem; color: var(--ink-faint);
+    text-transform: uppercase; letter-spacing: 0.04em; font-weight: normal;
+  }
+  .lore-para { font-size: 0.88rem; color: var(--ink-dim); line-height: 1.6; margin: 0 0 10px; }
+  .lore-para:last-child { margin-bottom: 0; }
 </style>
 
 <script src="/config.js"></script>
@@ -142,6 +154,22 @@ function section(title, innerHtml) {
   return `<div class="info-section"><h2>${title}</h2>${innerHtml}</div>`;
 }
 
+function escapeHtmlWI(str) {
+  if (str == null) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Converts a section's raw prose (paragraphs separated by blank lines,
+// same format every *ContentPrompt.js schema asks Claude for) into
+// clean <p> tags -- same nl2p() pattern used in routes/wizardFactions.js
+// for bridging faction seed text into HTML.
+function nl2pWI(text) {
+  return (text || "")
+    .split(/\n\n+/)
+    .map((para) => `<p class="lore-para">${escapeHtmlWI(para).replace(/\n/g, "<br>")}</p>`)
+    .join("\n");
+}
+
 function renderContent(data) {
   let html = "";
 
@@ -161,13 +189,19 @@ function renderContent(data) {
   const identityHint = '<p class="info-hint">"World" here means this entire setting/universe as a whole — not necessarily one planet. Scale is where that gets defined (e.g. a single city, a whole planet, a multi-system span, or something bigger); everything else on this page inherits from what\'s set here.</p>';
   html += section("World Identity", identityHint + (identityRows || '<div class="info-empty">Not filled in yet.</div>'));
 
-  // Lore
+  // Lore -- full section text, not just titles. Each section renders as
+  // its own labeled subsection with full formatted prose, so this page
+  // is a real standalone reference rather than a pointer back to Step 3.
   const sections = data.loreSections || [];
-  html += section("World Lore", sections.length
-    ? `<div class="lore-title-list">${sections.map(s => `<span class="pill">${s.title}</span>`).join("")}</div>
-       <p class="info-row" style="margin-top:12px;">${sections.length} lore section${sections.length === 1 ? "" : "s"} saved.</p>`
-    : '<div class="info-empty">No lore generated/imported yet.</div>'
-  );
+  const loreHtml = sections.length
+    ? sections.map((s) => `
+        <div class="lore-section">
+          <h3>${escapeHtmlWI(s.title)}${s.core ? "" : ' <span class="lore-optional-tag">optional</span>'}</h3>
+          ${s.content ? nl2pWI(s.content) : '<div class="info-empty">No content saved for this section.</div>'}
+        </div>
+      `).join("")
+    : '<div class="info-empty">No lore generated/imported yet.</div>';
+  html += section("World Lore", loreHtml);
 
   // Stat System
   const stats = data.statSystem;
