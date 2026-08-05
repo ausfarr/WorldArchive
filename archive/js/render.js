@@ -698,6 +698,130 @@ function idSelectOptionsHtml(options, currentId, noneLabel) {
   return opts.join("");
 }
 
+// v0.9 Manual Mode, Piece 1 follow-up -- field-level guidance for manual
+// entry, same pattern as the existing category-level tooltips (native
+// title attribute, sourced from hand-written text, zero new UI chrome --
+// see the "Per-world category labels" comment near applySiteTheme's
+// Object.entries(categoryConfig).forEach). Keyed by the field's DOM id
+// rather than per-call-site, since the same id (e.g. "ef-designNotes",
+// "ef-attr-body") means the same thing across every category that uses
+// it -- one entry covers all of them. A missing key just means no ⓘ
+// renders for that field; this is deliberately NOT exhaustive down to
+// perfectly self-evident fields like "ef-name".
+const FIELD_HINTS = {
+  "ef-callsign": "A nickname or alias people actually call them, if any — leave blank if they don't have one.",
+  "ef-roleArchetype": "Their function in the world at a glance — quest-giver, merchant, rival, etc. Drives what other fields expect from them.",
+  "ef-age": "Approximate age is fine — this rarely needs to be exact.",
+  "ef-signatureQuote": "One line that sounds like them — something they'd actually say, not a description of them.",
+  "ef-physicalDescription": "What someone would notice in the first few seconds of meeting them.",
+  "ef-traits": "3-5 short adjectives or phrases, comma-separated — the words you'd use to describe them to another GM in ten seconds.",
+  "ef-contradiction": "The tension that makes them feel real — two things about them that don't quite fit together (e.g. \"ruthless negotiator, soft for stray animals\").",
+  "ef-wants": "What they'd say they want if you asked them directly.",
+  "ef-actuallyNeeds": "What they actually need, which may or may not be the same thing as what they want — this is usually the more interesting one.",
+  "ef-speech-register": "How formal or casual their speech is — clipped military jargon, flowery and archaic, blunt street slang, etc.",
+  "ef-speech-rhythm": "The shape of how they talk — short and clipped, rambling, one-word answers, overly precise.",
+  "ef-speech-tic": "A verbal habit that repeats — a filler word, a stutter, a catchphrase, always trailing off.",
+  "ef-speech-neverSay": "A word, phrase, or topic that's out of character for them — useful for keeping their dialogue consistent later.",
+  "ef-dialogue-opening": "The actual first line they say when a PC approaches them.",
+  "ef-questHook": "A reason a party would end up dealing with this NPC — optional if they're pure flavor.",
+  "ef-tier": "Trash = disposable/many at once. Elite = a real fight. Boss = the setpiece encounter for this location.",
+  "ef-role": "Their function in a fight — brute, sniper, support caster, swarm unit, etc.",
+  "ef-flavor": "A short paragraph of atmosphere/description — how this enemy or item looks, feels, or moves. Not mechanical.",
+  "ef-attr-body": "One of the six core attributes for this world's stat system — check your Style Guide/stat system if you're unsure what range is normal.",
+  "ef-attr-reflex": "One of the six core attributes for this world's stat system.",
+  "ef-attr-knowledge": "One of the six core attributes for this world's stat system.",
+  "ef-attr-presence": "One of the six core attributes for this world's stat system.",
+  "ef-attr-sanity": "One of the six core attributes for this world's stat system.",
+  "ef-attr-fate": "One of the six core attributes for this world's stat system.",
+  "ef-phase-threshold": "The HP percentage (0-100) at which this enemy's behavior changes — leave blank if it doesn't have a phase shift.",
+  "ef-phase-description": "What actually changes when they hit that threshold — new attack, enrage, calls for help, etc.",
+  "ef-combat-positioning": "Where this enemy wants to be relative to the party — melee range, backline, flanking, etc.",
+  "ef-combat-applies": "Any status effect or condition this enemy inflicts.",
+  "ef-combat-vulnerableTo": "A damage type, status, or tactic this enemy is weak against.",
+  "ef-combat-drops": "What a PC gets for defeating it, if anything.",
+  "ef-designNotes": "GM-only notes — never shown to players, just for your own reference.",
+  "ef-logType": "What kind of found-text this is — an audio transcript, a journal entry, a terminal log, etc. Shapes how it's formatted for players.",
+  "ef-locationContext": "Where this was found or takes place, in your own words — doesn't need to match an archived Location exactly.",
+  "ef-characters": "Who's speaking or being referenced in this log.",
+  "ef-context": "A short GM-facing summary of what this log is and why it matters — shown as a preface, not part of the found text itself.",
+  "ef-bodyText": "The actual found-text content, exactly as a player would read it.",
+  "ef-locationId": "Link this log to an archived Location, if it belongs to one.",
+  "ef-descriptorLine": "One sentence that captures the feel of this place — what a PC would notice on arrival.",
+  "ef-regionBiome": "The broader terrain or region type this location sits in.",
+  "ef-notableFeatures": "What's actually here — landmarks, structures, hazards, points of interest.",
+  "ef-dangerTags": "Short tags for what makes this place risky, comma-separated (e.g. \"unstable footing, hostile wildlife\") — leave blank if it's safe.",
+  "ef-hooksSecrets": "Something a GM could use to pull a party here, or something hidden here worth discovering — optional.",
+  "ef-baseName": "The class's name before it evolves — what players see for most of the game.",
+  "ef-evolvedName": "The class's name after its Level 50 (or equivalent late-game) evolution.",
+  "ef-tagline": "A one-line pitch for the class — what makes someone want to play it.",
+  "ef-archetype": "The class's broad combat role — tank, striker, support, controller, etc.",
+  "ef-coreResourceName": "The resource this class spends to do its thing — Rage, Focus, Ammo, whatever fits the world's tone.",
+  "ef-coreResourceDescription": "How that resource is earned and spent.",
+  "ef-primaryAttribute": "The stat this class leans on most.",
+  "ef-secondaryAttribute": "The stat this class leans on second-most.",
+  "ef-skill-major": "Skills this class is naturally best at (full/1.0x effectiveness) — pick from the world's actual skill list so it lines up with everything else, rather than inventing new skill names.",
+  "ef-skill-minor": "Skills this class is decent at (half/0.5x effectiveness).",
+  "ef-skill-misc": "Skills this class is weak at but not locked out of (0.2x effectiveness).",
+  "ef-evo-requirement": "What a character needs to do or reach to unlock the evolved form.",
+  "ef-evo-cost": "What it costs them to evolve — an item, a sacrifice, a story cost.",
+  "ef-evo-location": "Where the evolution happens, in your own words.",
+  "ef-evo-visualShift": "How their appearance changes when they evolve.",
+  "ef-evo-locationId": "Link the evolution to an archived Location, if it happens somewhere specific.",
+  "ef-capstoneQuote": "A line of dialogue or narration for the moment they evolve.",
+  "ef-why0-label": "A short header for one reason to play this class (e.g. \"For players who want:\").",
+  "ef-why0-text": "The actual pitch under that header.",
+  "ef-why1-label": "A short header for a second reason to play this class.",
+  "ef-why1-text": "The actual pitch under that header.",
+  "ef-why2-label": "A short header for a third reason to play this class.",
+  "ef-why2-text": "The actual pitch under that header.",
+  "ef-category": "The item's broad type — weapon, armor, consumable, quest item, etc. Changes which of the fields below actually apply.",
+  "ef-rarity": "How special this item is — affects player expectations, not just flavor.",
+  "ef-weaponSkill": "Which weapon skill this item uses, if it's a weapon.",
+  "ef-weaponType": "The specific kind of weapon within that skill (e.g. \"combat knife\" under Blades).",
+  "ef-damageMin": "Lower bound of this weapon's damage roll.",
+  "ef-damageMax": "Upper bound of this weapon's damage roll.",
+  "ef-relevantStat": "Which attribute this item's effect scales off of, if any.",
+  "ef-appliesStatus": "A status effect this item inflicts on use or hit, if any.",
+  "ef-effectorTier": "The power tier (1-4) of this item's special effect, if it has one — leave blank for a plain/mundane item.",
+  "ef-rarityEffect": "A bonus effect that only kicks in at Uncommon rarity or higher.",
+  "ef-apCost": "Action Points required to use this item, if it's usable in combat.",
+  "ef-effect": "What this item actually does when used, worn, or triggered.",
+  "ef-whereFoundWhyMatters": "Where a party would find this and why it's worth finding.",
+  "ef-foundAtLocationId": "Link this item to an archived Location, if it's tied to a specific place.",
+  "ef-playerName": "The real person playing this character, if you track that — leave blank for an NPC-run survivor.",
+  "ef-backstory": "How they ended up here — their history before the story starts.",
+  "ef-personality-trait": "A short adjective or phrase describing their personality.",
+  "ef-personality-contradiction": "The tension in who they are — two things about them that don't quite fit together.",
+  "ef-personality-wants": "What they'd say they want if asked.",
+  "ef-personality-actuallyNeeds": "What they actually need, which isn't always the same as what they want.",
+  "ef-bond-name": "The name of this character's personality quirk / mechanical bond, Darkest-Dungeon-style (e.g. \"Superstitious\").",
+  "ef-bond-effect": "What that quirk actually does mechanically at the table.",
+  "ef-bond-flavorLine": "A short flavor line for the quirk — how it shows up narratively.",
+  "ef-className": "Which class this survivor plays — pick from the world's actual class list so their attributes/abilities line up correctly.",
+  "ef-nickname": "What this faction is called informally, if anything — a slur, a slang name, what rivals call them.",
+  "ef-overviewQuote": "A line that captures how this faction is perceived from the outside.",
+  "ef-corePhilosophy": "The belief or principle that drives everything this faction does.",
+  "ef-origin": "How this faction came to exist.",
+  "ef-structureHierarchy": "How power and decision-making actually flow inside the faction — who answers to whom.",
+  "ef-territory": "Where this faction operates or holds ground.",
+  "ef-goalsNearTerm": "What this faction is actively working toward right now.",
+  "ef-goalsLongTerm": "What this faction ultimately wants, even if it's far off.",
+  "ef-internalTensions": "Conflict or disagreement within the faction itself — not everyone inside agrees on everything.",
+  "ef-iconography": "Symbols, colors, or visual motifs associated with this faction.",
+  "ef-economyResources": "How this faction sustains itself — what it produces, trades, or extracts.",
+  "ef-joining": "What it takes for an outsider to join, or for this faction to absorb another group."
+};
+// Small ⓘ indicator with the hint as a native hover tooltip, appended
+// right after a field's label text. Deliberately not a full always-
+// visible helper line under every field — that adds a lot of visual
+// noise across forms with 15+ fields; a hover affordance keeps the form
+// scannable while still being one hover away for someone who needs it.
+function fieldHintIcon(id) {
+  const hint = FIELD_HINTS[id];
+  if (!hint) return "";
+  return ` <span title="${escapeHtmlForSearch(hint)}" style="cursor:help; color:var(--ink-faint); font-size:0.85em;">ⓘ</span>`;
+}
+
 // Same field-row markup as showFactionEditForm's local helper, shared
 // across the 5 newer bespoke forms below.
 function efField(label, id, value, { textarea = false, rows = 3, type = "text" } = {}) {
@@ -705,7 +829,7 @@ function efField(label, id, value, { textarea = false, rows = 3, type = "text" }
   const inputStyle = "width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
   return `
     <div style="margin-bottom: 14px;">
-      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
+      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}${fieldHintIcon(id)}</label>
       ${textarea
         ? `<textarea id="${id}" rows="${rows}" style="${inputStyle} resize: vertical;">${safeValue}</textarea>`
         : `<input id="${id}" type="${type}" value="${safeValue}" style="${inputStyle}">`}
@@ -716,7 +840,7 @@ function efSelect(label, id, optionsHtml) {
   const style = "width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
   return `
     <div style="margin-bottom: 14px;">
-      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
+      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}${fieldHintIcon(id)}</label>
       <select id="${id}" style="${style}">${optionsHtml}</select>
     </div>`;
 }
@@ -809,16 +933,11 @@ function showFactionEditForm(entry) {
   const raw = entry.raw || {};
   const ownName = raw.name || entry.name || "";
 
-  function field(label, id, value, { textarea = false, rows = 3 } = {}) {
-    const safeValue = escapeHtmlForSearch(value || "");
-    const inputStyle = "width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
-    return `
-      <div style="margin-bottom: 14px;">
-        <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
-        ${textarea
-          ? `<textarea id="${id}" rows="${rows}" style="${inputStyle} resize: vertical;">${safeValue}</textarea>`
-          : `<input id="${id}" type="text" value="${safeValue}" style="${inputStyle}">`}
-      </div>`;
+  // Delegates to the shared efField (same hint-icon rendering, same
+  // markup) -- kept as a thin wrapper here rather than deleting the
+  // local name, since every call site below already reads `field(...)`.
+  function field(label, id, value, opts = {}) {
+    return efField(label, id, value, opts);
   }
 
   const overlay = document.createElement("div");
@@ -877,8 +996,8 @@ function showFactionEditForm(entry) {
           ${otherFactionNames.map((n) => `<option value="${escapeHtmlForSearch(n)}" ${n === r.faction ? "selected" : ""}>${escapeHtmlForSearch(n)}</option>`).join("")}
           ${r.faction && !otherFactionNames.includes(r.faction) ? `<option value="${escapeHtmlForSearch(r.faction)}" selected>${escapeHtmlForSearch(r.faction)}</option>` : ""}
         </select>
-        <input data-idx="${i}" data-field="stance" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.stance)}" placeholder="stance" style="${rowStyle}">
-        <input data-idx="${i}" data-field="why" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.why)}" placeholder="why" style="${rowStyle} flex:2;">
+        <input data-idx="${i}" data-field="stance" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.stance)}" placeholder="stance" title="One or two words for the relationship — allied, rivals, at war, tolerant, etc." style="${rowStyle}">
+        <input data-idx="${i}" data-field="why" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.why)}" placeholder="why" title="The reason behind that stance, in a short phrase." style="${rowStyle} flex:2;">
         <button type="button" data-idx="${i}" class="ef-rel-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
       </div>`).join("") : `<p style="color:var(--ink-faint); font-size:0.85rem; margin:0 0 8px;">No relationships yet.</p>`;
 
@@ -1125,8 +1244,8 @@ function showNpcEditForm(entry) {
     .map((b) => ({ toneLabel: b.toneLabel || "", reply: b.reply || "" }));
   const renderBranchRows = wireRowEditor("ef-branch-rows", branchState, (b, i) => `
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
-      <input data-idx="${i}" data-field="toneLabel" type="text" value="${escapeHtmlForSearch(b.toneLabel)}" placeholder="tone label" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <input data-idx="${i}" data-field="reply" type="text" value="${escapeHtmlForSearch(b.reply)}" placeholder="reply" style="flex:2; min-width:200px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="toneLabel" type="text" value="${escapeHtmlForSearch(b.toneLabel)}" placeholder="tone label" title="A short label for the tone of this reply option (e.g. Hostile, Curious)." style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="reply" type="text" value="${escapeHtmlForSearch(b.reply)}" placeholder="reply" title="What the NPC actually says if the player picks this tone." style="flex:2; min-width:200px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
       <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
     </div>`, "No dialogue branches yet.");
   document.getElementById("ef-add-branch").addEventListener("click", () => {
@@ -1231,15 +1350,15 @@ function showEnemyEditForm(entry) {
     .map((a) => ({ name: a.name || "", kind: a.kind || "Active", flavor: a.flavor || "", effect: a.effect || "", scaling: a.scaling || "" }));
   const renderAbilityRows = wireRowEditor("ef-ability-rows", abilityState, (a, i) => `
     <div style="display:grid; grid-template-columns: 1fr 100px; gap:8px; margin-bottom:6px;">
-      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="ability name" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <select data-idx="${i}" data-field="kind" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="ability name" title="What this ability is called." style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <select data-idx="${i}" data-field="kind" title="Active means something they choose to do. Passive means always on." style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
         ${ABILITY_KINDS.map((k) => `<option value="${k}" ${k === a.kind ? "selected" : ""}>${k}</option>`).join("")}
       </select>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
-      <input data-idx="${i}" data-field="flavor" type="text" value="${escapeHtmlForSearch(a.flavor)}" placeholder="flavor" style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <input data-idx="${i}" data-field="effect" type="text" value="${escapeHtmlForSearch(a.effect)}" placeholder="effect" style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <input data-idx="${i}" data-field="scaling" type="text" value="${escapeHtmlForSearch(a.scaling)}" placeholder="scaling formula" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="flavor" type="text" value="${escapeHtmlForSearch(a.flavor)}" placeholder="flavor" title="A short atmospheric description of the ability, not the mechanics." style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="effect" type="text" value="${escapeHtmlForSearch(a.effect)}" placeholder="effect" title="What the ability actually does, mechanically." style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="scaling" type="text" value="${escapeHtmlForSearch(a.scaling)}" placeholder="scaling formula" title="How the ability's power scales with a stat, if it does -- leave blank if it's flat." style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
       <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
     </div>`, "No abilities yet.");
   document.getElementById("ef-add-ability").addEventListener("click", () => {
@@ -1374,7 +1493,7 @@ function showLocationEditForm(entry) {
         <select data-idx="${i}" data-field="toId" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
           ${idSelectOptionsHtml(npcOptions, n.toId)}
         </select>
-        <input data-idx="${i}" data-field="why" type="text" value="${escapeHtmlForSearch(n.why)}" placeholder="why" style="flex:2; min-width:180px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        <input data-idx="${i}" data-field="why" type="text" value="${escapeHtmlForSearch(n.why)}" placeholder="why" title="Why this NPC is notable at this location, in a short phrase." style="flex:2; min-width:180px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
         <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
       </div>`, "No notable NPCs yet.");
     document.getElementById("ef-add-npc").addEventListener("click", () => {
@@ -1399,8 +1518,8 @@ function abilityRowHtml(a, i) {
   return `
     <div style="display:grid; grid-template-columns: 70px 1fr 150px; gap:8px; margin-bottom:6px;">
       <input data-idx="${i}" data-field="level" type="number" value="${escapeHtmlForSearch(a.level)}" placeholder="lvl" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="ability name" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <select data-idx="${i}" data-field="kind" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="ability name" title="What this ability is called." style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <select data-idx="${i}" data-field="kind" title="Active means something they choose to do. Passive means always on." style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
         ${CLASS_ABILITY_KINDS.map((k) => `<option value="${k}" ${k === a.kind ? "selected" : ""}>${k}</option>`).join("")}
       </select>
     </div>
@@ -1443,9 +1562,8 @@ function showClassEditForm(entry) {
     ${efField("Primary Attribute", "ef-primaryAttribute", raw.primaryAttribute)}
     ${efField("Secondary Attribute", "ef-secondaryAttribute", raw.secondaryAttribute)}
     <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Skill Efficiency</h3>
-    ${efField("Major (1.0x)", "ef-skill-major", skillEff.major)}
-    ${efField("Minor (0.5x)", "ef-skill-minor", skillEff.minor)}
-    ${efField("Misc (0.2x)", "ef-skill-misc", skillEff.misc)}
+    <p style="color: var(--ink-dim); font-size: 0.8rem; margin: 0 0 12px;">Pick from this world's actual skill list — keeps this class in sync with everything else, instead of inventing new skill names. A skill can only sit in one tier at a time.</p>
+    <div id="ef-skill-picker-wrap"></div>
     ${tierSectionHtml("tier1", "Tier 1 (Levels 1–20)", tier1)}
     ${tierSectionHtml("tier2", "Tier 2 (Levels 21–49)", tier2)}
     <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Evolution Event (Level 50)</h3>
@@ -1488,7 +1606,7 @@ function showClassEditForm(entry) {
       coreResourceDescription: val("ef-coreResourceDescription"),
       primaryAttribute: val("ef-primaryAttribute"),
       secondaryAttribute: val("ef-secondaryAttribute"),
-      skillEfficiency: { major: val("ef-skill-major"), minor: val("ef-skill-minor"), misc: val("ef-skill-misc") },
+      skillEfficiency: readSkillPickerValue(),
       tier1: buildTier("tier1", tier1State),
       tier2: buildTier("tier2", tier2State),
       evolutionEvent: {
@@ -1521,6 +1639,88 @@ function showClassEditForm(entry) {
   fetchCategoryOptions("locations").then((options) => {
     document.getElementById("ef-evo-locationId-wrap").innerHTML = efSelect("Location (archived, optional)", "ef-evo-locationId", idSelectOptionsHtml(options, evo.locationId, "— none / not archived —"));
   });
+
+  // Skill Efficiency picker -- checkboxes sourced from this world's real
+  // skill list (Wizard Step 5, GET /api/wizard/skill-system) instead of
+  // free text, so a manually-created class can't drift from the fixed
+  // skill pool every other generator already respects (see
+  // lib/worldFlavor.js's formatFieldSkillsForPrompt comment on why that
+  // pool exists at all -- near-duplicate invented skill names). Falls
+  // back to the old 3 free-text fields if this world never generated a
+  // skill system (pre-Wizard-Step-5 worlds, or the step was skipped).
+  // skillEfficiency itself stays a plain comma-separated string either
+  // way -- see lib/classTemplate.js's escapeHtml(cls.skillEfficiency.major)
+  // display, unchanged by this. readSkillPickerValue() below is what
+  // save-time reads regardless of which mode rendered.
+  const skillPickerWrap = document.getElementById("ef-skill-picker-wrap");
+  const existingSkillNames = (tierKey) =>
+    (skillEff[tierKey] || "").split(",").map((s) => s.trim()).filter(Boolean);
+
+  authFetch("/api/wizard/skill-system").then((res) => res.json()).then(({ skillSystem }) => {
+    const skills = (skillSystem && skillSystem.fieldSkills) || [];
+    if (!skills.length) {
+      // No fixed skill pool for this world yet -- fall back to free text,
+      // same as before this feature existed.
+      skillPickerWrap.innerHTML = `
+        ${efField("Major (1.0x)", "ef-skill-major-fallback", skillEff.major)}
+        ${efField("Minor (0.5x)", "ef-skill-minor-fallback", skillEff.minor)}
+        ${efField("Misc (0.2x)", "ef-skill-misc-fallback", skillEff.misc)}
+        <p style="color: var(--ink-faint); font-size: 0.75rem; margin: -6px 0 14px;">This world hasn't generated a fixed skill list yet (Wizard Step 5), so these are free text for now.</p>
+      `;
+      return;
+    }
+
+    const majorSet = new Set(existingSkillNames("major"));
+    const minorSet = new Set(existingSkillNames("minor"));
+    const miscSet = new Set(existingSkillNames("misc"));
+    const tierOf = (name) => (majorSet.has(name) ? "major" : minorSet.has(name) ? "minor" : miscSet.has(name) ? "misc" : "");
+
+    const columnHtml = (tierKey, tierLabel) => `
+      <div style="flex:1; min-width:160px;">
+        <p style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px;">${tierLabel}</p>
+        ${skills.map((s) => `
+          <label title="${escapeHtmlForSearch(s.description || "")}" style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color: var(--ink); margin-bottom:4px; cursor:pointer;">
+            <input type="checkbox" class="skill-pick-checkbox" data-tier="${tierKey}" data-skill="${escapeHtmlForSearch(s.name)}" ${tierOf(s.name) === tierKey ? "checked" : ""}>
+            ${escapeHtmlForSearch(s.name)}
+          </label>
+        `).join("")}
+      </div>`;
+
+    skillPickerWrap.innerHTML = `<div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px;">
+      ${columnHtml("major", "Major (1.0x)")}
+      ${columnHtml("minor", "Minor (0.5x)")}
+      ${columnHtml("misc", "Misc (0.2x)")}
+    </div>`;
+
+    // Mutual exclusivity -- checking a skill in one tier unchecks it in
+    // the other two, since a skill only makes sense as one efficiency
+    // level at a time.
+    skillPickerWrap.querySelectorAll(".skill-pick-checkbox").forEach((box) => {
+      box.addEventListener("change", () => {
+        if (!box.checked) return;
+        const skillName = box.dataset.skill;
+        skillPickerWrap.querySelectorAll(`.skill-pick-checkbox[data-skill="${CSS.escape(skillName)}"]`).forEach((other) => {
+          if (other !== box) other.checked = false;
+        });
+      });
+    });
+  });
+
+  function readSkillPickerValue() {
+    const fallbackMajor = document.getElementById("ef-skill-major-fallback");
+    if (fallbackMajor) {
+      return {
+        major: fallbackMajor.value,
+        minor: document.getElementById("ef-skill-minor-fallback").value,
+        misc: document.getElementById("ef-skill-misc-fallback").value
+      };
+    }
+    const namesFor = (tierKey) =>
+      Array.from(skillPickerWrap.querySelectorAll(`.skill-pick-checkbox[data-tier="${tierKey}"]:checked`))
+        .map((box) => box.dataset.skill)
+        .join(", ");
+    return { major: namesFor("major"), minor: namesFor("minor"), misc: namesFor("misc") };
+  }
 
   function setupTierRows(key, tier) {
     const state = (Array.isArray(tier.abilities) ? tier.abilities : []).map((a) => ({ level: a.level || 1, name: a.name || "", kind: a.kind || "Active", effectText: a.effectText || "" }));
@@ -2082,21 +2282,33 @@ function renderLocationBattleMap(entry) {
   if (!map || !map.imageUrl) {
     host.innerHTML = `
       <h2>Battle Map</h2>
-      <p class="battle-map-empty-note">Generate an AI battle map for this location to use at the table. The grid is baked into the image, so you can right-click and save it to use in whatever tool (or printout) you run the table with.</p>
+      <p class="battle-map-empty-note">Generate an AI battle map for this location to use at the table (the grid is baked into the generated image), or upload your own.</p>
       <button id="generate-battle-map-btn" class="bm-btn">Generate Battle Map</button>
+      <label class="bm-btn bm-btn-secondary bm-upload-label">
+        Upload Battle Map
+        <input type="file" id="upload-battle-map-input" accept="image/*" style="display:none;">
+      </label>
       <span id="battle-map-status" class="bm-status"></span>
     `;
     wireGenerateBattleMapButton(entry.id);
+    wireUploadBattleMapInput(entry.id);
     return;
   }
 
   const cacheBustedImageUrl = `${map.imageUrl}${map.imageUrl.includes("?") ? "&" : "?"}v=${map.generatedAt || Date.now()}`;
+  const bmHint = map.uploaded
+    ? "Right-click the map to save it. This is your own uploaded image -- no grid was added to it."
+    : "Right-click the map to save it -- the grid is already part of the image.";
 
   host.innerHTML = `
     <h2>Battle Map</h2>
     <div class="battle-map-toolbar">
-      <span class="bm-hint">Right-click the map to save it -- the grid is already part of the image.</span>
+      <span class="bm-hint">${bmHint}</span>
       <button id="regenerate-battle-map-btn" class="bm-btn bm-btn-secondary">Regenerate Map</button>
+      <label class="bm-btn bm-btn-secondary bm-upload-label">
+        Upload New Image
+        <input type="file" id="upload-battle-map-input" accept="image/*" style="display:none;">
+      </label>
       <span id="battle-map-status" class="bm-status"></span>
     </div>
     <div class="battle-map-stage">
@@ -2105,6 +2317,7 @@ function renderLocationBattleMap(entry) {
   `;
 
   wireRegenerateBattleMapButton(entry.id);
+  wireUploadBattleMapInput(entry.id);
 }
 
 function escapeAttr(str) {
@@ -2128,6 +2341,37 @@ function wireGenerateBattleMapButton(locationId) {
       console.error("Battle map generation failed:", err);
       status.textContent = "Something went wrong: " + err.message;
       btn.disabled = false;
+    }
+  });
+}
+
+function wireUploadBattleMapInput(locationId) {
+  const input = document.getElementById("upload-battle-map-input");
+  if (!input) return;
+  input.addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const status = document.getElementById("battle-map-status");
+    status.textContent = "Uploading…";
+    try {
+      const imageBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Could not read the selected file."));
+        reader.readAsDataURL(file);
+      });
+      const res = await authFetch(`/api/entries/locations/${locationId}/dungeon-map/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64 })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed.");
+      status.textContent = "Done — reloading…";
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      console.error("Battle map upload failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
     }
   });
 }

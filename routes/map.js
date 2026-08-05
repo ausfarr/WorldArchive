@@ -187,4 +187,47 @@ router.post("/map/generate-backdrop", async (req, res) => {
   }
 });
 
+// POST upload-backdrop — lets a user swap in their own map image instead
+// of the AI-generated one. Deliberately does NOT call
+// detectFactionAnchors (Austin's explicit call, discussed and locked
+// this session): vision anchor detection was only ever built to find
+// faction territory in an image this app itself generated with that in
+// mind. A generic uploaded map has no reason to contain anything
+// recognizable as faction-coded regions, so a vision call here would
+// likely just produce wrong-looking anchors -- worse than none. Instead,
+// existing anchors are explicitly cleared (not left stale from a prior
+// AI backdrop), which lets archive/js/mapLayout.js fall back to its own
+// existing deterministic per-faction default clustering (same fallback
+// already used for any faction anchor detection never found) -- combined
+// with every location pin now being draggable (see archive/map.html),
+// the person who uploaded their own map just drags things to where they
+// actually belong, which is the whole point of uploading a custom map in
+// the first place.
+//
+// Unlike /map/generate-backdrop, this is allowed to REPLACE an existing
+// backdrop (it's an explicit user action, not the once-per-world
+// auto-trigger the generate route guards against).
+router.post("/map/upload-backdrop", async (req, res) => {
+  try {
+    const worldId = req.worldId;
+    const { imageBase64 } = req.body || {};
+    if (!imageBase64) {
+      return res.status(400).json({ error: "imageBase64 is required." });
+    }
+
+    const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+    const mimeType = match ? match[1] : "image/png";
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const imageBuffer = Buffer.from(base64Data, "base64");
+
+    const url = await saveMapBackdrop(worldId, imageBuffer, mimeType);
+    await saveMapAnchors(worldId, {});
+
+    res.json({ url, generated: true, anchors: {} });
+  } catch (err) {
+    console.error("Map backdrop upload failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

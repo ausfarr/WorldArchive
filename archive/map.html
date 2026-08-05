@@ -17,14 +17,6 @@
   .map-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0 0; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-dim); }
   .map-legend-item { display: flex; align-items: center; gap: 6px; }
   .map-legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-  .map-unplaced-panel { margin: 20px 0 0; padding: 16px 20px; background: var(--bg-panel); border: 1px solid var(--border-line); }
-  .map-unplaced-title { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px; }
-  .map-unplaced-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border-line-soft); }
-  .map-unplaced-row:first-of-type { border-top: none; }
-  .map-unplaced-name { font-family: var(--font-body); color: var(--ink); }
-  .map-unplaced-place-btn { background: var(--neon-primary); color: var(--bg-void); border: none; padding: 6px 14px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.04em; cursor: pointer; font-weight: 600; }
-  .map-unplaced-place-btn:disabled { opacity: 0.5; cursor: default; }
-  .map-manual-pin { width: 16px; height: 16px; background: var(--neon-primary); border: 2px solid var(--bg-void); transform: rotate(45deg); box-shadow: 0 0 0 1px var(--neon-primary); }
   /* Leaflet's default popup/control chrome is light-themed and doesn't
      know about this site's CSS variables -- overridden here rather than
      left to clash against the dark theme everywhere else. */
@@ -107,11 +99,18 @@
   <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Map</h1>
   <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb">Every archived location, laid out by territory. Scroll to zoom, drag to pan, click a pin for details.</p>
 
+  <div id="map-backdrop-toolbar" style="margin: 0 0 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <label id="upload-backdrop-label" style="display:inline-block; background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 8px 16px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.03em; cursor: pointer;">
+      Upload Custom Map
+      <input type="file" id="upload-backdrop-input" accept="image/*" style="display:none;">
+    </label>
+    <span id="upload-backdrop-status" style="font-family: var(--font-mono); font-size:0.72rem; color: var(--ink-faint);"></span>
+  </div>
+
   <div class="map-wrap">
     <div id="map-status">Loading…</div>
     <div id="map-canvas" style="display:none;"></div>
     <div class="map-legend" id="map-legend"></div>
-    <div id="map-unplaced-panel"></div>
   </div>
 </div>
 
@@ -162,8 +161,8 @@
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
-<script src="js/render.js"></script>
-<script src="js/mapLayout.js"></script>
+<script src="js/render.js?v=v0.9"></script>
+<script src="js/mapLayout.js?v=v0.9"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
   // Faction accent colors reuse the same lookup NPC/Bestiary pages use
@@ -288,11 +287,19 @@
       // not into raw_json.raw -- so it lands at entry.manualMapPosition,
       // one level up from createdManually. Both are read correctly
       // below; just not at the same nesting depth.
-      const isManuallyCreated = (loc) => !!(loc.raw && loc.raw.createdManually);
+      // v0.9 Manual Mode follow-up: every location pin is now draggable
+      // (Austin's explicit call this session, superseding the earlier
+      // "unplaced panel, manual-only" version of this feature) -- the
+      // createdManually distinction that used to gate which locations
+      // needed manual placement is gone. A location with no
+      // manualMapPosition just gets the same computed starting position
+      // computeMapLayout has always produced (including manually-created
+      // ones now, which get clustered by faction like anything else);
+      // dragging ANY pin -- AI-placed or manual -- saves an exact
+      // position and excludes it from the computation on future loads.
       const hasFixedPosition = (loc) => loc.manualMapPosition && typeof loc.manualMapPosition.x === "number" && typeof loc.manualMapPosition.y === "number";
       const fixedLocations = locations.filter(hasFixedPosition);
-      const unplacedLocations = locations.filter((loc) => isManuallyCreated(loc) && !hasFixedPosition(loc));
-      const autoLocations = locations.filter((loc) => !hasFixedPosition(loc) && !isManuallyCreated(loc));
+      const autoLocations = locations.filter((loc) => !hasFixedPosition(loc));
 
       const nodes = computeMapLayout(autoLocations, factionOrder, anchorOverrides);
       const bodyHtmlById = {};
@@ -359,62 +366,22 @@
         return getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim() || "#29f0d1";
       }
 
-      nodes.forEach((n) => {
-        const color = resolveColor(facColorVar(n.faction, factionLookup));
-        const facName = n.faction && n.faction !== "unaligned"
-          ? ((factionLookup[n.faction] && factionLookup[n.faction].name) || n.faction)
-          : "Unaligned";
-        const portraitUrl = extractPortraitUrl(bodyHtmlById[n.id]);
-        const popupHtml = `
-          <div class="map-popup-title">${n.name}</div>
-          <div class="map-popup-faction">${facName}</div>
-          ${portraitUrl ? `<img class="map-popup-img" src="${portraitUrl}" alt="${n.name}">` : ""}
-          <div class="map-popup-hint">Click to view dossier</div>
-        `;
-        // Y-AXIS FLIP: Leaflet's CRS.Simple treats [0,0] as the
-        // BOTTOM-left of the map, with the first coordinate ("lat")
-        // increasing UPWARD -- confirmed directly against Leaflet's own
-        // documented image-overlay pattern, not assumed. Every layout
-        // calculation in this app (computeMapLayout's jitter/clustering,
-        // the vision-detected anchors, CANVAS_HEIGHT itself) uses normal
-        // top-down image convention instead, where y=0 is the TOP and y
-        // increases downward -- the same convention the vision prompt
-        // told Claude to use, and the only sane one for describing "where
-        // in the image" something is. Passing n.y straight through as
-        // Leaflet's lat mirrored every pin vertically: a location meant
-        // to sit near the top of the image (small y) rendered near the
-        // bottom instead, and vice versa. This is the ONE place these two
-        // conventions meet, so it's the one place that needs to flip.
-        const marker = L.circleMarker([CANVAS_HEIGHT - n.y, n.x], {
-          radius: 8,
-          color: markerStrokeColor,
-          weight: 2,
-          fillColor: color,
-          fillOpacity: 1
-        }).addTo(map);
-
-        // Hover shows the info card; click navigates. closeButton:false
-        // since hover (not an explicit user action) opens it -- a close
-        // button implies something the user chose to open. autoPan:false
-        // stops the map recentering itself just because the mouse
-        // happened to pass near the edge of a pin's popup.
-        marker.bindPopup(popupHtml, { closeButton: false, autoPan: false });
-        marker.on("mouseover", () => marker.openPopup());
-        marker.on("mouseout", () => marker.closePopup());
-        marker.on("click", () => {
-          window.location.href = `dossier.html?category=locations&id=${n.id}`;
+      // Every location pin is an L.marker (not L.circleMarker) now, even
+      // though most of them still just show up wherever computeMapLayout
+      // put them -- CircleMarker can't be dragged (only L.Marker supports
+      // Leaflet's Draggable handler), and making every pin draggable is
+      // the whole point of this version of the feature. buildLocationIcon
+      // recreates the same colored-circle look the old circleMarkers had
+      // via a small inline-styled divIcon, so this is a behavior change,
+      // not a visual one.
+      function buildLocationIcon(color) {
+        return L.divIcon({
+          className: "map-location-pin",
+          html: `<span style="display:block; width:16px; height:16px; border-radius:50%; background:${color}; border:2px solid ${markerStrokeColor};"></span>`,
+          iconSize: [16, 16],
+          iconAnchor: [8, 8]
         });
-      });
-
-      // v0.9 Manual Mode -- draggable pin icon, visually distinct
-      // (diamond, --neon-primary) from the auto-placed circleMarkers
-      // above, since these mark a person's own deliberate placement
-      // rather than a computed layout. Leaflet's CircleMarker can't be
-      // dragged (only L.Marker supports the Draggable handler), which is
-      // why these use a different marker type than every other pin on
-      // the map. Same [CANVAS_HEIGHT - y, x] flip as the auto markers
-      // above -- see that comment for why.
-      const manualPinIcon = L.divIcon({ className: "map-manual-pin", iconSize: [16, 16] });
+      }
 
       function savePinPosition(locationId, canvasX, canvasY) {
         return authFetch(`/api/entries/locations/${locationId}/map-position`, {
@@ -424,80 +391,48 @@
         });
       }
 
-      function addFixedMarker(loc) {
-        const pos = loc.manualMapPosition;
-        const marker = L.marker([CANVAS_HEIGHT - pos.y, pos.x], { icon: manualPinIcon, draggable: true }).addTo(map);
-        const portraitUrl = extractPortraitUrl(bodyHtmlById[loc.id]);
-        marker.bindPopup(`
-          <div class="map-popup-title">${loc.name}</div>
-          ${portraitUrl ? `<img class="map-popup-img" src="${portraitUrl}" alt="${loc.name}">` : ""}
+      // Shared by both the auto-computed nodes below and the already-
+      // fixed locations further down -- same marker, same behavior,
+      // regardless of how this location ended up at its current spot.
+      function addLocationMarker(id, name, faction, canvasX, canvasY) {
+        const color = resolveColor(facColorVar(faction, factionLookup));
+        const facName = faction && faction !== "unaligned"
+          ? ((factionLookup[faction] && factionLookup[faction].name) || faction)
+          : "Unaligned";
+        const portraitUrl = extractPortraitUrl(bodyHtmlById[id]);
+        const popupHtml = `
+          <div class="map-popup-title">${name}</div>
+          <div class="map-popup-faction">${facName}</div>
+          ${portraitUrl ? `<img class="map-popup-img" src="${portraitUrl}" alt="${name}">` : ""}
           <div class="map-popup-hint">Drag to reposition · click to view dossier</div>
-        `, { closeButton: false, autoPan: false });
+        `;
+        // Y-AXIS FLIP: see the comment above CANVAS_HEIGHT's other uses in
+        // this file -- Leaflet's CRS.Simple [0,0] is bottom-left with lat
+        // increasing upward, while every layout calculation in this app
+        // uses normal top-down image convention (y=0 at the top).
+        const marker = L.marker([CANVAS_HEIGHT - canvasY, canvasX], {
+          icon: buildLocationIcon(color),
+          draggable: true
+        }).addTo(map);
+
+        marker.bindPopup(popupHtml, { closeButton: false, autoPan: false });
         marker.on("mouseover", () => marker.openPopup());
         marker.on("mouseout", () => marker.closePopup());
+
         let dragged = false;
         marker.on("dragstart", () => { dragged = true; });
         marker.on("dragend", async () => {
           const latlng = marker.getLatLng();
-          await savePinPosition(loc.id, latlng.lng, CANVAS_HEIGHT - latlng.lat);
+          await savePinPosition(id, latlng.lng, CANVAS_HEIGHT - latlng.lat);
         });
         marker.on("click", () => {
           if (dragged) { dragged = false; return; } // swallow the click that follows a drag release
-          window.location.href = `dossier.html?category=locations&id=${loc.id}`;
+          window.location.href = `dossier.html?category=locations&id=${id}`;
         });
       }
 
-      fixedLocations.forEach(addFixedMarker);
-
-      // Unplaced manual Locations -- listed in a panel below the map
-      // rather than shown at some arbitrary spot on it. Clicking "Place
-      // on Map" drops a draggable pin at the map's center; dragging it
-      // anywhere and releasing saves that spot immediately (no separate
-      // "confirm placement" step) and the row disappears from this list.
-      const unplacedPanel = document.getElementById("map-unplaced-panel");
-      function renderUnplacedPanel() {
-        if (!unplacedPanel) return;
-        if (unplacedLocations.length === 0) {
-          unplacedPanel.innerHTML = "";
-          return;
-        }
-        unplacedPanel.innerHTML = `
-          <div class="map-unplaced-panel">
-            <p class="map-unplaced-title">Manually-Created Locations Awaiting Placement</p>
-            ${unplacedLocations.map((loc) => `
-              <div class="map-unplaced-row" data-unplaced-id="${loc.id}">
-                <span class="map-unplaced-name">${loc.name || "Untitled Location"}</span>
-                <button type="button" class="map-unplaced-place-btn" data-place-id="${loc.id}">Place on Map</button>
-              </div>
-            `).join("")}
-          </div>
-        `;
-        unplacedPanel.querySelectorAll(".map-unplaced-place-btn").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const locId = btn.dataset.placeId;
-            const loc = unplacedLocations.find((l) => l.id === locId);
-            if (!loc) return;
-            btn.disabled = true;
-            btn.textContent = "Drag the pin…";
-            const startX = CANVAS_WIDTH / 2, startY = CANVAS_HEIGHT / 2;
-            const marker = L.marker([CANVAS_HEIGHT - startY, startX], { icon: manualPinIcon, draggable: true }).addTo(map);
-            marker.bindPopup(`<div class="map-popup-hint">Drag me, then drop to save this spot</div>`, { closeButton: false, autoPan: false }).openPopup();
-            let firstDrop = true;
-            marker.on("dragend", async () => {
-              const latlng = marker.getLatLng();
-              await savePinPosition(locId, latlng.lng, CANVAS_HEIGHT - latlng.lat);
-              if (firstDrop) {
-                firstDrop = false;
-                marker.closePopup();
-                const idx = unplacedLocations.findIndex((l) => l.id === locId);
-                if (idx !== -1) unplacedLocations.splice(idx, 1);
-                renderUnplacedPanel();
-              }
-            });
-          });
-        });
-      }
-      renderUnplacedPanel();
+      nodes.forEach((n) => addLocationMarker(n.id, n.name, n.faction, n.x, n.y));
+      fixedLocations.forEach((loc) => addLocationMarker(loc.id, loc.name, loc.faction, loc.manualMapPosition.x, loc.manualMapPosition.y));
 
       // Legend: one swatch per faction actually represented on the map.
       const seen = new Set();
@@ -524,6 +459,40 @@
     applyCategoryConfig();
     applySiteTheme();
     loadAndRenderMap();
+  });
+
+  // Upload Custom Map -- replaces the AI-generated backdrop with the
+  // user's own image. See routes/map.js's /map/upload-backdrop: this
+  // deliberately clears any existing vision-detected faction anchors
+  // rather than trying to run vision detection on the new image (Austin's
+  // explicit call this session) -- locations fall back to the existing
+  // deterministic per-faction clustering and the person drags pins to
+  // where they actually belong on their own map from there.
+  document.getElementById("upload-backdrop-input").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const status = document.getElementById("upload-backdrop-status");
+    status.textContent = "Uploading…";
+    try {
+      const imageBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Could not read the selected file."));
+        reader.readAsDataURL(file);
+      });
+      const res = await authFetch("/api/map/upload-backdrop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64 })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed.");
+      status.textContent = "Done — reloading…";
+      setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      console.error("Backdrop upload failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+    }
   });
 </script>
 </body>

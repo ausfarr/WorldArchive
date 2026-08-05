@@ -373,6 +373,7 @@ footer.site-footer .wrap {
 .bm-btn:hover { border-color: var(--ink-faint); }
 .bm-btn:disabled { opacity: 0.5; cursor: default; }
 .bm-btn-secondary { background: transparent; }
+.bm-upload-label { display: inline-block; }
 .bm-btn-danger {
   background: transparent;
   color: var(--danger, #c0392b);

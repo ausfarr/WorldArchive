@@ -79,4 +79,38 @@ router.post("/entries/locations/:id/dungeon-map/generate", enforceGenerationCap,
   }
 });
 
+// Accepts a user-uploaded battle map image instead of generating one.
+// Deliberately does NOT run compositeGridOntoImage on it (Austin's
+// explicit call) -- a GM uploading their own map image already has
+// whatever grid/format they want baked in, or wants it grid-free on
+// purpose; this app shouldn't force its own grid onto someone else's
+// image. Not gated by enforceGenerationCap -- same reasoning as
+// portrait uploads (routes/generateEntryImage.js): a user's own file,
+// no AI spend to protect against.
+router.post("/entries/locations/:id/dungeon-map/upload", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { imageBase64 } = req.body || {};
+    if (!imageBase64) {
+      return res.status(400).json({ error: "imageBase64 is required." });
+    }
+    const entry = await getEntry(req.worldId, "locations", id);
+    if (!entry) return res.status(404).json({ error: "Location not found." });
+
+    const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+    const mimeType = match ? match[1] : "image/png";
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const imageBuffer = Buffer.from(base64Data, "base64");
+
+    const imageUrl = await saveDungeonMapImage(req.worldId, id, imageBuffer, mimeType);
+    const dungeonMap = { imageUrl, gridSize: null, generatedAt: Date.now(), uploaded: true };
+    await patchEntryMeta(req.worldId, "locations", id, { dungeonMap });
+
+    res.json({ dungeonMap });
+  } catch (err) {
+    console.error("Dungeon map upload failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
