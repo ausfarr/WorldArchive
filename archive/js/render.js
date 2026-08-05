@@ -1126,6 +1126,28 @@ async function fetchStatLabelOptions() {
   return statLabelsCache;
 }
 
+// Body/Reflex/Knowledge/Presence/Sanity/Fate are the canonical
+// attribute keys (attrs.body etc. always store against these, same as
+// item.weaponSkill's canonical keys) -- but the LABEL a person sees
+// should be this world's own name for each, same bug class as the
+// Weapon Skill dropdown showing the canonical English name instead of
+// the world's own. These six fields (ef-attr-body..fate) stay plain
+// number inputs rather than becoming a picker -- see
+// session_addendum_manual_mode_polish_round3.md's note on why there's
+// no canonical value range to build a dropdown from -- so this just
+// renames the <label> text in place once the real labels load, rather
+// than needing the wrap-div/efSelect pattern used elsewhere. Shared by
+// both showEnemyEditForm and showSurvivorEditForm, which use identical
+// field ids for this block.
+function applyAttributeFieldLabels() {
+  fetchStatLabelOptions().then((statOptions) => {
+    statOptions.forEach((s) => {
+      const labelEl = document.querySelector(`label[for="ef-attr-${s.key}"]`);
+      if (labelEl) labelEl.textContent = s.label;
+    });
+  });
+}
+
 // Canonical weapon-skill keys -- these are what item.weaponSkill
 // actually stores (lib/itemFormulas.js's damage-range clamp looks the
 // value up by this exact key), matching lib/worldFlavor.js's
@@ -1410,6 +1432,8 @@ function showEnemyEditForm(entry) {
     const options = Object.keys(lookup).map((key) => ({ id: key, name: lookup[key].name }));
     document.getElementById("ef-faction-wrap").innerHTML = efSelect("Faction", "ef-faction", idSelectOptionsHtml(options, raw.faction, "— faction-agnostic / wild —"));
   });
+
+  applyAttributeFieldLabels();
 
   const abilityState = (Array.isArray(raw.abilities) ? raw.abilities : [])
     .map((a) => ({ name: a.name || "", kind: a.kind || "Active", flavor: a.flavor || "", effect: a.effect || "", scaling: a.scaling || "" }));
@@ -2079,6 +2103,8 @@ function showSurvivorEditForm(entry) {
       : "";
     document.getElementById("ef-className-wrap").innerHTML = efSelect("Class", "ef-className", optionsHtml + fallback);
   });
+
+  applyAttributeFieldLabels();
 
   // ---- Relationships: category-dependent target dropdown per row ----
   // Same pattern as showNpcEditForm -- duplicated rather than shared,
