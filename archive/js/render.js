@@ -1125,6 +1125,31 @@ async function fetchStatLabelOptions() {
   }));
   return statLabelsCache;
 }
+
+// Canonical weapon-skill keys -- these are what item.weaponSkill
+// actually stores (lib/itemFormulas.js's damage-range clamp looks the
+// value up by this exact key), matching lib/worldFlavor.js's
+// WEAPON_SKILL_CANONICAL_KEYS server-side. A world's own display name
+// for each (skillSystem.weaponSkills, same source
+// resolveWeaponSkillLabel() reads server-side) is what should actually
+// show in a dropdown -- e.g. "Heavy Weapons" might read "Greatblades"
+// in a given world. Missed this the first time the Weapon Skill dropdown
+// was built (it just showed the canonical English name), same bug class
+// as the stat labels fix above.
+const WEAPON_SKILL_CANONICAL_KEYS = ["Heavy Weapons", "Light Weapons", "Polearm", "Unarmed", "Ballistics", "Archery", "Catalysts"];
+
+let weaponSkillLabelsCache = null;
+async function fetchWeaponSkillOptions() {
+  if (weaponSkillLabelsCache) return weaponSkillLabelsCache;
+  const res = await authFetch("/api/wizard/skill-system");
+  const { skillSystem } = await res.json();
+  const labels = (skillSystem && skillSystem.weaponSkills) || {};
+  weaponSkillLabelsCache = WEAPON_SKILL_CANONICAL_KEYS.map((key) => ({
+    key,
+    label: labels[key] || key
+  }));
+  return weaponSkillLabelsCache;
+}
 const RELATIONSHIP_CATEGORIES = ["factions", "npcs", "enemies", "classes", "survivors"];
 
 function showNpcEditForm(entry) {
@@ -1811,7 +1836,6 @@ function showClassEditForm(entry) {
 // only editable Armor stat field.
 const ITEM_CATEGORIES = ["Weapon", "Armor", "Consumable", "QuestItem"];
 const ITEM_RARITIES = ["Common", "Uncommon", "Rare", "Legendary"];
-const WEAPON_SKILLS = ["Heavy Weapons", "Light Weapons", "Polearm", "Unarmed", "Ballistics", "Archery", "Catalysts"];
 
 function itemGroupDisplayStyle(category, forCategory) {
   return category === forCategory ? "" : "display:none;";
@@ -1830,7 +1854,7 @@ function showItemEditForm(entry) {
     ${efField("Flavor", "ef-flavor", raw.flavor, { textarea: true })}
     <div id="ef-group-weapon">
       <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Weapon Stats</h3>
-      ${efSelect("Weapon Skill", "ef-weaponSkill", WEAPON_SKILLS.map((w) => `<option value="${w}" ${w === raw.weaponSkill ? "selected" : ""}>${w}</option>`).join(""))}
+      <div id="ef-weaponSkill-wrap"></div>
       ${efField("Weapon Type", "ef-weaponType", raw.weaponType)}
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 0 16px;">
         ${efField("Damage Min", "ef-damageMin", raw.damageMin, { type: "number" })}
@@ -1896,6 +1920,17 @@ function showItemEditForm(entry) {
 
   fetchCategoryOptions("locations").then((options) => {
     document.getElementById("ef-foundAtLocationId-wrap").innerHTML = efSelect("Found At Location (optional)", "ef-foundAtLocationId", idSelectOptionsHtml(options, raw.foundAtLocationId, "— none / not archived —"));
+  });
+
+  // weaponSkill stores the canonical key (lib/itemFormulas.js's damage-
+  // range clamp looks it up by this exact string), but shows this
+  // world's own display name for it -- e.g. "Heavy Weapons" might read
+  // "Greatblades" here. See fetchWeaponSkillOptions' comment.
+  fetchWeaponSkillOptions().then((weaponSkillOptions) => {
+    const optHtml = weaponSkillOptions
+      .map((w) => `<option value="${escapeHtmlForSearch(w.key)}" ${w.key === raw.weaponSkill ? "selected" : ""}>${escapeHtmlForSearch(w.label)}</option>`)
+      .join("");
+    document.getElementById("ef-weaponSkill-wrap").innerHTML = efSelect("Weapon Skill", "ef-weaponSkill", optHtml);
   });
 
   // relevantStat is stored as this world's own DISPLAY LABEL (e.g.
