@@ -150,6 +150,15 @@ function syncFromDOM() {
 
 document.getElementById("add-slot").addEventListener("click", () => {
   if (factions.length >= MAX_FACTIONS) return;
+  // Must sync hand-typed DOM values into the `factions` array BEFORE
+  // pushing a new slot and re-rendering -- render() rebuilds the entire
+  // list's HTML from this array, so without this sync, anything typed
+  // into an existing card (that was never synced by any other handler)
+  // gets silently wiped the moment a new slot is added. This was the
+  // second half of the "typing gets erased" bug report -- the first half
+  // (Generate for me overwriting hand-typed fields) was fixed earlier
+  // this session; this is a separate bug in the same page.
+  syncFromDOM();
   factions.push(newSlot());
   render();
 });
