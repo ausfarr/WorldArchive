@@ -297,6 +297,127 @@ function wireManualCreateButton() {
   });
 }
 
+// ============================================================
+// Import Character -- previously a permanently-visible "Import Existing
+// Character" panel (textarea + file upload + submit) sitting on its own
+// full-width sheet below the Generate form on the NPCs and Survivors
+// pages. Moved into the same button row as Generate/Create Manually to
+// clean up the page; the paste-or-upload flow now lives in a modal,
+// opened on click, closed on cancel/import.
+const IMPORT_CHARACTER_CONFIG = {
+  npcs: {
+    route: "/api/generate-npc",
+    description: "Already have this NPC written up somewhere? Paste it in or upload a .txt file — whatever facts you've already got are kept as-is, and the AI only fills in what's missing to fit this world's archive format.",
+    placeholder: "Paste a character description, notes, or an old sheet here…",
+    loadingMessages: ["Reading through what you gave it…", "Matching it to this world's archive format…", "Filling in whatever's missing…", "Almost there…"],
+    successText: (data) => `Imported: ${data.name} (${data.roleArchetype} — ${data.faction})`
+  },
+  survivors: {
+    route: "/api/generate-survivor",
+    description: "Already have this PC's sheet written up somewhere? Paste it in or upload a .txt file — whatever facts you've already got (name, class, backstory) are kept as-is, and the AI only fills in what's missing (attributes, relationships) to fit this world's archive format.",
+    placeholder: "Paste a character sheet, notes, or an old write-up here…",
+    loadingMessages: ["Reading through the sheet…", "Matching it to this world's archive format…", "Filling in whatever's missing…", "Almost there…"],
+    successText: (data) => `Imported: ${data.name} (The ${data.className})`
+  }
+};
+
+function wireImportCharacterButton() {
+  const genForm = document.getElementById("gen-form");
+  const category = document.body.dataset.category;
+  const config = IMPORT_CHARACTER_CONFIG[category];
+  if (!genForm || !config) return;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.id = "import-character-btn";
+  btn.textContent = "Import Character";
+  btn.style.cssText = "background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
+  genForm.appendChild(btn);
+
+  btn.addEventListener("click", () => openImportCharacterModal(config));
+}
+
+// This is a plain paste-or-upload-then-call-the-generator flow, not an
+// edit form -- deliberately its own small overlay builder rather than
+// reusing openEditOverlay (that one's Save/Cancel wiring assumes an
+// onSave(overlay) callback writing to /api/confirm-entry, not a
+// generation call with its own loading-overlay/error-formatting needs).
+function openImportCharacterModal(config) {
+  const existing = document.getElementById("import-modal-overlay");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "import-modal-overlay";
+  overlay.style.cssText = "position:fixed; inset:0; background:rgba(10,11,13,0.92); z-index:1000; overflow:auto; padding:40px 20px;";
+  overlay.innerHTML = `
+    <div style="max-width:640px; margin:0 auto; background:var(--bg-panel); border:1px solid var(--border-line);">
+      <div style="padding:20px 28px; border-bottom:1px solid var(--border-line-soft); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+        <h2 style="font-family:var(--font-display); text-transform:uppercase; margin:0; font-size:1.1rem;">Import Existing Character</h2>
+        <button id="import-modal-close-x" type="button" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:6px 12px; cursor:pointer; font-family:var(--font-mono); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;">Cancel ✕</button>
+      </div>
+      <div style="padding:24px 28px;">
+        <p style="color: var(--ink-dim); font-size: 0.82rem; margin: 0 0 16px;">${config.description}</p>
+        <textarea id="import-modal-text" rows="8" placeholder="${config.placeholder}" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 10px 12px; font-family: var(--font-body); resize: vertical; margin-bottom: 10px;"></textarea>
+        <label style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint);">
+          or upload a .txt file:
+          <input type="file" id="import-modal-file" accept=".txt" style="display:block; margin-top:6px; color: var(--ink-dim); font-family: var(--font-body); font-size: 0.82rem;">
+        </label>
+      </div>
+      <div style="padding:20px 28px; border-top:1px solid var(--border-line-soft); display:flex; gap:12px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
+        <p id="import-modal-status" style="font-family: var(--font-mono); font-size:0.72rem; color: var(--ink-faint); margin:0; display:none;"></p>
+        <button id="import-modal-cancel" type="button" style="background:var(--bg-panel-raised); border:1px solid var(--border-line); color:var(--ink-dim); padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer;">Cancel</button>
+        <button id="import-modal-submit" type="button" style="background:var(--neon-primary); color:var(--bg-void); border:none; padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer; font-weight:600;">Import</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  document.getElementById("import-modal-close-x").onclick = close;
+  document.getElementById("import-modal-cancel").onclick = close;
+
+  document.getElementById("import-modal-file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { document.getElementById("import-modal-text").value = reader.result; };
+    reader.readAsText(file);
+  });
+
+  document.getElementById("import-modal-submit").addEventListener("click", async () => {
+    const btn = document.getElementById("import-modal-submit");
+    const status = document.getElementById("import-modal-status");
+    const text = document.getElementById("import-modal-text").value.trim();
+    if (!text) {
+      status.style.display = "block";
+      status.textContent = "Paste some text or choose a file first.";
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Importing…";
+    showGenerationOverlay(config.loadingMessages);
+    status.style.display = "block";
+    status.textContent = "Calling the generator — this can take a bit for content + art…";
+    try {
+      const res = await authFetch(config.route, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ importText: text })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = config.successText(data);
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false;
+      btn.textContent = "Import";
+    }
+  });
+}
+
 // Populates a faction <select>'s options from this world's LIVE Factions
 // archive (via /api/entries/factions) instead of a hardcoded list. Used
 // by the NPC/Bestiary "Generate New Entry" panels, which used to ship a
