@@ -39,6 +39,52 @@ entry from here forward gets both a real date and a version at write time.
 
 ---
 
+## v0.9 — [DATE] — Manual Mode
+**Phase:** Unscoped additions (post-Quests/Campaigns)
+
+- **New: full manual entry mode.** Every category can now be created and
+  edited by hand from a blank entry, with zero AI calls — same bespoke
+  per-category forms Editable Content already built, opened on an empty
+  entry instead of a generated one. Computed stat fields still
+  auto-compute correctly either way. New independent **entries-per-world**
+  cap, separate from the generation cap (30 free, +25 for $5, unlimited
+  for subscribers) — inert while `BILLING_ENABLED` is off (current
+  default).
+- **New: field-level "Help me" AI assist**, across all 8 categories'
+  free-text fields (~80 fields). A single suggestion, inserted directly
+  into the field, overwriting whatever was there using it as context.
+  Shares the same AI pool as full generations rather than a separate
+  quota — a new integer **points** system under the hood (1 generation =
+  5 points, 1 field assist = 1 point) so partial spend never touches
+  floating-point math in the billing tables. Nothing user-facing ever
+  says "points" — still shows as plain generations everywhere.
+- **New: the World Setup Wizard is now genuinely AI-optional end to
+  end.** Every step's fields were already free-text-first with Generate
+  buttons as pure assist (including a paste/upload Import path for World
+  Lore with zero AI calls). Closed the two remaining gaps where AI fired
+  automatically regardless of choices made earlier: Step 6 (Style Guide)
+  now offers a real choice — Generate World Art or Skip for now — instead
+  of silently generating a world mood board and faction banners on save;
+  skipped art stays generatable or uploadable later from World Info and
+  each faction's own page, same Generate/Upload pattern entry portraits
+  already use. Step 8 (Review) now offers the same choice for upgrading
+  factions into the full Deep Lore template, instead of running that
+  upgrade on every faction automatically — a world that skips it keeps
+  fully real, complete faction entries in the shorter Step 4 layout, and
+  any single faction can still be expanded later via its own
+  "Regenerate" button.
+- **Fixed: blank optional fields no longer show unrelated placeholder
+  copy.** The homepage and every category page had leftover flavor text
+  baked into the base template from Chronicled's own single-tenant
+  origins — visible only when a world left a Category Configuration
+  blurb or site tagline blank. Now defaults to nothing instead of
+  copy that doesn't fit the world you're building.
+- See: `session_addendum_manual_entry_mode_shipped.md`,
+  `session_addendum_field_assist_shipped.md`,
+  `session_addendum_manual_wizard_path_shipped.md`
+
+---
+
 ## v0.8 — [DATE] — Quests, Campaigns & Battle Maps
 **Phase:** Unscoped additions (post-Locations)
 
