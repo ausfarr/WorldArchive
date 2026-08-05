@@ -127,6 +127,19 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
 
     for (const faction of factions) {
       try {
+        // Skip factions that already have a banner -- generate-once, same
+        // guard generate-mood-board already has above. Without this, going
+        // back to Step 6 and clicking Save & Continue again (browser back
+        // button, or the wizard's own back link) re-generates a banner for
+        // EVERY faction on each pass, since this loop had no per-faction
+        // exists-check at all -- the real cost multiplier in the bug
+        // report, since it's N Gemini calls per re-save, not 1.
+        const alreadyHasBanner = await factionBannerExists(worldId, faction.id);
+        if (alreadyHasBanner) {
+          results.push({ id: faction.id, imageUrl: getFactionBannerUrl(worldId, faction.id), generated: false });
+          continue;
+        }
+
         const factionAccent = await getFactionAccent(worldId, styleGuide, faction.id);
         const subjectJson = {
           factionName: faction.name,
@@ -153,7 +166,7 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
         // live dossier page can read entry.bannerImageUrl directly with
         // no separate world-art lookup.
         await patchEntryMeta(worldId, "factions", faction.id, { bannerImageUrl: imageUrl });
-        results.push({ id: faction.id, imageUrl });
+        results.push({ id: faction.id, imageUrl, generated: true });
       } catch (factionErr) {
         console.error(`Faction banner generation failed for '${faction.id}':`, factionErr.message);
         results.push({ id: faction.id, imageUrl: null, imageError: factionErr.message });
