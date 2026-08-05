@@ -21,6 +21,7 @@
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
 const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, getSubscriptionByStripeId, addCredits } = require("../lib/billingRepo");
+const { addPurchasedEntries } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -30,6 +31,12 @@ const router = express.Router();
 // quantity = packs directly). Kept here rather than imported from
 // billing.js to avoid a circular require between the two route files.
 const CREDITS_PER_PACK_UNIT = 5;
+
+// Entries granted per entry-pack unit purchased at the $5 entry-pack
+// Price -- 1 unit = +25 entries for that world. See routes/billing.js's
+// createEntriesCheckout, which sets quantity = packs directly, same
+// pattern as CREDITS_PER_PACK_UNIT above.
+const ENTRIES_PER_PACK_UNIT = 25;
 
 async function handleCheckoutCompleted(session) {
   if (session.mode === "subscription") {
@@ -68,6 +75,23 @@ async function handleCheckoutCompleted(session) {
     // retrieve with expand to get quantity.
     const fullSession = await stripe.checkout.sessions.retrieve(session.id, { expand: ["line_items"] });
     const quantity = fullSession.line_items && fullSession.line_items.data[0] ? fullSession.line_items.data[0].quantity : 1;
+
+    // v0.9 Manual Mode: entry packs are a separate one-time product from
+    // AI credit packs, distinguished by metadata.type set at checkout
+    // (routes/billing.js's createEntriesCheckout) -- everything else
+    // that hits this "payment" mode branch is a credit pack, the
+    // original/default case.
+    if (session.metadata && session.metadata.type === "entry_pack") {
+      const worldId = session.metadata.worldId;
+      if (!worldId) {
+        console.error(`Stripe webhook: entry_pack checkout missing metadata.worldId -- session ${session.id}`);
+        return;
+      }
+      const entries = quantity * ENTRIES_PER_PACK_UNIT;
+      await addPurchasedEntries(worldId, entries);
+      return;
+    }
+
     const credits = quantity * CREDITS_PER_PACK_UNIT;
     await addCredits({ userId, amount: credits, stripePaymentIntentId: session.payment_intent });
     return;

@@ -1,5 +1,5 @@
 const express = require("express");
-const { listEntries, getEntry, deleteEntry } = require("../lib/entriesRepo");
+const { listEntries, getEntry, deleteEntry, patchEntryMeta } = require("../lib/entriesRepo");
 const { deletePortrait } = require("../lib/fileWriter");
 
 const router = express.Router();
@@ -61,6 +61,30 @@ router.delete("/entries/:category/:id", requireValidCategory, async (req, res) =
     res.json({ deleted: true });
   } catch (err) {
     console.error(`Deleting entry (${req.params.category}/${req.params.id}) failed:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// v0.9 Manual Mode -- saves a dragged pin position for a manually-created
+// Location (see archive/map.html's drag-to-place flow, since manual
+// Locations skip the AI vision-anchor pipeline entirely and have no
+// other way onto the map). Stored in raw_json as manualMapPosition --
+// canvas-space {x, y} in the same 1000x600 coordinate system
+// archive/js/mapLayout.js's computeMapLayout already uses, NOT
+// normalized 0-1 (that convention is only for the vision-detected
+// faction anchors in routes/map.js). Works for ANY location, not just
+// manually-created ones, in case Austin wants to let someone reposition
+// an AI-placed pin later -- nothing here checks raw.createdManually.
+router.patch("/entries/locations/:id/map-position", async (req, res) => {
+  try {
+    const { x, y } = req.body || {};
+    if (typeof x !== "number" || typeof y !== "number") {
+      return res.status(400).json({ error: "x and y must both be numbers." });
+    }
+    const updated = await patchEntryMeta(req.worldId, "locations", req.params.id, { manualMapPosition: { x, y } });
+    res.json({ saved: true, id: req.params.id, manualMapPosition: updated.manualMapPosition });
+  } catch (err) {
+    console.error(`Saving map position (locations/${req.params.id}) failed:`, err);
     res.status(500).json({ error: err.message });
   }
 });

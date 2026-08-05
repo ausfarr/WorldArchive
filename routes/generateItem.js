@@ -1,5 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
 const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildItemRosterContext, readItemManifest, readItemEntry, buildLocationRosterContext } = require("../lib/roster");
@@ -27,7 +28,7 @@ function parseSubtitleForItem(subtitle) {
   return { rarity, category };
 }
 
-router.post("/generate-item", enforceGenerationCap, async (req, res) => {
+router.post("/generate-item", enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, category, rarity, fillExistingId } = req.body || {};

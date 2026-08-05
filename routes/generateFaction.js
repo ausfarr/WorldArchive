@@ -1,12 +1,13 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
 const { generateFactionDeepLore, createNewFaction, syncReciprocalRelationships } = require("../lib/factionDeepLore");
 const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 const { saveFactionEntry } = require("../lib/fileWriter");
 
 const router = express.Router();
 
-router.post("/generate-faction", enforceGenerationCap, async (req, res) => {
+router.post("/generate-faction", enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { fillExistingId, name, concept } = req.body || {};

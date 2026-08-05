@@ -240,6 +240,63 @@ const EDIT_FORM_BUILDERS = {
   survivors: showSurvivorEditForm
 };
 
+// ============================================================
+// v0.9 Manual Mode, Piece 1 -- "Create Manually" button on each category
+// index page. See session_addendum_manual_entry_mode_shipped.md.
+//
+// Builds a blank/placeholder entry client-side and opens the exact same
+// bespoke edit form used for editing an AI-generated entry
+// (EDIT_FORM_BUILDERS above) -- every one of those forms already
+// tolerates missing `raw` fields gracefully (that's what made Editable
+// Content safe to build this on top of: `raw.someField || fallback`
+// throughout, never an unguarded raw.x.map()/join()), so a blank
+// raw = {id, name: ""} renders every field empty/default with zero
+// per-category special-casing. Save then POSTs to the same
+// /api/confirm-entry endpoint edits already use, which creates the row
+// for real -- see routes/confirmEntry.js's existence check for where
+// the entry cap gets enforced on this path.
+
+// A manual entry doesn't have a name yet at creation time (the Name
+// field lives INSIDE the form the user is about to fill out), so this
+// is deliberately just a random, stable-enough id rather than trying to
+// slugify an empty string the way AI-generated entries do
+// (lib/entryTemplate.js etc.).
+function generateManualEntryId(category) {
+  const stamp = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 8);
+  return `manual-${category.slice(0, 4)}-${stamp}${rand}`;
+}
+
+function buildBlankEntryStub(category, id) {
+  const raw = { id, name: "" };
+  if (category === "factions") raw.factionKey = id; // required by confirm-entry's factions branch
+  if (category === "locations") raw.createdManually = true; // see archive/map.html's unplaced-locations panel
+  return { id, category, raw };
+}
+
+// Injected into the same .sheet panel as the existing "Generate New
+// Entry" form (#gen-form), right next to its submit button -- reads the
+// category off document.body.dataset.category, same source every
+// category page already uses (see wireCategoryExportButton).
+function wireManualCreateButton() {
+  const genForm = document.getElementById("gen-form");
+  const category = document.body.dataset.category;
+  if (!genForm || !category || !EDIT_FORM_BUILDERS[category]) return;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.id = "manual-create-btn";
+  btn.textContent = "+ Create Manually";
+  btn.style.cssText = "background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
+  genForm.appendChild(btn);
+
+  btn.addEventListener("click", () => {
+    const id = generateManualEntryId(category);
+    const stub = buildBlankEntryStub(category, id);
+    EDIT_FORM_BUILDERS[category](stub);
+  });
+}
+
 // Populates a faction <select>'s options from this world's LIVE Factions
 // archive (via /api/entries/factions) instead of a hardcoded list. Used
 // by the NPC/Bestiary "Generate New Entry" panels, which used to ship a
@@ -429,7 +486,7 @@ function showRegeneratePreview(data) {
         body: JSON.stringify({ category: data.category, entry: data.entry })
       });
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Save failed");
+      if (!res.ok) throw new Error(result.message || result.error || "Save failed");
       status.textContent = "Saved — reloading…";
       setTimeout(() => window.location.reload(), 600);
     } catch (err) {
@@ -770,7 +827,7 @@ function showFactionEditForm(entry) {
         body: JSON.stringify({ category: "factions", entry: updatedFaction })
       });
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "Save failed");
+      if (!res.ok) throw new Error(result.message || result.error || "Save failed");
       status.textContent = "Saved — reloading…";
       setTimeout(() => window.location.reload(), 600);
     } catch (err) {
@@ -869,7 +926,7 @@ function showNpcEditForm(entry) {
       body: JSON.stringify({ category: "npcs", entry: updatedNpc })
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Save failed");
+    if (!res.ok) throw new Error(result.message || result.error || "Save failed");
   });
 
   // ---- Faction select (populated live, since faction ids/keys aren't fixed) ----
@@ -1041,7 +1098,7 @@ function showEnemyEditForm(entry) {
       body: JSON.stringify({ category: "enemies", entry: updatedEnemy })
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Save failed");
+    if (!res.ok) throw new Error(result.message || result.error || "Save failed");
   });
 
   getFactionLookup().then((lookup) => {
@@ -1114,7 +1171,7 @@ function showLogEditForm(entry) {
       body: JSON.stringify({ category: "logs", entry: updatedLog })
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Save failed");
+    if (!res.ok) throw new Error(result.message || result.error || "Save failed");
   });
 
   fetchCategoryOptions("locations").then((options) => {
@@ -1175,7 +1232,7 @@ function showLocationEditForm(entry) {
       body: JSON.stringify({ category: "locations", entry: updatedLocation })
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Save failed");
+    if (!res.ok) throw new Error(result.message || result.error || "Save failed");
   });
 
   getFactionLookup().then((lookup) => {
@@ -1337,7 +1394,7 @@ function showClassEditForm(entry) {
       body: JSON.stringify({ category: "classes", entry: updatedClass })
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Save failed");
+    if (!res.ok) throw new Error(result.message || result.error || "Save failed");
   });
 
   fetchCategoryOptions("locations").then((options) => {
@@ -1453,7 +1510,7 @@ function showItemEditForm(entry) {
       body: JSON.stringify({ category: "items", entry: updatedItem })
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Save failed");
+    if (!res.ok) throw new Error(result.message || result.error || "Save failed");
   });
 
   fetchCategoryOptions("locations").then((options) => {
@@ -1572,7 +1629,7 @@ function showSurvivorEditForm(entry) {
       body: JSON.stringify({ category: "survivors", entry: updatedSurvivor })
     });
     const result = await res.json();
-    if (!res.ok) throw new Error(result.error || "Save failed");
+    if (!res.ok) throw new Error(result.message || result.error || "Save failed");
   });
 
   // ---- Faction select (populated live, since faction ids/keys aren't fixed) ----

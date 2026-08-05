@@ -10,7 +10,8 @@
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
 const { getPlan, getSubscription, getCreditBalance, DEFAULT_PLAN_ID, TRIAL_CAP } = require("../lib/billingRepo");
-const { getGenerationCount, GENERATION_CAP } = require("../lib/worldConfigRepo");
+const { getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP } = require("../lib/worldConfigRepo");
+const { countEntries } = require("../lib/entriesRepo");
 
 const router = express.Router();
 
@@ -29,6 +30,27 @@ const APP_BASE_URL = process.env.APP_BASE_URL || "https://app.chronicled.world";
 // `plans` table since it's not a recurring plan. Set in Render env vars.
 const CREDIT_PRICE_ID = process.env.STRIPE_CREDIT_PRICE_ID;
 
+// One-time Price ID for the $5 / 25-entry pack -- v0.9 Manual Mode. Same
+// pattern as CREDIT_PRICE_ID above, separate Stripe product/price. Set
+// in Render env vars once created in the Stripe Dashboard.
+const ENTRY_PACK_PRICE_ID = process.env.STRIPE_ENTRY_PACK_PRICE_ID;
+
+// Entry cap status for the Settings page, folded into /billing/status
+// below. `unlimited: true` for active subscribers (see
+// middleware/enforceEntryCap.js's identical logic -- kept in sync
+// manually since this is a read-only status report, not a gate).
+async function buildEntryCapStatus(worldId, subscriptionActive) {
+  if (!BILLING_ENABLED || subscriptionActive) {
+    return { unlimited: true };
+  }
+  const [count, purchased] = await Promise.all([
+    countEntries(worldId),
+    getEntriesPurchased(worldId)
+  ]);
+  const cap = FREE_ENTRY_CAP + purchased;
+  return { unlimited: false, count, cap, remaining: Math.max(0, cap - count) };
+}
+
 // Combined trial/subscription/credit status for the Settings page.
 router.get("/billing/status", async (req, res) => {
   try {
@@ -38,12 +60,14 @@ router.get("/billing/status", async (req, res) => {
         state: "beta",
         used,
         cap: GENERATION_CAP,
-        remaining: Math.max(0, GENERATION_CAP - used)
+        remaining: Math.max(0, GENERATION_CAP - used),
+        entryCap: await buildEntryCapStatus(req.worldId, false)
       });
     }
 
     const subscription = await getSubscription(req.userId);
     const creditBalance = await getCreditBalance(req.userId);
+    const subscriptionActive = !!(subscription && subscription.status === "active");
 
     if (!subscription) {
       const trialUsed = await getGenerationCount(req.worldId);
@@ -52,7 +76,8 @@ router.get("/billing/status", async (req, res) => {
         trialUsed,
         trialCap: TRIAL_CAP,
         trialRemaining: Math.max(0, TRIAL_CAP - trialUsed),
-        creditBalance
+        creditBalance,
+        entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive)
       });
     }
 
@@ -65,7 +90,8 @@ router.get("/billing/status", async (req, res) => {
       usedThisCycle: subscription.used_this_cycle,
       remainingThisCycle: Math.max(0, plan.monthly_quota - subscription.used_this_cycle),
       currentPeriodEnd: subscription.current_period_end,
-      creditBalance
+      creditBalance,
+      entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive)
     });
   } catch (err) {
     console.error("Loading billing status failed:", err);
@@ -131,6 +157,46 @@ router.post("/billing/checkout/credits", async (req, res) => {
     res.json({ url: session.url });
   } catch (err) {
     console.error("Creating credits checkout session failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Kicks off a one-time Checkout Session for entry packs ($5 / +25
+// entries per world, v0.9 Manual Mode). `packs` is the number of
+// 25-entry/$5 units to buy. worldId travels in metadata (not
+// client_reference_id, which stays userId for consistency with the
+// other checkout routes) since entries_purchased is a per-world column
+// -- see routes/stripeWebhook.js's handleCheckoutCompleted for where
+// this gets read back out.
+router.post("/billing/checkout/entries", async (req, res) => {
+  if (!BILLING_ENABLED) {
+    return res.status(403).json({ error: "Billing isn't turned on yet." });
+  }
+  try {
+    const packs = parseInt(req.body.packs, 10);
+    if (!Number.isInteger(packs) || packs < 1) {
+      return res.status(400).json({ error: "packs must be a positive integer." });
+    }
+    if (!ENTRY_PACK_PRICE_ID) {
+      return res.status(500).json({ error: "STRIPE_ENTRY_PACK_PRICE_ID is not configured." });
+    }
+
+    const existing = await getSubscription(req.userId);
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [{ price: ENTRY_PACK_PRICE_ID, quantity: packs }],
+      client_reference_id: req.userId,
+      metadata: { type: "entry_pack", worldId: req.worldId },
+      customer: existing ? existing.stripe_customer_id : undefined,
+      customer_email: existing ? undefined : req.userEmail,
+      success_url: `${APP_BASE_URL}/settings.html?billing=success`,
+      cancel_url: `${APP_BASE_URL}/settings.html?billing=canceled`
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("Creating entries checkout session failed:", err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -1,5 +1,6 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
 const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildRosterContext, readNpcManifest, readNpcEntry } = require("../lib/roster");
@@ -14,7 +15,7 @@ const { createNewNpc } = require("../lib/campaignEntryGenerators");
 
 const router = express.Router();
 
-router.post("/generate-npc", enforceGenerationCap, async (req, res) => {
+router.post("/generate-npc", enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, role, faction, fillExistingId, importText } = req.body || {};

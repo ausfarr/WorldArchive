@@ -12,6 +12,8 @@ const {
 } = require("../lib/fileWriter");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
 const { syncReciprocalRelationships } = require("../lib/factionDeepLore");
+const { getEntry } = require("../lib/entriesRepo");
+const { checkEntryCap } = require("../middleware/enforceEntryCap");
 
 const router = express.Router();
 
@@ -52,6 +54,25 @@ router.post("/confirm-entry", async (req, res) => {
     const { category, entry } = req.body || {};
     if (!entry || !entry.id) {
       return res.status(400).json({ error: "Missing entry or entry.id" });
+    }
+
+    // v0.9 Manual Mode: this endpoint is now the creation point for
+    // manually-made entries (see archive/js/render.js's
+    // openManualCreateForm), not just edits/regenerate-confirms of
+    // entries that already exist. Only a genuinely NEW row should count
+    // against the entry cap -- an edit or a regenerate confirm targets
+    // an entry id that's already in the table.
+    const alreadyExists = await getEntry(worldId, category, entry.id);
+    if (!alreadyExists) {
+      const capResult = await checkEntryCap(worldId, req.userId);
+      if (!capResult.allowed) {
+        return res.status(403).json({
+          error: "entry_cap_reached",
+          message: `You've reached the ${capResult.cap}-entry limit for this world. Subscribe for unlimited entries, or buy more from Settings.`,
+          cap: capResult.cap,
+          count: capResult.count
+        });
+      }
     }
 
     if (category === "factions") {

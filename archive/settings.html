@@ -187,6 +187,39 @@ function renderCreditsControls() {
   `;
 }
 
+// v0.9 Manual Mode -- entries-per-world cap readout, independent of the
+// generation-cap display above it. entryCap comes back on every
+// /api/billing/status response regardless of state (beta/trial/
+// subscribed) -- see routes/billing.js's buildEntryCapStatus.
+function renderEntryCapStatus(entryCap) {
+  if (!entryCap) return "";
+  if (entryCap.unlimited) {
+    return `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border-line-soft);">Entries: unlimited for this world.</div>`;
+  }
+  const pct = Math.min(100, Math.round((entryCap.count / entryCap.cap) * 100));
+  return `
+    <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border-line-soft);">
+      <div>${entryCap.remaining} of ${entryCap.cap} entries remaining in this world (${entryCap.count} used) — counts every entry across all 8 categories, generated or manually created alike.</div>
+      <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
+        <div style="height:100%; width:${pct}%; background: var(--neon-primary);"></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEntryPackControls() {
+  return `
+    <label style="display:block; margin-top:10px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">
+      <select id="entry-packs-select" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 10px; margin-right:8px;">
+        <option value="1">+25 entries — $5</option>
+        <option value="2">+50 entries — $10</option>
+        <option value="4">+100 entries — $20</option>
+      </select>
+      <button id="buy-entries-btn" style="${BTN_SECONDARY}">Buy More Entries</button>
+    </label>
+  `;
+}
+
 async function loadUsage() {
   const el = document.getElementById("usage-content");
   const actions = document.getElementById("billing-actions");
@@ -202,6 +235,7 @@ async function loadUsage() {
         <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
           <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
         </div>
+        ${renderEntryCapStatus(data.entryCap)}
       `;
       actions.innerHTML = "";
       return;
@@ -215,8 +249,10 @@ async function loadUsage() {
         <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
           <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
         </div>
+        ${renderEntryCapStatus(data.entryCap)}
       `;
-      actions.innerHTML = `<button id="subscribe-btn" style="${BTN_PRIMARY}">Subscribe — $5/month (25 generations/mo)</button>` + renderCreditsControls();
+      actions.innerHTML = `<button id="subscribe-btn" style="${BTN_PRIMARY}">Subscribe — $5/month (25 generations/mo, unlimited entries)</button>` + renderCreditsControls()
+        + (data.entryCap && !data.entryCap.unlimited ? renderEntryPackControls() : "");
       document.getElementById("subscribe-btn").addEventListener("click", () => startCheckout("/api/billing/checkout/subscribe"));
     } else {
       const pct = Math.min(100, Math.round((data.usedThisCycle / data.monthlyQuota) * 100));
@@ -228,8 +264,10 @@ async function loadUsage() {
         <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
           <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
         </div>
+        ${renderEntryCapStatus(data.entryCap)}
       `;
-      actions.innerHTML = `<button id="manage-billing-btn" style="${BTN_SECONDARY}">Manage Billing</button>` + renderCreditsControls();
+      actions.innerHTML = `<button id="manage-billing-btn" style="${BTN_SECONDARY}">Manage Billing</button>` + renderCreditsControls()
+        + (data.entryCap && !data.entryCap.unlimited ? renderEntryPackControls() : "");
       document.getElementById("manage-billing-btn").addEventListener("click", openBillingPortal);
     }
 
@@ -237,6 +275,13 @@ async function loadUsage() {
       const packs = parseInt(document.getElementById("credit-packs-select").value, 10);
       startCheckout("/api/billing/checkout/credits", { packs });
     });
+    const buyEntriesBtn = document.getElementById("buy-entries-btn");
+    if (buyEntriesBtn) {
+      buyEntriesBtn.addEventListener("click", () => {
+        const packs = parseInt(document.getElementById("entry-packs-select").value, 10);
+        startCheckout("/api/billing/checkout/entries", { packs });
+      });
+    }
   } catch (err) {
     console.error("Could not load billing status:", err);
     el.textContent = "Could not load billing status.";

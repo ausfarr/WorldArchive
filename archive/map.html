@@ -17,6 +17,14 @@
   .map-legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0 0; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-dim); }
   .map-legend-item { display: flex; align-items: center; gap: 6px; }
   .map-legend-swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .map-unplaced-panel { margin: 20px 0 0; padding: 16px 20px; background: var(--bg-panel); border: 1px solid var(--border-line); }
+  .map-unplaced-title { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 10px; }
+  .map-unplaced-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border-line-soft); }
+  .map-unplaced-row:first-of-type { border-top: none; }
+  .map-unplaced-name { font-family: var(--font-body); color: var(--ink); }
+  .map-unplaced-place-btn { background: var(--neon-primary); color: var(--bg-void); border: none; padding: 6px 14px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.04em; cursor: pointer; font-weight: 600; }
+  .map-unplaced-place-btn:disabled { opacity: 0.5; cursor: default; }
+  .map-manual-pin { width: 16px; height: 16px; background: var(--neon-primary); border: 2px solid var(--bg-void); transform: rotate(45deg); box-shadow: 0 0 0 1px var(--neon-primary); }
   /* Leaflet's default popup/control chrome is light-themed and doesn't
      know about this site's CSS variables -- overridden here rather than
      left to clash against the dark theme everywhere else. */
@@ -103,6 +111,7 @@
     <div id="map-status">Loading…</div>
     <div id="map-canvas" style="display:none;"></div>
     <div class="map-legend" id="map-legend"></div>
+    <div id="map-unplaced-panel"></div>
   </div>
 </div>
 
@@ -260,7 +269,32 @@
       console.log("Map: vision-detected anchors (normalized 0-1):", normalizedAnchors);
       console.log("Map: faction keys actually used by this world's locations:", locationFactionKeys);
 
-      const nodes = computeMapLayout(locations, factionOrder, anchorOverrides);
+      // v0.9 Manual Mode: manually-created Locations skip the AI vision-
+      // anchor pipeline entirely (see session_addendum_manual_entry_mode_shipped.md)
+      // and start "unplaced" until the person drags a pin onto the map
+      // themselves. Once placed, the position is saved to
+      // raw.manualMapPosition and that location is rendered at its exact
+      // fixed spot forever after -- it never re-enters the force
+      // simulation below, same as it never did before being placed.
+      // Every AI-generated Location is completely unaffected: it has no
+      // manualMapPosition, so it always falls into autoLocations exactly
+      // like before this feature existed.
+      // NOTE on nesting: createdManually is set inside the blank-entry
+      // stub's `raw` (archive/js/render.js's buildBlankEntryStub), which
+      // flows through saveLocationEntry's `raw: location` -- so it lands
+      // at entry.raw.createdManually. manualMapPosition is written
+      // separately via patchEntryMeta (routes/entries.js's map-position
+      // PATCH route), which merges directly into raw_json's TOP level,
+      // not into raw_json.raw -- so it lands at entry.manualMapPosition,
+      // one level up from createdManually. Both are read correctly
+      // below; just not at the same nesting depth.
+      const isManuallyCreated = (loc) => !!(loc.raw && loc.raw.createdManually);
+      const hasFixedPosition = (loc) => loc.manualMapPosition && typeof loc.manualMapPosition.x === "number" && typeof loc.manualMapPosition.y === "number";
+      const fixedLocations = locations.filter(hasFixedPosition);
+      const unplacedLocations = locations.filter((loc) => isManuallyCreated(loc) && !hasFixedPosition(loc));
+      const autoLocations = locations.filter((loc) => !hasFixedPosition(loc) && !isManuallyCreated(loc));
+
+      const nodes = computeMapLayout(autoLocations, factionOrder, anchorOverrides);
       const bodyHtmlById = {};
       locations.forEach((loc) => { bodyHtmlById[loc.id] = loc.bodyHtml; });
 
@@ -371,6 +405,99 @@
           window.location.href = `dossier.html?category=locations&id=${n.id}`;
         });
       });
+
+      // v0.9 Manual Mode -- draggable pin icon, visually distinct
+      // (diamond, --neon-primary) from the auto-placed circleMarkers
+      // above, since these mark a person's own deliberate placement
+      // rather than a computed layout. Leaflet's CircleMarker can't be
+      // dragged (only L.Marker supports the Draggable handler), which is
+      // why these use a different marker type than every other pin on
+      // the map. Same [CANVAS_HEIGHT - y, x] flip as the auto markers
+      // above -- see that comment for why.
+      const manualPinIcon = L.divIcon({ className: "map-manual-pin", iconSize: [16, 16] });
+
+      function savePinPosition(locationId, canvasX, canvasY) {
+        return authFetch(`/api/entries/locations/${locationId}/map-position`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ x: canvasX, y: canvasY })
+        });
+      }
+
+      function addFixedMarker(loc) {
+        const pos = loc.manualMapPosition;
+        const marker = L.marker([CANVAS_HEIGHT - pos.y, pos.x], { icon: manualPinIcon, draggable: true }).addTo(map);
+        const portraitUrl = extractPortraitUrl(bodyHtmlById[loc.id]);
+        marker.bindPopup(`
+          <div class="map-popup-title">${loc.name}</div>
+          ${portraitUrl ? `<img class="map-popup-img" src="${portraitUrl}" alt="${loc.name}">` : ""}
+          <div class="map-popup-hint">Drag to reposition · click to view dossier</div>
+        `, { closeButton: false, autoPan: false });
+        marker.on("mouseover", () => marker.openPopup());
+        marker.on("mouseout", () => marker.closePopup());
+        let dragged = false;
+        marker.on("dragstart", () => { dragged = true; });
+        marker.on("dragend", async () => {
+          const latlng = marker.getLatLng();
+          await savePinPosition(loc.id, latlng.lng, CANVAS_HEIGHT - latlng.lat);
+        });
+        marker.on("click", () => {
+          if (dragged) { dragged = false; return; } // swallow the click that follows a drag release
+          window.location.href = `dossier.html?category=locations&id=${loc.id}`;
+        });
+      }
+
+      fixedLocations.forEach(addFixedMarker);
+
+      // Unplaced manual Locations -- listed in a panel below the map
+      // rather than shown at some arbitrary spot on it. Clicking "Place
+      // on Map" drops a draggable pin at the map's center; dragging it
+      // anywhere and releasing saves that spot immediately (no separate
+      // "confirm placement" step) and the row disappears from this list.
+      const unplacedPanel = document.getElementById("map-unplaced-panel");
+      function renderUnplacedPanel() {
+        if (!unplacedPanel) return;
+        if (unplacedLocations.length === 0) {
+          unplacedPanel.innerHTML = "";
+          return;
+        }
+        unplacedPanel.innerHTML = `
+          <div class="map-unplaced-panel">
+            <p class="map-unplaced-title">Manually-Created Locations Awaiting Placement</p>
+            ${unplacedLocations.map((loc) => `
+              <div class="map-unplaced-row" data-unplaced-id="${loc.id}">
+                <span class="map-unplaced-name">${loc.name || "Untitled Location"}</span>
+                <button type="button" class="map-unplaced-place-btn" data-place-id="${loc.id}">Place on Map</button>
+              </div>
+            `).join("")}
+          </div>
+        `;
+        unplacedPanel.querySelectorAll(".map-unplaced-place-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const locId = btn.dataset.placeId;
+            const loc = unplacedLocations.find((l) => l.id === locId);
+            if (!loc) return;
+            btn.disabled = true;
+            btn.textContent = "Drag the pin…";
+            const startX = CANVAS_WIDTH / 2, startY = CANVAS_HEIGHT / 2;
+            const marker = L.marker([CANVAS_HEIGHT - startY, startX], { icon: manualPinIcon, draggable: true }).addTo(map);
+            marker.bindPopup(`<div class="map-popup-hint">Drag me, then drop to save this spot</div>`, { closeButton: false, autoPan: false }).openPopup();
+            let firstDrop = true;
+            marker.on("dragend", async () => {
+              const latlng = marker.getLatLng();
+              await savePinPosition(locId, latlng.lng, CANVAS_HEIGHT - latlng.lat);
+              if (firstDrop) {
+                firstDrop = false;
+                marker.closePopup();
+                const idx = unplacedLocations.findIndex((l) => l.id === locId);
+                if (idx !== -1) unplacedLocations.splice(idx, 1);
+                renderUnplacedPanel();
+              }
+            });
+          });
+        });
+      }
+      renderUnplacedPanel();
 
       // Legend: one swatch per faction actually represented on the map.
       const seen = new Set();
