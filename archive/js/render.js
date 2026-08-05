@@ -2427,6 +2427,11 @@ function renderDossier(entry, factionLookup) {
 // write ever having succeeded. Fire-and-forget / non-blocking, same as
 // loadWorldMoodBoard -- a missing banner shouldn't delay or blank out
 // the rest of the dossier page.
+//
+// When no banner exists yet (a world that skipped art at Step 6, or a
+// faction added after the wizard ran), shows a Generate/Upload pending
+// slot (archive/js/worldArtActions.js) instead of leaving the section
+// empty.
 async function renderFactionBanner(entry) {
   const host = document.getElementById("faction-banner");
   if (!host) return;
@@ -2436,7 +2441,10 @@ async function renderFactionBanner(entry) {
     const res = await authFetch(`/api/world-art/faction-banner/${encodeURIComponent(entry.id)}`);
     if (!res.ok) return;
     const { exists, url } = await res.json();
-    if (!exists || !url) return;
+    if (!exists || !url) {
+      renderFactionBannerPendingSlot(host, entry.id);
+      return;
+    }
     host.innerHTML = `<img src="${url}" alt="${stripHtml(entry.name)} mood banner" style="width:100%; max-height:280px; object-fit:cover; display:block; border-bottom: 1px solid var(--border-line-soft);">`;
   } catch (err) {
     console.error(`Could not load faction banner for '${entry.id}':`, err);

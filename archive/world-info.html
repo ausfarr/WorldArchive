@@ -139,7 +139,8 @@
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
-<script src="js/render.js?v=v0.10"></script>
+<script src="js/render.js?v=v0.11"></script>
+<script src="js/worldArtActions.js?v=v0.11"></script>
 <script>
 const CANONICAL_STATS = [
   { key: "body", mechanic: "Max health & physical resilience" },
@@ -264,16 +265,21 @@ async function init() {
 }
 
 // Separate, independent fetch -- the mood board not existing yet (a
-// world that hasn't finished Step 6, or the Priority 6 generation step
+// world that skipped art at Step 6 -- see wizard-style.html's v0.9
+// Manual Wizard Path choice panel -- or where the generation step
 // failed silently) shouldn't block or blank out the rest of this page's
-// content.
+// content. When it doesn't exist, shows a Generate/Upload pending slot
+// (archive/js/worldArtActions.js) instead of just hiding the section.
 async function loadWorldMoodBoard() {
+  const host = document.getElementById("world-mood-board");
   try {
     const res = await authFetch("/api/world-art/mood-board");
     if (!res.ok) return;
     const { exists, url } = await res.json();
-    if (!exists || !url) return;
-    const host = document.getElementById("world-mood-board");
+    if (!exists || !url) {
+      renderMoodBoardPendingSlot(host);
+      return;
+    }
     host.innerHTML = `<img src="${url}" alt="World mood board" style="width:100%; max-height:340px; object-fit:cover; border:1px solid var(--border-line);">`;
     host.style.display = "block";
   } catch (err) {

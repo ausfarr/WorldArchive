@@ -14,12 +14,26 @@
 //      accentColor already is, so the live dossier page can read it with
 //      no separate lookup.
 //
-// Both are triggered from the frontend right after Step 6 (Style Guide)
-// is saved -- see archive/wizard-style.html -- mirroring the existing
-// generate-faction-accents / save-style-guide bridge pattern. Deliberately
-// NOT gated by enforceGenerationCap, same reasoning as routes/map.js's
-// backdrop generation: a bounded, one-time, auto-triggered setup cost per
-// world, not the open-ended per-action risk the cap exists to bound.
+// Originally both auto-fired right after Step 6 (Style Guide) was saved,
+// unconditionally, for every world. As of the v0.9 Manual Wizard Path
+// piece (see session_addendum_manual_wizard_path_shipped.md), Step 6 now
+// offers a real choice -- "Generate World Art" or "Skip for now" -- so a
+// world going fully manual makes zero Claude/Gemini calls during setup.
+// Skipping just means these never get called from the wizard; a world in
+// that state can still get art later via the new generate/upload routes
+// below, same "on-demand, decoupled from creation" pattern entry portraits
+// already use (routes/generateEntryImage.js).
+//
+// Deliberately NOT gated by enforceGenerationCap, same reasoning as
+// routes/map.js's backdrop generation: each of these is a bounded,
+// generate-once action per world/faction (the exists-check below skips
+// work if one's already there), not the open-ended per-action risk the
+// cap exists to bound -- true whether it fires from the wizard or later
+// from World Info / a faction dossier page.
+//
+// Upload routes are NOT capped either, matching /entries/:category/:id/
+// upload-image -- a user's own file, no AI spend, nothing to protect
+// against.
 
 const express = require("express");
 const { callClaude, HAIKU_MODEL } = require("../lib/claude");
@@ -107,6 +121,40 @@ router.get("/world-art/faction-banner/:factionId", async (req, res) => {
   }
 });
 
+// Shared by both the batch wizard route and the new single-faction route
+// below -- generates one faction's banner and writes it to Storage + the
+// entries bridge. Returns a plain result object rather than throwing, so
+// callers (batch or single) can each decide how to surface a failure.
+async function generateOneFactionBanner(worldId, faction, styleGuide) {
+  const factionAccent = await getFactionAccent(worldId, styleGuide, faction.id);
+  const subjectJson = {
+    factionName: faction.name,
+    concept: faction.concept || null
+  };
+  const artSystemPrompt = buildArtPromptSystemPrompt({
+    category: "faction-mood",
+    subjectJson,
+    styleGuide,
+    factionAccent
+  });
+  const artPrompt = await callClaude({
+    systemPrompt: artSystemPrompt,
+    userMessage: "Write the prompt now.",
+    maxTokens: 500,
+    model: HAIKU_MODEL
+  });
+
+  const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
+  const imageUrl = await saveFactionBanner(worldId, faction.id, imageBuffer);
+
+  // Bridges into the entries table the same way accentColor already
+  // does (see routes/wizardStyleGuide.js's save-style-guide) -- the
+  // live dossier page can read entry.bannerImageUrl directly with
+  // no separate world-art lookup.
+  await patchEntryMeta(worldId, "factions", faction.id, { bannerImageUrl: imageUrl });
+  return imageUrl;
+}
+
 // POST generate banners for every faction this world currently has
 // saved. Sequential (not Promise.all) to match the existing batched-
 // faction-generation pattern in routes/wizardFactions.js -- keeps
@@ -140,32 +188,7 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
           continue;
         }
 
-        const factionAccent = await getFactionAccent(worldId, styleGuide, faction.id);
-        const subjectJson = {
-          factionName: faction.name,
-          concept: faction.concept || null
-        };
-        const artSystemPrompt = buildArtPromptSystemPrompt({
-          category: "faction-mood",
-          subjectJson,
-          styleGuide,
-          factionAccent
-        });
-        const artPrompt = await callClaude({
-          systemPrompt: artSystemPrompt,
-          userMessage: "Write the prompt now.",
-          maxTokens: 500,
-          model: HAIKU_MODEL
-        });
-
-        const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
-        const imageUrl = await saveFactionBanner(worldId, faction.id, imageBuffer);
-
-        // Bridges into the entries table the same way accentColor already
-        // does (see routes/wizardStyleGuide.js's save-style-guide) -- the
-        // live dossier page can read entry.bannerImageUrl directly with
-        // no separate world-art lookup.
-        await patchEntryMeta(worldId, "factions", faction.id, { bannerImageUrl: imageUrl });
+        const imageUrl = await generateOneFactionBanner(worldId, faction, styleGuide);
         results.push({ id: faction.id, imageUrl, generated: true });
       } catch (factionErr) {
         console.error(`Faction banner generation failed for '${faction.id}':`, factionErr.message);
@@ -176,6 +199,77 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
     res.json({ results });
   } catch (err) {
     console.error("Faction banner batch generation failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST generate a banner for exactly one faction -- the on-demand path
+// for a world that skipped art at Step 6 (or a faction added afterward).
+// Mirrors /entries/:category/:id/generate-image's single-subject shape.
+// Same generate-once guard as the batch route: re-clicking after success
+// just returns the existing URL instead of spending another generation.
+router.post("/world-art/generate-faction-banner/:factionId", async (req, res) => {
+  try {
+    const worldId = req.worldId;
+    const { factionId } = req.params;
+
+    const alreadyHasBanner = await factionBannerExists(worldId, factionId);
+    if (alreadyHasBanner) {
+      return res.json({ imageUrl: getFactionBannerUrl(worldId, factionId), generated: false });
+    }
+
+    const factions = await getFactions(worldId);
+    const faction = factions.find((f) => f.id === factionId);
+    if (!faction) {
+      return res.status(404).json({ error: "Faction not found." });
+    }
+
+    const styleGuide = await getStyleGuide(worldId);
+    const imageUrl = await generateOneFactionBanner(worldId, faction, styleGuide);
+    res.json({ imageUrl, generated: true });
+  } catch (err) {
+    console.error(`Single faction banner generation failed for '${req.params.factionId}':`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST upload a user's own image as the world mood board, instead of
+// generating one. Same base64-data-URL shape and no-cap reasoning as
+// /entries/:category/:id/upload-image. Upsert-true storage write means
+// this also works to replace an existing (generated or uploaded) board.
+router.post("/world-art/upload-mood-board", async (req, res) => {
+  try {
+    const { imageBase64 } = req.body || {};
+    if (!imageBase64) {
+      return res.status(400).json({ error: "imageBase64 is required." });
+    }
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const imageBuffer = Buffer.from(base64Data, "base64");
+    const url = await saveWorldMoodBoard(req.worldId, imageBuffer);
+    res.json({ url });
+  } catch (err) {
+    console.error("World mood board upload failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST upload a user's own image as one faction's banner, instead of
+// generating one. Same shape/reasoning as upload-mood-board above.
+router.post("/world-art/upload-faction-banner/:factionId", async (req, res) => {
+  try {
+    const worldId = req.worldId;
+    const { factionId } = req.params;
+    const { imageBase64 } = req.body || {};
+    if (!imageBase64) {
+      return res.status(400).json({ error: "imageBase64 is required." });
+    }
+    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+    const imageBuffer = Buffer.from(base64Data, "base64");
+    const imageUrl = await saveFactionBanner(worldId, factionId, imageBuffer);
+    await patchEntryMeta(worldId, "factions", factionId, { bannerImageUrl: imageUrl });
+    res.json({ imageUrl });
+  } catch (err) {
+    console.error(`Faction banner upload failed for '${req.params.factionId}':`, err);
     res.status(500).json({ error: err.message });
   }
 });

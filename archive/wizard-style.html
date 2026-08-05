@@ -100,8 +100,21 @@
 
     <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
 
-    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+    <div id="save-style-row" style="display:flex; justify-content:flex-end; margin-top: 24px;">
       <button type="button" id="save-style" class="primary-btn">Save &amp; Continue →</button>
+    </div>
+
+    <!-- World Art choice -- shown after fields save, in place of the
+         Save & Continue button. Nothing here is required; "Skip for now"
+         moves on with zero Claude/Gemini calls, and both the mood board
+         and any faction banners stay generatable/uploadable later from
+         World Info and each faction's dossier page (see
+         archive/js/worldArtActions.js). -->
+    <div id="art-choice-panel" style="display:none; text-align:center; padding: 24px 0 4px; border-top: 1px solid var(--border-line-soft); margin-top: 24px;">
+      <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1rem; color: var(--neon-cyan); margin: 0 0 8px;">World Art</h2>
+      <p style="color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 18px;">Generate a world mood board and a banner for each faction, using the style guide above. Optional — skip now and generate or upload these later from World Info or a faction's page.</p>
+      <button type="button" id="skip-art" class="secondary-btn" style="margin-right: 12px;">Skip for now</button>
+      <button type="button" id="generate-art" class="primary-btn">Generate World Art</button>
     </div>
   </div>
 </div>
@@ -123,6 +136,12 @@
     text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
   }
   .generate-btn:disabled { opacity: 0.5; cursor: default; }
+  .secondary-btn {
+    background: none; border: 1px solid var(--border-line); color: var(--ink-dim);
+    padding: 12px 20px; font-family: var(--font-mono); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-size: 0.8rem;
+  }
+  .secondary-btn:disabled { opacity: 0.5; cursor: default; }
   .color-input { width: 60px; height: 38px; padding: 2px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); cursor: pointer; }
   .field-label {
     display: block; font-family: var(--font-mono); font-size: 0.7rem;
@@ -153,7 +172,7 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
 <script src="/js/wizardSession.js"></script>
-<script src="js/render.js?v=v0.10"></script>
+<script src="js/render.js?v=v0.11"></script>
 <script>
 function previewThemeOnThisPage() {
   const hex = /^#[0-9a-fA-F]{6}$/;
@@ -342,39 +361,58 @@ document.getElementById("save-style").addEventListener("click", async () => {
     });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
 
-    // Generative art (Priority 6) -- one world mood board + one banner
-    // per faction, both generate-once. Deliberately non-blocking to the
-    // wizard's progress: this is enhancement art, not required setup
-    // data, so a failure here is logged and shown briefly but never
-    // stops the redirect to Step 7. Runs the two independent calls in
-    // parallel (world art doesn't depend on faction banners or vice
-    // versa); faction banners are themselves generated sequentially
-    // inside that one call (see routes/worldArt.js) so this is at most
-    // two concurrent Gemini calls at a time, not one per faction.
-    status.textContent = "Saved — generating world art…";
-    showGenerationOverlay([
-      "Painting the world's mood board…",
-      "Assigning each faction a banner…",
-      "This can take a little while with several factions…",
-      "Almost there…"
-    ]);
-    try {
-      await Promise.allSettled([
-        authFetch("/api/world-art/generate-mood-board", { method: "POST" }),
-        authFetch("/api/world-art/generate-faction-banners", { method: "POST" })
-      ]);
-    } catch (artErr) {
-      console.error("Generative art step failed, continuing anyway:", artErr);
-    }
-
-    status.textContent = "Saved — continuing…";
-    window.location.href = "wizard-categories.html";
+    // Fields are saved. World Art (Priority 6) used to auto-fire here
+    // unconditionally -- now it's a real choice (v0.9 Manual Wizard Path),
+    // so a fully-manual world setup makes zero Claude/Gemini calls. Swap
+    // the Save & Continue row for the choice panel instead of redirecting.
+    status.textContent = "Saved.";
+    document.getElementById("save-style-row").style.display = "none";
+    document.getElementById("art-choice-panel").style.display = "block";
   } catch (err) {
     status.textContent = "Error: " + err.message;
-  } finally {
-    hideGenerationOverlay();
     btn.disabled = false;
   }
+});
+
+document.getElementById("skip-art").addEventListener("click", () => {
+  window.location.href = "wizard-categories.html";
+});
+
+document.getElementById("generate-art").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  const skipBtn = document.getElementById("skip-art");
+  const genBtn = document.getElementById("generate-art");
+  skipBtn.disabled = true;
+  genBtn.disabled = true;
+
+  // One world mood board + one banner per faction, both generate-once.
+  // Deliberately non-blocking to the wizard's progress: this is
+  // enhancement art, not required setup data, so a failure here is
+  // logged and shown briefly but never stops the redirect to Step 7.
+  // Runs the two independent calls in parallel (world art doesn't
+  // depend on faction banners or vice versa); faction banners are
+  // themselves generated sequentially inside that one call (see
+  // routes/worldArt.js) so this is at most two concurrent Gemini calls
+  // at a time, not one per faction.
+  status.textContent = "Generating world art…";
+  showGenerationOverlay([
+    "Painting the world's mood board…",
+    "Assigning each faction a banner…",
+    "This can take a little while with several factions…",
+    "Almost there…"
+  ]);
+  try {
+    await Promise.allSettled([
+      authFetch("/api/world-art/generate-mood-board", { method: "POST" }),
+      authFetch("/api/world-art/generate-faction-banners", { method: "POST" })
+    ]);
+  } catch (artErr) {
+    console.error("Generative art step failed, continuing anyway:", artErr);
+  }
+
+  hideGenerationOverlay();
+  status.textContent = "Continuing…";
+  window.location.href = "wizard-categories.html";
 });
 
 async function init() {
