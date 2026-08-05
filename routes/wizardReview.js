@@ -33,45 +33,62 @@ router.get("/wizard/review", async (req, res) => {
   }
 });
 
-router.post("/wizard/confirm", async (req, res) => {
+// Upgrades every existing faction from the wizard's simplified stub
+// layout (Politics/Government/Economy/Military/Tensions) to the full
+// Deep Lore template (Origin/Core Philosophy/Structure & Hierarchy/
+// Territory/Goals/Internal Tensions/Iconography/Relationships/Economy &
+// Resources/Joining) -- see lib/factionDeepLore.js's header comment for
+// the two schemas. Used to run automatically and unconditionally as
+// part of /wizard/confirm; now a separate, optional step the Review page
+// (Step 8) offers as an explicit choice ("Expand Factions" vs "Finish
+// As-Is"), same pattern as Step 6's World Art choice -- see
+// session_addendum_manual_wizard_path_shipped.md for why. A world that
+// skips this keeps its Step-4 stub-layout faction entries, which are
+// already complete, real, non-AI entries in the archive (bridged at
+// save-factions time) -- not a placeholder state. Any faction can still
+// be upgraded later, one at a time, via the existing manual "Regenerate"
+// button on its dossier page (routes/generateFaction.js), which calls
+// this exact same lib/factionDeepLore.js function.
+//
+// All in parallel (Promise.allSettled) since a world has at most 8
+// factions, well within safe concurrent Claude API usage. Failures are
+// per-faction and non-fatal -- one bad generation shouldn't block the
+// rest.
+router.post("/wizard/upgrade-factions", async (req, res) => {
   try {
     const worldId = req.worldId;
-
-    // First-pass auto-upgrade: every faction bridged in at Step 4 still
-    // has the wizard's simplified stub layout (Politics/Government/
-    // Economy/Military/Tensions) rather than the real Deep Lore template
-    // (Origin/Core Philosophy/Structure & Hierarchy/Territory/Goals/
-    // Internal Tensions/Iconography/Relationships/Economy & Resources/
-    // Joining) that routes/generateFaction.js's manual "Regenerate"
-    // produces -- see lib/factionDeepLore.js, shared by both paths. This
-    // also happens to be what makes a faction's own `faction`/`factionKey`
-    // fields self-consistent, since the wizard bridge leaves them null.
-    // Rather than requiring a manual per-faction regenerate click right
-    // after finishing setup, run that same upgrade automatically for
-    // every faction here, once -- all in parallel (Promise.allSettled)
-    // since a world has at most 8 factions, well within safe concurrent
-    // Claude API usage, and parallel cuts total wait time from
-    // roughly (8 x single-faction latency) down to roughly one.
-    // Failures are per-faction and non-fatal -- one bad generation
-    // shouldn't block completing setup; it can still be regenerated
-    // manually later like any other entry. Accent colors (if the Style
-    // Guide step generated them) are untouched by this -- see
-    // lib/fileWriter.js's saveFactionEntry, which always preserves
-    // whatever accentColor is already on record.
     const factionEntries = await listEntries(worldId, "factions");
     const results = await Promise.allSettled(
       factionEntries.map(async (entry) => {
         const { faction, roundupRows } = await generateFactionDeepLore(worldId, entry.id);
         await saveFactionEntry(worldId, faction, roundupRows);
+        return entry.id;
       })
     );
+    const upgraded = [];
+    const failed = [];
     results.forEach((result, i) => {
-      if (result.status === "rejected") {
-        console.error(`First-pass faction upgrade failed for '${factionEntries[i].id}':`, result.reason && result.reason.message);
+      if (result.status === "fulfilled") {
+        upgraded.push(result.value);
+      } else {
+        failed.push(factionEntries[i].id);
+        console.error(`Faction upgrade failed for '${factionEntries[i].id}':`, result.reason && result.reason.message);
       }
     });
+    res.json({ upgraded, failed });
+  } catch (err) {
+    console.error("Upgrading factions failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    const config = await markSetupComplete(worldId);
+// Marks setup complete. No Claude calls -- the faction Deep Lore upgrade
+// used to run here unconditionally; it's now the separate, optional
+// /wizard/upgrade-factions route above, called (or not) from the Review
+// page before this.
+router.post("/wizard/confirm", async (req, res) => {
+  try {
+    const config = await markSetupComplete(req.worldId);
     res.json({ setupCompletedAt: config.setup_completed_at });
   } catch (err) {
     console.error("Confirming setup failed:", err);

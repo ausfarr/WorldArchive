@@ -36,7 +36,22 @@
 
     <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
 
-    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+    <!-- Shown when there's at least one faction and setup isn't already
+         confirmed -- mirrors Step 6's World Art choice (see
+         session_addendum_manual_wizard_path_shipped.md). "Expand" runs
+         the same faction Deep Lore upgrade that used to fire
+         automatically; "Finish As-Is" skips it entirely, so a fully
+         manual world makes zero Claude calls at this step too. Any
+         faction can still be expanded later, one at a time, via the
+         "Regenerate" button on its own dossier page. -->
+    <div id="faction-choice-panel" style="display:none; text-align:center; padding: 24px 0 4px; border-top: 1px solid var(--border-line-soft); margin-top: 24px;">
+      <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1rem; color: var(--neon-cyan); margin: 0 0 8px;">Faction Lore</h2>
+      <p style="color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 18px;">Your factions currently use the shorter Step 4 layout. Expand each into the full Deep Lore template (Origin, Philosophy, Structure, Territory, and more), or leave them as-is — you can expand any single faction later from its own dossier page.</p>
+      <button type="button" id="finish-as-is" class="secondary-btn" style="margin-right: 12px;">Finish As-Is</button>
+      <button type="button" id="expand-factions" class="primary-btn">Expand Factions &amp; Finish</button>
+    </div>
+
+    <div id="confirm-row" style="display:flex; justify-content:flex-end; margin-top: 24px;">
       <button type="button" id="confirm-btn" class="primary-btn">Confirm &amp; Finish Setup</button>
     </div>
   </div>
@@ -53,6 +68,12 @@
     letter-spacing: 0.04em; cursor: pointer; font-weight: 600;
   }
   .primary-btn:disabled { opacity: 0.5; cursor: default; }
+  .secondary-btn {
+    background: none; border: 1px solid var(--border-line); color: var(--ink-dim);
+    padding: 12px 20px; font-family: var(--font-mono); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-size: 0.8rem;
+  }
+  .secondary-btn:disabled { opacity: 0.5; cursor: default; }
   .review-section {
     border: 1px solid var(--border-line); background: var(--bg-panel-raised);
     padding: 16px 18px; margin-bottom: 14px;
@@ -153,27 +174,68 @@ function renderSummary(data) {
   );
 
   el.innerHTML = html;
-
-  if (data.setupCompletedAt) {
-    document.getElementById("confirm-btn").textContent = "Already Confirmed — Enter Archive →";
-  }
 }
 
 document.getElementById("confirm-btn").addEventListener("click", async () => {
+  // Only reachable when there are zero factions (nothing to choose
+  // between) or setup is already confirmed (see init() below) -- either
+  // way this is a plain, no-AI confirm.
   const btn = document.getElementById("confirm-btn");
   const status = document.getElementById("status");
   btn.disabled = true;
-  status.textContent = "Finishing setup — upgrading each faction's archive entry, this can take a minute…";
-  showGenerationOverlay(["Upgrading each faction's dossier…", "This is the last step…","Tying up loose threads…","Locking in your world…","Finishing up…", "Almost there…"]);
+  status.textContent = "Finishing setup…";
   try {
     const res = await authFetch("/api/wizard/confirm", { method: "POST" });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Confirm failed."); }
     status.textContent = "Setup complete — entering the archive…";
     window.location.href = "index.html";
   } catch (err) {
-    hideGenerationOverlay();
     status.textContent = "Error: " + err.message;
     btn.disabled = false;
+  }
+});
+
+document.getElementById("finish-as-is").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  const finishBtn = document.getElementById("finish-as-is");
+  const expandBtn = document.getElementById("expand-factions");
+  finishBtn.disabled = true;
+  expandBtn.disabled = true;
+  status.textContent = "Finishing setup…";
+  try {
+    const res = await authFetch("/api/wizard/confirm", { method: "POST" });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Confirm failed."); }
+    status.textContent = "Setup complete — entering the archive…";
+    window.location.href = "index.html";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+    finishBtn.disabled = false;
+    expandBtn.disabled = false;
+  }
+});
+
+document.getElementById("expand-factions").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  const finishBtn = document.getElementById("finish-as-is");
+  const expandBtn = document.getElementById("expand-factions");
+  finishBtn.disabled = true;
+  expandBtn.disabled = true;
+  status.textContent = "Upgrading each faction's archive entry, this can take a minute…";
+  showGenerationOverlay(["Upgrading each faction's dossier…", "This can take a minute…", "Tying up loose threads…", "Locking in your world…", "Almost there…"]);
+  try {
+    const upgradeRes = await authFetch("/api/wizard/upgrade-factions", { method: "POST" });
+    if (!upgradeRes.ok) { const err = await upgradeRes.json(); throw new Error(err.error || "Faction upgrade failed."); }
+
+    const confirmRes = await authFetch("/api/wizard/confirm", { method: "POST" });
+    if (!confirmRes.ok) { const err = await confirmRes.json(); throw new Error(err.error || "Confirm failed."); }
+
+    status.textContent = "Setup complete — entering the archive…";
+    window.location.href = "index.html";
+  } catch (err) {
+    hideGenerationOverlay();
+    status.textContent = "Error: " + err.message;
+    finishBtn.disabled = false;
+    expandBtn.disabled = false;
   }
 });
 
@@ -186,6 +248,29 @@ async function init() {
     const res = await authFetch("/api/wizard/review");
     const data = await res.json();
     renderSummary(data);
+
+    const confirmRow = document.getElementById("confirm-row");
+    const factionPanel = document.getElementById("faction-choice-panel");
+    const factionCount = (data.factions || []).length;
+
+    if (data.setupCompletedAt) {
+      // Already confirmed -- re-running the faction upgrade on every
+      // revisit to this page would be surprising (and a real cost), so
+      // this state stays a single plain button, same as before.
+      factionPanel.style.display = "none";
+      confirmRow.style.display = "flex";
+      document.getElementById("confirm-btn").textContent = "Already Confirmed — Enter Archive →";
+    } else if (factionCount > 0) {
+      // Real choice: expand every faction's Deep Lore now (AI), or
+      // finish as-is and expand individual factions later if wanted.
+      confirmRow.style.display = "none";
+      factionPanel.style.display = "block";
+    } else {
+      // Nothing to choose between -- no factions means nothing for the
+      // upgrade step to act on.
+      factionPanel.style.display = "none";
+      confirmRow.style.display = "flex";
+    }
   } catch (err) {
     console.error("Could not load review summary:", err);
     document.getElementById("summary").innerHTML = '<p style="color: var(--ink-faint);">Could not load summary.</p>';
