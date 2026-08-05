@@ -374,6 +374,14 @@ footer.site-footer .wrap {
 .bm-btn:disabled { opacity: 0.5; cursor: default; }
 .bm-btn-secondary { background: transparent; }
 .bm-upload-label { display: inline-block; }
+/* v0.9 Manual Mode polish -- field-hint placeholder text (see
+   archive/js/render.js's efField/fieldPlaceholder). Explicit color
+   rather than relying on the browser default, which is often too faint
+   against this dark theme to read comfortably -- this was the actual
+   complaint that led to dropping native `title` tooltips in favor of
+   in-field placeholder text in the first place, since title tooltips
+   can't be restyled by CSS at all. */
+.ef-input::placeholder { color: var(--ink-dim); opacity: 1; }
 .bm-btn-danger {
   background: transparent;
   color: var(--danger, #c0392b);

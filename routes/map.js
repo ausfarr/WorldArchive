@@ -12,6 +12,7 @@ const {
 } = require("../lib/fileWriter");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getStyleGuide } = require("../lib/worldFlavor");
+const { getLocationsMapLocked, setLocationsMapLocked } = require("../lib/worldConfigRepo");
 const { readFactionManifest, readFactionEntry } = require("../lib/roster");
 
 const router = express.Router();
@@ -226,6 +227,32 @@ router.post("/map/upload-backdrop", async (req, res) => {
     res.json({ url, generated: true, anchors: {} });
   } catch (err) {
     console.error("Map backdrop upload failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET/POST map-lock — persisted toggle for the Map page's lock control
+// (see migrations/014_map_lock.sql). A single world-wide flag: when
+// true, the frontend renders every location pin non-draggable. Not
+// gated by anything billing-related -- this is a workflow convenience,
+// not a metered action.
+router.get("/map/lock", async (req, res) => {
+  try {
+    const locked = await getLocationsMapLocked(req.worldId);
+    res.json({ locked });
+  } catch (err) {
+    console.error("Checking map lock state failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/map/lock", async (req, res) => {
+  try {
+    const { locked } = req.body || {};
+    const saved = await setLocationsMapLocked(req.worldId, !!locked);
+    res.json({ locked: saved });
+  } catch (err) {
+    console.error("Saving map lock state failed:", err);
     res.status(500).json({ error: err.message });
   }
 });

@@ -811,28 +811,37 @@ const FIELD_HINTS = {
   "ef-economyResources": "How this faction sustains itself — what it produces, trades, or extracts.",
   "ef-joining": "What it takes for an outsider to join, or for this faction to absorb another group."
 };
-// Small ⓘ indicator with the hint as a native hover tooltip, appended
-// right after a field's label text. Deliberately not a full always-
-// visible helper line under every field — that adds a lot of visual
-// noise across forms with 15+ fields; a hover affordance keeps the form
-// scannable while still being one hover away for someone who needs it.
-function fieldHintIcon(id) {
+// v0.9 Manual Mode polish round 2 -- switched from a hover ⓘ icon
+// (native `title` tooltips can't be restyled by CSS at all, which is
+// exactly why they sometimes rendered hard to read against the dark
+// theme -- browser chrome default styling, no way to fix it from here)
+// to placeholder text INSIDE the field itself, styled via the
+// .ef-input::placeholder rule in archive/css/style.css (var(--ink-dim),
+// real contrast, actually theme-aware). Only applies to efField
+// (text/textarea) -- efSelect has no placeholder-equivalent for a
+// <select>, and its options are generally self-descriptive anyway, so
+// it just doesn't get a hint anymore rather than keeping a tooltip that
+// had the same readability problem.
+function fieldPlaceholder(id) {
   const hint = FIELD_HINTS[id];
-  if (!hint) return "";
-  return ` <span title="${escapeHtmlForSearch(hint)}" style="cursor:help; color:var(--ink-faint); font-size:0.85em;">ⓘ</span>`;
+  return hint ? escapeHtmlForSearch(hint) : "";
 }
 
 // Same field-row markup as showFactionEditForm's local helper, shared
 // across the 5 newer bespoke forms below.
-function efField(label, id, value, { textarea = false, rows = 3, type = "text" } = {}) {
+function efField(label, id, value, { textarea = false, rows = 3, type = "text", placeholder = null, datalistId = null } = {}) {
   const safeValue = escapeHtmlForSearch(value == null ? "" : value);
   const inputStyle = "width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
+  const placeholderText = placeholder != null ? escapeHtmlForSearch(placeholder) : fieldPlaceholder(id);
+  const placeholderAttr = placeholderText ? ` placeholder="${placeholderText}"` : "";
+  const listAttr = datalistId ? ` list="${datalistId}"` : "";
   return `
     <div style="margin-bottom: 14px;">
-      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}${fieldHintIcon(id)}</label>
+      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
       ${textarea
-        ? `<textarea id="${id}" rows="${rows}" style="${inputStyle} resize: vertical;">${safeValue}</textarea>`
-        : `<input id="${id}" type="${type}" value="${safeValue}" style="${inputStyle}">`}
+        ? `<textarea id="${id}" rows="${rows}" class="ef-input" style="${inputStyle} resize: vertical;"${placeholderAttr}>${safeValue}</textarea>`
+        : `<input id="${id}" type="${type}" value="${safeValue}" class="ef-input" style="${inputStyle}"${placeholderAttr}${listAttr}>`}
+      ${datalistId ? `<datalist id="${datalistId}"></datalist>` : ""}
     </div>`;
 }
 
@@ -840,7 +849,7 @@ function efSelect(label, id, optionsHtml) {
   const style = "width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
   return `
     <div style="margin-bottom: 14px;">
-      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}${fieldHintIcon(id)}</label>
+      <label for="${id}" style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label}</label>
       <select id="${id}" style="${style}">${optionsHtml}</select>
     </div>`;
 }
@@ -996,8 +1005,8 @@ function showFactionEditForm(entry) {
           ${otherFactionNames.map((n) => `<option value="${escapeHtmlForSearch(n)}" ${n === r.faction ? "selected" : ""}>${escapeHtmlForSearch(n)}</option>`).join("")}
           ${r.faction && !otherFactionNames.includes(r.faction) ? `<option value="${escapeHtmlForSearch(r.faction)}" selected>${escapeHtmlForSearch(r.faction)}</option>` : ""}
         </select>
-        <input data-idx="${i}" data-field="stance" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.stance)}" placeholder="stance" title="One or two words for the relationship — allied, rivals, at war, tolerant, etc." style="${rowStyle}">
-        <input data-idx="${i}" data-field="why" class="ef-rel-input" type="text" value="${escapeHtmlForSearch(r.why)}" placeholder="why" title="The reason behind that stance, in a short phrase." style="${rowStyle} flex:2;">
+        <input data-idx="${i}" data-field="stance" class="ef-rel-input ef-input" type="text" value="${escapeHtmlForSearch(r.stance)}" placeholder="One or two words for the relationship — allied, rivals, at war, tolerant, etc." style="${rowStyle}">
+        <input data-idx="${i}" data-field="why" class="ef-rel-input ef-input" type="text" value="${escapeHtmlForSearch(r.why)}" placeholder="The reason behind that stance, in a short phrase." style="${rowStyle} flex:2;">
         <button type="button" data-idx="${i}" class="ef-rel-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
       </div>`).join("") : `<p style="color:var(--ink-faint); font-size:0.85rem; margin:0 0 8px;">No relationships yet.</p>`;
 
@@ -1085,6 +1094,37 @@ function showFactionEditForm(entry) {
 // list, never invent" rule prompts/npcContentPrompt.js already enforces
 // server-side. Dialogue branches are a simpler tone/reply row pair.
 const NPC_ROLE_ARCHETYPES = ["Faction Leader", "Quest-Giver", "Community VIP", "Rival", "Informant/Fixer", "Merchant"];
+
+// Client-side mirror of lib/worldFlavor.js's DEFAULT_STAT_LABELS -- used
+// as the fallback when a world hasn't generated a custom stat system yet
+// (GET /api/wizard/stat-system can return statSystem: null). Keeping
+// this tiny fixed object here avoids a round trip just to get labels
+// that are the same on both sides when nothing's been customized.
+const DEFAULT_STAT_LABELS = {
+  body: "Body",
+  reflex: "Reflex",
+  knowledge: "Knowledge",
+  presence: "Presence",
+  sanity: "Sanity",
+  fate: "Fate"
+};
+
+// Fetches this world's real stat labels (falling back to the defaults
+// above) as [{ key: "body", label: "Grit" }, ...] -- key is what's
+// actually stored (the canonical attribute the rest of the app depends
+// on), label is what the person sees, same "store the key, display the
+// world's own name" pattern as faction/weapon-skill dropdowns elsewhere.
+let statLabelsCache = null;
+async function fetchStatLabelOptions() {
+  if (statLabelsCache) return statLabelsCache;
+  const res = await authFetch("/api/wizard/stat-system");
+  const { statSystem } = await res.json();
+  statLabelsCache = Object.keys(DEFAULT_STAT_LABELS).map((key) => ({
+    key,
+    label: (statSystem && statSystem[key] && statSystem[key].label) || DEFAULT_STAT_LABELS[key]
+  }));
+  return statLabelsCache;
+}
 const RELATIONSHIP_CATEGORIES = ["factions", "npcs", "enemies", "classes", "survivors"];
 
 function showNpcEditForm(entry) {
@@ -1244,8 +1284,8 @@ function showNpcEditForm(entry) {
     .map((b) => ({ toneLabel: b.toneLabel || "", reply: b.reply || "" }));
   const renderBranchRows = wireRowEditor("ef-branch-rows", branchState, (b, i) => `
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
-      <input data-idx="${i}" data-field="toneLabel" type="text" value="${escapeHtmlForSearch(b.toneLabel)}" placeholder="tone label" title="A short label for the tone of this reply option (e.g. Hostile, Curious)." style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <input data-idx="${i}" data-field="reply" type="text" value="${escapeHtmlForSearch(b.reply)}" placeholder="reply" title="What the NPC actually says if the player picks this tone." style="flex:2; min-width:200px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="toneLabel" type="text" value="${escapeHtmlForSearch(b.toneLabel)}" placeholder="A short label for the tone of this reply option (e.g. Hostile, Curious)." class="ef-input" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="reply" type="text" value="${escapeHtmlForSearch(b.reply)}" placeholder="What the NPC actually says if the player picks this tone." class="ef-input" style="flex:2; min-width:200px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
       <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
     </div>`, "No dialogue branches yet.");
   document.getElementById("ef-add-branch").addEventListener("click", () => {
@@ -1350,15 +1390,15 @@ function showEnemyEditForm(entry) {
     .map((a) => ({ name: a.name || "", kind: a.kind || "Active", flavor: a.flavor || "", effect: a.effect || "", scaling: a.scaling || "" }));
   const renderAbilityRows = wireRowEditor("ef-ability-rows", abilityState, (a, i) => `
     <div style="display:grid; grid-template-columns: 1fr 100px; gap:8px; margin-bottom:6px;">
-      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="ability name" title="What this ability is called." style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <select data-idx="${i}" data-field="kind" title="Active means something they choose to do. Passive means always on." style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="What this ability is called." class="ef-input" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <select data-idx="${i}" data-field="kind" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
         ${ABILITY_KINDS.map((k) => `<option value="${k}" ${k === a.kind ? "selected" : ""}>${k}</option>`).join("")}
       </select>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
-      <input data-idx="${i}" data-field="flavor" type="text" value="${escapeHtmlForSearch(a.flavor)}" placeholder="flavor" title="A short atmospheric description of the ability, not the mechanics." style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <input data-idx="${i}" data-field="effect" type="text" value="${escapeHtmlForSearch(a.effect)}" placeholder="effect" title="What the ability actually does, mechanically." style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <input data-idx="${i}" data-field="scaling" type="text" value="${escapeHtmlForSearch(a.scaling)}" placeholder="scaling formula" title="How the ability's power scales with a stat, if it does -- leave blank if it's flat." style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="flavor" type="text" value="${escapeHtmlForSearch(a.flavor)}" placeholder="A short atmospheric description of the ability, not the mechanics." class="ef-input" style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="effect" type="text" value="${escapeHtmlForSearch(a.effect)}" placeholder="What the ability actually does, mechanically." class="ef-input" style="flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="scaling" type="text" value="${escapeHtmlForSearch(a.scaling)}" placeholder="How the ability's power scales with a stat, if it does -- leave blank if it's flat." class="ef-input" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
       <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
     </div>`, "No abilities yet.");
   document.getElementById("ef-add-ability").addEventListener("click", () => {
@@ -1433,7 +1473,7 @@ function showLocationEditForm(entry) {
   const bodyHtml = `
     ${efField("Name", "ef-name", raw.name)}
     ${efField("Descriptor Line", "ef-descriptorLine", raw.descriptorLine, { textarea: true, rows: 2 })}
-    ${efField("Region / Biome", "ef-regionBiome", raw.regionBiome)}
+    ${efField("Region / Biome", "ef-regionBiome", raw.regionBiome, { datalistId: "ef-regionBiome-suggestions" })}
     <div id="ef-faction-wrap"></div>
     ${efField("Notable Features", "ef-notableFeatures", raw.notableFeatures, { textarea: true })}
     ${efField("Danger Tags (comma-separated)", "ef-dangerTags", (raw.dangerTags || []).join(", "))}
@@ -1493,7 +1533,7 @@ function showLocationEditForm(entry) {
         <select data-idx="${i}" data-field="toId" style="flex:1; min-width:160px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
           ${idSelectOptionsHtml(npcOptions, n.toId)}
         </select>
-        <input data-idx="${i}" data-field="why" type="text" value="${escapeHtmlForSearch(n.why)}" placeholder="why" title="Why this NPC is notable at this location, in a short phrase." style="flex:2; min-width:180px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        <input data-idx="${i}" data-field="why" type="text" value="${escapeHtmlForSearch(n.why)}" placeholder="Why this NPC is notable at this location, in a short phrase." class="ef-input" style="flex:2; min-width:180px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
         <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
       </div>`, "No notable NPCs yet.");
     document.getElementById("ef-add-npc").addEventListener("click", () => {
@@ -1502,10 +1542,27 @@ function showLocationEditForm(entry) {
     });
   });
 
+  // Region/Biome stays free text (it's genuinely open-ended -- see
+  // prompts/locationContentPrompt.js's own schema comment, "free text,
+  // grounded in world lore") but suggests values already used by other
+  // Locations in this world via a <datalist>, so a manual entry tends
+  // toward reusing "Rust Coast Wetlands" instead of a near-duplicate
+  // spelling. A <datalist> still allows typing anything -- unlike a
+  // <select>, this doesn't force a real free-text field into a fixed
+  // enum it was never meant to be.
+  authFetch("/api/entries/locations").then((res) => res.json()).then((data) => {
+    const biomes = Array.from(new Set(
+      ((data && data.entries) || [])
+        .map((loc) => loc.raw && loc.raw.regionBiome)
+        .filter(Boolean)
+        .filter((b) => b !== raw.regionBiome)
+    ));
+    const datalistEl = document.getElementById("ef-regionBiome-suggestions");
+    if (datalistEl) datalistEl.innerHTML = biomes.map((b) => `<option value="${escapeHtmlForSearch(b)}"></option>`).join("");
+  });
+
   return overlay;
 }
-
-// Bespoke Classes edit form -- the largest schema of the 5 (a full
 // Level 1-99 tree). Each of the 4 tiers gets its own ability row editor
 // (level/name/kind/effectText), reusing wireRowEditor() 4 times rather
 // than writing 4 near-identical editors by hand. "Why This Progression
@@ -1518,8 +1575,8 @@ function abilityRowHtml(a, i) {
   return `
     <div style="display:grid; grid-template-columns: 70px 1fr 150px; gap:8px; margin-bottom:6px;">
       <input data-idx="${i}" data-field="level" type="number" value="${escapeHtmlForSearch(a.level)}" placeholder="lvl" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="ability name" title="What this ability is called." style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-      <select data-idx="${i}" data-field="kind" title="Active means something they choose to do. Passive means always on." style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <input data-idx="${i}" data-field="name" type="text" value="${escapeHtmlForSearch(a.name)}" placeholder="What this ability is called." class="ef-input" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      <select data-idx="${i}" data-field="kind" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
         ${CLASS_ABILITY_KINDS.map((k) => `<option value="${k}" ${k === a.kind ? "selected" : ""}>${k}</option>`).join("")}
       </select>
     </div>
@@ -1559,11 +1616,12 @@ function showClassEditForm(entry) {
     ${efField("Archetype", "ef-archetype", raw.archetype)}
     ${efField("Core Resource Name", "ef-coreResourceName", raw.coreResourceName)}
     ${efField("Core Resource Description", "ef-coreResourceDescription", raw.coreResourceDescription, { textarea: true, rows: 2 })}
-    ${efField("Primary Attribute", "ef-primaryAttribute", raw.primaryAttribute)}
-    ${efField("Secondary Attribute", "ef-secondaryAttribute", raw.secondaryAttribute)}
+    <div id="ef-primaryAttribute-wrap"></div>
+    <div id="ef-secondaryAttribute-wrap"></div>
     <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Skill Efficiency</h3>
-    <p style="color: var(--ink-dim); font-size: 0.8rem; margin: 0 0 12px;">Pick from this world's actual skill list — keeps this class in sync with everything else, instead of inventing new skill names. A skill can only sit in one tier at a time.</p>
-    <div id="ef-skill-picker-wrap"></div>
+    <p style="color: var(--ink-dim); font-size: 0.8rem; margin: 0 0 12px;">Pick from this world's actual skill list and how well this class uses each one — keeps this class in sync with everything else, instead of inventing new skill names.</p>
+    <div id="ef-skill-rows"></div>
+    <button id="ef-add-skill" type="button" style="margin-top:6px; background: var(--bg-panel-raised); border: 1px solid var(--ink-faint); color: var(--ink-dim); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; cursor: pointer;">+ Add Skill</button>
     ${tierSectionHtml("tier1", "Tier 1 (Levels 1–20)", tier1)}
     ${tierSectionHtml("tier2", "Tier 2 (Levels 21–49)", tier2)}
     <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Evolution Event (Level 50)</h3>
@@ -1640,69 +1698,74 @@ function showClassEditForm(entry) {
     document.getElementById("ef-evo-locationId-wrap").innerHTML = efSelect("Location (archived, optional)", "ef-evo-locationId", idSelectOptionsHtml(options, evo.locationId, "— none / not archived —"));
   });
 
-  // Skill Efficiency picker -- checkboxes sourced from this world's real
-  // skill list (Wizard Step 5, GET /api/wizard/skill-system) instead of
-  // free text, so a manually-created class can't drift from the fixed
-  // skill pool every other generator already respects (see
-  // lib/worldFlavor.js's formatFieldSkillsForPrompt comment on why that
-  // pool exists at all -- near-duplicate invented skill names). Falls
-  // back to the old 3 free-text fields if this world never generated a
-  // skill system (pre-Wizard-Step-5 worlds, or the step was skipped).
-  // skillEfficiency itself stays a plain comma-separated string either
-  // way -- see lib/classTemplate.js's escapeHtml(cls.skillEfficiency.major)
-  // display, unchanged by this. readSkillPickerValue() below is what
-  // save-time reads regardless of which mode rendered.
-  const skillPickerWrap = document.getElementById("ef-skill-picker-wrap");
+  fetchStatLabelOptions().then((statOptions) => {
+    const optHtml = (selected) => statOptions.map((s) => `<option value="${s.key}" ${s.key === selected ? "selected" : ""}>${escapeHtmlForSearch(s.label)}</option>`).join("");
+    document.getElementById("ef-primaryAttribute-wrap").innerHTML = efSelect("Primary Attribute", "ef-primaryAttribute", optHtml(raw.primaryAttribute));
+    document.getElementById("ef-secondaryAttribute-wrap").innerHTML = efSelect("Secondary Attribute", "ef-secondaryAttribute", optHtml(raw.secondaryAttribute));
+  });
+
+  // Skill Efficiency -- a row per skill assignment (skill picked from
+  // this world's real skill list, Wizard Step 5, GET
+  // /api/wizard/skill-system; efficiency tier picked from a fixed x1.0/
+  // x0.5/x0.2 list), same row-editor pattern as Relationships/Notable
+  // NPCs rather than a checkbox grid -- so a manually-created class
+  // can't drift from the fixed skill pool every other generator already
+  // respects (see lib/worldFlavor.js's formatFieldSkillsForPrompt
+  // comment on why that pool exists at all -- near-duplicate invented
+  // skill names). Falls back to the old 3 free-text fields if this
+  // world never generated a skill system (pre-Wizard-Step-5 worlds).
+  // skillEfficiency itself stays a plain comma-separated string per tier
+  // either way -- see lib/classTemplate.js's
+  // escapeHtml(cls.skillEfficiency.major) display, unchanged by this.
+  // readSkillPickerValue() below is what save-time reads regardless of
+  // which mode rendered.
+  const skillRowsWrap = document.getElementById("ef-skill-rows");
+  const addSkillBtn = document.getElementById("ef-add-skill");
   const existingSkillNames = (tierKey) =>
     (skillEff[tierKey] || "").split(",").map((s) => s.trim()).filter(Boolean);
+
+  let skillState = [];
+  let renderSkillRows = null;
+  let skillOptionsCache = [];
 
   authFetch("/api/wizard/skill-system").then((res) => res.json()).then(({ skillSystem }) => {
     const skills = (skillSystem && skillSystem.fieldSkills) || [];
     if (!skills.length) {
-      // No fixed skill pool for this world yet -- fall back to free text,
-      // same as before this feature existed.
-      skillPickerWrap.innerHTML = `
+      // No fixed skill pool for this world yet -- fall back to free
+      // text, same as before this feature existed.
+      skillRowsWrap.innerHTML = `
         ${efField("Major (1.0x)", "ef-skill-major-fallback", skillEff.major)}
         ${efField("Minor (0.5x)", "ef-skill-minor-fallback", skillEff.minor)}
         ${efField("Misc (0.2x)", "ef-skill-misc-fallback", skillEff.misc)}
         <p style="color: var(--ink-faint); font-size: 0.75rem; margin: -6px 0 14px;">This world hasn't generated a fixed skill list yet (Wizard Step 5), so these are free text for now.</p>
       `;
+      addSkillBtn.style.display = "none";
       return;
     }
 
-    const majorSet = new Set(existingSkillNames("major"));
-    const minorSet = new Set(existingSkillNames("minor"));
-    const miscSet = new Set(existingSkillNames("misc"));
-    const tierOf = (name) => (majorSet.has(name) ? "major" : minorSet.has(name) ? "minor" : miscSet.has(name) ? "misc" : "");
+    skillOptionsCache = skills;
+    skillState = ["major", "minor", "misc"].flatMap((tierKey) =>
+      existingSkillNames(tierKey).map((name) => ({ skill: name, tier: tierKey })));
 
-    const columnHtml = (tierKey, tierLabel) => `
-      <div style="flex:1; min-width:160px;">
-        <p style="font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 6px;">${tierLabel}</p>
-        ${skills.map((s) => `
-          <label title="${escapeHtmlForSearch(s.description || "")}" style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color: var(--ink); margin-bottom:4px; cursor:pointer;">
-            <input type="checkbox" class="skill-pick-checkbox" data-tier="${tierKey}" data-skill="${escapeHtmlForSearch(s.name)}" ${tierOf(s.name) === tierKey ? "checked" : ""}>
-            ${escapeHtmlForSearch(s.name)}
-          </label>
-        `).join("")}
-      </div>`;
+    const skillOptionsHtml = (selected) => skills
+      .map((s) => `<option value="${escapeHtmlForSearch(s.name)}" ${s.name === selected ? "selected" : ""}>${escapeHtmlForSearch(s.name)}</option>`)
+      .join("");
+    const tierOptionsHtml = (selected) => `
+      <option value="major" ${selected === "major" ? "selected" : ""}>Major (1.0x)</option>
+      <option value="minor" ${selected === "minor" ? "selected" : ""}>Minor (0.5x)</option>
+      <option value="misc" ${selected === "misc" ? "selected" : ""}>Misc (0.2x)</option>`;
+    const rowStyle = "flex:1; min-width:140px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
 
-    skillPickerWrap.innerHTML = `<div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:14px;">
-      ${columnHtml("major", "Major (1.0x)")}
-      ${columnHtml("minor", "Minor (0.5x)")}
-      ${columnHtml("misc", "Misc (0.2x)")}
-    </div>`;
+    renderSkillRows = wireRowEditor("ef-skill-rows", skillState, (row, i) => `
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+        <select data-idx="${i}" data-field="skill" style="${rowStyle}">${skillOptionsHtml(row.skill)}</select>
+        <select data-idx="${i}" data-field="tier" style="${rowStyle} flex:0 0 160px;">${tierOptionsHtml(row.tier)}</select>
+        <button type="button" data-idx="${i}" class="ef-row-remove" style="background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:8px 10px; cursor:pointer; font-family:var(--font-mono); font-size:0.68rem;">✕</button>
+      </div>`, "No skills assigned yet.");
 
-    // Mutual exclusivity -- checking a skill in one tier unchecks it in
-    // the other two, since a skill only makes sense as one efficiency
-    // level at a time.
-    skillPickerWrap.querySelectorAll(".skill-pick-checkbox").forEach((box) => {
-      box.addEventListener("change", () => {
-        if (!box.checked) return;
-        const skillName = box.dataset.skill;
-        skillPickerWrap.querySelectorAll(`.skill-pick-checkbox[data-skill="${CSS.escape(skillName)}"]`).forEach((other) => {
-          if (other !== box) other.checked = false;
-        });
-      });
+    addSkillBtn.addEventListener("click", () => {
+      skillState.push({ skill: (skillOptionsCache[0] && skillOptionsCache[0].name) || "", tier: "major" });
+      renderSkillRows();
     });
   });
 
@@ -1715,10 +1778,7 @@ function showClassEditForm(entry) {
         misc: document.getElementById("ef-skill-misc-fallback").value
       };
     }
-    const namesFor = (tierKey) =>
-      Array.from(skillPickerWrap.querySelectorAll(`.skill-pick-checkbox[data-tier="${tierKey}"]:checked`))
-        .map((box) => box.dataset.skill)
-        .join(", ");
+    const namesFor = (tierKey) => skillState.filter((r) => r.tier === tierKey && r.skill).map((r) => r.skill).join(", ");
     return { major: namesFor("major"), minor: namesFor("minor"), misc: namesFor("misc") };
   }
 
@@ -1776,7 +1836,7 @@ function showItemEditForm(entry) {
         ${efField("Damage Min", "ef-damageMin", raw.damageMin, { type: "number" })}
         ${efField("Damage Max", "ef-damageMax", raw.damageMax, { type: "number" })}
       </div>
-      ${efField("Relevant Stat", "ef-relevantStat", raw.relevantStat)}
+      <div id="ef-relevantStat-wrap"></div>
       ${efField("Applies Status (optional)", "ef-appliesStatus", raw.appliesStatus)}
     </div>
     <div id="ef-group-armor">
@@ -1836,6 +1896,19 @@ function showItemEditForm(entry) {
 
   fetchCategoryOptions("locations").then((options) => {
     document.getElementById("ef-foundAtLocationId-wrap").innerHTML = efSelect("Found At Location (optional)", "ef-foundAtLocationId", idSelectOptionsHtml(options, raw.foundAtLocationId, "— none / not archived —"));
+  });
+
+  // relevantStat is stored as this world's own DISPLAY LABEL (e.g.
+  // "Grit"), not the canonical attribute key -- see
+  // prompts/itemContentPrompt.js's schema comment, this is flavor text
+  // referencing the attribute by name, not a mechanical lookup. So the
+  // option value here is the label itself, unlike weaponSkill above
+  // (which stores the canonical key).
+  fetchStatLabelOptions().then((statOptions) => {
+    const optHtml = `<option value="">— none —</option>` + statOptions
+      .map((s) => `<option value="${escapeHtmlForSearch(s.label)}" ${s.label === raw.relevantStat ? "selected" : ""}>${escapeHtmlForSearch(s.label)}</option>`)
+      .join("");
+    document.getElementById("ef-relevantStat-wrap").innerHTML = efSelect("Relevant Stat", "ef-relevantStat", optHtml);
   });
 
   function toggleGroups() {

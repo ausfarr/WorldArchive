@@ -110,6 +110,7 @@
   <div class="map-wrap">
     <div id="map-status">Loading…</div>
     <div id="map-canvas" style="display:none;"></div>
+    <button id="map-lock-btn" type="button" title="Lock the map to stop pins from being dragged" style="display:none; position:absolute; top:12px; right:12px; z-index:1000; width:36px; height:36px; background: var(--bg-panel); border: 1px solid var(--border-line); color: var(--ink); font-size:1rem; cursor:pointer; border-radius:4px;">🔓</button>
     <div class="map-legend" id="map-legend"></div>
   </div>
 </div>
@@ -212,8 +213,18 @@
       // (see anchorOverrides below).
       let backdropUrl = null;
       let normalizedAnchors = {};
-      const statusRes = await authFetch("/api/map/backdrop");
+      const [statusRes, lockRes] = await Promise.all([
+        authFetch("/api/map/backdrop"),
+        authFetch("/api/map/lock")
+      ]);
       const statusData = await statusRes.json();
+      let mapLocked = false;
+      try {
+        const lockData = await lockRes.json();
+        mapLocked = !!lockData.locked;
+      } catch (lockErr) {
+        console.error("Loading map lock state failed, defaulting to unlocked:", lockErr);
+      }
       if (statusData.exists) {
         backdropUrl = statusData.url;
         normalizedAnchors = statusData.anchors || {};
@@ -325,6 +336,8 @@
       // but standard for this Leaflet mode.
       statusEl.style.display = "none";
       canvasEl.style.display = "block";
+      const lockBtn = document.getElementById("map-lock-btn");
+      lockBtn.style.display = "block";
       const bounds = [[0, 0], [CANVAS_HEIGHT, CANVAS_WIDTH]];
       const map = L.map("map-canvas", {
         crs: L.CRS.Simple,
@@ -391,6 +404,11 @@
         });
       }
 
+      // Every marker this function creates gets tracked here so the
+      // lock button below can toggle draggability on all of them live,
+      // without a page reload.
+      const allLocationMarkers = [];
+
       // Shared by both the auto-computed nodes below and the already-
       // fixed locations further down -- same marker, same behavior,
       // regardless of how this location ended up at its current spot.
@@ -400,11 +418,12 @@
           ? ((factionLookup[faction] && factionLookup[faction].name) || faction)
           : "Unaligned";
         const portraitUrl = extractPortraitUrl(bodyHtmlById[id]);
+        const popupHint = mapLocked ? "Map is locked · click to view dossier" : "Drag to reposition · click to view dossier";
         const popupHtml = `
           <div class="map-popup-title">${name}</div>
           <div class="map-popup-faction">${facName}</div>
           ${portraitUrl ? `<img class="map-popup-img" src="${portraitUrl}" alt="${name}">` : ""}
-          <div class="map-popup-hint">Drag to reposition · click to view dossier</div>
+          <div class="map-popup-hint">${popupHint}</div>
         `;
         // Y-AXIS FLIP: see the comment above CANVAS_HEIGHT's other uses in
         // this file -- Leaflet's CRS.Simple [0,0] is bottom-left with lat
@@ -412,8 +431,9 @@
         // uses normal top-down image convention (y=0 at the top).
         const marker = L.marker([CANVAS_HEIGHT - canvasY, canvasX], {
           icon: buildLocationIcon(color),
-          draggable: true
+          draggable: !mapLocked
         }).addTo(map);
+        allLocationMarkers.push(marker);
 
         marker.bindPopup(popupHtml, { closeButton: false, autoPan: false });
         marker.on("mouseover", () => marker.openPopup());
@@ -433,6 +453,33 @@
 
       nodes.forEach((n) => addLocationMarker(n.id, n.name, n.faction, n.x, n.y));
       fixedLocations.forEach((loc) => addLocationMarker(loc.id, loc.name, loc.faction, loc.manualMapPosition.x, loc.manualMapPosition.y));
+
+      // Lock toggle -- disables/enables dragging on every marker live
+      // (no reload needed) and persists the choice server-side
+      // (POST /api/map/lock) so it's still locked next time this page
+      // loads. Doesn't affect click-to-navigate -- only dragging.
+      function applyLockVisuals() {
+        lockBtn.textContent = mapLocked ? "🔒" : "🔓";
+        lockBtn.title = mapLocked ? "Unlock the map to allow dragging pins" : "Lock the map to stop pins from being dragged";
+      }
+      applyLockVisuals();
+      lockBtn.addEventListener("click", async () => {
+        mapLocked = !mapLocked;
+        allLocationMarkers.forEach((m) => {
+          if (mapLocked) m.dragging.disable();
+          else m.dragging.enable();
+        });
+        applyLockVisuals();
+        try {
+          await authFetch("/api/map/lock", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ locked: mapLocked })
+          });
+        } catch (err) {
+          console.error("Saving map lock state failed:", err);
+        }
+      });
 
       // Legend: one swatch per faction actually represented on the map.
       const seen = new Set();
