@@ -18,5 +18,10 @@
     });
   }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
 
-  targets.forEach(function (el) { observer.observe(el); });
+  // Only arm (hide) elements right before we start observing them, so a
+  // failed/blocked script load never leaves content permanently invisible.
+  targets.forEach(function (el) {
+    el.classList.add('reveal-armed');
+    observer.observe(el);
+  });
 })();

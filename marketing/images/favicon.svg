@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Chronicled">
+  <rect width="64" height="64" rx="10" fill="#0a0b0d"/>
+  <rect x="4" y="4" width="56" height="56" rx="6" fill="#14161a" stroke="#2a2d33" stroke-width="1.5"/>
+  <circle cx="12" cy="12" r="1.6" fill="#5c5f66"/>
+  <circle cx="52" cy="12" r="1.6" fill="#5c5f66"/>
+  <rect x="14" y="18" width="36" height="4" fill="#ff2f6e"/>
+  <rect x="14" y="27" width="36" height="3" fill="#e4e1d6" opacity="0.85"/>
+  <rect x="14" y="33.5" width="26" height="3" fill="#9a9ca3"/>
+  <rect x="14" y="41" width="20" height="3" fill="#29f0d1"/>
+  <rect x="14" y="47.5" width="30" height="3" fill="#9a9ca3"/>
+</svg>
