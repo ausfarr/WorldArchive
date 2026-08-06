@@ -1,0 +1,125 @@
+{
+  "_comment": "Procedural table for NPCs. Per procedural_generation_scope_proposal.md #2, NPCs are the deepest 'partial fit' -- traits/speech/roleArchetype/age come from these tables, but physicalDescription/contradiction/wants/actuallyNeeds/questHook/dialogue are genuinely freeform, so lib/proceduralGenerators.js fills them from Mad-Libs templates below rather than leaving them blank. faction is picked from the world's own live faction roster (or 'unaligned'); roleArchetype values match render.js's CATEGORY_SORT npc order list exactly so procedurally-generated NPCs group/sort correctly on the index page.",
+  "firstNames": [
+    { "value": "Yusuf", "weight": 1 }, { "value": "Colette", "weight": 1 }, { "value": "Barnaby", "weight": 1 },
+    { "value": "Ilsa", "weight": 1 }, { "value": "Remy", "weight": 1 }, { "value": "Adaeze", "weight": 1 },
+    { "value": "Casimir", "weight": 1 }, { "value": "Nadia", "weight": 1 }, { "value": "Elton", "weight": 1 },
+    { "value": "Marisol", "weight": 1 }, { "value": "Ansel", "weight": 1 }, { "value": "Beatrix", "weight": 1 },
+    { "value": "Osei", "weight": 1 }, { "value": "Wren", "weight": 1 }, { "value": "Talia", "weight": 1 },
+    { "value": "Nikolai", "weight": 1 }, { "value": "Old Rosa", "weight": 1 }, { "value": "Ferdinand", "weight": 1 }
+  ],
+  "lastNames": [
+    { "value": "Okonkwo", "weight": 1 }, { "value": "Achterberg", "weight": 1 }, { "value": "Villanueva", "weight": 1 },
+    { "value": "Csík", "weight": 1 }, { "value": "Bramble", "weight": 1 }, { "value": "Adegoke", "weight": 1 },
+    { "value": "Krupa", "weight": 1 }, { "value": "Sørensen", "weight": 1 }, { "value": "Faraday", "weight": 1 },
+    { "value": "Menendez", "weight": 1 }, { "value": "Ostrander", "weight": 1 }, { "value": "Quintanilla", "weight": 1 },
+    { "value": "Whitfield", "weight": 1 }, { "value": "Baptiste", "weight": 1 }
+  ],
+  "roleArchetypes": [
+    { "value": "Faction Leader", "weight": 1 },
+    { "value": "Rival", "weight": 2 },
+    { "value": "Quest-Giver", "weight": 3 },
+    { "value": "Informant/Fixer", "weight": 3 },
+    { "value": "Community VIP", "weight": 2 },
+    { "value": "Merchant", "weight": 3 }
+  ],
+  "ages": [
+    { "value": 24, "weight": 1 }, { "value": 29, "weight": 2 }, { "value": 34, "weight": 2 }, { "value": 38, "weight": 2 },
+    { "value": 43, "weight": 2 }, { "value": 47, "weight": 2 }, { "value": 52, "weight": 2 }, { "value": 58, "weight": 1 },
+    { "value": 63, "weight": 1 }, { "value": 71, "weight": 1 }
+  ],
+  "traits": [
+    { "value": "unflinchingly direct", "weight": 2 }, { "value": "warm to strangers, cold to friends", "weight": 1 },
+    { "value": "compulsively tidy", "weight": 1 }, { "value": "quick to laugh, quicker to stop", "weight": 1 },
+    { "value": "deeply superstitious", "weight": 1 }, { "value": "chronically underslept", "weight": 1 },
+    { "value": "performatively unbothered", "weight": 1 }, { "value": "obsessively precise about small details", "weight": 1 },
+    { "value": "generous to a fault", "weight": 2 }, { "value": "reflexively suspicious of authority", "weight": 2 },
+    { "value": "impossible to rattle", "weight": 1 }, { "value": "talks in half-finished sentences when nervous", "weight": 1 },
+    { "value": "keeps score of every slight, real or imagined", "weight": 1 }, { "value": "disarmingly gentle for the work they do", "weight": 1 },
+    { "value": "allergic to being thanked", "weight": 1 }
+  ],
+  "physicalDescriptionTemplates": [
+    { "value": "{pronoun_cap} {carries} {pronoun_pos} weight like someone used to being underestimated for it -- deliberate, unhurried, never quite still.", "weight": 1 },
+    { "value": "A face that's clearly been through something, worn in exactly the places that show it. {pronoun_cap} {dresses} like comfort matters more than appearance, and it shows.", "weight": 1 },
+    { "value": "Sharp-eyed and a little too observant for casual conversation. {pronoun_cap} {has} the look of someone who's already sized up the room before you noticed them in it.", "weight": 1 },
+    { "value": "Compact, practical, dressed for whatever the day turns into. Hands that have clearly done real work, whatever {pronoun_pos} current job title says.", "weight": 1 },
+    { "value": "Taller than the room usually expects, and {pronoun_subj} {seems} aware of it -- angles {pronoun_pos} posture to take up less space than {pronoun_pos} actually does.", "weight": 1 }
+  ],
+  "contradictionTemplates": [
+    { "value": "Preaches self-sufficiency to everyone who'll listen, and quietly does favors nobody asked for.", "weight": 1 },
+    { "value": "Claims to have no patience for sentiment, keeps every letter anyone's ever written them.", "weight": 1 },
+    { "value": "Talks like they've made peace with how things turned out. They haven't.", "weight": 1 },
+    { "value": "Insists they don't play favorites, and everyone here knows exactly who the favorite is.", "weight": 1 },
+    { "value": "Says trust is earned, not given -- then extends it faster than anyone realizes until it's too late to take back.", "weight": 1 },
+    { "value": "Acts like the past is settled business. It comes up in almost every conversation anyway.", "weight": 1 }
+  ],
+  "wantsTemplates": [
+    { "value": "To be the reason this place is still standing, whether or not anyone ever knows it.", "weight": 1 },
+    { "value": "One clean win that isn't a compromise, for once.", "weight": 1 },
+    { "value": "To settle a score that's been open long enough to feel like part of the furniture.", "weight": 1 },
+    { "value": "For someone specific to finally admit they were right.", "weight": 1 },
+    { "value": "Enough stability to stop planning for the worst constantly.", "weight": 1 },
+    { "value": "To matter to people who don't need anything from them.", "weight": 1 }
+  ],
+  "actuallyNeedsTemplates": [
+    { "value": "To let go of a decision that can't be undone.", "weight": 1 },
+    { "value": "To be told, and believe, that they're not actually responsible for everything that's gone wrong.", "weight": 1 },
+    { "value": "Someone to actually rely on, instead of everyone relying on them.", "weight": 1 },
+    { "value": "To forgive a version of themselves that no longer exists.", "weight": 1 },
+    { "value": "To stop treating every relationship as a transaction.", "weight": 1 },
+    { "value": "Rest they will not admit to needing.", "weight": 1 }
+  ],
+  "speechRegisters": [
+    { "value": "Blunt and economical -- says exactly as much as needed, no more.", "weight": 2 },
+    { "value": "Formal, almost old-fashioned, even in casual conversation.", "weight": 1 },
+    { "value": "Warm and conversational, quick to bring strangers in.", "weight": 2 },
+    { "value": "Clipped and professional, like everything's a negotiation.", "weight": 1 },
+    { "value": "Rambling and tangent-prone, circles back eventually.", "weight": 1 }
+  ],
+  "speechRhythms": [
+    { "value": "Short sentences. Rarely elaborates unless pushed.", "weight": 2 },
+    { "value": "Long, winding sentences that eventually land somewhere.", "weight": 1 },
+    { "value": "Speaks in lists -- first this, then that, then the other thing.", "weight": 1 },
+    { "value": "Pauses before anything important, like weighing the cost of saying it.", "weight": 2 },
+    { "value": "Talks fast when nervous, slows down deliberately when it matters.", "weight": 1 }
+  ],
+  "speechTics": [
+    { "value": "Ends questions with a small, humorless laugh.", "weight": 1 }, { "value": "Repeats the last few words of what you just said back at you.", "weight": 1 },
+    { "value": "Says \"look\" before anything they actually mean.", "weight": 2 }, { "value": "Taps twice on whatever surface is nearest when thinking.", "weight": 1 },
+    { "value": "Calls everyone \"friend,\" including people they clearly don't trust.", "weight": 1 }, { "value": "Trails off mid-sentence and expects you to fill in the rest.", "weight": 1 }
+  ],
+  "neverSayLines": [
+    { "value": "\"I'm sorry.\"", "weight": 1 }, { "value": "\"I need help.\"", "weight": 1 }, { "value": "\"I was wrong.\"", "weight": 1 },
+    { "value": "\"That's not my problem.\"", "weight": 1 }, { "value": "\"I don't care.\"", "weight": 1 }, { "value": "\"Trust me.\"", "weight": 1 }
+  ],
+  "signatureQuotes": [
+    { "value": "You get one version of me. This is it.", "weight": 1 },
+    { "value": "Everyone wants something. At least I'm honest about it.", "weight": 1 },
+    { "value": "I've buried better plans than whatever you've got.", "weight": 1 },
+    { "value": "Ask nicely and I might even tell you the truth.", "weight": 1 },
+    { "value": "Around here, favors are the only real currency.", "weight": 1 },
+    { "value": "I stopped being surprised by people a long time ago.", "weight": 1 }
+  ],
+  "questHookTemplates": [
+    { "value": "Has a problem that needs outside hands -- something too visible to handle personally, and too important to leave alone.", "weight": 1 },
+    { "value": "Is owed something by someone who's stopped answering, and would pay well for that to change.", "weight": 1 },
+    { "value": "Knows something worth knowing, and will trade it for a favor that isn't as simple as it sounds.", "weight": 1 },
+    { "value": "Has lost track of someone they won't admit to caring about, and needs it fixed quietly.", "weight": 1 },
+    { "value": "None yet -- a straightforward roster addition, not currently tied to a specific hook.", "weight": 2 }
+  ],
+  "dialogueOpeningLines": [
+    { "value": "Didn't expect company today. What do you need?", "weight": 1 },
+    { "value": "You've got about a minute before I get back to actual work.", "weight": 1 },
+    { "value": "I know that look. Someone sent you, or you're lost.", "weight": 1 },
+    { "value": "If you're here to complain, get in line.", "weight": 1 },
+    { "value": "Careful. I bite when I'm interrupted.", "weight": 1 }
+  ],
+  "dialogueBranches": [
+    { "toneLabel": "Friendly", "reply": "Alright, alright -- come in, sit down. I'll even pretend I wasn't busy." },
+    { "toneLabel": "Suspicious", "reply": "That depends entirely on who's asking, and why." },
+    { "toneLabel": "Business", "reply": "Fine. Let's not waste each other's time, then." }
+  ],
+  "designNotes": [
+    { "value": "Rolled procedurally -- structured fields (traits, speech, role) are solid, but physicalDescription/contradiction/wants/questHook/dialogue are Mad-Libs placeholders worth a manual or field-assist pass before this NPC carries real weight in a scene.", "weight": 1 }
+  ]
+}

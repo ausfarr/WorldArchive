@@ -1,0 +1,202 @@
+{
+  "_comment": "Procedural table for Classes. Per procedural_generation_scope_proposal.md #5's authoring-burden note, classes are low-VOLUME (a world has a handful, not 20+) but high-DEPTH per unit -- so this table is shaped differently than items/enemies: a small set of fully fleshed archetype seeds (identity, resource, tier themes, evolution, whyItWorks) crossed with a shared, tier-slot-tagged ability template pool. {primaryLabel}/{secondaryLabel}/{majorSkill}/{minorSkill}/{resource} placeholders are filled by lib/proceduralGenerators.js from the world's own stat/skill labels (lib/worldFlavor.js) -- never hardcoded English. Ability level numbers (1/5/10/15/20, 25/30/35/42/48, 51/55/60/65/70/75, 80/85/90/95/99) follow prompts/classContentPrompt.js's own schema exactly, so a procedurally-generated class sheet renders identically in shape to an AI-generated one.",
+  "archetypes": [
+    {
+      "baseName": "Brawler",
+      "tag": "melee",
+      "archetype": "Bruiser / Frontline / Damage Sponge",
+      "coreResourceName": "Grit",
+      "coreResourceDescription": "Builds as the Brawler takes and lands hits in melee; spent to fuel heavier follow-up strikes.",
+      "primaryAttribute": "body",
+      "secondaryAttribute": "sanity",
+      "evolvedName": "The Unbroken",
+      "visualShift": "Scarring stops being hidden and starts being deliberate -- wrapped, painted, worn like a record.",
+      "tier1": { "title": "Fists First", "theme": "Learns to turn punishment into momentum." },
+      "tier2": { "title": "The Long Fight", "theme": "Starts outlasting opponents who hit harder but tire faster." },
+      "tier3": { "title": "Unbroken", "theme": "Damage stops being a cost and starts being fuel." },
+      "tier4": { "title": "The Last Stand", "theme": "Becomes hardest to kill exactly when it matters most." },
+      "capstoneQuote": "I stopped counting hits a long time ago. I just count who's still standing.",
+      "tagline": "Hit me. I've got more where that came from.",
+      "evolutionCost": "A season spent sparring somewhere unofficial, plus whatever scrap it takes to keep showing up.",
+      "whyItWorks": [
+        { "label": "The {minorSkill} Synergy", "text": "{resource} generation quietly rewards investing in {minorSkill}, not just raw {primaryLabel} -- a Brawler who ignores it caps out early." },
+        { "label": "The {resource} Gate", "text": "Every heavy ability spends {resource}, so a Brawler who avoids taking hits never gets to throw their best ones." },
+        { "label": "The Fantasy Arc", "text": "Level 1 — someone who wins fights by refusing to fall down. Level 50 — someone who's stopped falling down at all. Level 99 — someone the fight itself can't outlast." }
+      ]
+    },
+    {
+      "baseName": "Marksman",
+      "tag": "ranged",
+      "archetype": "Skirmisher / Precision Damage / Range Control",
+      "coreResourceName": "Focus",
+      "coreResourceDescription": "Builds while staying at range and landing consecutive hits; spent to guarantee a shot connects or crits.",
+      "primaryAttribute": "reflex",
+      "secondaryAttribute": "fate",
+      "evolvedName": "The Steady Hand",
+      "visualShift": "Movements slow down and simplify -- nothing wasted, nothing rushed, right up until the shot itself.",
+      "tier1": { "title": "Line of Sight", "theme": "Learns that distance is a weapon in its own right." },
+      "tier2": { "title": "Held Breath", "theme": "Starts trading mobility for accuracy on purpose." },
+      "tier3": { "title": "The Steady Hand", "theme": "Every shot starts landing exactly where it was meant to." },
+      "tier4": { "title": "One Shot, One Ending", "theme": "Becomes the reason a fight ends before it starts." },
+      "capstoneQuote": "Everyone else is still aiming. I already fired.",
+      "tagline": "Give me one clean line and this is already over.",
+      "evolutionCost": "A custom sight, hand-fitted, plus a debt owed to whoever fitted it.",
+      "whyItWorks": [
+        { "label": "The {minorSkill} Synergy", "text": "{resource} builds faster with {minorSkill} invested, rewarding patience over spray-and-pray play." },
+        { "label": "The {resource} Gate", "text": "Guaranteed-hit abilities all spend {resource}, so a Marksman who keeps missing never earns the shots that matter." },
+        { "label": "The Fantasy Arc", "text": "Level 1 — someone who's just good with a gun. Level 50 — someone who doesn't miss. Level 99 — someone whose reputation ends fights before the trigger's pulled." }
+      ]
+    },
+    {
+      "baseName": "Technician",
+      "tag": "tech",
+      "archetype": "Controller / Battlefield Manipulator / System Exploiter",
+      "coreResourceName": "Charge",
+      "coreResourceDescription": "Builds from rigged devices and hacked systems doing their job; spent to trigger bigger rigged effects on demand.",
+      "primaryAttribute": "knowledge",
+      "secondaryAttribute": "reflex",
+      "evolvedName": "The Architect",
+      "visualShift": "Gear stops looking improvised and starts looking intentional -- like it was always meant to work this well.",
+      "tier1": { "title": "Jury-Rigged", "theme": "Learns to make the environment do the fighting." },
+      "tier2": { "title": "Load-Bearing", "theme": "Starts stacking rigged effects into real combos." },
+      "tier3": { "title": "The Architect", "theme": "Begins rewriting the rules of what a rigged system can do." },
+      "tier4": { "title": "Total Override", "theme": "Becomes the reason nothing on the battlefield behaves normally." },
+      "capstoneQuote": "You're fighting the room. I built the room.",
+      "tagline": "Give me thirty seconds and this fight's already decided.",
+      "evolutionCost": "Components nobody else recognizes anymore, sourced from somewhere that shouldn't still have power.",
+      "whyItWorks": [
+        { "label": "The {minorSkill} Synergy", "text": "{resource}-spending abilities scale off {minorSkill} as much as {primaryLabel}, rewarding a Technician who diversifies rather than min-maxes one stat." },
+        { "label": "The {resource} Gate", "text": "The biggest effects all cost {resource}, so a Technician who never sets anything up never gets to trigger anything big." },
+        { "label": "The Fantasy Arc", "text": "Level 1 — someone who's handy with rigged gear. Level 50 — someone who's rewritten what the gear can do. Level 99 — someone the battlefield itself answers to." }
+      ]
+    },
+    {
+      "baseName": "Field Medic",
+      "tag": "support",
+      "archetype": "Healer / Sustain / Damage Mitigation",
+      "coreResourceName": "Reserves",
+      "coreResourceDescription": "Builds from treating allies and stabilizing the wounded; spent on the biggest emergency interventions.",
+      "primaryAttribute": "knowledge",
+      "secondaryAttribute": "sanity",
+      "evolvedName": "The Last Line",
+      "visualShift": "Kit gets heavier and more personal -- every tool has a story about the person it was used on.",
+      "tier1": { "title": "Do No Further Harm", "theme": "Learns to keep people standing under fire." },
+      "tier2": { "title": "Triage", "theme": "Starts making the calls nobody wants to make first." },
+      "tier3": { "title": "The Last Line", "theme": "Becomes the reason a losing fight doesn't become a funeral." },
+      "tier4": { "title": "Nobody Dies Today", "theme": "Becomes able to pull someone back from the actual brink." },
+      "capstoneQuote": "I've buried enough people. Not this one.",
+      "tagline": "Stay standing. I'll handle the rest.",
+      "evolutionCost": "Supplies that took real favors to secure, plus a promise to someone that this was worth it.",
+      "whyItWorks": [
+        { "label": "The {minorSkill} Synergy", "text": "{resource} regeneration rewards {minorSkill} investment as much as raw {primaryLabel}, so a Medic who only heals eventually runs dry." },
+        { "label": "The {resource} Gate", "text": "The biggest saves cost {resource}, so a Medic who never engages never has enough banked when it actually matters." },
+        { "label": "The Fantasy Arc", "text": "Level 1 — someone who patches wounds. Level 50 — someone who makes triage calls that save the fight. Level 99 — someone death itself starts negotiating with." }
+      ]
+    },
+    {
+      "baseName": "Scavenger",
+      "tag": "stealth",
+      "archetype": "Skirmisher / Opportunist / Resource Denial",
+      "coreResourceName": "Scrap",
+      "coreResourceDescription": "Builds from looting, disabling, and outmaneuvering; spent to turn found advantage into a real edge.",
+      "primaryAttribute": "reflex",
+      "secondaryAttribute": "knowledge",
+      "evolvedName": "The Opportunist",
+      "visualShift": "Gear becomes visibly mismatched but purposeful -- every piece taken from somewhere, kept for a reason.",
+      "tier1": { "title": "Waste Not", "theme": "Learns that any fight can be won with the right leftovers." },
+      "tier2": { "title": "Working the Angles", "theme": "Starts turning terrain and timing into real advantage." },
+      "tier3": { "title": "The Opportunist", "theme": "Begins taking what it needs mid-fight, not just after." },
+      "tier4": { "title": "Nothing Wasted", "theme": "Becomes able to turn any battlefield scrap into a decisive edge." },
+      "capstoneQuote": "You'd be amazed what a fight leaves lying around, if you know how to look.",
+      "tagline": "I don't need much. I just need what's already here.",
+      "evolutionCost": "A haul worth more than it looks, traded to exactly the right person.",
+      "whyItWorks": [
+        { "label": "The {minorSkill} Synergy", "text": "{resource} generation rewards {minorSkill} as much as {primaryLabel}, so a Scavenger who only fights head-on never fills the tank." },
+        { "label": "The {resource} Gate", "text": "The best tricks all spend {resource}, so a Scavenger who never opportunistically grabs an edge never gets to use them." },
+        { "label": "The Fantasy Arc", "text": "Level 1 — someone who makes do. Level 50 — someone who turns any mess into an opening. Level 99 — someone who's never actually out of options." }
+      ]
+    },
+    {
+      "baseName": "Orator",
+      "tag": "social",
+      "archetype": "Support / Battlefield Control / Morale",
+      "coreResourceName": "Conviction",
+      "coreResourceDescription": "Builds from rallying allies and breaking enemy will; spent to force a moment to go the Orator's way.",
+      "primaryAttribute": "presence",
+      "secondaryAttribute": "fate",
+      "evolvedName": "The Last Word",
+      "visualShift": "Presence sharpens -- a room notices when this character starts talking, whether they meant to command it or not.",
+      "tier1": { "title": "Command Voice", "theme": "Learns that words land as hard as anything else in a fight." },
+      "tier2": { "title": "Holding the Line", "theme": "Starts turning morale into a real tactical resource." },
+      "tier3": { "title": "The Last Word", "theme": "Begins bending the shape of a fight through will alone." },
+      "tier4": { "title": "Nobody Breaks First", "theme": "Becomes the reason an outmatched fight doesn't fall apart." },
+      "capstoneQuote": "I never had the biggest gun. I just made sure everyone else kept fighting.",
+      "tagline": "Follow my lead and we walk out of this. All of us.",
+      "evolutionCost": "A debt of trust called in from people who've earned the right to refuse, and didn't.",
+      "whyItWorks": [
+        { "label": "The {minorSkill} Synergy", "text": "{resource} builds faster with {minorSkill} invested, rewarding an Orator who backs up words with real competence." },
+        { "label": "The {resource} Gate", "text": "The strongest rallying effects spend {resource}, so an Orator who never engages the fight directly never has enough banked to turn it." },
+        { "label": "The Fantasy Arc", "text": "Level 1 — someone who's good at keeping people calm. Level 50 — someone whose voice turns a fight. Level 99 — someone an army follows into anything." }
+      ]
+    }
+  ],
+  "abilityPool": {
+    "t1": [
+      { "name": "First Contact", "kind": "Active", "effectTemplate": "A quick opening strike that builds {resource}. Damage scales with {primaryLabel}." },
+      { "name": "Read the Room", "kind": "Passive", "effectTemplate": "Passively grants bonus Accuracy on the first action each combat. Bonus scales with {secondaryLabel}." },
+      { "name": "Steady Footing", "kind": "Passive", "effectTemplate": "Passively reduces the AP cost of movement by a small, flat amount." },
+      { "name": "Quick Study", "kind": "Active", "effectTemplate": "Spends a turn observing a target, revealing one weakness. Effectiveness scales with {majorSkill}." },
+      { "name": "Bank It", "kind": "Passive", "effectTemplate": "Generates bonus {resource} whenever a turn ends without spending any. N/A — Binary Unlock." }
+    ],
+    "t1-ultimate": {
+      "melee": { "name": "BREAK THE LINE", "kind": "Ultimate Unlock", "effectTemplate": "A committed charge that closes distance and staggers the target. Damage and stagger scale with {primaryLabel}." },
+      "ranged": { "name": "DEAD CENTER", "kind": "Ultimate Unlock", "effectTemplate": "A guaranteed-hit shot that spends all current {resource} for bonus damage. Damage scales with {resource} spent." },
+      "tech": { "name": "TRIGGER EVERYTHING", "kind": "Ultimate Unlock", "effectTemplate": "Detonates every active rigged effect at once. Damage scales with number of effects active and {majorSkill}." },
+      "support": { "name": "HOLD THE LINE", "kind": "Ultimate Unlock", "effectTemplate": "Grants all allies a shield and cleanses one status each. Shield strength scales with {primaryLabel}." },
+      "stealth": { "name": "TAKE THE OPENING", "kind": "Ultimate Unlock", "effectTemplate": "An immediate free action against a target who hasn't acted yet this combat. Damage scales with {secondaryLabel}." },
+      "social": { "name": "STAND WITH ME", "kind": "Ultimate Unlock", "effectTemplate": "Rallies all allies, clearing Fear and granting bonus Accuracy for two turns. Bonus scales with {primaryLabel}." }
+    },
+    "t2": [
+      { "name": "Momentum Shift", "kind": "Active", "effectTemplate": "A follow-up action usable only after the opener connects. Damage scales with {majorSkill}." },
+      { "name": "Hardened Nerve", "kind": "Passive", "effectTemplate": "Passively grants resistance to Fear and Panic-type effects." },
+      { "name": "Second Wind", "kind": "Active", "effectTemplate": "Spends {resource} to recover a moderate amount of health or Energy." },
+      { "name": "Pressure Point", "kind": "Active", "effectTemplate": "A precise strike that applies a stacking debuff. Stack potency scales with {secondaryLabel}." },
+      { "name": "Efficient Motion", "kind": "Passive", "effectTemplate": "Passively reduces the AP cost of this class's core ability by 1." }
+    ],
+    "t3": [
+      { "name": "Ignore the Rules", "kind": "Active", "effectTemplate": "Bypasses a portion of target's damage reduction or resistance. Ignored amount scales with {majorSkill}." },
+      { "name": "Overcharged", "kind": "Passive", "effectTemplate": "Passively increases maximum {resource}, and abilities scale further past the old cap." },
+      { "name": "No Wasted Motion", "kind": "Active", "effectTemplate": "Chains directly into a second action without spending additional AP. Chain damage scales with {primaryLabel}." },
+      { "name": "Turn the Tide", "kind": "Active", "effectTemplate": "Converts a negative status on self into a matching positive effect. Duration scales with {secondaryLabel}." },
+      { "name": "Unshakeable", "kind": "Passive", "effectTemplate": "Passively grants immunity to being staggered or interrupted while above half health." },
+      { "name": "Exploit the Gap", "kind": "Active", "effectTemplate": "Deals bonus damage against any target already affected by a status. Bonus scales with {majorSkill}." }
+    ],
+    "t3-ultimate": {
+      "melee": { "name": "NOTHING LEFT STANDING", "kind": "Ultimate Unlock", "effectTemplate": "A sweeping strike hitting every adjacent enemy, spending all {resource} for bonus damage per target." },
+      "ranged": { "name": "EVERY SHOT COUNTS", "kind": "Ultimate Unlock", "effectTemplate": "Fires at every visible enemy simultaneously, each guaranteed to hit. Damage scales with {primaryLabel}." },
+      "tech": { "name": "CASCADE FAILURE", "kind": "Ultimate Unlock", "effectTemplate": "Chains a rigged effect through every enemy in range, escalating with each jump. Scales with {majorSkill}." },
+      "support": { "name": "NOT ON MY WATCH", "kind": "Ultimate Unlock", "effectTemplate": "Fully restores one ally and grants them a full extra turn. Restoration scales with {primaryLabel}." },
+      "stealth": { "name": "GHOST STEP", "kind": "Ultimate Unlock", "effectTemplate": "Becomes untargetable for one turn and repositions freely. N/A — Binary Unlock, enables a follow-up next turn." },
+      "social": { "name": "THE ROOM AGREES", "kind": "Ultimate Unlock", "effectTemplate": "Forces every enemy in range to skip their next action. Duration scales with {primaryLabel}." }
+    },
+    "t4": [
+      { "name": "Legend Precedes You", "kind": "Passive", "effectTemplate": "Passively grants bonus {resource} generation whenever an ally lands a killing blow nearby." },
+      { "name": "Refuse to Fall", "kind": "Passive", "effectTemplate": "Once per combat, an attack that would drop this character to 0 health leaves them at 1 instead." },
+      { "name": "Reap the Reward", "kind": "Active", "effectTemplate": "Spends all current {resource} for a massive single-target strike. Damage scales with {resource} spent and {majorSkill}." },
+      { "name": "Beyond Training", "kind": "Passive", "effectTemplate": "Passively grants a flat bonus to every scaling stat this class's abilities reference." },
+      { "name": "Answer for Everything", "kind": "Active", "effectTemplate": "Cleanses every negative status on self and grants a matching positive one. N/A — Binary Unlock." }
+    ],
+    "t4-final": {
+      "melee": { "name": "THE LAST STAND", "kind": "Final Unlock", "effectTemplate": "While below quarter health, gains massive bonus damage and cannot be reduced below 1 health for three turns." },
+      "ranged": { "name": "ONE SHOT, ONE ENDING", "kind": "Final Unlock", "effectTemplate": "A single guaranteed-crit shot that ends the encounter's biggest remaining threat outright below a health threshold." },
+      "tech": { "name": "TOTAL OVERRIDE", "kind": "Final Unlock", "effectTemplate": "Seizes control of every rigged effect and hostile system in range for one full turn." },
+      "support": { "name": "NOBODY DIES TODAY", "kind": "Final Unlock", "effectTemplate": "Fully restores and shields every ally simultaneously, once per encounter." },
+      "stealth": { "name": "NOTHING WASTED", "kind": "Final Unlock", "effectTemplate": "Converts every advantage gained this combat into one devastating, unavoidable strike." },
+      "social": { "name": "NOBODY BREAKS FIRST", "kind": "Final Unlock", "effectTemplate": "Every ally becomes immune to Fear, Panic, and morale effects for the rest of the encounter, permanently." }
+    }
+  },
+  "designNotes": [
+    { "value": "Rolled procedurally from a fixed archetype seed -- solid as a baseline kit, but a hand pass on ability names/flavor is recommended before this becomes a player's main.", "weight": 3 },
+    { "value": "Rolled procedurally -- the numbers and structure are sound, but this is the category where a manual polish pass earns the most per minute spent.", "weight": 2 }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "_comment": "EXPERIMENTAL. Procedural table for Logs -- per procedural_generation_scope_proposal.md #2 this was flagged 'poor fit' (bodyText IS the entry, ~80-90% prose), but the task asked to try it anyway. lib/proceduralGenerators.js slot-fills {name}/{location}/{item}/{faction} from this world's OWN live roster (lib/roster.js) wherever one exists, falling back to the generic pools below only when a world genuinely has nothing yet to reference (e.g. Logs generated before any NPCs/Locations/Items exist) -- this is the one category where grounding in real archived content, not just table variety, is the whole point.",
+  "logTypes": [
+    { "value": "Audio", "weight": 2 },
+    { "value": "Journal", "weight": 2 },
+    { "value": "Terminal", "weight": 2 }
+  ],
+  "bodyTextTemplates": {
+    "Audio": [
+      { "value": "[RECORDING BEGINS -- QUALITY DEGRADED]\n\n...still there? Okay. Okay, if anyone finds this -- {name} said {item} would still be at {location}, and they were wrong, or somebody beat us to it. Either way I'm not going back for a second look.\n\n[LONG PAUSE]\n\nIf this is {faction} picking this up -- I want it on record I didn't take anything that wasn't already abandoned.\n\n[RECORDING ENDS]", "weight": 1 },
+      { "value": "[AUDIO LOG -- PERSONAL]\n\nDay whatever. Lost count again. {name} still hasn't come back from {location}, and I keep telling myself that doesn't mean what it probably means.\n\n[SOUND OF SOMETHING SHIFTING]\n\nGoing to go looking in the morning. If someone finds this instead of me -- tell {name} I kept the {item} safe, like I said I would.\n\n[RECORDING ENDS]", "weight": 1 },
+      { "value": "[AUDIO LOG -- FIELD REPORT]\n\nThis is {name}, reporting in from {location}. {faction} activity is heavier here than the last briefing suggested -- recommend nobody comes through alone.\n\n[STATIC]\n\nAlso recovered a {item} on site. Flagging it for anyone who actually knows what to do with it, because I sure don't.\n\n[RECORDING ENDS]", "weight": 1 },
+      { "value": "[RECORDING -- SOURCE UNKNOWN]\n\n...if you're hearing this, {location} isn't safe anymore. {name} tried to warn people and nobody listened, so I'm trying again.\n\n[PAUSE]\n\nWhatever you do, don't go looking for the {item}. It's not worth whatever's guarding it now.\n\n[RECORDING ENDS]", "weight": 1 },
+      { "value": "[AUDIO LOG]\n\nFunny thing about {location} -- everyone talks about it like it's cursed, but {name} lived there for years before things went bad. Found their {item} still sitting exactly where they left it.\n\n[LONG SILENCE]\n\nMakes you wonder what actually chased them out.\n\n[RECORDING ENDS]", "weight": 1 },
+      { "value": "[AUDIO LOG -- {faction} INTERNAL]\n\nThis is for {faction} eyes only. {name} confirmed the situation at {location} is worse than reported -- recommend reassigning anyone stationed there before the next supply run.\n\n[PAUSE]\n\nThe {item} recovered from the site is being held pending review. That's all for now.\n\n[RECORDING ENDS]", "weight": 1 }
+    ],
+    "Journal": [
+      { "value": "Still can't sleep. Keep thinking about what {name} said before they left for {location} -- that it wasn't as bad as everyone made it sound. I hope they were right.\n\nFound the {item} in their things today. Not sure what to do with it yet. Feels wrong to use it. Feels worse to just leave it.", "weight": 1 },
+      { "value": "Third entry this week, which is more than I usually manage. {location} is finally starting to feel less like a temporary stop and more like somewhere we're actually staying.\n\n{name} thinks I'm being naive about it. Maybe. Traded half our {item} stock today for something we actually needed, so at least that went well.", "weight": 1 },
+      { "value": "Today {name} asked me straight out whether I trusted {faction}. Took me longer to answer than it should have.\n\nSpent the rest of the day going through what's left at {location}, trying to figure out what's worth carrying and what isn't. Kept the {item}. Couldn't tell you exactly why.", "weight": 1 },
+      { "value": "Woke up before everyone else again. Walked out to {location} alone, which {name} would absolutely lecture me about if they knew.\n\nFound a {item} half-buried near where the old road used to be. Didn't touch it. Some things you leave exactly where they are.", "weight": 1 },
+      { "value": "{name} left today. Didn't say much, just took the {item} and headed for {location} without waiting to see if anyone wanted to come.\n\nI keep telling myself they'll be back. I've told myself that before about other people.", "weight": 1 },
+      { "value": "Good day, for once. {faction} came through on what they promised, and {location} is finally starting to feel secure enough to actually plan around.\n\n{name} even cracked a joke for the first time in longer than I can remember. Small things.", "weight": 1 }
+    ],
+    "Terminal": [
+      { "value": "> ACCESSING ARCHIVED SESSION...\n> USER: {name}\n> LOCATION TAG: {location}\n\n> log: inventory discrepancy flagged re: {item}. investigating before escalating to {faction} oversight.\n> log: discrepancy resolved. filing incomplete -- system interrupted before final entry could save.\n\n> [SESSION TERMINATED UNEXPECTEDLY]", "weight": 1 },
+      { "value": "> SYSTEM RECOVERY -- PARTIAL LOG RECONSTRUCTED\n\n> {name}: requesting status update on {location} perimeter.\n> SYSTEM: no response received from field unit in 6+ cycles.\n> {name}: escalating to {faction}. attaching last known asset report: {item}, last logged as secure.\n\n> [REMAINDER OF LOG CORRUPTED]", "weight": 1 },
+      { "value": "> USER {name} LOGGED IN\n> NOTE: found {item} while clearing debris at {location}. logging for records, unclear if still functional.\n> NOTE: {faction} contact says they want it examined before anyone else touches it.\n> USER {name} LOGGED OUT\n\n> [NO FURTHER ACTIVITY ON THIS TERMINAL]", "weight": 1 },
+      { "value": "> AUTOMATED STATUS REPORT -- {location}\n> LAST MAINTAINED BY: {name}\n> FLAGGED ITEMS: 1x {item}, status unconfirmed\n> NOTES: {faction} requested priority handling. request not yet actioned as of last sync.\n\n> [TERMINAL OFFLINE SINCE]", "weight": 1 },
+      { "value": "> {name}: anyone still monitoring this terminal?\n> {name}: if so, {location} needs resupply before the week's out.\n> {name}: also logging the {item} we found here, in case it matters to {faction} later.\n\n> [NO REPLY LOGGED]", "weight": 1 }
+    ]
+  },
+  "contextTemplates": [
+    { "value": "Recovered from a damaged data drive, partially corrupted.", "weight": 1 },
+    { "value": "Found tucked into a personal effects bag, water-damaged but legible.", "weight": 1 },
+    { "value": "Pulled from a terminal that shouldn't still have power.", "weight": 1 },
+    { "value": "Left behind in plain sight, like whoever wrote it wanted it found.", "weight": 1 },
+    { "value": "Recovered from a sealed container, deliberately hidden rather than lost.", "weight": 1 },
+    { "value": "Found among a scattered pile of similar entries, the rest unrecoverable.", "weight": 1 }
+  ],
+  "fallbackNames": [
+    { "value": "a scavenger who never gave a name", "weight": 1 }, { "value": "someone who signed only with initials", "weight": 1 },
+    { "value": "whoever kept this terminal running", "weight": 1 }, { "value": "the last person stationed here", "weight": 1 }
+  ],
+  "fallbackLocations": [
+    { "value": "the old transit tunnels", "weight": 1 }, { "value": "the flooded lower levels", "weight": 1 },
+    { "value": "the scrapyard past the checkpoint", "weight": 1 }, { "value": "the abandoned relay station", "weight": 1 }
+  ],
+  "fallbackItems": [
+    { "value": "sealed container", "weight": 1 }, { "value": "data chit", "weight": 1 },
+    { "value": "toolkit", "weight": 1 }, { "value": "ration crate", "weight": 1 }
+  ],
+  "titleTemplates": [
+    { "value": "Recovered {logType} Fragment", "weight": 2 },
+    { "value": "Last {logType} on File", "weight": 1 },
+    { "value": "{characters}'s {logType}", "weight": 2 },
+    { "value": "Unlabeled {logType}", "weight": 1 },
+    { "value": "{logType} — Partial Recovery", "weight": 1 }
+  ],
+  "designNotes": [
+    { "value": "EXPERIMENTAL -- rolled procedurally from a Mad-Libs template, slot-filled with real roster names/locations/items where this world had any archived yet. This is the proposal's own flagged 'poor fit': bodyText IS the entry, and a templated found-text log reads noticeably more mechanical on a close read than an AI-drafted one, even with real names slotted in. Treat this as a placeholder worth a manual rewrite, not a finished log.", "weight": 1 }
+  ]
+}

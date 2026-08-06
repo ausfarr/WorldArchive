@@ -299,6 +299,69 @@ function wireManualCreateButton() {
 }
 
 // ============================================================
+// Procedural (non-AI) generation -- "Generate Procedurally" button, next
+// to "Generate with AI" (#gen-form's own submit) and "+ Create Manually"
+// above. See procedural_generation_scope_proposal.md and
+// session_addendum_procedural_generation_shipped.md.
+//
+// Unlike AI generation, this is instant and free -- no Claude/Gemini
+// call happens anywhere in this path (lib/proceduralGenerators.js is
+// pure weighted-random-pick + template-fill), so this deliberately does
+// NOT use showGenerationOverlay() (that's reserved for real waits, per
+// its own header comment) -- just the lighter disable+status-text
+// treatment Manual Mode's save button already uses.
+//
+// Two-step network call, mirroring how a regenerate preview already
+// works: POST /api/generate-procedural builds the entry (no DB write),
+// then POST /api/confirm-entry persists it through the exact same write
+// path AI and Manual Mode entries already use. No per-category branching
+// needed here -- every category's generator returns a raw object shaped
+// for that category's existing build*BodyHtml, so confirm-entry handles
+// all 8 identically.
+function wireProceduralGenerateButton() {
+  const genForm = document.getElementById("gen-form");
+  const category = document.body.dataset.category;
+  if (!genForm || !category) return;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.id = "procedural-generate-btn";
+  btn.textContent = "Generate Procedurally";
+  btn.title = "Instant, zero-cost, table-driven generation -- no AI call.";
+  btn.style.cssText = "background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
+  genForm.appendChild(btn);
+
+  btn.addEventListener("click", async () => {
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Rolling…";
+    try {
+      const genRes = await authFetch("/api/generate-procedural", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category })
+      });
+      const genData = await genRes.json();
+      if (!genRes.ok) throw new Error(formatGenerationError(genData, { asHtml: false }));
+
+      const confirmRes = await authFetch("/api/confirm-entry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, entry: genData.entry })
+      });
+      const confirmData = await confirmRes.json();
+      if (!confirmRes.ok) throw new Error(formatGenerationError(confirmData, { asHtml: false }));
+
+      window.location.reload();
+    } catch (err) {
+      alert(`Procedural generation failed: ${err.message}`);
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+}
+
+// ============================================================
 // Import Character -- previously a permanently-visible "Import Existing
 // Character" panel (textarea + file upload + submit) sitting on its own
 // full-width sheet below the Generate form on the NPCs and Survivors

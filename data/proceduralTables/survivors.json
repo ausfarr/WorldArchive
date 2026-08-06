@@ -1,0 +1,103 @@
+{
+  "_comment": "Procedural table for Survivors (PCs). attributes{} are NOT authored here -- lib/proceduralGenerators.js rolls 6 values against the same ~50-60 point 'capable starting adventurer' budget prompts/survivorContentPrompt.js uses (PC_ATTRIBUTE_BUDGET_HINT), nudged toward whichever class was assigned. className is picked from this world's own live class roster (lib/roster.js's buildAvailableClassesText) when any exist, falling back to the same FALLBACK_CLASS_LIST that module already uses. faction is picked from the world's own live faction roster. bond.effect stays a roleplay hook per prompts/survivorContentPrompt.js's own correction (never a numeric modifier) -- see procedural_generation_scope_proposal.md #0.",
+  "firstNames": [
+    { "value": "Mara", "weight": 1 }, { "value": "Desmond", "weight": 1 }, { "value": "Yulia", "weight": 1 },
+    { "value": "Ochre", "weight": 1 }, { "value": "Priya", "weight": 1 }, { "value": "Tobias", "weight": 1 },
+    { "value": "Kestrel", "weight": 1 }, { "value": "Amadi", "weight": 1 }, { "value": "Lenna", "weight": 1 },
+    { "value": "Soren", "weight": 1 }, { "value": "Odalys", "weight": 1 }, { "value": "Rutger", "weight": 1 },
+    { "value": "Ines", "weight": 1 }, { "value": "Cassidy", "weight": 1 }, { "value": "Petra", "weight": 1 },
+    { "value": "Dov", "weight": 1 }, { "value": "Halcyon", "weight": 1 }, { "value": "Miriam", "weight": 1 },
+    { "value": "Ezra", "weight": 1 }, { "value": "Two-Names Rin", "weight": 1 }
+  ],
+  "lastNames": [
+    { "value": "Okonkwo", "weight": 1 }, { "value": "Fenrick", "weight": 1 }, { "value": "Vashti", "weight": 1 },
+    { "value": "Kess", "weight": 1 }, { "value": "Marlowe", "weight": 1 }, { "value": "Duarte", "weight": 1 },
+    { "value": "Ostrowski", "weight": 1 }, { "value": "Ade", "weight": 1 }, { "value": "Halloran", "weight": 1 },
+    { "value": "Voss", "weight": 1 }, { "value": "Nakagawa", "weight": 1 }, { "value": "Brandt", "weight": 1 },
+    { "value": "Escobedo", "weight": 1 }, { "value": "Whitlock", "weight": 1 }, { "value": "Amadeo", "weight": 1 },
+    { "value": "Grier", "weight": 1 }, { "value": "Pemberton", "weight": 1 }, { "value": "Solis", "weight": 1 }
+  ],
+  "callsigns": [
+    { "value": null, "weight": 4 },
+    { "value": "Six-Fingers", "weight": 1 }, { "value": "Quietkill", "weight": 1 }, { "value": "Patches", "weight": 1 },
+    { "value": "The Ledger", "weight": 1 }, { "value": "Halfmoon", "weight": 1 }, { "value": "Rustnail", "weight": 1 },
+    { "value": "No-Sleep", "weight": 1 }, { "value": "Copper", "weight": 1 }, { "value": "The Understudy", "weight": 1 },
+    { "value": "Late Bell", "weight": 1 }
+  ],
+  "personalityTraits": [
+    { "value": "Compulsively generous, even when it costs them", "weight": 2 },
+    { "value": "Keeps a running mental list of who owes who what", "weight": 2 },
+    { "value": "Treats every plan like it needs a backup plan", "weight": 2 },
+    { "value": "Can't stop narrating what they're doing under stress", "weight": 1 },
+    { "value": "Fiercely, almost irrationally loyal to whoever earns it first", "weight": 2 },
+    { "value": "Trusts machines more than people, and says so", "weight": 1 },
+    { "value": "Turns fear into jokes nobody asked for", "weight": 2 },
+    { "value": "Collects small, useless things and won't explain why", "weight": 1 },
+    { "value": "Never raises their voice, which somehow makes it worse when they're angry", "weight": 1 },
+    { "value": "Volunteers for the worst job before anyone else can", "weight": 2 },
+    { "value": "Keeps promises nobody remembers asking for", "weight": 1 },
+    { "value": "Argues with authority on principle, even when it's the losing move", "weight": 1 }
+  ],
+  "contradictions": [
+    { "value": "Talks a big game about self-reliance but is the first to ask for help when it actually matters.", "weight": 1 },
+    { "value": "Preaches caution to everyone else and takes the worst risks themselves.", "weight": 1 },
+    { "value": "Claims not to care what people think, then works twice as hard when someone's watching.", "weight": 1 },
+    { "value": "Says they're done trusting people, and keeps doing it anyway, every time.", "weight": 1 },
+    { "value": "Insists they're just here for the job, but remembers everyone's birthday.", "weight": 1 },
+    { "value": "Acts like the past doesn't matter, but it's the only thing they actually talk about when drunk.", "weight": 1 },
+    { "value": "Swears they'll walk away from this life the moment they're able to, and never takes the exit when it's offered.", "weight": 1 },
+    { "value": "Plays the cynic in every conversation but is the easiest person here to talk into a bad idea for a good reason.", "weight": 1 }
+  ],
+  "wants": [
+    { "value": "Enough put away to actually stop and not just survive the next stretch.", "weight": 1 },
+    { "value": "To find the person they lost track of, whatever that takes.", "weight": 1 },
+    { "value": "To be the one who's finally, actually in control of something.", "weight": 1 },
+    { "value": "A reputation solid enough that nobody questions them twice.", "weight": 1 },
+    { "value": "To pay off a debt that's been sitting on them for years.", "weight": 1 },
+    { "value": "A place that feels like it's actually theirs.", "weight": 1 },
+    { "value": "To prove a specific person wrong, once and for good.", "weight": 1 },
+    { "value": "To matter to more than the handful of people who already rely on them.", "weight": 1 }
+  ],
+  "actuallyNeeds": [
+    { "value": "To let someone else carry something for once.", "weight": 1 },
+    { "value": "To forgive themselves for a decision they can't undo.", "weight": 1 },
+    { "value": "To stop treating every relationship like it's temporary.", "weight": 1 },
+    { "value": "To admit the plan they're clinging to already failed.", "weight": 1 },
+    { "value": "To be somewhere long enough to actually be known.", "weight": 1 },
+    { "value": "To stop needing to win every argument to feel safe.", "weight": 1 },
+    { "value": "Rest, plainly, which they will not ask for.", "weight": 1 },
+    { "value": "To believe the people who keep telling them they're enough.", "weight": 1 }
+  ],
+  "backstoryTemplates": [
+    { "value": "Before all this, {name} worked a job that no longer exists in any meaningful sense -- the kind of steady, unglamorous work that taught them patience and not much else. A specific bad night changed that, the details of which they don't share easily. Now they run with whoever's headed the same direction, officially as a {className}, and haven't fully decided whether that's a career or a delay tactic.", "weight": 1 },
+    { "value": "{name} grew up somewhere quieter than where they ended up, in a household that either didn't survive the transition or didn't come with them. They picked up {className} work out of necessity long before it became identity, and they're still a little surprised at how good they turned out to be at it. Most days that's enough of an answer for why they keep going.", "weight": 1 },
+    { "value": "There was a version of {name} that had different plans -- a version that existed before circumstances made the choice for them. What's left is someone who's competent as a {className} and privately still grieving whoever they were supposed to become instead. They don't talk about it unless it's late and someone else brings it up first.", "weight": 1 },
+    { "value": "{name} didn't choose this life so much as get funneled into it -- one bad break, one closed door, one favor called in, and suddenly {className} work was the only door still open. They've made a kind of peace with that, mostly. The rest shows up at inconvenient times.", "weight": 1 },
+    { "value": "Before the {className} work, {name} was known for something else entirely -- a reputation that still occasionally catches up with them in places they didn't expect to be recognized. They left that life behind for reasons they'll explain eventually, if pressed the right way, by the right person.", "weight": 1 }
+  ],
+  "bondNames": [
+    { "value": "An Old Debt", "weight": 1 }, { "value": "The One That Got Away", "weight": 1 }, { "value": "A Name They Don't Say", "weight": 1 },
+    { "value": "The Promise", "weight": 1 }, { "value": "Unfinished Business", "weight": 1 }, { "value": "The Watcher", "weight": 1 },
+    { "value": "What's Left Behind", "weight": 1 }, { "value": "The Second Chance", "weight": 1 }, { "value": "A Debt in the Other Direction", "weight": 1 },
+    { "value": "The Reason They Left", "weight": 1 }
+  ],
+  "bondEffects": [
+    { "value": "Someone from before still knows a secret about them, and hasn't decided yet whether to use it.", "weight": 1 },
+    { "value": "They owe a favor to someone dangerous, and it hasn't been called in yet -- but it will be.", "weight": 1 },
+    { "value": "There's a person they'd drop everything for, no questions, if that person ever actually asked.", "weight": 1 },
+    { "value": "A promise made under duress still hangs over them, unresolved and increasingly inconvenient.", "weight": 1 },
+    { "value": "They're being quietly watched by someone with their own reasons -- benign or not, still unclear.", "weight": 1 },
+    { "value": "Somebody they wronged is still out there, and this world is small enough that a reckoning feels inevitable.", "weight": 1 },
+    { "value": "There's a place they can never go back to, for reasons that would explain a lot if they ever told anyone.", "weight": 1 }
+  ],
+  "bondFlavorLines": [
+    { "value": "It's the kind of thing you don't bring up unless you have to. They haven't had to yet.", "weight": 1 },
+    { "value": "They'll deny it means anything, right up until it clearly does.", "weight": 1 },
+    { "value": "Ask them about it directly and watch the subject change in real time.", "weight": 1 },
+    { "value": "Everyone who's been around long enough has learned not to push on this one.", "weight": 1 },
+    { "value": "It's the one thing on their sheet that isn't really about the job.", "weight": 1 }
+  ],
+  "designNotes": [
+    { "value": "Rolled procedurally -- attribute split nudged toward the assigned class, but backstory/bond are Mad-Libs placeholders worth a manual pass before this PC sees real play.", "weight": 1 }
+  ]
+}

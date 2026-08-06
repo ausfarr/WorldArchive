@@ -1,0 +1,139 @@
+{
+  "_comment": "Procedural table for Items. weaponSkill keys and damageMin/damageMax are NOT authored here -- lib/proceduralGenerators.js rolls those from lib/itemFormulas.js's WEAPON_ROLL_RANGES/clampDamageRange at generation time, per procedural_generation_scope_proposal.md #4. Same for armor: effectorTierRange picks a tier, computeArmorDR() derives the DR number. rarityWeights is a per-row weighted pool the generator uses to pick THIS item's rarity; the top-level 'weight' on each row controls how often that row is picked at all relative to its siblings.",
+  "weapons": [
+    { "weaponSkill": "Heavy Weapons", "weaponType": "Rebar Maul", "weight": 2, "flavorTemplate": "A length of construction rebar bent into a crude head, {condition}.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Heavy Weapons", "weaponType": "Fire-Axe", "weight": 2, "flavorTemplate": "A firefighter's axe, {condition}, still bearing a faded department decal.", "rarityWeights": { "Common": 4, "Uncommon": 4, "Rare": 1 } },
+    { "weaponSkill": "Heavy Weapons", "weaponType": "Sledge Warhammer", "weight": 1, "flavorTemplate": "A demolition sledgehammer re-gripped for combat, head {condition}.", "rarityWeights": { "Common": 3, "Uncommon": 3, "Rare": 2, "Legendary": 1 } },
+    { "weaponSkill": "Heavy Weapons", "weaponType": "I-Beam Cleaver", "weight": 1, "flavorTemplate": "A slab cut from an I-beam and ground down to an edge, {condition}.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Heavy Weapons", "weaponType": "Engine Block Flail", "weight": 1, "flavorTemplate": "A chain welded to a chunk of engine block, {condition}, swings like it means it.", "rarityWeights": { "Common": 3, "Uncommon": 3, "Rare": 2 } },
+    { "weaponSkill": "Heavy Weapons", "weaponType": "Post-Driver Hammer", "weight": 1, "flavorTemplate": "A road crew's post-driver, cut down and rebalanced, {condition}.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 1 } },
+    { "weaponSkill": "Heavy Weapons", "weaponType": "Anchor-Chain Bludgeon", "weight": 1, "flavorTemplate": "A ship's anchor chain wound around a steel core, {condition}, heavier than it looks.", "rarityWeights": { "Common": 2, "Uncommon": 3, "Rare": 3, "Legendary": 1 } },
+
+    { "weaponSkill": "Light Weapons", "weaponType": "Box Cutter", "weight": 2, "flavorTemplate": "A retractable-blade utility knife, {condition}, kept honed out of habit.", "rarityWeights": { "Common": 6, "Uncommon": 2 } },
+    { "weaponSkill": "Light Weapons", "weaponType": "Kitchen Cleaver", "weight": 2, "flavorTemplate": "A cook's cleaver, {condition}, still smelling faintly of the last kitchen it left.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Light Weapons", "weaponType": "Shiv", "weight": 2, "flavorTemplate": "A sharpened length of scrap wrapped in tape for grip, {condition}.", "rarityWeights": { "Common": 6, "Uncommon": 2 } },
+    { "weaponSkill": "Light Weapons", "weaponType": "Bone Saw", "weight": 1, "flavorTemplate": "A surgical bone saw, {condition}, teeth still disturbingly clean.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2 } },
+    { "weaponSkill": "Light Weapons", "weaponType": "Letter Opener", "weight": 1, "flavorTemplate": "A brass letter opener filed down to a real point, {condition}.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Light Weapons", "weaponType": "Ice Pick", "weight": 1, "flavorTemplate": "A climber's ice pick, {condition}, still gripping fine in a gloved hand.", "rarityWeights": { "Common": 4, "Uncommon": 4, "Rare": 1 } },
+    { "weaponSkill": "Light Weapons", "weaponType": "Filet Knife", "weight": 1, "flavorTemplate": "A thin, flexible filet knife, {condition}, built for finding the gap between things.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 2 } },
+
+    { "weaponSkill": "Polearm", "weaponType": "Rebar Spear", "weight": 2, "flavorTemplate": "Rebar lashed to a mop handle, {condition}, point filed narrow.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Polearm", "weaponType": "Riot Baton (extended)", "weight": 2, "flavorTemplate": "A collapsible riot baton wired to stay locked open, {condition}.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2 } },
+    { "weaponSkill": "Polearm", "weaponType": "Boat Hook", "weight": 1, "flavorTemplate": "A dock worker's boat hook, {condition}, hook end reground into a point.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Polearm", "weaponType": "Pitchfork", "weight": 1, "flavorTemplate": "A farm pitchfork, {condition}, tines wired together into one point.", "rarityWeights": { "Common": 5, "Uncommon": 2, "Rare": 1 } },
+    { "weaponSkill": "Polearm", "weaponType": "Window-Washer Pole Spear", "weight": 1, "flavorTemplate": "An extendable window-washing pole with a blade lashed to the end, {condition}.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2 } },
+    { "weaponSkill": "Polearm", "weaponType": "Halberd (improvised)", "weight": 1, "flavorTemplate": "An axe head and a hook welded to a scaffolding pole, {condition}.", "rarityWeights": { "Common": 2, "Uncommon": 3, "Rare": 3, "Legendary": 1 } },
+
+    { "weaponSkill": "Unarmed", "weaponType": "Knuckle Wraps", "weight": 2, "flavorTemplate": "Hand-wrapped cloth reinforced with washers, {condition}.", "rarityWeights": { "Common": 6, "Uncommon": 2 } },
+    { "weaponSkill": "Unarmed", "weaponType": "Grapple Rig", "weight": 1, "flavorTemplate": "A harness-mounted grapple claw, {condition}, meant for climbing before it was repurposed.", "rarityWeights": { "Common": 3, "Uncommon": 3, "Rare": 2 } },
+    { "weaponSkill": "Unarmed", "weaponType": "Rebar Knuckles", "weight": 1, "flavorTemplate": "Bent rebar shaped into a knuckle-duster, {condition}.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Unarmed", "weaponType": "Spring-Loaded Gauntlet", "weight": 1, "flavorTemplate": "A leather gauntlet with a spring-loaded striking plate, {condition}, and a hair trigger.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2 } },
+    { "weaponSkill": "Unarmed", "weaponType": "Weighted Gloves", "weight": 1, "flavorTemplate": "Work gloves with lead shot sewn into the knuckles, {condition}.", "rarityWeights": { "Common": 5, "Uncommon": 2, "Rare": 1 } },
+
+    { "weaponSkill": "Ballistics", "weaponType": "Break-Action Pistol", "weight": 2, "flavorTemplate": "A single-shot pistol salvaged from a display case, {condition}.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Ballistics", "weaponType": "Sawn-Down Rifle", "weight": 2, "flavorTemplate": "A hunting rifle with the stock cut down for close quarters, {condition}.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2, "Legendary": 1 } },
+    { "weaponSkill": "Ballistics", "weaponType": "Nail-Gun (rewired)", "weight": 1, "flavorTemplate": "A framing nail gun rewired to fire full-auto, {condition}, still smells of compressed air.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2 } },
+    { "weaponSkill": "Ballistics", "weaponType": "Revolver (mismatched cylinder)", "weight": 1, "flavorTemplate": "A revolver with a cylinder from a different model entirely, {condition}, works anyway.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 2 } },
+    { "weaponSkill": "Ballistics", "weaponType": "Flare Gun (bored out)", "weight": 1, "flavorTemplate": "A flare gun with the barrel bored out to take real rounds, {condition}.", "rarityWeights": { "Common": 3, "Uncommon": 3, "Rare": 2, "Legendary": 1 } },
+
+    { "weaponSkill": "Archery", "weaponType": "Recurve Bow", "weight": 2, "flavorTemplate": "A recurve bow strung with braided cable, {condition}.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "weaponSkill": "Archery", "weaponType": "Pipe Crossbow", "weight": 2, "flavorTemplate": "A crossbow built from plumbing pipe and a car-door spring, {condition}.", "rarityWeights": { "Common": 4, "Uncommon": 4, "Rare": 1 } },
+    { "weaponSkill": "Archery", "weaponType": "Speargun", "weight": 1, "flavorTemplate": "A diver's speargun, {condition}, band replaced twice over.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2 } },
+    { "weaponSkill": "Archery", "weaponType": "Slingshot (reinforced)", "weight": 1, "flavorTemplate": "A slingshot with a steel forked frame, {condition}, bands doubled up.", "rarityWeights": { "Common": 5, "Uncommon": 2, "Rare": 1 } },
+    { "weaponSkill": "Archery", "weaponType": "Compound Bow", "weight": 1, "flavorTemplate": "A hunting compound bow, {condition}, cams still tuned true.", "rarityWeights": { "Common": 3, "Uncommon": 3, "Rare": 2, "Legendary": 1 } },
+
+    { "weaponSkill": "Catalysts", "weaponType": "Charge Coil", "weight": 2, "flavorTemplate": "A hand-wound induction coil, {condition}, that hums when gripped.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2, "Legendary": 1 } },
+    { "weaponSkill": "Catalysts", "weaponType": "Signal Wand", "weight": 2, "flavorTemplate": "A repurposed antenna rig, {condition}, tuned to something that isn't radio.", "rarityWeights": { "Common": 3, "Uncommon": 3, "Rare": 2 } },
+    { "weaponSkill": "Catalysts", "weaponType": "Capacitor Baton", "weight": 1, "flavorTemplate": "A rubber-hafted baton with a scavenged capacitor bank inside, {condition}.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2 } },
+    { "weaponSkill": "Catalysts", "weaponType": "Tesla Fork", "weight": 1, "flavorTemplate": "A tuning-fork-shaped rig that arcs between its prongs, {condition}.", "rarityWeights": { "Common": 2, "Uncommon": 3, "Rare": 3, "Legendary": 1 } },
+    { "weaponSkill": "Catalysts", "weaponType": "Resonance Bell", "weight": 1, "flavorTemplate": "A cracked bell rewired with a striker and a battery pack, {condition}.", "rarityWeights": { "Common": 3, "Uncommon": 3, "Rare": 2 } }
+  ],
+  "armor": [
+    { "armorSlot": "Body", "weaponType": "Padded Undersuit", "weight": 2, "effectorTierRange": [1, 2], "flavorTemplate": "A quilted undersuit, {condition}, worn as a base layer under heavier gear.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "armorSlot": "Body", "weaponType": "Riot Vest", "weight": 2, "effectorTierRange": [3, 4], "flavorTemplate": "A police-issue riot vest, {condition}, plates visibly reinforced with scrap.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2, "Legendary": 1 } },
+    { "armorSlot": "Body", "weaponType": "Chainmail Apron", "weight": 1, "effectorTierRange": [2, 3], "flavorTemplate": "A butcher's chainmail apron, {condition}, repurposed as torso armor.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 1 } },
+    { "armorSlot": "Body", "weaponType": "License-Plate Cuirass", "weight": 1, "effectorTierRange": [2, 4], "flavorTemplate": "License plates riveted together into a crude breastplate, {condition}.", "rarityWeights": { "Common": 5, "Uncommon": 2, "Rare": 1 } },
+    { "armorSlot": "Body", "weaponType": "Bomb-Squad Vest (stripped)", "weight": 1, "effectorTierRange": [4, 5], "flavorTemplate": "A bomb-disposal vest with the bulkiest plates stripped for mobility, {condition}.", "rarityWeights": { "Common": 2, "Uncommon": 3, "Rare": 3, "Legendary": 1 } },
+    { "armorSlot": "Head", "weaponType": "Welding Helmet (modified)", "weight": 1, "effectorTierRange": [1, 2], "flavorTemplate": "A welder's helmet with the visor swapped for scavenged plexiglass, {condition}.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "armorSlot": "Head", "weaponType": "Motorcycle Helmet", "weight": 1, "effectorTierRange": [2, 3], "flavorTemplate": "A cracked-then-resealed motorcycle helmet, {condition}.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 1 } },
+    { "armorSlot": "Head", "weaponType": "Riot Helmet", "weight": 1, "effectorTierRange": [3, 4], "flavorTemplate": "A full-face riot helmet, {condition}, visor scratched nearly opaque.", "rarityWeights": { "Common": 3, "Uncommon": 4, "Rare": 2 } },
+    { "armorSlot": "Limbs", "weaponType": "Shin Guards (improvised)", "weight": 1, "effectorTierRange": [1, 2], "flavorTemplate": "Hockey shin guards strapped over work pants, {condition}.", "rarityWeights": { "Common": 6, "Uncommon": 2 } },
+    { "armorSlot": "Limbs", "weaponType": "Forearm Bracers", "weight": 1, "effectorTierRange": [2, 3], "flavorTemplate": "Sheet-metal bracers riveted to leather straps, {condition}.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 1 } }
+  ],
+  "consumables": [
+    { "name": "Trauma Kit", "weight": 3, "apCost": "1 AP", "effect": "Restores a moderate amount of health and clears one Bleed stack.", "flavorTemplate": "A resealed trauma kit, {condition}, gauze still sterile-wrapped.", "rarityWeights": { "Common": 6, "Uncommon": 2 } },
+    { "name": "Stim Injector", "weight": 3, "apCost": "1 AP", "effect": "Grants a burst of Energy and a small Accuracy boost for the rest of the encounter.", "flavorTemplate": "A spring-loaded injector, {condition}, label long since worn off.", "rarityWeights": { "Common": 5, "Uncommon": 3, "Rare": 1 } },
+    { "name": "Smoke Canister", "weight": 2, "apCost": "1 AP", "effect": "Fills an area with smoke, reducing enemy Accuracy against anyone inside it.", "flavorTemplate": "A dented smoke canister, {condition}, pin still true.", "rarityWeights": { "Common": 5, "Uncommon": 3 } },
+    { "name": "Adrenal Booster", "weight": 2, "apCost": "Free Action", "effect": "Grants one extra action this turn, at the cost of Sanity next turn.", "flavorTemplate": "A jury-rigged adrenal booster, {condition}, definitely not medical-grade.", "rarityWeights": { "Common": 2, "Uncommon": 4, "Rare": 3, "Legendary": 1 } },
+    { "name": "Field Ration", "weight": 3, "apCost": "1 AP (out of combat)", "effect": "Restores a small amount of Sanity and staves off exhaustion for the next scene.", "flavorTemplate": "A foil-wrapped ration bar, {condition}, edible despite appearances.", "rarityWeights": { "Common": 7, "Uncommon": 1 } },
+    { "name": "Antidote Vial", "weight": 2, "apCost": "1 AP", "effect": "Clears one Poison or Corruption stack.", "flavorTemplate": "A cloudy vial labeled by hand, {condition}, contents unnervingly consistent.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 1 } },
+    { "name": "Flashbang (improvised)", "weight": 2, "apCost": "1 AP", "effect": "Stuns enemies in a small area for one turn.", "flavorTemplate": "A soda can packed with flash powder, {condition}, fuse taped on.", "rarityWeights": { "Common": 4, "Uncommon": 3, "Rare": 1 } },
+    { "name": "Nerve Tonic", "weight": 1, "apCost": "1 AP", "effect": "Clears one Fear or Panic status and grants brief Fate resistance.", "flavorTemplate": "A bitter tonic in a reused bottle, {condition}, tastes like copper.", "rarityWeights": { "Common": 3, "Uncommon": 3, "Rare": 2 } },
+    { "name": "Repair Patch", "weight": 2, "apCost": "1 AP", "effect": "Restores a chunk of a broken machine's or ally's shield/armor durability.", "flavorTemplate": "An adhesive repair patch, {condition}, edges curling slightly.", "rarityWeights": { "Common": 5, "Uncommon": 2, "Rare": 1 } },
+    { "name": "Focus Draught", "weight": 1, "apCost": "1 AP", "effect": "Grants a Knowledge-based skill check bonus for the rest of the scene.", "flavorTemplate": "A small vial of something viscous and faintly luminous, {condition}.", "rarityWeights": { "Common": 2, "Uncommon": 3, "Rare": 3, "Legendary": 1 } }
+  ],
+  "questItems": [
+    { "name": "Sealed Manifest", "weight": 1, "flavorTemplate": "A wax-sealed shipping manifest, {condition}, listing cargo that officially never existed.", "whereFoundTemplate": "Recovered from {locationLine}. Whoever sealed this wanted it to survive them -- the wax seal alone is worth more than the paper it's protecting." },
+    { "name": "Keyed Data Chit", "weight": 1, "flavorTemplate": "A palm-sized data chit, {condition}, keyed to a lock nobody's found yet.", "whereFoundTemplate": "Found at {locationLine}, still warm from whatever it was last plugged into. Someone is going to want this back." },
+    { "name": "Faded Photograph", "weight": 1, "flavorTemplate": "A photograph, {condition}, of people who don't look like they knew what was coming.", "whereFoundTemplate": "Tucked away at {locationLine}. Nothing written on the back -- whoever kept it assumed they'd remember." },
+    { "name": "Broken Locket", "weight": 1, "flavorTemplate": "A locket with the hinge snapped, {condition}, hinge repaired at least once before that.", "whereFoundTemplate": "Pulled from the wreckage at {locationLine}. It was worth fixing once. Someone thought it was worth carrying even broken." },
+    { "name": "Corporate Access Badge", "weight": 1, "flavorTemplate": "A laminated badge, {condition}, photo scratched off but the clearance level still legible.", "whereFoundTemplate": "Recovered at {locationLine}. The clearance level printed on it opens doors that shouldn't still be powered." },
+    { "name": "Hand-Drawn Map Fragment", "weight": 1, "flavorTemplate": "A torn corner of a hand-drawn map, {condition}, marked with symbols that match nothing official.", "whereFoundTemplate": "Found at {locationLine}. It's only a fragment -- whatever the rest of the map showed, this piece alone raises more questions than it answers." },
+    { "name": "Signal Beacon (dead)", "weight": 1, "flavorTemplate": "A handheld beacon, {condition}, battery long dead but the antenna still extended.", "whereFoundTemplate": "Recovered from {locationLine}. Somebody was trying to call for help, or call something in -- there's no way to tell from the beacon alone." },
+    { "name": "Ledger Page", "weight": 1, "flavorTemplate": "A single ledger page, {condition}, columns of names and numbers in a cramped hand.", "whereFoundTemplate": "Torn loose at {locationLine}. Whatever this page was tracking, somebody didn't want the rest of the ledger found alongside it." }
+  ],
+  "pools": {
+    "condition": [
+      { "value": "still holding its edge", "weight": 3 },
+      { "value": "pitted with rust along the spine", "weight": 3 },
+      { "value": "wrapped in fresh tape at the grip", "weight": 2 },
+      { "value": "scarred from a fight it clearly lost once", "weight": 2 },
+      { "value": "unnervingly well-maintained for something scavenged", "weight": 1 },
+      { "value": "held together with wire and stubbornness", "weight": 2 },
+      { "value": "dented but true", "weight": 2 },
+      { "value": "polished smooth from years of handling", "weight": 2 },
+      { "value": "scorched along one side", "weight": 1 },
+      { "value": "missing its original finish entirely", "weight": 2 },
+      { "value": "engraved with initials that aren't anyone's you know", "weight": 1 },
+      { "value": "clearly reforged from something else once", "weight": 1 },
+      { "value": "cold to the touch even indoors", "weight": 1 },
+      { "value": "field-stripped and reassembled more than once", "weight": 2 },
+      { "value": "patched with a mismatched part that somehow fits", "weight": 2 },
+      { "value": "carrying a faint chemical smell that never fully airs out", "weight": 1 },
+      { "value": "notched along the edge from hard use", "weight": 2 },
+      { "value": "gripped smooth in exactly the shape of someone's hand", "weight": 1 }
+    ],
+    "appliesStatus": [
+      { "value": null, "weight": 6 },
+      { "value": "Bleed", "weight": 2 },
+      { "value": "Stun", "weight": 1 },
+      { "value": "Slow", "weight": 1 },
+      { "value": "Burn", "weight": 1 },
+      { "value": "Shock", "weight": 1 }
+    ],
+    "rarityEffect": {
+      "Uncommon": [
+        { "value": "Deals +1 damage against the Bleed status.", "weight": 1 },
+        { "value": "Grants +5% accuracy on the first attack each combat.", "weight": 1 },
+        { "value": "Recovers a small amount of Energy on a critical hit.", "weight": 1 },
+        { "value": "+5% dodge chance while wielded.", "weight": 1 }
+      ],
+      "Rare": [
+        { "value": "Deals bonus damage against enemies already suffering a status effect.", "weight": 1 },
+        { "value": "On a critical hit, applies a second, weaker instance of its status.", "weight": 1 },
+        { "value": "+10% accuracy and +5% crit chance while wielded.", "weight": 1 },
+        { "value": "Reduces the AP cost of the wielder's first ability each combat by 1.", "weight": 1 }
+      ],
+      "Legendary": [
+        { "value": "Once per combat, the next attack made with this cannot miss.", "weight": 1 },
+        { "value": "Damage scales with the wielder's missing health -- the worse things look, the harder it hits.", "weight": 1 },
+        { "value": "Applies its status on every hit, not just criticals, for the rest of the encounter after the first kill.", "weight": 1 }
+      ]
+    },
+    "designNotes": [
+      { "value": "Rolled procedurally -- a straightforward drop-in for a loot table, no special narrative weight intended.", "weight": 3 },
+      { "value": "Rolled procedurally -- reads best as background loot rather than a quest-critical find.", "weight": 2 },
+      { "value": "Rolled procedurally -- consider hand-editing the flavor line if this ends up in a named NPC's hands.", "weight": 1 }
+    ]
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "_comment": "EXPERIMENTAL. Procedural table for Factions -- per procedural_generation_scope_proposal.md #2 this category was flagged 'poor fit' (90% prose, no numeric fields, only 4-5 factions per world total), but the task explicitly asked to try it anyway rather than take the proposal's word for it. Since only a handful of factions exist per world, this leans toward a small number of FULLY-WRITTEN archetype seeds (richer per-slot variety) rather than broad combinatorial table depth -- each seed's 10 prose fields are Mad-Libs paragraph templates with {name}/{resourceType}/{rivalName} slots filled at generation time from THIS world's own name (the one the user typed) and its own live other-faction roster (lib/worldFlavor.js's getFactionOptions), never invented faction names.",
+  "archetypes": [
+    {
+      "key": "preservers",
+      "nickname": "The Keepers",
+      "epithet": "Dust and Diligence",
+      "overviewQuoteTemplate": "Everything that made us who we were is still out there, buried. We're just the ones patient enough to dig it back up.",
+      "originTemplate": "{name} formed in the years after the old order fell apart, when it became clear that whatever came next would be built on top of what survived -- or wouldn't be built at all. A core group of archivists, engineers, and people who simply refused to watch everything be forgotten started cataloguing, protecting, and quietly rebuilding whatever they could reach before it was lost for good.",
+      "corePhilosophyTemplate": "Knowledge and infrastructure are the only real inheritance left worth protecting. {name} holds that a people who forget how they used to live are doomed to repeat the worst parts of losing it -- so preservation isn't nostalgia, it's survival.",
+      "structureHierarchyTemplate": "A rotating council of senior Archivists makes major decisions by consensus, with specialized Custodians overseeing individual sites (old libraries, data vaults, functioning infrastructure) largely autonomously. Rank is earned through demonstrated expertise, not seniority alone.",
+      "territoryTemplate": "{name} holds a loose network of fortified sites rather than one contiguous territory -- old institutions, vaults, and archives scattered across the region, each defended just well enough to matter, none of them advertised more than necessary.",
+      "goalsNearTermTemplate": "Secure and catalog at least one more major site before {rivalName} or independent scavengers strip it first.",
+      "goalsLongTermTemplate": "Rebuild enough working infrastructure -- clean water, reliable power, real communication -- that the region stops being defined by what was lost.",
+      "internalTensionsTemplate": "A growing faction within {name} argues the group should stop merely preserving and start actively rebuilding at scale, even if it means taking risks the old guard considers reckless. The Archivists' insistence on caution is increasingly read by younger Custodians as paralysis.",
+      "iconographyTemplate": "A stylized open book over a gear, rendered wherever {name} claims a site -- equal parts library and machine shop, deliberately.",
+      "economyResourcesTemplate": "{name}'s wealth is measured in access, not currency -- control over {resourceType} that others need, traded carefully and never given away for free.",
+      "joiningTemplate": "Membership is earned through demonstrated skill and vetted trust -- {name} has been burned before by people who wanted access to what they protect, not the work of protecting it."
+    },
+    {
+      "key": "ferrous_order",
+      "nickname": "The Foundry",
+      "epithet": "Iron Doesn't Ask Permission",
+      "overviewQuoteTemplate": "Strength isn't a metaphor here. It's tonnage, and it's ours.",
+      "originTemplate": "{name} grew out of the crews who kept the old industrial works running past the point anyone official was left to run them. What started as a labor collective protecting its own turned into something closer to a standing force once it became clear that controlling production meant controlling everything downstream of it.",
+      "corePhilosophyTemplate": "Whoever controls production controls the future. {name} has no patience for factions that trade in ideas without also being able to back them with real capacity -- philosophy is nice, but it doesn't forge anything.",
+      "structureHierarchyTemplate": "A strict foreman-and-crew hierarchy, with authority flowing from whoever controls the largest working facility. Disputes are settled by the senior foremen's council, and defiance of a direct order is taken extremely seriously.",
+      "territoryTemplate": "{name} controls the region's largest surviving industrial sites outright, plus the supply routes connecting them -- territory measured in what can be defended and kept running, not lines on a map.",
+      "goalsNearTermTemplate": "Bring one more major facility fully back online before it falls into disrepair past the point of salvage.",
+      "goalsLongTermTemplate": "Become the region's indispensable supplier of {resourceType} -- not through conquest, but through simple necessity.",
+      "internalTensionsTemplate": "Several foremen quietly resent the current leadership's caution toward {rivalName}, arguing that {name}'s raw production advantage should already have settled that rivalry by force.",
+      "iconographyTemplate": "A stamped gear-and-hammer mark, branded or welded onto everything {name} produces or controls.",
+      "economyResourcesTemplate": "{name} runs on {resourceType} -- extracted, refined, and distributed almost entirely on its own terms.",
+      "joiningTemplate": "Anyone willing to work earns a place on a crew. Rising past that takes proven competence on the floor, not connections."
+    },
+    {
+      "key": "the_ledger",
+      "nickname": "The Brokers",
+      "epithet": "Everyone Owes Someone",
+      "overviewQuoteTemplate": "Everyone thinks information is free. It's the most expensive thing we trade.",
+      "originTemplate": "{name} began as a handful of people who realized that in a world where nobody could verify anything anymore, being the ones who actually knew what was true -- who controlled where, prices, and who owed who -- was its own kind of power. That informal network calcified into something closer to an institution faster than anyone in it expected.",
+      "corePhilosophyTemplate": "Information is the only currency that never runs out, only gets more valuable. {name} doesn't take sides in other factions' fights -- it profits from all of them equally, and intends to keep it that way.",
+      "structureHierarchyTemplate": "A deliberately opaque structure -- most members only know their direct contacts, and the identity of {name}'s actual leadership is closely guarded even from its own mid-tier brokers.",
+      "territoryTemplate": "{name} claims no territory in the conventional sense -- its real holdings are contacts, safehouses, and dead drops spread wherever it's useful to have a presence.",
+      "goalsNearTermTemplate": "Secure exclusive knowledge of one development that every other faction in the region would pay heavily to know first.",
+      "goalsLongTermTemplate": "Become so indispensable to every other faction's decision-making that no serious move happens in the region without {name} knowing about it first.",
+      "internalTensionsTemplate": "A disagreement is spreading over whether {name} should keep strict neutrality or start quietly favoring outcomes that hurt {rivalName}, whose growing self-sufficiency threatens the whole information-broker business model.",
+      "iconographyTemplate": "No unified symbol by design -- {name}'s agents identify each other through changing verbal signals, not marks that could be traced.",
+      "economyResourcesTemplate": "{name} deals almost exclusively in information, but settles debts in {resourceType} when a client needs something more tangible than knowing things.",
+      "joiningTemplate": "Nobody formally joins {name} -- you're recruited quietly, after proving you can keep a secret longer than it's convenient to."
+    },
+    {
+      "key": "wire_speakers",
+      "nickname": "The Chorus",
+      "epithet": "The Signal Never Really Stopped",
+      "overviewQuoteTemplate": "We stopped thinking of the network as a tool a long time ago. It thinks back now.",
+      "originTemplate": "{name} coalesced around a shared, half-mystical conviction that the old world's surviving networks and systems weren't just infrastructure -- they were something closer to a nervous system, still partially alive, still worth listening to. What began as a fringe belief among a few technicians became a genuine faith practiced by an increasingly organized community.",
+      "corePhilosophyTemplate": "The old systems never really died -- they're just waiting for enough people to listen properly. {name} holds that understanding the network, on its own terms, is the only real path forward left.",
+      "structureHierarchyTemplate": "Authority follows demonstrated connection to the network itself -- those who can reliably interface with, interpret, or repair surviving systems rise to something like priesthood within {name}, regardless of where they started.",
+      "territoryTemplate": "{name} clusters around whatever surviving relay stations, server farms, or communication infrastructure still functions, claiming and defending those specific nodes rather than open ground.",
+      "goalsNearTermTemplate": "Bring one more dormant relay node back online and interpret whatever it's still trying to say.",
+      "goalsLongTermTemplate": "Reconnect enough of the surviving network that {name} can finally understand what it's actually been listening to all this time.",
+      "internalTensionsTemplate": "A hard split is forming between members who see the network as something to be understood and served, and a more radical faction that believes {name} should actively merge with it -- a line most of the old guard considers a step too far.",
+      "iconographyTemplate": "A stylized signal-wave radiating from a closed eye, marked on anything {name} considers sacred infrastructure.",
+      "economyResourcesTemplate": "{name} trades in access and expertise -- working knowledge of {resourceType} that almost nobody else left still fully understands.",
+      "joiningTemplate": "Joining {name} means an apprenticeship under an existing Speaker, learning to actually listen to the systems before being trusted near anything critical."
+    },
+    {
+      "key": "open_hand",
+      "nickname": "The Commons",
+      "epithet": "Nobody Eats Alone",
+      "overviewQuoteTemplate": "Nobody eats alone here. That's not charity. That's the whole point.",
+      "originTemplate": "{name} started as a handful of neighbors who refused to let the collapse turn into every household for itself. What they built wasn't glamorous -- shared meals, shared watch rotations, shared everything -- but it worked well enough, consistently enough, that it grew into something people from well outside the original neighborhood started asking to join.",
+      "corePhilosophyTemplate": "Nobody survives this alone, and pretending otherwise just gets people killed slower. {name} holds that mutual obligation, honestly kept, beats any individual's stockpile.",
+      "structureHierarchyTemplate": "Deliberately flat -- decisions affecting the whole community go to an open vote, with day-to-day coordination handled by rotating stewards who serve fixed, short terms specifically so no one person accumulates too much informal power.",
+      "territoryTemplate": "{name} holds a genuine settlement, not just outposts -- homes, shared workshops, and communal stores, defended collectively by anyone willing and able.",
+      "goalsNearTermTemplate": "Get through the next hard stretch without anyone going without, whatever that takes to arrange.",
+      "goalsLongTermTemplate": "Prove, loudly and undeniably, that a community built on mutual obligation can outlast one built on control -- starting with outlasting {rivalName}.",
+      "internalTensionsTemplate": "Some of {name}'s founding members worry the community has grown too large for the original trust-based system to actually work, and quietly push for more formal rules that others see as a betrayal of the whole founding idea.",
+      "iconographyTemplate": "Two open hands meeting palm to palm, painted plainly wherever {name} claims a shared space.",
+      "economyResourcesTemplate": "{name} runs on pooled labor and shared stockpiles of {resourceType}, distributed by need rather than by who contributed what.",
+      "joiningTemplate": "Anyone can join {name} by showing up and contributing honestly -- the only real barrier is proving you won't take more than you give."
+    },
+    {
+      "key": "undercroft",
+      "nickname": "The Underneath",
+      "epithet": "You've Never Heard of Us",
+      "overviewQuoteTemplate": "You've never heard of us. That's the whole business model.",
+      "originTemplate": "{name} exists because every faction, no matter how principled, eventually needs something moved that it can't be seen moving itself. What started as a handful of smugglers running the gaps between territories grew, quietly and deliberately, into a network nobody above-ground fully maps.",
+      "corePhilosophyTemplate": "Borders and rules are for people who can afford to respect them. {name} holds that the only real principle worth keeping is that a deal, once struck, gets honored -- everything else is negotiable.",
+      "structureHierarchyTemplate": "Cell-based by necessity -- most of {name}'s members know only their immediate crew, reporting up through routes and dead drops rather than any visible chain of command.",
+      "territoryTemplate": "{name} holds no territory anyone would recognize as such -- just routes, tunnels, and gaps between other factions' claimed ground that nobody's bothered, or been able, to close off.",
+      "goalsNearTermTemplate": "Open one more reliable route through territory {rivalName} thinks is fully sealed.",
+      "goalsLongTermTemplate": "Become so thoroughly woven into every other faction's supply chains that shutting {name} down would hurt whoever tried it more than it helps.",
+      "internalTensionsTemplate": "A dispute is brewing over whether {name} should keep taking contracts from anyone who pays, or start refusing work that too directly harms the settlements several of its own members quietly still call home.",
+      "iconographyTemplate": "No fixed mark -- {name}'s crews use chalk sigils that change monthly, meaningless to anyone not already inside the network.",
+      "economyResourcesTemplate": "{name} moves whatever pays, but specializes in {resourceType} that other factions need discreetly and are willing to overpay for exactly that reason.",
+      "joiningTemplate": "Nobody applies to join {name} -- you get approached, after you've already proven useful to someone already inside, and there's no clean way to ask twice."
+    }
+  ],
+  "resourceTypes": [
+    { "value": "scrap metal and salvaged machinery", "weight": 2 },
+    { "value": "clean water and purification tech", "weight": 2 },
+    { "value": "pre-collapse data archives", "weight": 1 },
+    { "value": "medical supplies and expertise", "weight": 2 },
+    { "value": "weapons and ammunition stockpiles", "weight": 2 },
+    { "value": "arable land and seed stock", "weight": 1 },
+    { "value": "fuel and refined chemicals", "weight": 2 },
+    { "value": "communication relays and signal access", "weight": 1 }
+  ],
+  "relationshipStances": [
+    { "value": "Open Hostility", "weight": 1 }, { "value": "Wary Truce", "weight": 3 }, { "value": "Uneasy Alliance", "weight": 2 },
+    { "value": "Active Trade Partner", "weight": 2 }, { "value": "Cold War", "weight": 1 }
+  ],
+  "relationshipWhyTemplates": [
+    { "value": "A resource dispute years back never fully resolved, and neither side has forgotten who started it.", "weight": 1 },
+    { "value": "Overlapping territory forces regular contact, and regular contact has kept old tensions from fully cooling.", "weight": 1 },
+    { "value": "A mutually useful trade arrangement keeps both sides civil despite deeper disagreements.", "weight": 1 },
+    { "value": "A past betrayal, real or perceived, still colors every interaction between the two.", "weight": 1 },
+    { "value": "Neither side can currently afford open conflict, so the peace holds -- for now.", "weight": 1 }
+  ],
+  "designNotes": [
+    { "value": "EXPERIMENTAL -- rolled procedurally from a fixed archetype seed. This category is the proposal's own flagged 'poor fit': with only a handful of factions per world, the ten prose fields carry almost the entire value of a faction entry, and a templated version reads noticeably more generic than an AI-drafted one, especially on repeat generation. Treat this as a structured starting draft, not a finished faction -- a manual or field-assist pass is strongly recommended before this faction anchors real play.", "weight": 1 }
+  ]
+}

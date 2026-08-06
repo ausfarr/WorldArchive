@@ -1,0 +1,59 @@
+{
+  "_comment": "Procedural table for Locations. faction is picked from the world's own live faction roster (or 'unaligned'). notableNpcs[] is left empty by default (a procedural Location shouldn't invent a fake NPC id that doesn't exist in the roster) -- lib/proceduralGenerators.js may link an existing NPC if this world already has one archived, same 'reference, don't invent' principle roster.js follows elsewhere.",
+  "nameAdjectives": [
+    { "value": "The Hollow", "weight": 1 }, { "value": "The Broken", "weight": 1 }, { "value": "The Salt", "weight": 1 },
+    { "value": "The Long", "weight": 1 }, { "value": "The Sunken", "weight": 1 }, { "value": "The Rust", "weight": 1 },
+    { "value": "The Quiet", "weight": 1 }, { "value": "The Grey", "weight": 1 }, { "value": "The Splintered", "weight": 1 },
+    { "value": "Old", "weight": 2 }, { "value": "Lower", "weight": 1 }, { "value": "Upper", "weight": 1 }
+  ],
+  "nameNouns": [
+    { "value": "Quarter", "weight": 2 }, { "value": "Yards", "weight": 2 }, { "value": "Crossing", "weight": 2 },
+    { "value": "Terminal", "weight": 1 }, { "value": "Hollow", "weight": 1 }, { "value": "Flats", "weight": 1 },
+    { "value": "Works", "weight": 2 }, { "value": "Row", "weight": 1 }, { "value": "Depot", "weight": 1 },
+    { "value": "Reach", "weight": 1 }, { "value": "Gate", "weight": 1 }, { "value": "Wharf", "weight": 1 },
+    { "value": "Terrace", "weight": 1 }, { "value": "Sprawl", "weight": 1 }
+  ],
+  "properNames": [
+    { "value": "Saltmarsh Crossing", "weight": 1 }, { "value": "Founder's Reach", "weight": 1 }, { "value": "The Long Silence", "weight": 1 },
+    { "value": "Nine Mile Depot", "weight": 1 }, { "value": "The Hangnail District", "weight": 1 }, { "value": "Widow's Wharf", "weight": 1 },
+    { "value": "The Cinderline", "weight": 1 }, { "value": "Halfway Gate", "weight": 1 }
+  ],
+  "regionBiomes": [
+    { "value": "Industrial Ruins", "weight": 3 }, { "value": "Flooded Underground", "weight": 2 }, { "value": "Overgrown Rooftops", "weight": 2 },
+    { "value": "Market Sprawl", "weight": 2 }, { "value": "Tunnel Network", "weight": 2 }, { "value": "Scrapyard Fields", "weight": 2 },
+    { "value": "Signal Dead Zone", "weight": 1 }, { "value": "Collapsed Transit Hub", "weight": 2 }, { "value": "Refinery Complex", "weight": 1 },
+    { "value": "Farming Terraces", "weight": 1 }, { "value": "Quarantine Block", "weight": 1 }, { "value": "Harbor Wreckage", "weight": 1 },
+    { "value": "Data Vault Ruins", "weight": 1 }, { "value": "Grid-Fringe Settlement", "weight": 2 }, { "value": "Ashfall Flats", "weight": 1 }
+  ],
+  "dangerTags": [
+    { "value": "Structural Collapse Risk", "weight": 2 }, { "value": "Territorial Enemies", "weight": 3 }, { "value": "Toxic Air", "weight": 1 },
+    { "value": "Flooded Passages", "weight": 1 }, { "value": "Unstable Signal", "weight": 1 }, { "value": "Scavenger Ambush", "weight": 2 },
+    { "value": "Radiation Pocket", "weight": 1 }, { "value": "Locked/Sealed Sections", "weight": 2 }, { "value": "Nocturnal Threats", "weight": 1 },
+    { "value": "Contested Ground", "weight": 2 }, { "value": "Buried Ordnance", "weight": 1 }, { "value": "Feral Wildlife", "weight": 1 },
+    { "value": "Faction Patrols", "weight": 2 }, { "value": "No Clean Water", "weight": 1 }, { "value": "Structural Fires", "weight": 1 }
+  ],
+  "descriptorLineTemplates": [
+    { "value": "Nobody planned for it to end up like this. Nobody's fixed it either.", "weight": 1 },
+    { "value": "Whatever this place used to be, it's had a long time to become something else.", "weight": 1 },
+    { "value": "Quiet in a way that puts people on edge, and probably should.", "weight": 1 },
+    { "value": "Still standing, mostly out of spite.", "weight": 1 },
+    { "value": "The kind of place people pass through fast, or not at all.", "weight": 1 }
+  ],
+  "notableFeaturesTemplates": [
+    { "value": "A tangle of {regionBiome} that's been picked over more than once, but never quite cleaned out. Whatever's left is worth the risk to whoever gets there first.", "weight": 1 },
+    { "value": "The layout here rewards knowing it -- shortcuts, blind spots, and at least one route that isn't on any map still in circulation. Getting turned around in {regionBiome} like this can cost more than time.", "weight": 1 },
+    { "value": "Signs of recent activity are everywhere -- fresh tracks, disturbed debris, a fire pit still warm. Something is using this stretch of {regionBiome}, regularly.", "weight": 1 },
+    { "value": "Half-collapsed and half-improvised into something livable, this corner of {regionBiome} has clearly been claimed by someone, even if they're not obviously present right now.", "weight": 1 },
+    { "value": "Old signage and structural bones hint at what this {regionBiome} used to serve, before whatever happened here happened.", "weight": 1 }
+  ],
+  "hooksSecretsTemplates": [
+    { "value": "Something valuable is rumored to still be buried here -- enough people have gone looking, and not come back, that most locals treat the rumor as fact.", "weight": 1 },
+    { "value": "A sealed section hasn't been opened in longer than anyone currently around can explain, and whoever sealed it left it that way for a reason.", "weight": 1 },
+    { "value": "This place quietly changes hands more often than anyone advertises -- worth knowing who actually controls it before showing up uninvited.", "weight": 1 },
+    { "value": "No secrets surfaced yet -- a straightforward roster addition, ready for a hook to be added later.", "weight": 2 },
+    { "value": "Locals avoid one specific part of it, for reasons nobody's willing to fully explain to an outsider.", "weight": 1 }
+  ],
+  "designNotes": [
+    { "value": "Rolled procedurally -- region/danger tags are solid, but notableFeatures/hooksSecrets are Mad-Libs placeholders worth a manual pass before this location anchors a real scene.", "weight": 1 }
+  ]
+}
