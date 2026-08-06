@@ -4,298 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chronicled — Every World Deserves an Archive</title>
-<meta name="description" content="Chronicled turns your campaign into a living archive — NPCs, monsters, items, and lore, generated on demand and filed automatically, with portrait art for everything that needs a face.">
+<meta name="description" content="Chronicled turns your campaign into a living archive. Generate NPCs, monsters, items, and lore grounded in your world's own established facts — auto-filed with portrait art, ready before your next session. Free beta.">
+<link rel="canonical" href="https://chronicled.world/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chronicled.world/">
+<meta property="og:title" content="Chronicled — Every World Deserves an Archive">
+<meta property="og:description" content="Generate NPCs, monsters, items, and lore grounded in your world's own established facts — auto-filed with portrait art, ready before your next session. Free beta for GMs and worldbuilders.">
+<meta property="og:image" content="https://chronicled.world/images/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Chronicled">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chronicled — Every World Deserves an Archive">
+<meta name="twitter:description" content="Generate NPCs, monsters, items, and lore grounded in your world's own established facts — auto-filed with portrait art, ready before your next session.">
+<meta name="twitter:image" content="https://chronicled.world/images/og-cover.jpg">
+
+<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="images/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="images/favicon-180.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg-void: #0a0b0d;
-    --bg-panel: #14161a;
-    --bg-panel-raised: #1c1f24;
-    --border-line: #2a2d33;
-    --border-line-soft: #202226;
-    --ink: #e4e1d6;
-    --ink-dim: #9a9ca3;
-    --ink-faint: #5c5f66;
-
-    --neon-primary: #ff2f6e;
-    --neon-cyan: #29f0d1;
-
-    --font-display: 'Oswald', sans-serif;
-    --font-body: 'Work Sans', sans-serif;
-    --font-mono: 'IBM Plex Mono', monospace;
-  }
-
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-
-
-  
-  body {
-    margin: 0;
-    background: var(--bg-void);
-    color: var(--ink);
-    font-family: var(--font-body);
-    line-height: 1.6;
-    background-image:
-      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
-  }
-
-  a { color: var(--neon-cyan); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); outline-offset: 2px; }
-
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-
-  /* ---------- Header ---------- */
-  .site-header {
-    position: sticky; top: 0; z-index: 50;
-    background: rgba(10,11,13,0.92);
-    backdrop-filter: blur(6px);
-    border-bottom: 1px solid var(--border-line);
-  }
-  .site-header .wrap { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; }
-  .site-title {
-    font-family: var(--font-display);
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    font-size: 1.1rem;
-    text-transform: uppercase;
-    color: var(--ink);
-  }
-  .site-title .accent { color: var(--neon-primary); }
-  .site-nav { display: flex; gap: 24px; align-items: center; }
-  .site-nav a {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--ink-dim);
-  }
-  .site-nav a:hover { color: var(--neon-cyan); text-decoration: none; }
-  .nav-cta {
-    font-family: var(--font-mono) !important;
-    font-size: 0.68rem !important;
-    padding: 8px 14px;
-    border: 1px solid var(--neon-primary);
-    color: var(--neon-primary) !important;
-    transition: background 0.15s ease, color 0.15s ease;
-  }
-  .nav-cta:hover { background: var(--neon-primary); color: var(--bg-void) !important; text-decoration: none !important; }
-
-  /* ---------- Hero ---------- */
-  .hero { padding: 72px 0 88px; border-bottom: 1px solid var(--border-line); position: relative; overflow: hidden; }
-  .hero .wrap {
-    display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center;
-  }
-  .eyebrow {
-    font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 18px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .eyebrow .dot { color: var(--neon-cyan); }
-  .hero h1 {
-    font-family: var(--font-display); text-transform: uppercase; font-weight: 700;
-    font-size: clamp(2.1rem, 4.4vw, 3.4rem); line-height: 1.08; letter-spacing: 0.01em;
-    margin: 0 0 20px; color: var(--ink);
-  }
-  .hero h1 .glow {
-    color: var(--neon-primary);
-    text-shadow: 0 0 6px rgba(255,47,110,0.55), 0 0 18px rgba(255,47,110,0.25);
-    animation: neon-settle 2.2s steps(1) 1;
-  }
-  @keyframes neon-settle {
-    0% { opacity: 1; } 4% { opacity: 0.2; } 8% { opacity: 1; }
-    12% { opacity: 0.15; } 16% { opacity: 1; } 40% { opacity: 1; }
-    43% { opacity: 0.3; } 46% { opacity: 1; } 100% { opacity: 1; }
-  }
-  @media (prefers-reduced-motion: reduce) { .hero h1 .glow { animation: none; } }
-
-  .hero .dek { color: var(--ink-dim); font-size: 1.06rem; max-width: 460px; margin: 0 0 32px; }
-
-  .cta-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
-  .btn-primary {
-    font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
-    background: var(--neon-primary); color: var(--bg-void); border: 1px solid var(--neon-primary);
-    padding: 14px 24px; display: inline-block; transition: opacity 0.15s ease;
-  }
-  .btn-primary:hover { opacity: 0.85; text-decoration: none; }
-  .btn-ghost {
-    font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.04em; color: var(--ink-dim);
-  }
-  .btn-ghost:hover { color: var(--neon-cyan); }
-
-  .hero .status-line {
-    font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint);
-    margin-top: 26px; letter-spacing: 0.05em; text-transform: uppercase;
-  }
-  .hero .status-line .dot { color: var(--neon-cyan); }
-
-  /* ---------- Mock dossier card (hero signature element) ---------- */
-  .mock-sheet {
-    background: var(--bg-panel);
-    border: 1px solid var(--border-line);
-    border-top: 3px solid var(--neon-primary);
-    position: relative;
-  }
-  .mock-sheet::before, .mock-sheet::after {
-    content: ''; position: absolute; width: 5px; height: 5px; border-radius: 50%;
-    background: var(--ink-faint); top: 10px;
-  }
-  .mock-sheet::before { left: 10px; } .mock-sheet::after { right: 10px; }
-  .mock-header { padding: 22px 22px 16px; border-bottom: 1px solid var(--border-line-soft); }
-  .mock-eyebrow {
-    font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--neon-cyan); margin: 0 0 6px;
-  }
-  .mock-header h3 { font-family: var(--font-display); font-size: 1.3rem; margin: 0 0 4px; letter-spacing: 0.01em; }
-  .mock-header .sub { color: var(--ink-dim); font-size: 0.82rem; }
-  .mock-body { padding: 20px 22px 24px; }
-  .mock-quote {
-    border-left: 3px solid var(--neon-primary); padding: 2px 0 2px 14px; margin: 0 0 18px;
-    font-style: italic; color: var(--ink); font-size: 0.9rem;
-  }
-  .mock-portrait {
-    border: 1px dashed var(--ink-faint); color: var(--ink-faint); font-family: var(--font-mono);
-    font-size: 0.64rem; text-align: center; padding: 30px 16px; margin: 0 0 18px;
-    text-transform: uppercase; letter-spacing: 0.05em;
-  }
-  .mock-portrait-img {
-    width: 100%; display: block; border: 1px solid var(--border-line);
-    margin: 0 0 18px; object-fit: cover; max-height: 320px;
-  }
-  table.mock-stats { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.76rem; }
-  table.mock-stats th, table.mock-stats td { border: 1px solid var(--border-line); padding: 6px 10px; text-align: left; }
-  table.mock-stats th { color: var(--ink-dim); font-weight: 500; background: var(--bg-panel-raised); }
-  .mock-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
-  .tag {
-    display: inline-block; font-family: var(--font-mono); font-size: 0.6rem;
-    letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px;
-    border: 1px solid var(--border-line); color: var(--ink-dim);
-  }
-  .tag.fac { color: var(--bg-void); font-weight: 600; border: none; background: var(--neon-cyan); }
-
-  /* ---------- Section shell ---------- */
-  section { padding: 76px 0; border-bottom: 1px solid var(--border-line); }
-  section:last-of-type { border-bottom: none; }
-  .section-head { max-width: 620px; margin: 0 0 48px; }
-  .section-eyebrow {
-    font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--neon-cyan); margin: 0 0 12px;
-  }
-  .section-head h2 {
-    font-family: var(--font-display); text-transform: uppercase; font-size: clamp(1.6rem, 3vw, 2.2rem);
-    letter-spacing: 0.01em; margin: 0 0 12px; color: var(--ink);
-  }
-  .section-head p { color: var(--ink-dim); font-size: 1rem; margin: 0; }
-
-  /* ---------- How it works ---------- */
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .step {
-    background: var(--bg-panel); border: 1px solid var(--border-line); padding: 26px 22px;
-    position: relative;
-  }
-  .step .file-no {
-    font-family: var(--font-mono); font-size: 0.68rem; color: var(--neon-primary);
-    letter-spacing: 0.08em; margin: 0 0 16px; text-transform: uppercase;
-  }
-  .step h3 { font-family: var(--font-display); text-transform: uppercase; font-size: 1.05rem; margin: 0 0 10px; letter-spacing: 0.02em; }
-  .step p { color: var(--ink-dim); font-size: 0.9rem; margin: 0; }
-
-  /* ---------- Category grid ---------- */
-  .cat-grid {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
-  }
-  .cat-card {
-    background: var(--bg-panel); border: 1px solid var(--border-line); padding: 20px 18px;
-    transition: border-color 0.15s ease, transform 0.15s ease;
-  }
-  .cat-card:hover { border-color: var(--ink-faint); transform: translateY(-2px); }
-  .cat-card .cat-label {
-    font-family: var(--font-mono); font-size: 0.62rem; color: var(--ink-faint);
-    letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 8px;
-  }
-  .cat-card h4 { font-family: var(--font-display); text-transform: uppercase; font-size: 0.98rem; margin: 0 0 8px; letter-spacing: 0.02em; }
-  .cat-card p { color: var(--ink-dim); font-size: 0.82rem; margin: 0; }
-
-  /* ---------- Sample output ---------- */
-  .sample-wrap { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 48px; align-items: center; }
-  .sample-copy p { color: var(--ink-dim); font-size: 0.98rem; margin: 0 0 16px; }
-  .sample-copy ul { margin: 0; padding-left: 18px; color: var(--ink-dim); font-size: 0.92rem; }
-  .sample-copy li { margin-bottom: 8px; }
-
-  .sample-sheet {
-    background: var(--bg-panel); border: 1px solid var(--border-line);
-    border-top: 3px solid var(--neon-cyan);
-  }
-  .sample-sheet .mock-header { border-bottom: 1px solid var(--border-line-soft); }
-  .sample-sheet .mock-eyebrow { color: var(--neon-primary); }
-  table.derived { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.74rem; margin-top: 4px; }
-  table.derived th, table.derived td { border: 1px solid var(--border-line); padding: 7px 10px; text-align: left; }
-  table.derived th { color: var(--ink-dim); font-weight: 500; background: var(--bg-panel-raised); }
-  table.derived td.formula { color: var(--ink-faint); font-size: 0.68rem; }
-
-  .ability-card { background: var(--bg-panel-raised); border: 1px solid var(--border-line); padding: 14px 16px; margin-top: 14px; }
-  .ability-name { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.02em; font-size: 0.85rem; margin: 0 0 8px; color: var(--ink); }
-  .ability-kind { color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; margin-left: 6px; }
-  .ability-desc { color: var(--ink-dim); font-size: 0.82rem; margin: 0; }
-
-  /* ---------- Live UI showcase ---------- */
-  .live-shots { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-  .live-frame { border: 1px solid var(--border-line); background: var(--bg-panel); }
-  .live-frame .frame-bar {
-    display: flex; align-items: center; gap: 6px; padding: 10px 12px;
-    border-bottom: 1px solid var(--border-line-soft); font-family: var(--font-mono);
-    font-size: 0.62rem; color: var(--ink-faint); letter-spacing: 0.04em;
-  }
-  .live-frame .frame-bar .dots { display: flex; gap: 4px; margin-right: 8px; }
-  .live-frame .frame-bar .dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--border-line); display: inline-block; }
-  .live-frame img { width: 100%; display: block; }
-  @media (max-width: 900px) { .live-shots { grid-template-columns: 1fr; } }
-
-  /* ---------- Social proof ---------- */
-  .quotes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-  .quote-card {
-    background: var(--bg-panel); border: 1px solid var(--border-line); padding: 26px 22px;
-    border-left: 3px solid var(--neon-primary);
-  }
-  .quote-card p.q { font-style: italic; color: var(--ink); font-size: 0.94rem; margin: 0 0 16px; }
-  .quote-card p.attr { font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em; margin: 0; }
-
-  /* ---------- Final CTA ---------- */
-  .final-cta { text-align: center; padding: 90px 0; }
-  .final-cta h2 {
-    font-family: var(--font-display); text-transform: uppercase; font-size: clamp(1.8rem, 4vw, 2.6rem);
-    margin: 0 0 16px; color: var(--ink);
-  }
-  .final-cta p { color: var(--ink-dim); max-width: 480px; margin: 0 auto 32px; font-size: 1rem; }
-
-  .signup-form { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; max-width: 420px; margin: 0 auto; }
-  .signup-input {
-    flex: 1; min-width: 220px; background: var(--bg-panel); border: 1px solid var(--border-line);
-    color: var(--ink); font-family: var(--font-mono); font-size: 0.85rem; padding: 13px 14px;
-  }
-  .signup-input:focus { outline: none; border-color: var(--neon-cyan); }
-  .signup-input::placeholder { color: var(--ink-faint); }
-  .signup-status { font-family: var(--font-mono); font-size: 0.78rem; margin-top: 18px; min-height: 1.2em; }
-  .signup-status.success { color: var(--neon-cyan); }
-  .signup-status.error { color: var(--neon-primary); }
-
-  footer.site-footer {
-    border-top: 1px solid var(--border-line);
-    padding: 32px 0 60px; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.68rem;
-  }
-  footer.site-footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-
-  @media (max-width: 900px) {
-    .hero .wrap { grid-template-columns: 1fr; }
-    .steps { grid-template-columns: 1fr; }
-    .cat-grid { grid-template-columns: repeat(2, 1fr); }
-    .sample-wrap { grid-template-columns: 1fr; }
-    .quotes { grid-template-columns: 1fr; }
-    .site-nav { display: none; }
-  }
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -304,11 +39,10 @@
     <div class="site-title">CHRON<span class="accent">I</span>CLED</div>
     <nav class="site-nav">
       <a href="#how">How it works</a>
-      <a href="#categories">Categories</a>
-      <a href="#live">See it live</a>
-      <a href="#sample">Sample</a>
-      <a href="changelog.html">Changelog</a>
-      <a href="roadmap.html">Roadmap</a>
+      <a href="#demo">Try it</a>
+      <a href="compare.html">Compare</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="changelog.html">Build log</a>
       <a href="#cta" class="nav-cta">Request access</a>
     </nav>
   </div>
@@ -317,14 +51,14 @@
 <section class="hero">
   <div class="wrap">
     <div>
-      <p class="eyebrow"><span class="dot">●</span> WORLD ARCHIVE SYSTEM — LIMITED BETA</p>
+      <p class="eyebrow"><span class="dot">●</span> WORLD ARCHIVE SYSTEM — FREE BETA</p>
       <h1>Every world deserves an <span class="glow">archive</span>.</h1>
       <p class="dek">Chronicled turns your campaign into a living dossier. Describe your world once — then generate NPCs, monsters, items, and lore on demand, each one filed automatically with matching portrait art.</p>
       <div class="cta-row">
         <a class="btn-primary" href="#cta">Request beta access</a>
         <a class="btn-ghost" href="#how">See how it works ↓</a>
       </div>
-      <p class="status-line"><span class="dot">●</span> Built for GMs — currently accepting a small group of beta testers</p>
+      <p class="status-line"><span class="dot">●</span> Free during beta — no card required</p>
     </div>
 
     <div class="mock-sheet">
@@ -334,7 +68,7 @@
         <p class="sub">Control / Attrition / Debuffer</p>
       </div>
       <div class="mock-body">
-        <img class="mock-portrait-img" src="images/vex7-portrait.png" alt="Compliance Auditor VEX-7 — generated portrait art">
+        <img class="mock-portrait-img" src="images/vex7-portrait.webp" width="1100" height="492" alt="Compliance Auditor VEX-7 — generated portrait art">
         <p class="mock-quote">"Your oxygen allotment has been reviewed. The discrepancy is... substantial."</p>
         <table class="mock-stats">
           <tr><th>Body</th><th>Reflex</th><th>Knowledge</th></tr>
@@ -351,16 +85,43 @@
 
 <section id="how">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head reveal">
       <p class="section-eyebrow">Process</p>
       <h2>From blank page to living archive</h2>
-      <p>No manual file editing, no juggling five tabs of scattered notes. Three steps, and it's on file.</p>
+      <p>No manual file editing, no juggling five tabs of scattered notes. Describe your world once, then generate what the session needs.</p>
     </div>
-    <div class="steps">
+
+    <div class="flow-diagram reveal">
+      <div class="flow-step">
+        <div class="flow-icon">①</div>
+        <h4>Wizard</h4>
+        <p>Guided setup — tone, genre, factions, stat system. Type your own answers or let it generate a starting point.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">②</div>
+        <h4>Generate</h4>
+        <p>Pick a category and generate content grounded in your world's own established lore — never a fixed template.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">③</div>
+        <h4>Auto-file</h4>
+        <p>Every entry lands in your browsable archive with portrait art already attached — searchable and cross-referenced.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">④</div>
+        <h4>Export</h4>
+        <p>Bundle a Quest, Campaign, or your whole world into a print-ready PDF for the table.</p>
+      </div>
+    </div>
+
+    <div class="steps reveal">
       <div class="step">
         <p class="file-no">File 01</p>
         <h3>Describe your world</h3>
-        <p>A guided setup walks you through tone, genre, and factions — or generate any piece of it for you if you'd rather start from a spark than a blank page.</p>
+        <p>A guided setup walks you through tone, genre, and factions — or generates any piece of it for you if you'd rather start from a spark than a blank page.</p>
       </div>
       <div class="step">
         <p class="file-no">File 02</p>
@@ -378,12 +139,12 @@
 
 <section id="categories">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head reveal">
       <p class="section-eyebrow">Coverage</p>
       <h2>Eight categories. One consistent world.</h2>
       <p>Everything a campaign needs, generated from the same grounded lore — so fifty separate sessions still read as one world.</p>
     </div>
-    <div class="cat-grid">
+    <div class="cat-grid reveal">
       <div class="cat-card"><p class="cat-label">Category 01</p><h4>NPCs</h4><p>Full character bible, personality, motivation, and a branching sample dialogue tree.</p></div>
       <div class="cat-card"><p class="cat-label">Category 02</p><h4>Bestiary</h4><p>Complete stat blocks with real computed combat math and a full ability kit.</p></div>
       <div class="cat-card"><p class="cat-label">Category 03</p><h4>Items</h4><p>Weapons, armor, consumables, and quest relics with derived stats where they matter.</p></div>
@@ -391,36 +152,59 @@
       <div class="cat-card"><p class="cat-label">Category 05</p><h4>Factions</h4><p>Deep lore plus a living roundup of every NPC, enemy, and item tied to it.</p></div>
       <div class="cat-card"><p class="cat-label">Category 06</p><h4>Logs</h4><p>Found-text: recordings, terminal entries, and journals for environmental storytelling.</p></div>
       <div class="cat-card"><p class="cat-label">Category 07</p><h4>PCs</h4><p>Full player-character sheets — class, attributes, backstory, personality, and how they connect to the world.</p></div>
-      <div class="cat-card"><p class="cat-label">Category 08</p><h4>Locations</h4><p>Places your world actually visits — grounded in its factions and its danger.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 08</p><h4>Locations</h4><p>Places your world actually visits — grounded in its factions and its danger, with a computed world map.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <p class="section-eyebrow">Try it</p>
+      <h2>Feel the loop in ten seconds</h2>
+      <p>A small illustrative simulation of the core loop — no account, no backend call. The real thing runs against your own world's lore; this one runs a single canned example.</p>
+    </div>
+    <div class="demo-widget reveal" id="demo-widget">
+      <div class="demo-toolbar">
+        <span class="label">Demo — Bestiary Generator</span>
+        <span class="label" id="demo-state-label">Idle</span>
+      </div>
+      <div class="demo-stage" id="demo-stage">
+        <div class="demo-idle" id="demo-idle">
+          <p>This is a simulated run, not a live generation — the real generator grounds every result in your world's own lore, factions, and stat system.</p>
+          <button class="btn-primary" id="demo-generate-btn" type="button">Generate NPC</button>
+        </div>
+      </div>
+      <p class="demo-illustrative-note">Illustrative demo — not a live generation</p>
     </div>
   </div>
 </section>
 
 <section id="live">
   <div class="wrap">
-    <div class="section-head">
+    <div class="section-head reveal">
       <p class="section-eyebrow">The real thing</p>
       <h2>This isn't a mockup</h2>
       <p>What you're looking at below is the actual archive — live screenshots, not illustrations of an idea.</p>
     </div>
-    <div class="live-shots">
+    <div class="live-shots reveal">
       <div class="live-frame">
         <div class="frame-bar"><span class="dots"><span></span><span></span><span></span></span> app.chronicled.world/archive</div>
-        <img src="images/archive-hub.png" alt="The Archive hub page, showing category cards for Factions, NPCs, Enemies, Professions, Items, and Logs with entry counts">
+        <img src="images/archive-hub.webp" width="1300" height="982" loading="lazy" alt="The Archive hub page, showing category cards for Factions, NPCs, Enemies, Professions, Items, and Logs with entry counts">
       </div>
       <div class="live-frame">
         <div class="frame-bar"><span class="dots"><span></span><span></span><span></span></span> app.chronicled.world/archive/enemies</div>
-        <img src="images/enemies-page.png" alt="The Enemies category page, with a generate-new-entry form and a grid of existing bestiary entries">
+        <img src="images/enemies-page.webp" width="1300" height="965" loading="lazy" alt="The Enemies category page, with a generate-new-entry form and a grid of existing bestiary entries">
       </div>
     </div>
   </div>
 </section>
 
 <section id="sample">
-  <div class="wrap sample-wrap">
+  <div class="wrap sample-wrap reveal">
     <div class="sample-copy">
       <p class="section-eyebrow" style="margin-bottom:12px;">Under the hood</p>
-      <h2 style="font-family:var(--font-display); text-transform:uppercase; font-size:clamp(1.6rem,3vw,2.2rem); margin:0 0 16px;">Real math. Real consistency.</h2>
+      <h2 class="section-title" style="margin:0 0 16px;">Real math. Real consistency.</h2>
       <p>The model handles narrative judgment — voice, motivation, tone. Anything that needs to be exact — stat math, formatting, cross-references — is computed by the backend, every time.</p>
       <ul>
         <li>Derived stats computed from your world's real formulas, not model guesswork</li>
@@ -450,26 +234,15 @@
   </div>
 </section>
 
-<section>
+<section id="origin">
   <div class="wrap">
-    <div class="section-head">
-      <p class="section-eyebrow">From the beta</p>
-      <h2>What testers are filing</h2>
-      <p>A small group of GMs are running real campaigns on Chronicled right now.</p>
+    <div class="section-head reveal">
+      <p class="section-eyebrow">Where this came from</p>
+      <h2>Built for one world, generalized for yours</h2>
     </div>
-    <div class="quotes">
-      <div class="quote-card">
-        <p class="q">"Placeholder — replace with a real tester quote once feedback comes in."</p>
-        <p class="attr">— Beta Tester, Fantasy Campaign</p>
-      </div>
-      <div class="quote-card">
-        <p class="q">"Placeholder — replace with a real tester quote once feedback comes in."</p>
-        <p class="attr">— Beta Tester, Sci-Fi Campaign</p>
-      </div>
-      <div class="quote-card">
-        <p class="q">"Placeholder — replace with a real tester quote once feedback comes in."</p>
-        <p class="attr">— Beta Tester, Horror Campaign</p>
-      </div>
+    <div class="origin-note reveal">
+      <p>Chronicled didn't start as a product — it started as the archive for a single personal setting, a neon-soaked survival world called <em>Echoes of the Neon</em>. Keeping that world's NPCs, factions, and bestiary consistent by hand across dozens of sessions is what the generation-and-filing pipeline was actually built to solve.</p>
+      <p>Once that pipeline worked, the obvious next step was pulling the setting-specific parts out — palette, stat formulas, category labels, tone — so any GM could point the same engine at their own world instead of ours. That's what's live at <a href="https://app.chronicled.world">app.chronicled.world</a> today: the same tool, generalized, in free beta while we find its rough edges.</p>
     </div>
   </div>
 </section>
@@ -477,7 +250,7 @@
 <section id="cta" class="final-cta" style="border-bottom:none;">
   <p class="section-eyebrow" style="text-align:center;">Beta Access</p>
   <h2>Open your world's file.</h2>
-  <p>Chronicled is in limited beta — a small number of GMs are testing it against real campaigns right now. Leave your email and we'll reach out when a slot opens.</p>
+  <p>Chronicled is in free beta — no card required. Leave your email and we'll reach out, or see the <a href="pricing.html">current beta limits and what's coming</a> first.</p>
 
   <form id="waitlist-form" class="signup-form" novalidate>
     <input type="email" id="waitlist-email" class="signup-input" placeholder="you@example.com" required autocomplete="email">
@@ -486,62 +259,24 @@
   <p class="signup-status" id="waitlist-status" aria-live="polite"></p>
 </section>
 
-<script>
-  (function () {
-    var form = document.getElementById('waitlist-form');
-    var input = document.getElementById('waitlist-email');
-    var button = document.getElementById('waitlist-submit');
-    var status = document.getElementById('waitlist-status');
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var email = input.value.trim();
-      if (!email) return;
-
-      button.disabled = true;
-      button.textContent = 'Sending…';
-      status.textContent = '';
-      status.className = 'signup-status';
-
-      fetch('https://app.chronicled.world/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, source: 'landing_page' })
-      })
-        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
-        .then(function (result) {
-          if (result.ok) {
-            form.style.display = 'none';
-            status.textContent = "You're on the list — we'll email you when a beta slot opens.";
-            status.className = 'signup-status success';
-          } else {
-            throw new Error(result.data && result.data.error ? result.data.error : 'Something went wrong.');
-          }
-        })
-        .catch(function (err) {
-          status.textContent = err.message || 'Something went wrong. Please try again.';
-          status.className = 'signup-status error';
-          button.disabled = false;
-          button.textContent = 'Request beta access';
-        });
-    });
-  })();
-</script>
+<script src="js/waitlist-form.js"></script>
+<script src="js/demo-widget.js"></script>
 
 <footer class="site-footer">
   <div class="wrap">
     <span>CHRONICLED — WORLD ARCHIVE SYSTEM</span>
-    <span><a href="terms.html" style="color:var(--ink-faint);">Terms</a> · <a href="privacy.html" style="color:var(--ink-faint);">Privacy</a> · chronicled.world · <span class="app-version">v0.7 · beta</span></span>
+    <span class="foot-links"><a href="compare.html">Compare</a> · <a href="pricing.html">Pricing</a> · <a href="changelog.html">Build log</a> · <a href="roadmap.html">Roadmap</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <span class="app-version">v0.7 · beta</span></span>
   </div>
 </footer>
 
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "078134c3564245c3b137275f303acb50"}'></script><!-- End Cloudflare Web Analytics -->
-  
+
 <script src="version.js"></script>
+<script src="js/reveal.js"></script>
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+      el.textContent = window.APP_VERSION + ' · beta';
     });
   }
 </script>

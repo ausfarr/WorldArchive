@@ -4,48 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy Policy — Chronicled</title>
+<meta name="description" content="Chronicled's privacy policy — what we collect, the third-party services we rely on (Supabase, Anthropic, Google, Stripe, Resend, Render), and what we don't do with your data.">
+<link rel="canonical" href="https://chronicled.world/privacy.html">
+<meta name="robots" content="noindex">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chronicled.world/privacy.html">
+<meta property="og:title" content="Privacy Policy — Chronicled">
+<meta property="og:description" content="Chronicled's privacy policy, in plain language.">
+<meta property="og:image" content="https://chronicled.world/images/og-cover.jpg">
+<meta property="og:site_name" content="Chronicled">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Privacy Policy — Chronicled">
+<meta name="twitter:image" content="https://chronicled.world/images/og-cover.jpg">
+
+<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="images/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="images/favicon-180.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg-void: #0a0b0d; --bg-panel: #14161a; --border-line: #2a2d33;
-    --ink: #e4e1d6; --ink-dim: #9a9ca3; --ink-faint: #5c5f66;
-    --neon-primary: #ff2f6e; --neon-cyan: #29f0d1;
-    --font-display: 'Oswald', sans-serif; --font-body: 'Work Sans', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg-void); color: var(--ink); font-family: var(--font-body); line-height: 1.7; }
-  a { color: var(--neon-cyan); }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px 80px; }
-  header { border-bottom: 1px solid var(--border-line); padding: 20px 0; margin-bottom: 48px; }
-  header .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 0; padding-bottom: 0; }
-  .site-title { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; font-size: 1.1rem; }
-  .site-title .accent { color: var(--neon-primary); }
-  .back-link { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
-  h1 { font-family: var(--font-display); text-transform: uppercase; font-size: clamp(1.8rem, 4vw, 2.4rem); margin: 0 0 8px; }
-  .updated { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 40px; }
-  h2 { font-family: var(--font-display); text-transform: uppercase; font-size: 1.15rem; letter-spacing: 0.02em; margin: 40px 0 12px; color: var(--neon-cyan); }
-  p, li { color: var(--ink-dim); font-size: 0.96rem; }
-  ul { padding-left: 20px; }
-  .notice {
-    background: var(--bg-panel); border: 1px solid var(--border-line); border-left: 3px solid var(--neon-primary);
-    padding: 16px 20px; margin: 0 0 40px; font-size: 0.88rem; color: var(--ink-dim);
-  }
-  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.88rem; }
-  th, td { border: 1px solid var(--border-line); padding: 10px 12px; text-align: left; }
-  th { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; color: var(--ink-dim); background: var(--bg-panel); }
-  footer { border-top: 1px solid var(--border-line); margin-top: 60px; padding: 24px 0; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-align: center; }
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<header><div class="wrap"><a href="index.html" class="site-title">CHRON<span class="accent">I</span>CLED</a><a href="index.html" class="back-link">← Back</a></div></header>
+<header class="legal-header"><div class="wrap"><a href="index.html" class="site-title">CHRON<span class="accent">I</span>CLED</a><a href="index.html" class="back-link">← Back</a></div></header>
 
-<div class="wrap">
+<div class="legal-wrap">
   <h1>Privacy Policy</h1>
   <p class="updated">Last updated: August 2026</p>
 
-  <div class="notice">
+  <div class="legal-notice">
     Chronicled is a small independent project. This page describes what's actually collected today, in plain language — it isn't a substitute for formal legal review.
   </div>
 
@@ -55,8 +45,8 @@
     <tr><td>Email address</td><td>Account login, or waitlist signup if you're not yet a user</td></tr>
     <tr><td>World/campaign details you enter</td><td>Used to generate content grounded in your setting</td></tr>
     <tr><td>Generated content &amp; portrait art</td><td>Stored so your archive persists between sessions</td></tr>
-    <tr><td>Usage data (generation counts, plan status, credit balance)</td><td>Enforcing plan limits and cost tracking</td></tr>
-    <tr><td>Billing status (plan, subscription status, payment history)</td><td>Managed by Stripe on our behalf — see below. We store which plan you're on and whether payments are current, not your card details.</td></tr>
+    <tr><td>Usage data (generation counts, plan status, credit balance)</td><td>Enforcing plan limits and cost tracking. During the current free beta, this is just a generation count against the beta cap — billing/plan/credit tracking exists in the system but isn't active yet.</td></tr>
+    <tr><td>Billing status (plan, subscription status, payment history)</td><td>Once billing is switched on, managed by Stripe on our behalf — see below. We store which plan you're on and whether payments are current, not your card details.</td></tr>
   </table>
 
   <h2>2. Third Parties We Use</h2>
@@ -65,7 +55,7 @@
     <li><strong>Supabase</strong> — authentication, database, and file storage for your account and archive</li>
     <li><strong>Anthropic (Claude)</strong> — generates narrative/text content based on what you enter</li>
     <li><strong>Google (Gemini)</strong> — generates portrait art</li>
-    <li><strong>Stripe</strong> — processes subscription and credit-purchase payments. Your card details go directly to Stripe; we never receive or store them. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's privacy policy</a>.</li>
+    <li><strong>Stripe</strong> — will process subscription and credit-purchase payments once billing is switched on. Your card details go directly to Stripe; we never receive or store them. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's privacy policy</a>.</li>
     <li><strong>Resend</strong> — sends account-related email (e.g. login/verification)</li>
     <li><strong>Render</strong> — hosts the application</li>
   </ul>
@@ -79,7 +69,7 @@
   </ul>
 
   <h2>4. Your Data, Your Control</h2>
-  <p>You can delete a world from the Settings page at any time. You can manage or cancel your subscription and view billing history directly through Stripe's self-serve billing portal, linked from the Settings page. To delete your account entirely or request a copy of your data, email us and we'll handle it directly — there's no automated self-serve flow for this yet, being a small product.</p>
+  <p>You can delete a world from the Settings page at any time. Once billing is switched on, you'll be able to manage or cancel your subscription and view billing history directly through Stripe's self-serve billing portal, linked from the Settings page. To delete your account entirely or request a copy of your data, email us and we'll handle it directly — there's no automated self-serve flow for this yet, being a small product.</p>
 
   <h2>5. Waitlist Signups</h2>
   <p>If you sign up for the waitlist before creating an account, we store your email address and, internally, a note of where you signed up from (e.g. the landing page or itch.io) so we can understand which channels are working. This is used only to invite you and isn't shared externally.</p>
@@ -91,13 +81,13 @@
   <p>Questions about your data or this policy: <a href="mailto:ausfarr@gmail.com">ausfarr@gmail.com</a></p>
 </div>
 
-<footer>CHRONICLED — WORLD ARCHIVE SYSTEM &nbsp;·&nbsp; <span class="app-version">v0.7 · beta</span></footer>
+<footer class="legal-footer">CHRONICLED — WORLD ARCHIVE SYSTEM &nbsp;·&nbsp; <span class="app-version">v0.7 · beta</span></footer>
 
 <script src="version.js"></script>
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+      el.textContent = window.APP_VERSION + ' · beta';
     });
   }
 </script>

@@ -100,4 +100,8 @@ template:
 See `CHANGELOG.md` for the full version history and what shipped in
 each release, plus links to detailed per-feature design notes. The
 public-facing version of the same history is at
-[chronicled.world/changelog.html](https://chronicled.world/changelog.html).
+[chronicled.world/changelog.html](https://chronicled.world/changelog.html)
+— run `node scripts/buildMarketingChangelog.js` after adding a new
+version to `CHANGELOG.md` to regenerate it (strips internal-only notes
+and addendum links; skim the diff and lighten the tone before
+publishing, per the reminder the script prints).
