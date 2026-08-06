@@ -3,138 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Changelog — Chronicled</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+<title>Build Log — Chronicled</title>
+<meta name="description" content="What's shipping in Chronicled, as it ships — new generators, features, and fixes for the free-beta worldbuilding archive tool.">
+<link rel="canonical" href="https://chronicled.world/changelog.html">
 
-:root {
-  --bg-void: #0a0b0d;
-  --bg-panel: #14161a;
-  --bg-panel-raised: #1c1f24;
-  --border-line: #2a2d33;
-  --border-line-soft: #202226;
-  --ink: #e4e1d6;
-  --ink-dim: #9a9ca3;
-  --ink-faint: #5c5f66;
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chronicled.world/changelog.html">
+<meta property="og:title" content="Build Log — Chronicled">
+<meta property="og:description" content="What's shipping in Chronicled, as it ships. Public build-in-public log, generated from the real dev changelog.">
+<meta property="og:image" content="https://chronicled.world/images/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Chronicled">
 
-  --accent: #29f0d1;   /* neon-cyan: shipped */
-  --accent-2: #ff2f6e; /* neon-pink: coming soon / attention */
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Build Log — Chronicled">
+<meta name="twitter:description" content="What's shipping in Chronicled, as it ships. Public build-in-public log, generated from the real dev changelog.">
+<meta name="twitter:image" content="https://chronicled.world/images/og-cover.jpg">
 
-  --font-display: 'Oswald', sans-serif;
-  --font-body: 'Work Sans', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-}
+<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="images/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="images/favicon-180.png">
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: var(--bg-void);
-  color: var(--ink);
-  font-family: var(--font-body);
-  line-height: 1.6;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
-}
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
-
-/* ---------- Header ---------- */
-header.site-header {
-  position: sticky; top: 0; z-index: 50;
-  background: rgba(10,11,13,0.92);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid var(--border-line);
-}
-header.site-header .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; padding-bottom: 14px; }
-.site-title {
-  font-family: var(--font-display); font-weight: 600; letter-spacing: 0.06em;
-  font-size: 1.1rem; text-transform: uppercase; color: var(--ink);
-}
-.site-title a { color: inherit; }
-.site-title a:hover { text-decoration: none; }
-.site-nav a {
-  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--ink-dim);
-}
-.site-nav a:hover { color: var(--accent); text-decoration: none; }
-.site-nav a.active { color: var(--accent); }
-
-/* ---------- Hero ---------- */
-.hero { padding: 56px 0 36px; border-bottom: 1px solid var(--border-line); }
-.hero h1 {
-  font-family: var(--font-display); text-transform: uppercase; font-weight: 700;
-  letter-spacing: 0.02em; font-size: clamp(1.8rem, 5vw, 2.6rem); margin: 0 0 10px; color: var(--ink);
-}
-.hero p.dek { color: var(--ink-dim); max-width: 560px; font-size: 1rem; margin: 0; }
-.hero .status-line {
-  font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint);
-  margin-top: 20px; letter-spacing: 0.05em; text-transform: uppercase;
-}
-.hero .status-line .dot { color: var(--accent); }
-
-/* ---------- Coming soon banner ---------- */
-.coming-soon {
-  margin: 36px 0 0;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-line);
-  border-left: 3px solid var(--accent-2);
-  padding: 18px 20px;
-}
-.coming-soon .eyebrow {
-  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--accent-2); margin: 0 0 6px;
-}
-.coming-soon h3 {
-  font-family: var(--font-display); font-size: 1.05rem; margin: 0 0 6px; letter-spacing: 0.02em;
-}
-.coming-soon p { margin: 0; color: var(--ink-dim); font-size: 0.9rem; }
-
-/* ---------- Entry list ---------- */
-.entries { padding: 44px 0 80px; }
-.entry {
-  position: relative;
-  padding: 0 0 40px 28px;
-  border-left: 1px solid var(--border-line-soft);
-  margin-left: 4px;
-}
-.entry:last-child { padding-bottom: 4px; }
-.entry::before {
-  content: '';
-  position: absolute; left: -5px; top: 4px;
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--bg-void); border: 2px solid var(--accent);
-}
-.entry .meta {
-  display: flex; align-items: center; gap: 10px; margin: 0 0 6px;
-}
-.entry .version {
-  font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500;
-  letter-spacing: 0.04em; color: var(--bg-void); background: var(--accent);
-  padding: 2px 8px; border-radius: 2px;
-}
-.entry .date {
-  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--ink-faint);
-}
-.entry h2 {
-  font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.01em;
-  margin: 0 0 12px; color: var(--ink);
-}
-.entry ul { margin: 0; padding-left: 20px; }
-.entry li { color: var(--ink-dim); font-size: 0.94rem; margin-bottom: 6px; }
-.entry li::marker { color: var(--accent); }
-
-footer.site-footer {
-  border-top: 1px solid var(--border-line);
-  padding: 24px 0 60px; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.68rem;
-}
-footer.site-footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.app-version { color: var(--ink-faint); }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -143,23 +37,35 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
     <div class="site-title"><a href="index.html">Chronicled</a></div>
     <nav class="site-nav">
       <a href="index.html">Home</a>
-      <a href="changelog.html" class="active">Changelog</a>
+      <a href="compare.html">Compare</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="changelog.html" class="active">Build log</a>
       <a href="roadmap.html">Roadmap</a>
     </nav>
   </div>
 </header>
 
-<section class="hero">
+<section class="page-hero">
   <div class="wrap">
-    <h1>Changelog</h1>
-    <p class="dek">What's new in Chronicled — new features, generator improvements, and fixes, as they ship.</p>
-    <div class="status-line"><span class="dot">●</span> Currently in beta &nbsp;·&nbsp; Latest version: v0.9</div>
+    <h1>Build Log</h1>
+    <p class="dek">What's new in Chronicled — new generators, features, and fixes, as they ship. Written for anyone following along, not just for the dev team.</p>
+    <div class="status-line"><span class="dot">●</span> <!-- BUILD:STATUS:START -->
+Currently in beta &nbsp;·&nbsp; Latest version: v0.9
+<!-- BUILD:STATUS:END --></div>
   </div>
 </section>
 
 <div class="wrap">
-  <div class="entries">
+  <!-- BUILD:COMING-SOON:START -->
+<div class="coming-soon">
+  <p class="eyebrow">Up next</p>
+  <h3>Archive search + category page grouping/ordering</h3>
+  <p>Scoped and confirmed, not yet built — search across your whole archive, plus better grouping and ordering on category pages.</p>
+</div>
+<!-- BUILD:COMING-SOON:END -->
 
+  <div class="entries">
+  <!-- BUILD:ENTRIES:START -->
     <div class="entry">
       <div class="meta"><span class="version">v0.9</span><span class="date">[08/05/2026]</span></div>
       <h2>Manual Mode</h2>
@@ -250,7 +156,7 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
         <li>Chronicled now supports individual accounts — your worlds are private to you.</li>
       </ul>
     </div>
-
+<!-- BUILD:ENTRIES:END -->
   </div>
 </div>
 
@@ -265,7 +171,7 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+      el.textContent = window.APP_VERSION + ' · beta';
     });
   }
 </script>

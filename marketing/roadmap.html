@@ -4,106 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Roadmap — Chronicled</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+<meta name="description" content="What we're exploring next for Chronicled — loot tables, dungeon layouts, session prep, timelines, and more. No ship dates, no promises, just the honest window into what's being considered.">
+<link rel="canonical" href="https://chronicled.world/roadmap.html">
 
-:root {
-  --bg-void: #0a0b0d;
-  --bg-panel: #14161a;
-  --bg-panel-raised: #1c1f24;
-  --border-line: #2a2d33;
-  --border-line-soft: #202226;
-  --ink: #e4e1d6;
-  --ink-dim: #9a9ca3;
-  --ink-faint: #5c5f66;
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chronicled.world/roadmap.html">
+<meta property="og:title" content="Roadmap — Chronicled">
+<meta property="og:description" content="Ideas we're exploring for Chronicled. Nothing here has a ship date — a window into what we're thinking about, not a promise.">
+<meta property="og:image" content="https://chronicled.world/images/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Chronicled">
 
-  --accent: #29f0d1;
-  --accent-2: #ff2f6e;
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Roadmap — Chronicled">
+<meta name="twitter:description" content="Ideas we're exploring for Chronicled. Nothing here has a ship date — a window into what we're thinking about, not a promise.">
+<meta name="twitter:image" content="https://chronicled.world/images/og-cover.jpg">
 
-  --font-display: 'Oswald', sans-serif;
-  --font-body: 'Work Sans', sans-serif;
-  --font-mono: 'IBM Plex Mono', monospace;
-}
+<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="images/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="images/favicon-180.png">
 
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body {
-  margin: 0;
-  background: var(--bg-void);
-  color: var(--ink);
-  font-family: var(--font-body);
-  line-height: 1.6;
-  background-image:
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
-}
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-.wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
-
-header.site-header {
-  position: sticky; top: 0; z-index: 50;
-  background: rgba(10,11,13,0.92);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid var(--border-line);
-}
-header.site-header .wrap { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; padding-bottom: 14px; }
-.site-title {
-  font-family: var(--font-display); font-weight: 600; letter-spacing: 0.06em;
-  font-size: 1.1rem; text-transform: uppercase; color: var(--ink);
-}
-.site-title a { color: inherit; }
-.site-title a:hover { text-decoration: none; }
-.site-nav a {
-  font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--ink-dim);
-}
-.site-nav a:hover { color: var(--accent); text-decoration: none; }
-.site-nav a.active { color: var(--accent); }
-
-.hero { padding: 56px 0 36px; border-bottom: 1px solid var(--border-line); }
-.hero h1 {
-  font-family: var(--font-display); text-transform: uppercase; font-weight: 700;
-  letter-spacing: 0.02em; font-size: clamp(1.8rem, 5vw, 2.6rem); margin: 0 0 10px; color: var(--ink);
-}
-.hero p.dek { color: var(--ink-dim); max-width: 560px; font-size: 1rem; margin: 0; }
-.hero .disclaimer {
-  font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint);
-  margin-top: 20px; letter-spacing: 0.02em; text-transform: none;
-  border-left: 2px solid var(--border-line); padding-left: 12px;
-}
-
-.groups { padding: 44px 0 80px; }
-.group { margin-bottom: 48px; }
-.group:last-child { margin-bottom: 0; }
-.group-label {
-  font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--accent); margin: 0 0 18px;
-  border-bottom: 1px solid var(--border-line-soft); padding-bottom: 10px;
-}
-.idea {
-  display: flex; gap: 16px; align-items: baseline;
-  padding: 14px 0; border-bottom: 1px solid var(--border-line-soft);
-}
-.idea:last-child { border-bottom: none; }
-.idea h3 {
-  font-family: var(--font-display); font-size: 1rem; letter-spacing: 0.01em;
-  margin: 0; color: var(--ink); flex: 0 0 auto; white-space: nowrap;
-}
-.idea p { margin: 0; color: var(--ink-dim); font-size: 0.9rem; }
-
-@media (max-width: 560px) {
-  .idea { flex-direction: column; gap: 4px; }
-}
-
-footer.site-footer {
-  border-top: 1px solid var(--border-line);
-  padding: 24px 0 60px; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.68rem;
-}
-footer.site-footer .wrap { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.app-version { color: var(--ink-faint); }
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
@@ -112,24 +37,26 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
     <div class="site-title"><a href="index.html">Chronicled</a></div>
     <nav class="site-nav">
       <a href="index.html">Home</a>
-      <a href="changelog.html">Changelog</a>
+      <a href="compare.html">Compare</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="changelog.html">Build log</a>
       <a href="roadmap.html" class="active">Roadmap</a>
     </nav>
   </div>
 </header>
 
-<section class="hero">
+<section class="page-hero">
   <div class="wrap">
     <h1>Roadmap</h1>
     <p class="dek">Ideas we're exploring for Chronicled. Nothing here has a ship date, and not everything listed is guaranteed to happen — think of this as a window into what we're thinking about, not a promise.</p>
-    <p class="disclaimer">See the <a href="changelog.html">changelog</a> for what's already shipped, and what's next up in active development.</p>
+    <p class="disclaimer">See the <a href="changelog.html">build log</a> for what's already shipped.</p>
   </div>
 </section>
 
 <div class="wrap">
   <div class="groups">
 
-    <div class="group">
+    <div class="group reveal">
       <p class="group-label">New content types</p>
       <div class="idea">
         <h3>Loot &amp; Encounter Tables</h3>
@@ -141,7 +68,7 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
       </div>
     </div>
 
-    <div class="group">
+    <div class="group reveal">
       <p class="group-label">For running the game</p>
       <div class="idea">
         <h3>Session Prep</h3>
@@ -161,7 +88,7 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
       </div>
     </div>
 
-    <div class="group">
+    <div class="group reveal">
       <p class="group-label">Deeper worldbuilding</p>
       <div class="idea">
         <h3>Timelines</h3>
@@ -181,7 +108,7 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
       </div>
     </div>
 
-    <div class="group">
+    <div class="group reveal">
       <p class="group-label">Across the whole archive</p>
       <div class="idea">
         <h3>Free-Form Tagging</h3>
@@ -190,6 +117,10 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
       <div class="idea">
         <h3>Entry History</h3>
         <p>Keep previous versions of an entry around after you regenerate it.</p>
+      </div>
+      <div class="idea">
+        <h3>Archive Search</h3>
+        <p>Search across your whole archive, plus better grouping and ordering on category pages. Scoped and confirmed — this one's actively up next.</p>
       </div>
     </div>
 
@@ -204,10 +135,11 @@ footer.site-footer .wrap { display: flex; justify-content: space-between; align-
 </footer>
 
 <script src="version.js"></script>
+<script src="js/reveal.js"></script>
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+      el.textContent = window.APP_VERSION + ' · beta';
     });
   }
 </script>

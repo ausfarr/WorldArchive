@@ -41,7 +41,10 @@
    of it.
    ========================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* Google Fonts is loaded via a <link> tag in each page's <head>, not an
+   @import here -- @import forces the browser to fetch this stylesheet
+   first, parse it, discover the import, and only then fetch the fonts
+   (serial). A sibling <link> lets both fetch in parallel instead. */
 
 :root {
   --bg-void: #0a0b0d;
@@ -566,6 +569,9 @@ table.compare-table td strong { color: var(--ink); }
   .steps { grid-template-columns: 1fr; }
   .cat-grid { grid-template-columns: repeat(2, 1fr); }
   .sample-wrap { grid-template-columns: 1fr; }
-  .site-nav { display: none; }
+  /* Full nav collapses on mobile, but the primary CTA stays reachable --
+     impatient mobile visitors shouldn't lose the one link that matters. */
+  .site-nav a:not(.nav-cta) { display: none; }
+  .site-nav { gap: 0; }
   .compare-yes-cell, table.compare-table { font-size: 0.84rem; }
 }
