@@ -1,19 +1,78 @@
 {
-  "_comment": "Procedural table for NPCs. Per procedural_generation_scope_proposal.md #2, NPCs are the deepest 'partial fit' -- traits/speech/roleArchetype/age come from these tables, but physicalDescription/contradiction/wants/actuallyNeeds/questHook/dialogue are genuinely freeform, so lib/proceduralGenerators.js fills them from Mad-Libs templates below rather than leaving them blank. faction is picked from the world's own live faction roster (or 'unaligned'); roleArchetype values match render.js's CATEGORY_SORT npc order list exactly so procedurally-generated NPCs group/sort correctly on the index page.",
+  "_comment": "Procedural table for NPCs. Per procedural_generation_scope_proposal.md #2, NPCs are the deepest 'partial fit' -- traits/speech/roleArchetype/age come from these tables, but physicalDescription/contradiction/wants/actuallyNeeds/questHook/dialogue are genuinely freeform, so lib/proceduralGenerators.js fills them from Mad-Libs templates below rather than leaving them blank. faction is picked from the world's own live faction roster (or 'unaligned'); roleArchetype values match render.js's CATEGORY_SORT npc order list exactly so procedurally-generated NPCs group/sort correctly on the index page. Every genre-filtered row below carries a `genre` array (post_apoc/fantasy/scifi/modern/horror, or `universal` for anything genre-agnostic) -- see lib/proceduralGenerators.js's 'Genre awareness' section for how detectGenreBuckets()/filterByGenre() use it. roleArchetypes/ages/dialogueBranches/designNotes are NOT genre-filtered by the code and intentionally carry no genre field.",
   "firstNames": [
-    { "value": "Yusuf", "weight": 1 }, { "value": "Colette", "weight": 1 }, { "value": "Barnaby", "weight": 1 },
-    { "value": "Ilsa", "weight": 1 }, { "value": "Remy", "weight": 1 }, { "value": "Adaeze", "weight": 1 },
-    { "value": "Casimir", "weight": 1 }, { "value": "Nadia", "weight": 1 }, { "value": "Elton", "weight": 1 },
-    { "value": "Marisol", "weight": 1 }, { "value": "Ansel", "weight": 1 }, { "value": "Beatrix", "weight": 1 },
-    { "value": "Osei", "weight": 1 }, { "value": "Wren", "weight": 1 }, { "value": "Talia", "weight": 1 },
-    { "value": "Nikolai", "weight": 1 }, { "value": "Old Rosa", "weight": 1 }, { "value": "Ferdinand", "weight": 1 }
+    { "value": "Yusuf", "weight": 1, "genre": ["universal"] }, { "value": "Colette", "weight": 1, "genre": ["universal"] }, { "value": "Barnaby", "weight": 1, "genre": ["universal"] },
+    { "value": "Ilsa", "weight": 1, "genre": ["universal"] }, { "value": "Remy", "weight": 1, "genre": ["universal"] }, { "value": "Adaeze", "weight": 1, "genre": ["universal"] },
+    { "value": "Casimir", "weight": 1, "genre": ["universal"] }, { "value": "Nadia", "weight": 1, "genre": ["universal"] }, { "value": "Elton", "weight": 1, "genre": ["universal"] },
+    { "value": "Marisol", "weight": 1, "genre": ["universal"] }, { "value": "Ansel", "weight": 1, "genre": ["universal"] }, { "value": "Beatrix", "weight": 1, "genre": ["universal"] },
+    { "value": "Osei", "weight": 1, "genre": ["universal"] }, { "value": "Wren", "weight": 1, "genre": ["universal"] }, { "value": "Talia", "weight": 1, "genre": ["universal"] },
+    { "value": "Nikolai", "weight": 1, "genre": ["universal"] }, { "value": "Old Rosa", "weight": 1, "genre": ["post_apoc"] }, { "value": "Ferdinand", "weight": 1, "genre": ["universal"] },
+
+    { "value": "Thane", "weight": 1, "genre": ["fantasy"] }, { "value": "Ysolde", "weight": 1, "genre": ["fantasy"] }, { "value": "Bramwell", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Ottilie", "weight": 1, "genre": ["fantasy"] }, { "value": "Peregrine", "weight": 1, "genre": ["fantasy"] }, { "value": "Aveline", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Corwin", "weight": 1, "genre": ["fantasy"] }, { "value": "Rosamund", "weight": 1, "genre": ["fantasy"] }, { "value": "Aldous", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Ysabeau", "weight": 1, "genre": ["fantasy"] }, { "value": "Gareth", "weight": 1, "genre": ["fantasy"] }, { "value": "Elenora", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Lucan", "weight": 1, "genre": ["fantasy"] }, { "value": "Branwen", "weight": 1, "genre": ["fantasy"] }, { "value": "Isadora", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Tobin", "weight": 1, "genre": ["fantasy"] }, { "value": "Wystan", "weight": 1, "genre": ["fantasy"] }, { "value": "Faelan", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Guinevere", "weight": 1, "genre": ["fantasy"] }, { "value": "Aric", "weight": 1, "genre": ["fantasy"] }, { "value": "Percy", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Ottoline", "weight": 1, "genre": ["fantasy"] }, { "value": "Bastian", "weight": 1, "genre": ["fantasy"] }, { "value": "Cerys", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Alaric", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Anara", "weight": 1, "genre": ["scifi"] }, { "value": "Beckett", "weight": 1, "genre": ["scifi"] }, { "value": "Ilyana", "weight": 1, "genre": ["scifi"] },
+    { "value": "Torvald", "weight": 1, "genre": ["scifi"] }, { "value": "Sable", "weight": 1, "genre": ["scifi"] }, { "value": "Enzo", "weight": 1, "genre": ["scifi"] },
+    { "value": "Quill", "weight": 1, "genre": ["scifi"] }, { "value": "Vasilena", "weight": 1, "genre": ["scifi"] }, { "value": "Marek", "weight": 1, "genre": ["scifi"] },
+    { "value": "Cielo", "weight": 1, "genre": ["scifi"] }, { "value": "Thandeka", "weight": 1, "genre": ["scifi"] }, { "value": "Voss", "weight": 1, "genre": ["scifi"] },
+    { "value": "Renn", "weight": 1, "genre": ["scifi"] }, { "value": "Adaira", "weight": 1, "genre": ["scifi"] }, { "value": "Kip", "weight": 1, "genre": ["scifi"] },
+    { "value": "Solenne", "weight": 1, "genre": ["scifi"] }, { "value": "Vantar", "weight": 1, "genre": ["scifi"] }, { "value": "Prisca", "weight": 1, "genre": ["scifi"] },
+    { "value": "Osiris", "weight": 1, "genre": ["scifi"] }, { "value": "Delphine", "weight": 1, "genre": ["scifi"] }, { "value": "Bao", "weight": 1, "genre": ["scifi"] },
+    { "value": "Kaius", "weight": 1, "genre": ["scifi"] }, { "value": "Etta", "weight": 1, "genre": ["scifi"] }, { "value": "Ryu", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Brandon", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Keisha", "weight": 1, "genre": ["modern"] }, { "value": "Omar", "weight": 1, "genre": ["modern"] },
+    { "value": "Lindsey", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Anthony", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Priscilla", "weight": 1, "genre": ["modern"] },
+    { "value": "Tyrone", "weight": 1, "genre": ["modern"] }, { "value": "Heather", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Julio", "weight": 1, "genre": ["modern"] },
+    { "value": "Stephanie", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Marcus", "weight": 1, "genre": ["modern"] }, { "value": "Jenny", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Kwame", "weight": 1, "genre": ["modern"] }, { "value": "Rachel", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Vincent", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Alicia", "weight": 1, "genre": ["modern"] }, { "value": "Dmitri", "weight": 1, "genre": ["modern"] }, { "value": "Paige", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Rohan", "weight": 1, "genre": ["modern"] }, { "value": "Vanessa", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Terrence", "weight": 1, "genre": ["modern"] },
+    { "value": "Bianca", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Felix", "weight": 1, "genre": ["modern"] }, { "value": "Nadine", "weight": 1, "genre": ["modern", "horror"] },
+
+    { "value": "Mordecai", "weight": 1, "genre": ["horror"] }, { "value": "Araminta", "weight": 1, "genre": ["horror"] }, { "value": "Selwyn", "weight": 1, "genre": ["horror"] },
+    { "value": "Verity", "weight": 1, "genre": ["horror"] }, { "value": "Increase", "weight": 1, "genre": ["horror"] }, { "value": "Hesper", "weight": 1, "genre": ["horror"] },
+    { "value": "Malachi", "weight": 1, "genre": ["horror"] }, { "value": "Persephone", "weight": 1, "genre": ["horror"] }, { "value": "Wilhelmina", "weight": 1, "genre": ["horror"] },
+    { "value": "Edmund", "weight": 1, "genre": ["horror"] }
   ],
   "lastNames": [
-    { "value": "Okonkwo", "weight": 1 }, { "value": "Achterberg", "weight": 1 }, { "value": "Villanueva", "weight": 1 },
-    { "value": "Csík", "weight": 1 }, { "value": "Bramble", "weight": 1 }, { "value": "Adegoke", "weight": 1 },
-    { "value": "Krupa", "weight": 1 }, { "value": "Sørensen", "weight": 1 }, { "value": "Faraday", "weight": 1 },
-    { "value": "Menendez", "weight": 1 }, { "value": "Ostrander", "weight": 1 }, { "value": "Quintanilla", "weight": 1 },
-    { "value": "Whitfield", "weight": 1 }, { "value": "Baptiste", "weight": 1 }
+    { "value": "Okonkwo", "weight": 1, "genre": ["universal"] }, { "value": "Achterberg", "weight": 1, "genre": ["universal"] }, { "value": "Villanueva", "weight": 1, "genre": ["universal"] },
+    { "value": "Csík", "weight": 1, "genre": ["universal"] }, { "value": "Bramble", "weight": 1, "genre": ["universal"] }, { "value": "Adegoke", "weight": 1, "genre": ["universal"] },
+    { "value": "Krupa", "weight": 1, "genre": ["universal"] }, { "value": "Sørensen", "weight": 1, "genre": ["universal"] }, { "value": "Faraday", "weight": 1, "genre": ["universal"] },
+    { "value": "Menendez", "weight": 1, "genre": ["universal"] }, { "value": "Ostrander", "weight": 1, "genre": ["universal"] }, { "value": "Quintanilla", "weight": 1, "genre": ["universal"] },
+    { "value": "Whitfield", "weight": 1, "genre": ["universal"] }, { "value": "Baptiste", "weight": 1, "genre": ["universal"] },
+
+    { "value": "Hallowfen", "weight": 1, "genre": ["fantasy"] }, { "value": "Brackenridge", "weight": 1, "genre": ["fantasy"] }, { "value": "Dunmore", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Silverleaf", "weight": 1, "genre": ["fantasy"] }, { "value": "Graywood", "weight": 1, "genre": ["fantasy"] }, { "value": "Thistlewaite", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Winterbourne", "weight": 1, "genre": ["fantasy"] }, { "value": "Foxglove", "weight": 1, "genre": ["fantasy"] }, { "value": "Ravensmoor", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Ashworth", "weight": 1, "genre": ["fantasy"] }, { "value": "Blackthorn", "weight": 1, "genre": ["fantasy"] }, { "value": "Hollowell", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Stagshead", "weight": 1, "genre": ["fantasy"] }, { "value": "Wyrmwood", "weight": 1, "genre": ["fantasy"] }, { "value": "Ledgerwood", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Crowmarsh", "weight": 1, "genre": ["fantasy"] }, { "value": "Vaelin", "weight": 1, "genre": ["fantasy"] }, { "value": "Ironsong", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Halvorsen", "weight": 1, "genre": ["scifi"] }, { "value": "Kestrel-9", "weight": 1, "genre": ["scifi"] }, { "value": "Okoye-Marsh", "weight": 1, "genre": ["scifi"] },
+    { "value": "Devries", "weight": 1, "genre": ["scifi"] }, { "value": "Nakamura-Reyes", "weight": 1, "genre": ["scifi"] }, { "value": "Bellweather", "weight": 1, "genre": ["scifi"] },
+    { "value": "Chen", "weight": 1, "genre": ["scifi"] }, { "value": "Aurelius", "weight": 1, "genre": ["scifi"] }, { "value": "Voskresenskaya", "weight": 1, "genre": ["scifi"] },
+    { "value": "Marchetti", "weight": 1, "genre": ["scifi"] }, { "value": "Obuya", "weight": 1, "genre": ["scifi"] }, { "value": "Sandoval", "weight": 1, "genre": ["scifi"] },
+    { "value": "Petrenko", "weight": 1, "genre": ["scifi"] }, { "value": "Alcazar", "weight": 1, "genre": ["scifi"] }, { "value": "Winslow-Tau", "weight": 1, "genre": ["scifi"] },
+    { "value": "Idowu", "weight": 1, "genre": ["scifi"] }, { "value": "Farrow", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Harrington", "weight": 1, "genre": ["modern"] }, { "value": "Alvarado", "weight": 1, "genre": ["modern"] }, { "value": "Whitmore", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Blackburn", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Osman", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Kowalczyk", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Reilly", "weight": 1, "genre": ["modern"] }, { "value": "Dumont", "weight": 1, "genre": ["modern"] }, { "value": "Abernathy", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Tran", "weight": 1, "genre": ["modern"] }, { "value": "Mbeki", "weight": 1, "genre": ["modern"] }, { "value": "Sorensen", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Pruitt", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Callahan", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Iyer", "weight": 1, "genre": ["modern"] },
+    { "value": "Hutchins", "weight": 1, "genre": ["modern"] }, { "value": "Salazar", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Grimshaw", "weight": 1, "genre": ["horror"] }, { "value": "Ashendene", "weight": 1, "genre": ["horror"] }, { "value": "Coldwell", "weight": 1, "genre": ["horror"] },
+    { "value": "Wychwood", "weight": 1, "genre": ["horror"] }, { "value": "Blackmoor", "weight": 1, "genre": ["horror"] }, { "value": "Sallowfield", "weight": 1, "genre": ["horror"] },
+    { "value": "Creighton", "weight": 1, "genre": ["horror"] }, { "value": "Vaughn-Marsh", "weight": 1, "genre": ["horror"] }, { "value": "Deverell", "weight": 1, "genre": ["horror"] },
+    { "value": "Hollowday", "weight": 1, "genre": ["horror"] }
   ],
   "roleArchetypes": [
     { "value": "Faction Leader", "weight": 1 },
@@ -29,90 +88,225 @@
     { "value": 63, "weight": 1 }, { "value": 71, "weight": 1 }
   ],
   "traits": [
-    { "value": "unflinchingly direct", "weight": 2 }, { "value": "warm to strangers, cold to friends", "weight": 1 },
-    { "value": "compulsively tidy", "weight": 1 }, { "value": "quick to laugh, quicker to stop", "weight": 1 },
-    { "value": "deeply superstitious", "weight": 1 }, { "value": "chronically underslept", "weight": 1 },
-    { "value": "performatively unbothered", "weight": 1 }, { "value": "obsessively precise about small details", "weight": 1 },
-    { "value": "generous to a fault", "weight": 2 }, { "value": "reflexively suspicious of authority", "weight": 2 },
-    { "value": "impossible to rattle", "weight": 1 }, { "value": "talks in half-finished sentences when nervous", "weight": 1 },
-    { "value": "keeps score of every slight, real or imagined", "weight": 1 }, { "value": "disarmingly gentle for the work they do", "weight": 1 },
-    { "value": "allergic to being thanked", "weight": 1 }
+    { "value": "unflinchingly direct", "weight": 2, "genre": ["universal"] }, { "value": "warm to strangers, cold to friends", "weight": 1, "genre": ["universal"] },
+    { "value": "compulsively tidy", "weight": 1, "genre": ["universal"] }, { "value": "quick to laugh, quicker to stop", "weight": 1, "genre": ["universal"] },
+    { "value": "deeply superstitious", "weight": 1, "genre": ["universal"] }, { "value": "chronically underslept", "weight": 1, "genre": ["universal"] },
+    { "value": "performatively unbothered", "weight": 1, "genre": ["universal"] }, { "value": "obsessively precise about small details", "weight": 1, "genre": ["universal"] },
+    { "value": "generous to a fault", "weight": 2, "genre": ["universal"] }, { "value": "reflexively suspicious of authority", "weight": 2, "genre": ["universal"] },
+    { "value": "impossible to rattle", "weight": 1, "genre": ["universal"] }, { "value": "talks in half-finished sentences when nervous", "weight": 1, "genre": ["universal"] },
+    { "value": "keeps score of every slight, real or imagined", "weight": 1, "genre": ["universal"] }, { "value": "disarmingly gentle for the work they do", "weight": 1, "genre": ["universal"] },
+    { "value": "allergic to being thanked", "weight": 1, "genre": ["universal"] },
+
+    { "value": "quietly devout, never says to whom", "weight": 1, "genre": ["fantasy"] }, { "value": "carries an old grudge against a noble house", "weight": 1, "genre": ["fantasy"] },
+    { "value": "distrusts anything without a manual override", "weight": 1, "genre": ["scifi"] }, { "value": "still adjusting to gravity that isn't simulated", "weight": 1, "genre": ["scifi"] },
+    { "value": "always five minutes late and unbothered by it", "weight": 1, "genre": ["modern"] }, { "value": "answers work email at 2am out of habit", "weight": 1, "genre": ["modern"] },
+    { "value": "flinches at reflections in low light", "weight": 1, "genre": ["horror"] }, { "value": "counts exits in every room without meaning to", "weight": 1, "genre": ["horror"] }
   ],
   "physicalDescriptionTemplates": [
-    { "value": "{pronoun_cap} {carries} {pronoun_pos} weight like someone used to being underestimated for it -- deliberate, unhurried, never quite still.", "weight": 1 },
-    { "value": "A face that's clearly been through something, worn in exactly the places that show it. {pronoun_cap} {dresses} like comfort matters more than appearance, and it shows.", "weight": 1 },
-    { "value": "Sharp-eyed and a little too observant for casual conversation. {pronoun_cap} {has} the look of someone who's already sized up the room before you noticed them in it.", "weight": 1 },
-    { "value": "Compact, practical, dressed for whatever the day turns into. Hands that have clearly done real work, whatever {pronoun_pos} current job title says.", "weight": 1 },
-    { "value": "Taller than the room usually expects, and {pronoun_subj} {seems} aware of it -- angles {pronoun_pos} posture to take up less space than {pronoun_pos} actually does.", "weight": 1 }
+    { "value": "{pronoun_cap} {carries} {pronoun_pos} weight like someone used to being underestimated for it -- deliberate, unhurried, never quite still.", "weight": 1, "genre": ["universal"] },
+    { "value": "A face that's clearly been through something, worn in exactly the places that show it. {pronoun_cap} {dresses} like comfort matters more than appearance, and it shows.", "weight": 1, "genre": ["universal"] },
+    { "value": "Sharp-eyed and a little too observant for casual conversation. {pronoun_cap} {has} the look of someone who's already sized up the room before you noticed them in it.", "weight": 1, "genre": ["universal"] },
+    { "value": "Compact, practical, dressed for whatever the day turns into. Hands that have clearly done real work, whatever {pronoun_pos} current job title says.", "weight": 1, "genre": ["universal"] },
+    { "value": "Taller than the room usually expects, and {pronoun_subj} {seems} aware of it -- angles {pronoun_pos} posture to take up less space than {pronoun_pos} actually does.", "weight": 1, "genre": ["universal"] },
+
+    { "value": "{pronoun_cap} {carries} {pronoun_pos} blade the way some people carry a walking stick -- more habit than threat, though no less ready for it. Travel-worn cloak, boots that have crossed three kingdoms at least.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "A face suited to a tapestry rather than a tavern -- striking in a way that clearly troubles {pronoun_pos} composure. {pronoun_cap} {dresses} plainly, as if trying to be overlooked, and mostly failing.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Weathered in the way of someone who's slept under more roofs made of sky than timber. {pronoun_cap} {has} the calluses of a trade never named outright.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "An old scar sits along {pronoun_pos} jaw like a story {pronoun_subj} {seems} almost proud of, and a bearing that suggests a life once spent in a hall that no longer stands.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "{pronoun_cap} {dresses} in layers of mismatched finery and practical leather, like two different lives got folded into one wardrobe. {pronoun_cap} {carries} {pronoun_pos} coin purse suspiciously close at hand.", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "{pronoun_cap} {carries} {pronoun_pos} augments the way most people carry a bad habit -- visible if you know where to look. {pronoun_cap} {seems} tired of explaining them to people who ask.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Sleek, efficient, faintly synthetic under the light. {pronoun_cap} {seems} built for a station corridor more than open ground, and {pronoun_cap} {dresses} in tech-weave that's seen better maintenance cycles.", "weight": 1, "genre": ["scifi"] },
+    { "value": "A face reconstructed at least once, well enough that only a trained eye catches the seams. {pronoun_cap} {has} the stillness of someone used to zero-g.", "weight": 1, "genre": ["scifi"] },
+    { "value": "{pronoun_cap} {carries} {pronoun_pos} gear like it's an extension of {pronoun_pos} own arm, which, depending who's asking, it might actually be.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Pale under artificial light, the kind that suggests real sun is a distant memory. {pronoun_cap} {dresses} for function over anything else.", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "{pronoun_cap} {dresses} like someone who got ready in a hurry and made it work anyway. {pronoun_cap} {carries} {pronoun_pos} phone like it might ring with bad news any second.", "weight": 1, "genre": ["modern"] },
+    { "value": "Ordinary in exactly the way that makes {pronoun_pos} job easier -- the kind of face that's hard to describe five minutes after {pronoun_subj} {has} left the room.", "weight": 1, "genre": ["modern"] },
+    { "value": "{pronoun_cap} {has} the posture of someone who spends too long at a desk and knows it. {pronoun_cap} {seems} perpetually one meeting behind.", "weight": 1, "genre": ["modern"] },
+    { "value": "Comfortable clothes, tired eyes, a coffee gone cold that {pronoun_subj} {seems} to have forgotten about entirely.", "weight": 1, "genre": ["modern"] },
+    { "value": "{pronoun_cap} {dresses} a little sharper than the job requires, like {pronoun_subj} {seems} always halfway to convincing someone of something.", "weight": 1, "genre": ["modern"] },
+
+    { "value": "{pronoun_cap} {seems} almost too still between sentences, in a way that takes a moment too long to place as wrong.", "weight": 1, "genre": ["horror"] },
+    { "value": "There's something slightly off about the way {pronoun_subj} {seems} to track movement in the room -- a beat too slow, or a beat too fast, never quite in rhythm with the conversation.", "weight": 1, "genre": ["horror"] },
+    { "value": "{pronoun_cap} {dresses} like the weather stopped mattering years ago, and {pronoun_pos} smile arrives a half-second after it should.", "weight": 1, "genre": ["horror"] },
+    { "value": "Pale in a way that reads more like habit than health. {pronoun_cap} {has} the look of someone who sleeps with the light on, for reasons {pronoun_subj} {seems} unwilling to name.", "weight": 1, "genre": ["horror"] },
+    { "value": "{pronoun_cap} {carries} {pronoun_pos} belongings like {pronoun_subj} {seems} ready to leave very suddenly, and {pronoun_subj} {seems} already listening for the reason why.", "weight": 1, "genre": ["horror"] }
   ],
   "contradictionTemplates": [
-    { "value": "Preaches self-sufficiency to everyone who'll listen, and quietly does favors nobody asked for.", "weight": 1 },
-    { "value": "Claims to have no patience for sentiment, keeps every letter anyone's ever written them.", "weight": 1 },
-    { "value": "Talks like they've made peace with how things turned out. They haven't.", "weight": 1 },
-    { "value": "Insists they don't play favorites, and everyone here knows exactly who the favorite is.", "weight": 1 },
-    { "value": "Says trust is earned, not given -- then extends it faster than anyone realizes until it's too late to take back.", "weight": 1 },
-    { "value": "Acts like the past is settled business. It comes up in almost every conversation anyway.", "weight": 1 }
+    { "value": "Preaches self-sufficiency to everyone who'll listen, and quietly does favors nobody asked for.", "weight": 1, "genre": ["universal"] },
+    { "value": "Claims to have no patience for sentiment, keeps every letter anyone's ever written them.", "weight": 1, "genre": ["universal"] },
+    { "value": "Talks like they've made peace with how things turned out. They haven't.", "weight": 1, "genre": ["universal"] },
+    { "value": "Insists they don't play favorites, and everyone here knows exactly who the favorite is.", "weight": 1, "genre": ["universal"] },
+    { "value": "Says trust is earned, not given -- then extends it faster than anyone realizes until it's too late to take back.", "weight": 1, "genre": ["universal"] },
+    { "value": "Acts like the past is settled business. It comes up in almost every conversation anyway.", "weight": 1, "genre": ["universal"] }
   ],
   "wantsTemplates": [
-    { "value": "To be the reason this place is still standing, whether or not anyone ever knows it.", "weight": 1 },
-    { "value": "One clean win that isn't a compromise, for once.", "weight": 1 },
-    { "value": "To settle a score that's been open long enough to feel like part of the furniture.", "weight": 1 },
-    { "value": "For someone specific to finally admit they were right.", "weight": 1 },
-    { "value": "Enough stability to stop planning for the worst constantly.", "weight": 1 },
-    { "value": "To matter to people who don't need anything from them.", "weight": 1 }
+    { "value": "To be the reason this place is still standing, whether or not anyone ever knows it.", "weight": 1, "genre": ["universal"] },
+    { "value": "One clean win that isn't a compromise, for once.", "weight": 1, "genre": ["universal"] },
+    { "value": "To settle a score that's been open long enough to feel like part of the furniture.", "weight": 1, "genre": ["universal"] },
+    { "value": "For someone specific to finally admit they were right.", "weight": 1, "genre": ["universal"] },
+    { "value": "Enough stability to stop planning for the worst constantly.", "weight": 1, "genre": ["universal"] },
+    { "value": "To matter to people who don't need anything from them.", "weight": 1, "genre": ["universal"] },
+
+    { "value": "To be knighted before their family name is forgotten entirely.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "To see the old kingdom's borders restored in their lifetime, however unlikely that's become.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "To be remembered in a song, even an unflattering one.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "To buy back a contract that never should have been signed away in the first place.", "weight": 1, "genre": ["scifi"] },
+    { "value": "To see planetside sky again before running out of reasons to try.", "weight": 1, "genre": ["scifi"] },
+    { "value": "To finally make partner, or quit trying to pretend that's still the plan.", "weight": 1, "genre": ["modern"] },
+    { "value": "To pay off the house before anyone finds out how close it came to being lost.", "weight": 1, "genre": ["modern"] },
+    { "value": "For whatever's in the walls to finally just show itself, so at least the waiting would stop.", "weight": 1, "genre": ["horror"] },
+    { "value": "To be believed, just once, by someone who matters.", "weight": 1, "genre": ["horror"] }
   ],
   "actuallyNeedsTemplates": [
-    { "value": "To let go of a decision that can't be undone.", "weight": 1 },
-    { "value": "To be told, and believe, that they're not actually responsible for everything that's gone wrong.", "weight": 1 },
-    { "value": "Someone to actually rely on, instead of everyone relying on them.", "weight": 1 },
-    { "value": "To forgive a version of themselves that no longer exists.", "weight": 1 },
-    { "value": "To stop treating every relationship as a transaction.", "weight": 1 },
-    { "value": "Rest they will not admit to needing.", "weight": 1 }
+    { "value": "To let go of a decision that can't be undone.", "weight": 1, "genre": ["universal"] },
+    { "value": "To be told, and believe, that they're not actually responsible for everything that's gone wrong.", "weight": 1, "genre": ["universal"] },
+    { "value": "Someone to actually rely on, instead of everyone relying on them.", "weight": 1, "genre": ["universal"] },
+    { "value": "To forgive a version of themselves that no longer exists.", "weight": 1, "genre": ["universal"] },
+    { "value": "To stop treating every relationship as a transaction.", "weight": 1, "genre": ["universal"] },
+    { "value": "Rest they will not admit to needing.", "weight": 1, "genre": ["universal"] }
   ],
   "speechRegisters": [
-    { "value": "Blunt and economical -- says exactly as much as needed, no more.", "weight": 2 },
-    { "value": "Formal, almost old-fashioned, even in casual conversation.", "weight": 1 },
-    { "value": "Warm and conversational, quick to bring strangers in.", "weight": 2 },
-    { "value": "Clipped and professional, like everything's a negotiation.", "weight": 1 },
-    { "value": "Rambling and tangent-prone, circles back eventually.", "weight": 1 }
+    { "value": "Blunt and economical -- says exactly as much as needed, no more.", "weight": 2, "genre": ["universal"] },
+    { "value": "Formal, almost old-fashioned, even in casual conversation.", "weight": 1, "genre": ["universal"] },
+    { "value": "Warm and conversational, quick to bring strangers in.", "weight": 2, "genre": ["universal"] },
+    { "value": "Clipped and professional, like everything's a negotiation.", "weight": 1, "genre": ["universal"] },
+    { "value": "Rambling and tangent-prone, circles back eventually.", "weight": 1, "genre": ["universal"] }
   ],
   "speechRhythms": [
-    { "value": "Short sentences. Rarely elaborates unless pushed.", "weight": 2 },
-    { "value": "Long, winding sentences that eventually land somewhere.", "weight": 1 },
-    { "value": "Speaks in lists -- first this, then that, then the other thing.", "weight": 1 },
-    { "value": "Pauses before anything important, like weighing the cost of saying it.", "weight": 2 },
-    { "value": "Talks fast when nervous, slows down deliberately when it matters.", "weight": 1 }
+    { "value": "Short sentences. Rarely elaborates unless pushed.", "weight": 2, "genre": ["universal"] },
+    { "value": "Long, winding sentences that eventually land somewhere.", "weight": 1, "genre": ["universal"] },
+    { "value": "Speaks in lists -- first this, then that, then the other thing.", "weight": 1, "genre": ["universal"] },
+    { "value": "Pauses before anything important, like weighing the cost of saying it.", "weight": 2, "genre": ["universal"] },
+    { "value": "Talks fast when nervous, slows down deliberately when it matters.", "weight": 1, "genre": ["universal"] }
   ],
   "speechTics": [
-    { "value": "Ends questions with a small, humorless laugh.", "weight": 1 }, { "value": "Repeats the last few words of what you just said back at you.", "weight": 1 },
-    { "value": "Says \"look\" before anything they actually mean.", "weight": 2 }, { "value": "Taps twice on whatever surface is nearest when thinking.", "weight": 1 },
-    { "value": "Calls everyone \"friend,\" including people they clearly don't trust.", "weight": 1 }, { "value": "Trails off mid-sentence and expects you to fill in the rest.", "weight": 1 }
+    { "value": "Ends questions with a small, humorless laugh.", "weight": 1, "genre": ["universal"] }, { "value": "Repeats the last few words of what you just said back at you.", "weight": 1, "genre": ["universal"] },
+    { "value": "Says \"look\" before anything they actually mean.", "weight": 2, "genre": ["universal"] }, { "value": "Taps twice on whatever surface is nearest when thinking.", "weight": 1, "genre": ["universal"] },
+    { "value": "Calls everyone \"friend,\" including people they clearly don't trust.", "weight": 1, "genre": ["universal"] }, { "value": "Trails off mid-sentence and expects you to fill in the rest.", "weight": 1, "genre": ["universal"] }
   ],
   "neverSayLines": [
-    { "value": "\"I'm sorry.\"", "weight": 1 }, { "value": "\"I need help.\"", "weight": 1 }, { "value": "\"I was wrong.\"", "weight": 1 },
-    { "value": "\"That's not my problem.\"", "weight": 1 }, { "value": "\"I don't care.\"", "weight": 1 }, { "value": "\"Trust me.\"", "weight": 1 }
+    { "value": "\"I'm sorry.\"", "weight": 1, "genre": ["universal"] }, { "value": "\"I need help.\"", "weight": 1, "genre": ["universal"] }, { "value": "\"I was wrong.\"", "weight": 1, "genre": ["universal"] },
+    { "value": "\"That's not my problem.\"", "weight": 1, "genre": ["universal"] }, { "value": "\"I don't care.\"", "weight": 1, "genre": ["universal"] }, { "value": "\"Trust me.\"", "weight": 1, "genre": ["universal"] },
+
+    { "value": "\"I yield.\"", "weight": 1, "genre": ["fantasy"] }, { "value": "\"The old ways are worthless.\"", "weight": 1, "genre": ["fantasy"] }, { "value": "\"I never swore any oath.\"", "weight": 1, "genre": ["fantasy"] },
+    { "value": "\"Magic frightens me.\"", "weight": 1, "genre": ["fantasy"] }, { "value": "\"I don't remember the war.\"", "weight": 1, "genre": ["fantasy"] }, { "value": "\"The crown was right to banish me.\"", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "\"The mission comes first.\"", "weight": 1, "genre": ["scifi"] }, { "value": "\"I trust the Company.\"", "weight": 1, "genre": ["scifi"] }, { "value": "\"My augments never glitch.\"", "weight": 1, "genre": ["scifi"] },
+    { "value": "\"I signed that contract willingly.\"", "weight": 1, "genre": ["scifi"] }, { "value": "\"The AI was right.\"", "weight": 1, "genre": ["scifi"] }, { "value": "\"I don't miss Earth.\"", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "\"I checked my phone.\"", "weight": 1, "genre": ["modern"] }, { "value": "\"Everything's under control.\"", "weight": 1, "genre": ["modern"] }, { "value": "\"I read the fine print.\"", "weight": 1, "genre": ["modern"] },
+    { "value": "\"My boss is reasonable.\"", "weight": 1, "genre": ["modern"] }, { "value": "\"I'm over it.\"", "weight": 1, "genre": ["modern"] }, { "value": "\"I called them back.\"", "weight": 1, "genre": ["modern"] },
+
+    { "value": "\"I saw nothing.\"", "weight": 1, "genre": ["horror"] }, { "value": "\"It was just a dream.\"", "weight": 1, "genre": ["horror"] }, { "value": "\"I'm not afraid of the dark.\"", "weight": 1, "genre": ["horror"] },
+    { "value": "\"Nobody's watching.\"", "weight": 1, "genre": ["horror"] }, { "value": "\"It's not following me.\"", "weight": 1, "genre": ["horror"] }, { "value": "\"I slept fine last night.\"", "weight": 1, "genre": ["horror"] }
   ],
   "signatureQuotes": [
-    { "value": "You get one version of me. This is it.", "weight": 1 },
-    { "value": "Everyone wants something. At least I'm honest about it.", "weight": 1 },
-    { "value": "I've buried better plans than whatever you've got.", "weight": 1 },
-    { "value": "Ask nicely and I might even tell you the truth.", "weight": 1 },
-    { "value": "Around here, favors are the only real currency.", "weight": 1 },
-    { "value": "I stopped being surprised by people a long time ago.", "weight": 1 }
+    { "value": "You get one version of me. This is it.", "weight": 1, "genre": ["universal"] },
+    { "value": "Everyone wants something. At least I'm honest about it.", "weight": 1, "genre": ["universal"] },
+    { "value": "I've buried better plans than whatever you've got.", "weight": 1, "genre": ["universal"] },
+    { "value": "Ask nicely and I might even tell you the truth.", "weight": 1, "genre": ["universal"] },
+    { "value": "Around here, favors are the only real currency.", "weight": 1, "genre": ["universal"] },
+    { "value": "I stopped being surprised by people a long time ago.", "weight": 1, "genre": ["universal"] },
+
+    { "value": "The gods left this world a long time ago. The rest of us just haven't noticed yet.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "A blade only lies if the hand behind it does.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "I've buried three kings and outlived every one of their promises.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Magic doesn't forgive carelessness. Neither do I.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Every oath has a price. Mine's already been paid.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "The realm remembers, even when its people don't.", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Out here, the only law that holds is the one you enforce yourself.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Every system fails eventually. The trick is not being the one holding it when it does.", "weight": 1, "genre": ["scifi"] },
+    { "value": "The Company owns the ship. It doesn't own me.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Signal's down again. So's my patience.", "weight": 1, "genre": ["scifi"] },
+    { "value": "I've seen what's past the edge of the map. It's not worth the trip.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Augments don't make you better. They just make your mistakes faster.", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Everyone's got an angle. I just stopped pretending I don't.", "weight": 1, "genre": ["modern"] },
+    { "value": "You want the truth or the version that doesn't get me sued?", "weight": 1, "genre": ["modern"] },
+    { "value": "This city eats people who slow down.", "weight": 1, "genre": ["modern"] },
+    { "value": "I've got a mortgage and no illusions left. Ask your question.", "weight": 1, "genre": ["modern"] },
+    { "value": "Nobody reads the fine print until it's too late.", "weight": 1, "genre": ["modern"] },
+    { "value": "I've survived worse meetings than this one.", "weight": 1, "genre": ["modern"] },
+
+    { "value": "You don't want to know what's actually down there. Trust me on that one thing.", "weight": 1, "genre": ["horror"] },
+    { "value": "I stopped asking why a long time ago. Asking why gets you noticed.", "weight": 1, "genre": ["horror"] },
+    { "value": "It doesn't come if you don't say its name. So we don't say its name.", "weight": 1, "genre": ["horror"] },
+    { "value": "Some doors get left shut for a reason. That one's staying shut.", "weight": 1, "genre": ["horror"] },
+    { "value": "I don't sleep well. I sleep at all. That's the win these days.", "weight": 1, "genre": ["horror"] },
+    { "value": "Whatever you heard, it was worse in person.", "weight": 1, "genre": ["horror"] }
   ],
   "questHookTemplates": [
-    { "value": "Has a problem that needs outside hands -- something too visible to handle personally, and too important to leave alone.", "weight": 1 },
-    { "value": "Is owed something by someone who's stopped answering, and would pay well for that to change.", "weight": 1 },
-    { "value": "Knows something worth knowing, and will trade it for a favor that isn't as simple as it sounds.", "weight": 1 },
-    { "value": "Has lost track of someone they won't admit to caring about, and needs it fixed quietly.", "weight": 1 },
-    { "value": "None yet -- a straightforward roster addition, not currently tied to a specific hook.", "weight": 2 }
+    { "value": "Has a problem that needs outside hands -- something too visible to handle personally, and too important to leave alone.", "weight": 1, "genre": ["universal"] },
+    { "value": "Is owed something by someone who's stopped answering, and would pay well for that to change.", "weight": 1, "genre": ["universal"] },
+    { "value": "Knows something worth knowing, and will trade it for a favor that isn't as simple as it sounds.", "weight": 1, "genre": ["universal"] },
+    { "value": "Has lost track of someone they won't admit to caring about, and needs it fixed quietly.", "weight": 1, "genre": ["universal"] },
+    { "value": "None yet -- a straightforward roster addition, not currently tied to a specific hook.", "weight": 2, "genre": ["universal"] },
+
+    { "value": "Has heard rumors of an old shrine reawakening nearby, and would rather someone else investigate first.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Needs an oath-bound debt settled with a rival house before it comes due at a very inconvenient time.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Is hiding the fact that a piece of stolen regalia passed through their hands, and needs it recovered quietly.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Suspects a trusted advisor has been compromised by something not entirely human, and can't prove it alone.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Owes a favor to something that isn't a person, sealed with an old bargain that's coming due.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "None yet -- a straightforward roster addition, not currently tied to a specific hook.", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Has intercepted a distress signal from a sector officially marked abandoned, and needs it quietly investigated.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Is hiding a corporate flag on their record and needs help staying off a very specific watchlist.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Suspects their ship's AI has started making decisions nobody authorized, and wants outside eyes on it before reporting it.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Is owed hazard pay by a contractor who's since gone dark, and would very much like that resolved.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Knows the real cause of a supply convoy's disappearance, and will trade it for passage off-world.", "weight": 1, "genre": ["scifi"] },
+    { "value": "None yet -- a straightforward roster addition, not currently tied to a specific hook.", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Has a missing coworker nobody else seems interested in finding, and a growing list of reasons that bothers them.", "weight": 1, "genre": ["modern"] },
+    { "value": "Is being quietly investigated by someone official, and would very much like to know why before it escalates.", "weight": 1, "genre": ["modern"] },
+    { "value": "Owes money to someone who doesn't send friendly reminders, and the deadline's closer than they're letting on.", "weight": 1, "genre": ["modern"] },
+    { "value": "Has evidence of something they probably shouldn't have, and no safe way to use it yet.", "weight": 1, "genre": ["modern"] },
+    { "value": "Needs a favor called in with an old contact who stopped answering calls for reasons unknown.", "weight": 1, "genre": ["modern"] },
+    { "value": "None yet -- a straightforward roster addition, not currently tied to a specific hook.", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Knows something is wrong with the house at the edge of town and has been too afraid to say so out loud until now.", "weight": 1, "genre": ["horror"] },
+    { "value": "Lost someone to whatever's out there and needs proof of what happened before anyone else disappears too.", "weight": 1, "genre": ["horror"] },
+    { "value": "Has been having the same dream every night and is starting to suspect it isn't a dream.", "weight": 1, "genre": ["horror"] },
+    { "value": "Made a deal they shouldn't have, and it's coming due sooner than promised.", "weight": 1, "genre": ["horror"] },
+    { "value": "Needs something buried and needs it to stay that way, permanently, no questions asked.", "weight": 1, "genre": ["horror"] },
+    { "value": "None yet -- a straightforward roster addition, not currently tied to a specific hook.", "weight": 1, "genre": ["horror"] }
   ],
   "dialogueOpeningLines": [
-    { "value": "Didn't expect company today. What do you need?", "weight": 1 },
-    { "value": "You've got about a minute before I get back to actual work.", "weight": 1 },
-    { "value": "I know that look. Someone sent you, or you're lost.", "weight": 1 },
-    { "value": "If you're here to complain, get in line.", "weight": 1 },
-    { "value": "Careful. I bite when I'm interrupted.", "weight": 1 }
+    { "value": "Didn't expect company today. What do you need?", "weight": 1, "genre": ["universal"] },
+    { "value": "You've got about a minute before I get back to actual work.", "weight": 1, "genre": ["universal"] },
+    { "value": "I know that look. Someone sent you, or you're lost.", "weight": 1, "genre": ["universal"] },
+    { "value": "If you're here to complain, get in line.", "weight": 1, "genre": ["universal"] },
+    { "value": "Careful. I bite when I'm interrupted.", "weight": 1, "genre": ["universal"] },
+
+    { "value": "State your business, traveler, before the guards do it for you.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "You've the look of someone who needs something. Everyone does, eventually.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Mind the wards at the door. They don't much care for strangers.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Another one seeking the old ruins, I'd wager. They rarely come back different.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Sit, if you like. The road makes liars of everyone eventually, so speak plainly.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "The gods sent you, or you're lost. Either way, you're here now.", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Signal's clean. State your business before someone flags this channel.", "weight": 1, "genre": ["scifi"] },
+    { "value": "You're either lost or looking for trouble. This station only has the second kind.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Docking fees are non-negotiable. Everything else, we can talk about.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Careful with the airlock behind you. It doesn't like being ignored.", "weight": 1, "genre": ["scifi"] },
+    { "value": "You've got clearance to be here, or you've got a very good story. Which is it?", "weight": 1, "genre": ["scifi"] },
+    { "value": "Another drifter looking for work. Fine. Let's see if you're worth the fuel.", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "If you're selling something, I've already got too much of it.", "weight": 1, "genre": ["modern"] },
+    { "value": "You've got that look. Everyone who comes in here does, eventually.", "weight": 1, "genre": ["modern"] },
+    { "value": "Traffic was bad, or you're stalling. Either way, talk fast.", "weight": 1, "genre": ["modern"] },
+    { "value": "I've got maybe five minutes before my phone starts blowing up again.", "weight": 1, "genre": ["modern"] },
+    { "value": "Whatever this is, tell me it's not another problem.", "weight": 1, "genre": ["modern"] },
+    { "value": "You found me. Congratulations. What do you need?", "weight": 1, "genre": ["modern"] },
+
+    { "value": "You shouldn't be out this late. Neither should I, honestly.", "weight": 1, "genre": ["horror"] },
+    { "value": "Lock the door behind you. Habit, not paranoia. Probably.", "weight": 1, "genre": ["horror"] },
+    { "value": "Say what you need quickly. I don't like leaving the lights off for long.", "weight": 1, "genre": ["horror"] },
+    { "value": "You heard something too, didn't you. That's why you're here.", "weight": 1, "genre": ["horror"] },
+    { "value": "Don't mind the noise upstairs. It's usually nothing.", "weight": 1, "genre": ["horror"] },
+    { "value": "I wasn't expecting anyone. Especially not tonight.", "weight": 1, "genre": ["horror"] }
   ],
   "dialogueBranches": [
     { "toneLabel": "Friendly", "reply": "Alright, alright -- come in, sit down. I'll even pretend I wasn't busy." },
