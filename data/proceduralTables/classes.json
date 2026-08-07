@@ -4,6 +4,7 @@
     {
       "baseName": "Brawler",
       "tag": "melee",
+      "genre": ["post_apoc"],
       "archetype": "Bruiser / Frontline / Damage Sponge",
       "coreResourceName": "Grit",
       "coreResourceDescription": "Builds as the Brawler takes and lands hits in melee; spent to fuel heavier follow-up strikes.",
@@ -27,6 +28,7 @@
     {
       "baseName": "Marksman",
       "tag": "ranged",
+      "genre": ["post_apoc", "modern"],
       "archetype": "Skirmisher / Precision Damage / Range Control",
       "coreResourceName": "Focus",
       "coreResourceDescription": "Builds while staying at range and landing consecutive hits; spent to guarantee a shot connects or crits.",
@@ -50,6 +52,7 @@
     {
       "baseName": "Technician",
       "tag": "tech",
+      "genre": ["post_apoc"],
       "archetype": "Controller / Battlefield Manipulator / System Exploiter",
       "coreResourceName": "Charge",
       "coreResourceDescription": "Builds from rigged devices and hacked systems doing their job; spent to trigger bigger rigged effects on demand.",
@@ -73,6 +76,7 @@
     {
       "baseName": "Field Medic",
       "tag": "support",
+      "genre": ["post_apoc"],
       "archetype": "Healer / Sustain / Damage Mitigation",
       "coreResourceName": "Reserves",
       "coreResourceDescription": "Builds from treating allies and stabilizing the wounded; spent on the biggest emergency interventions.",
@@ -96,6 +100,7 @@
     {
       "baseName": "Scavenger",
       "tag": "stealth",
+      "genre": ["post_apoc", "modern"],
       "archetype": "Skirmisher / Opportunist / Resource Denial",
       "coreResourceName": "Scrap",
       "coreResourceDescription": "Builds from looting, disabling, and outmaneuvering; spent to turn found advantage into a real edge.",
@@ -119,6 +124,7 @@
     {
       "baseName": "Orator",
       "tag": "social",
+      "genre": ["post_apoc"],
       "archetype": "Support / Battlefield Control / Morale",
       "coreResourceName": "Conviction",
       "coreResourceDescription": "Builds from rallying allies and breaking enemy will; spent to force a moment to go the Orator's way.",
