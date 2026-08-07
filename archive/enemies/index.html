@@ -99,7 +99,7 @@
       </select>
     </div>
     </div>
-    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate Enemy</button>
+    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate</button>
   </form>
   <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
 </div>
@@ -129,7 +129,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
     status.innerHTML = err.message;
   } finally {
     hideGenerationOverlay();
-    btn.disabled = false; btn.textContent = 'Generate Enemy';
+    btn.disabled = false; btn.textContent = 'Generate';
   }
 });
 document.addEventListener('DOMContentLoaded', () => populateFactionSelect('gen-field-3', { includeUnaligned: true }));

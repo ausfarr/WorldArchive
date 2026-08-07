@@ -22,10 +22,19 @@ injected/visible simultaneously. Collapsed into a staged reveal:
   "Enter Manually" and "Roll Randomly" fire immediately — no Stage 2
   needed, since neither takes form input first.
 - **Stage 2** (click "Generate with AI" only): reveals the category's
-  own AI fields + its existing submit button (still labeled "Generate
-  NPC" / "Generate Enemy" / etc. — see Open Question below), replacing
-  Stage 1's row rather than stacking under it. Submits through the exact
-  same `#gen-form` handler, same endpoint, untouched.
+  own AI fields + its existing submit button, replacing Stage 1's row
+  rather than stacking under it. Submits through the exact same
+  `#gen-form` handler, same endpoint, untouched.
+
+**Follow-up (post-review, confirmed with Austin):** Stage 2's submit
+button label was renamed from category-specific ("Generate NPC",
+"Generate Enemy", "Generate Faction", "Generate Class", "Generate Item",
+"Generate Log", "Generate PC", "Generate Location") to a plain
+"Generate" on all 8 pages — both the button's initial HTML text and the
+`btn.textContent = '...'` reset in each page's own submit handler's
+`finally` block (the `'Generating…'` in-flight state is untouched). Two
+lines changed per page. No behavior change — same handler, same
+endpoint, same everything else.
 
 ### How it's implemented
 
@@ -53,14 +62,10 @@ transitions, Cancel back to Stage 0, "Enter Manually" opening the real
 edit overlay via `EDIT_FORM_BUILDERS`, and the Stage 2 submit button
 text/behavior staying untouched.
 
-### Open question for Austin (not blocking, flagged not decided)
+### Resolved: Stage 2 submit button label
 
-Should Stage 2's per-category submit button also get renamed to
-something generic ("Generate") instead of category-specific ("Generate
-NPC" / "Generate Enemy" / etc.), now that "Generate with AI" already
-appears one click earlier? **Left as-is** — redundant but harmless, and
-changing it means touching all 8 pages' button text for zero functional
-gain. Flagging per instructions rather than silently deciding either way.
+Flagged as an open question rather than decided silently — Austin
+confirmed: rename it. See the Follow-up note above.
 
 ## Change 2 — Account-level "AI features" toggle
 

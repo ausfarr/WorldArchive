@@ -85,7 +85,7 @@
       <input id="gen-name" type="text" placeholder="e.g. 'a plumber' — leave blank to invent one" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
     </div>
     </div>
-    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate Class</button>
+    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate</button>
   </form>
   <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
 </div>
@@ -113,7 +113,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
     status.innerHTML = err.message;
   } finally {
     hideGenerationOverlay();
-    btn.disabled = false; btn.textContent = 'Generate Class';
+    btn.disabled = false; btn.textContent = 'Generate';
   }
 });
 </script>
