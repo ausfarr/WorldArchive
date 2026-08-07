@@ -1,6 +1,7 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildSurvivorRosterContext, buildAvailableClassesText, readSurvivorManifest, readSurvivorEntry } = require("../lib/roster");
@@ -14,7 +15,7 @@ const { getStyleGuide } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
-router.post("/generate-survivor", enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
+router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, className, faction, fillExistingId, importText } = req.body || {};

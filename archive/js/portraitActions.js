@@ -36,7 +36,11 @@ function handlePortraitError(imgEl) {
 
   const genBtn = document.createElement("button");
   genBtn.type = "button";
-  genBtn.className = "portrait-action-btn";
+  // ai-action (not shared with the Upload button below) is what
+  // body.ai-disabled targets in css/style.css to hide AI generation
+  // controls when the account has turned AI features off in Settings --
+  // Upload has no AI spend and must keep working regardless.
+  genBtn.className = "portrait-action-btn ai-action";
   genBtn.textContent = "Generate Image";
   genBtn.addEventListener("click", () => generatePortrait(category, entryId));
   actions.appendChild(genBtn);

@@ -421,3 +421,17 @@ footer.site-footer .wrap {
   object-fit: cover;
   display: block;
 }
+
+/* Account-level AI toggle (Settings > AI Features) -- js/render.js's
+   applyAiEnabledGating() adds body.ai-disabled when the account has AI
+   features turned off. Hides every AI-spend control client-side; the
+   real enforcement is server-side (middleware/requireAiEnabled.js). Does
+   NOT touch Upload Image, Enter Manually, or Roll Randomly -- none of
+   those cost an AI call, so none carry these classes. */
+body.ai-disabled .ai-generate-entry-btn,
+body.ai-disabled .field-assist-btn,
+body.ai-disabled .regen-btn,
+body.ai-disabled .fill-in-btn,
+body.ai-disabled .ai-action {
+  display: none !important;
+}

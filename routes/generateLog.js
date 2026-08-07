@@ -1,6 +1,7 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { buildLogRosterContext, readLogManifest, readLogEntry, buildLocationRosterContext } = require("../lib/roster");
 const { buildLogContentSystemPrompt } = require("../prompts/logContentPrompt");
@@ -12,7 +13,7 @@ const { createNewLog } = require("../lib/campaignEntryGenerators");
 
 const router = express.Router();
 
-router.post("/generate-log", enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
+router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, logType, fillExistingId } = req.body || {};

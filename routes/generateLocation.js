@@ -1,6 +1,7 @@
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildLocationRosterContext, readLocationManifest, readLocationEntry, buildRosterContext } = require("../lib/roster");
@@ -15,7 +16,7 @@ const { createNewLocation } = require("../lib/campaignEntryGenerators");
 
 const router = express.Router();
 
-router.post("/generate-location", enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
+router.post("/generate-location", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, regionBiome, faction, fillExistingId } = req.body || {};

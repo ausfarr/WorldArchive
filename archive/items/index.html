@@ -78,6 +78,7 @@
 <div class="sheet" style="margin: 0 0 40px; padding: 24px 32px;">
   <p class="sheet-eyebrow" style="margin: 0 0 8px;">Generate New Entry</p>
   <form id="gen-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+    <div id="gen-form-fields" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
     <div style="flex: 1; min-width: 160px;">
       <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
       <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
@@ -102,7 +103,8 @@
         <option value="Legendary">Legendary</option>
       </select>
     </div>
-    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate Item</button>
+    </div>
+    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate</button>
   </form>
   <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
 </div>
@@ -132,7 +134,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
     status.innerHTML = err.message;
   } finally {
     hideGenerationOverlay();
-    btn.disabled = false; btn.textContent = 'Generate Item';
+    btn.disabled = false; btn.textContent = 'Generate';
   }
 });
 </script>
@@ -224,7 +226,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
-<script src="../js/render.js?v=v0.12"></script>
+<script src="../js/render.js?v=v0.13"></script>
 <script>
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html
@@ -233,8 +235,8 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
     applySiteTheme();
     loadAndRenderCategoryIndex("items");
     wireCategoryExportButton();
-    wireManualCreateButton();
-    wireProceduralGenerateButton();
+    wireCreateEntryCollapse();
+    applyAiEnabledGating();
   });
 </script>
 

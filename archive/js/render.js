@@ -17,6 +17,46 @@ const CATEGORY_LABELS = {
 // TODO(Austin): swap in the real Google Form URL once created.
 const BETA_FEEDBACK_FORM_URL = "https://forms.gle/UuQSHAetFnkAXxV87";
 
+// ============================================================
+// Account-level AI toggle (Settings > AI Features). The real enforcement
+// is server-side (middleware/requireAiEnabled.js) -- this is strictly a
+// UX nicety so a disabled feature doesn't even invite a click. Rides
+// along on /api/billing/status (routes/billing.js) rather than a
+// dedicated endpoint since that's already the one account-status route
+// Settings polls for usage; aiEnabled is just one more field on the same
+// response. Memoized so pages that touch AI-gated UI in more than one
+// place (a category page's Stage 1 reveal AND its Fill In/Regenerate
+// cards, a dossier page's portrait actions) only ever fetch this once.
+let _aiEnabledPromise = null;
+async function getAiEnabledStatus() {
+  if (_aiEnabledPromise) return _aiEnabledPromise;
+  _aiEnabledPromise = (async () => {
+    try {
+      const res = await authFetch("/api/billing/status");
+      if (!res.ok) return true; // fail open -- a status-fetch hiccup shouldn't block real usage
+      const data = await res.json();
+      return data.aiEnabled !== false;
+    } catch (err) {
+      console.error("Could not load AI-enabled status, defaulting to enabled:", err);
+      return true;
+    }
+  })();
+  return _aiEnabledPromise;
+}
+
+// Adds body.ai-disabled when the account has AI features turned off --
+// css/style.css's body.ai-disabled rules hide every AI-gated control
+// (the Stage 2 "Generate with AI" reveal, Fill In, Regenerate, ✨ Help
+// me, and portrait Generate) via a plain class selector. CSS-driven
+// rather than per-element JS so it applies uniformly to controls that
+// already exist at call time AND ones rendered later (entry cards, edit
+// overlays) without needing to re-run this after every re-render. Call
+// once per page load, anywhere after requireAuth() resolves.
+async function applyAiEnabledGating() {
+  const aiEnabled = await getAiEnabledStatus();
+  if (!aiEnabled) document.body.classList.add("ai-disabled");
+}
+
 // Turns a failed-generation response body into a display string.
 //
 // Every generate-* route reports errors as { error: "..." } (a human
@@ -274,35 +314,23 @@ function buildBlankEntryStub(category, id) {
   return { id, category, raw };
 }
 
-// Injected into the same .sheet panel as the existing "Generate New
-// Entry" form (#gen-form), right next to its submit button -- reads the
-// category off document.body.dataset.category, same source every
-// category page already uses (see wireCategoryExportButton).
-function wireManualCreateButton() {
-  const genForm = document.getElementById("gen-form");
-  const category = document.body.dataset.category;
-  if (!genForm || !category || !EDIT_FORM_BUILDERS[category]) return;
-
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.id = "manual-create-btn";
-  btn.textContent = "+ Create Manually";
-  btn.style.cssText = "background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
-  genForm.appendChild(btn);
-
-  btn.addEventListener("click", () => {
-    const id = generateManualEntryId(category);
-    const stub = buildBlankEntryStub(category, id);
-    currentEditCategory = category;
-    EDIT_FORM_BUILDERS[category](stub);
-  });
+// Body of the "Enter Manually" action (Stage 1 of wireCreateEntryCollapse,
+// below) -- extracted to a plain named function, rather than inline in a
+// click listener, so it's callable directly instead of only reachable by
+// dispatching a click. Opens the exact same blank-stub edit overlay this
+// action always has.
+function handleManualCreateClick(category) {
+  if (!EDIT_FORM_BUILDERS[category]) return;
+  const id = generateManualEntryId(category);
+  const stub = buildBlankEntryStub(category, id);
+  currentEditCategory = category;
+  EDIT_FORM_BUILDERS[category](stub);
 }
 
 // ============================================================
-// Procedural (non-AI) generation -- "Generate Procedurally" button, next
-// to "Generate with AI" (#gen-form's own submit) and "+ Create Manually"
-// above. See procedural_generation_scope_proposal.md and
-// session_addendum_procedural_generation_shipped.md.
+// Procedural (non-AI) generation -- "Roll Randomly" action (Stage 1 of
+// wireCreateEntryCollapse, below). See procedural_generation_scope_proposal.md
+// and session_addendum_procedural_generation_shipped.md.
 //
 // Unlike AI generation, this is instant and free -- no Claude/Gemini
 // call happens anywhere in this path (lib/proceduralGenerators.js is
@@ -318,47 +346,151 @@ function wireManualCreateButton() {
 // needed here -- every category's generator returns a raw object shaped
 // for that category's existing build*BodyHtml, so confirm-entry handles
 // all 8 identically.
-function wireProceduralGenerateButton() {
+//
+// Extracted to a plain named function (taking the button it should
+// disable/relabel while in flight) for the same reason as
+// handleManualCreateClick above -- callable directly from Stage 1's
+// "Roll Randomly" button instead of only reachable via a click event.
+async function handleProceduralGenerateClick(btn, category) {
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Rolling…";
+  try {
+    const genRes = await authFetch("/api/generate-procedural", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category })
+    });
+    const genData = await genRes.json();
+    if (!genRes.ok) throw new Error(formatGenerationError(genData, { asHtml: false }));
+
+    const confirmRes = await authFetch("/api/confirm-entry", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category, entry: genData.entry })
+    });
+    const confirmData = await confirmRes.json();
+    if (!confirmRes.ok) throw new Error(formatGenerationError(confirmData, { asHtml: false }));
+
+    window.location.reload();
+  } catch (err) {
+    alert(`Procedural generation failed: ${err.message}`);
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// ============================================================
+// "+ Create Entry" staged reveal -- replaces the old always-visible trio
+// (category-specific AI fields + submit, "+ Create Manually",
+// "Generate Procedurally") with a two-click reveal, since showing a full
+// form and three buttons before a user has even decided how they want to
+// create something was a lot of up-front chrome. See
+// session_addendum_create_entry_collapse_and_ai_toggle.md.
+//
+// Stage 0 (default): just "+ Create Entry".
+// Stage 1 (click Stage 0): "Generate with AI" / "Enter Manually" /
+//   "Roll Randomly", plus a Cancel back to Stage 0. Manual and Procedural
+//   fire immediately, reusing handleManualCreateClick/
+//   handleProceduralGenerateClick above -- neither needs form input
+//   first. "Generate with AI" is hidden here (not just left clickable and
+//   erroring) when the account has AI features turned off -- see
+//   applyAiEnabledGating().
+// Stage 2 (click "Generate with AI"): reveals #gen-form-fields (each
+//   category page's own AI input fields, wrapped in that div by hand --
+//   see the 8 index.html edits) and #gen-form's own submit button, both
+//   of which already exist in the page markup and are just hidden until
+//   now. #gen-form's submit handler is untouched -- same endpoint, same
+//   behavior as before this change.
+//
+// This is the one function called from all 8 category index pages in
+// place of the old wireManualCreateButton() + wireProceduralGenerateButton()
+// pair.
+function wireCreateEntryCollapse() {
   const genForm = document.getElementById("gen-form");
   const category = document.body.dataset.category;
   if (!genForm || !category) return;
 
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.id = "procedural-generate-btn";
-  btn.textContent = "Generate Procedurally";
-  btn.title = "Instant, zero-cost, table-driven generation -- no AI call.";
-  btn.style.cssText = "background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
-  genForm.appendChild(btn);
+  const eyebrow = document.querySelector(".sheet-eyebrow");
+  const fieldsWrap = document.getElementById("gen-form-fields");
+  const submitBtn = document.getElementById("gen-submit");
+  const anchor = fieldsWrap || submitBtn || null; // insert new controls before whichever of these exists
 
-  btn.addEventListener("click", async () => {
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = "Rolling…";
-    try {
-      const genRes = await authFetch("/api/generate-procedural", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category })
-      });
-      const genData = await genRes.json();
-      if (!genRes.ok) throw new Error(formatGenerationError(genData, { asHtml: false }));
+  const STAGE_BTN_STYLE = "background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
 
-      const confirmRes = await authFetch("/api/confirm-entry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, entry: genData.entry })
-      });
-      const confirmData = await confirmRes.json();
-      if (!confirmRes.ok) throw new Error(formatGenerationError(confirmData, { asHtml: false }));
+  const stage0Btn = document.createElement("button");
+  stage0Btn.type = "button";
+  stage0Btn.id = "create-entry-stage0-btn";
+  stage0Btn.textContent = "+ Create Entry";
+  stage0Btn.style.cssText = "background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
+  genForm.insertBefore(stage0Btn, anchor);
 
-      window.location.reload();
-    } catch (err) {
-      alert(`Procedural generation failed: ${err.message}`);
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-  });
+  const stage1Row = document.createElement("div");
+  stage1Row.id = "create-entry-stage1-row";
+  stage1Row.style.cssText = "display: none; gap: 12px; flex-wrap: wrap; align-items: center;";
+
+  const aiBtn = document.createElement("button");
+  aiBtn.type = "button";
+  aiBtn.id = "create-entry-ai-btn";
+  // ai-generate-entry-btn (not "ai-action" -- that class is reserved for
+  // portrait generation, see portraitActions.js) is targeted by the
+  // body.ai-disabled rule in css/style.css.
+  aiBtn.className = "ai-generate-entry-btn";
+  aiBtn.textContent = "Generate with AI";
+  aiBtn.style.cssText = STAGE_BTN_STYLE;
+
+  const manualBtn = document.createElement("button");
+  manualBtn.type = "button";
+  manualBtn.id = "create-entry-manual-btn";
+  manualBtn.textContent = "Enter Manually";
+  manualBtn.style.cssText = STAGE_BTN_STYLE;
+
+  const proceduralBtn = document.createElement("button");
+  proceduralBtn.type = "button";
+  proceduralBtn.id = "create-entry-procedural-btn";
+  proceduralBtn.textContent = "Roll Randomly";
+  proceduralBtn.title = "Instant, zero-cost, table-driven generation -- no AI call.";
+  proceduralBtn.style.cssText = STAGE_BTN_STYLE;
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.type = "button";
+  cancelBtn.id = "create-entry-cancel-btn";
+  cancelBtn.textContent = "Cancel ✕";
+  cancelBtn.style.cssText = "background:none; border:1px solid var(--ink-faint); color:var(--ink-dim); padding:10px 16px; cursor:pointer; font-family:var(--font-mono); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;";
+
+  stage1Row.appendChild(aiBtn);
+  if (EDIT_FORM_BUILDERS[category]) stage1Row.appendChild(manualBtn);
+  stage1Row.appendChild(proceduralBtn);
+  stage1Row.appendChild(cancelBtn);
+  genForm.insertBefore(stage1Row, anchor);
+
+  function showStage0() {
+    stage0Btn.style.display = "";
+    stage1Row.style.display = "none";
+    if (eyebrow) eyebrow.style.display = "none";
+    if (fieldsWrap) fieldsWrap.style.display = "none";
+    if (submitBtn) submitBtn.style.display = "none";
+  }
+  function showStage1() {
+    stage0Btn.style.display = "none";
+    stage1Row.style.display = "flex";
+    if (fieldsWrap) fieldsWrap.style.display = "none";
+    if (submitBtn) submitBtn.style.display = "none";
+  }
+  function showStage2() {
+    stage1Row.style.display = "none";
+    if (eyebrow) eyebrow.style.display = "";
+    if (fieldsWrap) fieldsWrap.style.display = "";
+    if (submitBtn) submitBtn.style.display = "";
+  }
+
+  stage0Btn.addEventListener("click", showStage1);
+  cancelBtn.addEventListener("click", showStage0);
+  aiBtn.addEventListener("click", showStage2);
+  manualBtn.addEventListener("click", () => handleManualCreateClick(category));
+  proceduralBtn.addEventListener("click", () => handleProceduralGenerateClick(proceduralBtn, category));
+
+  showStage0();
 }
 
 // ============================================================
@@ -915,11 +1047,11 @@ const FIELD_ASSIST_ELIGIBLE = new Set([
 ]);
 
 // Set right before an edit overlay opens -- the two entry points are
-// wireManualCreateButton's click handler and editEntry(), both of which
-// already know their own category as a real value (data-category /
-// categoryPath), so this is just where that value gets stashed for the
-// field-assist click handler below to read later, rather than plumbing
-// `category` through efField's signature at all ~90 call sites.
+// handleManualCreateClick and editEntry(), both of which already know
+// their own category as a real value (data-category / categoryPath), so
+// this is just where that value gets stashed for the field-assist click
+// handler below to read later, rather than plumbing `category` through
+// efField's signature at all ~90 call sites.
 let currentEditCategory = null;
 // v0.9 Manual Mode polish round 2 -- switched from a hover ⓘ icon
 // (native `title` tooltips can't be restyled by CSS at all, which is

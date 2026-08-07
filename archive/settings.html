@@ -82,6 +82,15 @@
   </div>
 
   <div class="info-section">
+    <h2>AI Features</h2>
+    <p class="info-row">Turn off to hide AI generation, Fill In, Regenerate, Help Me suggestions, and AI portrait generation. Manual entry, random rolls, and image upload always stay available.</p>
+    <label style="display: flex; align-items: center; gap: 8px; margin-top: 10px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink);">
+      <input type="checkbox" id="ai-enabled-toggle" checked> AI Features enabled
+    </label>
+    <div id="ai-toggle-status" style="margin-top: 10px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint);"></div>
+  </div>
+
+  <div class="info-section">
     <h2>Export</h2>
     <p class="info-row">Download the whole world as a PDF -- for reading, printing, or bringing to the table away from a screen. Category- and entry-level exports are also available from each category tab and dossier page.</p>
     <div style="margin-top: 12px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
@@ -129,7 +138,7 @@
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js"></script>
-<script src="js/render.js?v=v0.12"></script>
+<script src="js/render.js?v=v0.13"></script>
 <script>
 const BTN_PRIMARY = "background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer; font-weight: 600;";
 const BTN_SECONDARY = "background: transparent; color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer;";
@@ -220,6 +229,40 @@ function renderEntryPackControls() {
   `;
 }
 
+// AI Features toggle -- reads its initial checked state off the same
+// /api/billing/status payload loadUsage() below already fetches (see
+// routes/billing.js's aiEnabled field) rather than a second call, then
+// PATCHes /api/settings/ai-toggle on change. Real enforcement is
+// server-side (middleware/requireAiEnabled.js); this checkbox is just
+// the on/off switch for it.
+function wireAiEnabledToggle(aiEnabled) {
+  const checkbox = document.getElementById("ai-enabled-toggle");
+  const status = document.getElementById("ai-toggle-status");
+  checkbox.checked = aiEnabled !== false;
+  checkbox.addEventListener("change", async () => {
+    const desired = checkbox.checked;
+    checkbox.disabled = true;
+    status.textContent = "Saving…";
+    try {
+      const res = await authFetch("/api/settings/ai-toggle", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiEnabled: desired })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not save AI toggle.");
+      checkbox.checked = data.aiEnabled;
+      status.textContent = data.aiEnabled ? "AI features are on." : "AI features are off.";
+    } catch (err) {
+      console.error("Saving AI toggle failed:", err);
+      checkbox.checked = !desired; // revert to last known-good state
+      status.textContent = "Something went wrong: " + err.message;
+    } finally {
+      checkbox.disabled = false;
+    }
+  });
+}
+
 async function loadUsage() {
   const el = document.getElementById("usage-content");
   const actions = document.getElementById("billing-actions");
@@ -227,6 +270,7 @@ async function loadUsage() {
     const res = await authFetch("/api/billing/status");
     if (!res.ok) throw new Error("Failed to load billing status.");
     const data = await res.json();
+    wireAiEnabledToggle(data.aiEnabled);
 
     if (data.state === "beta") {
       const pct = Math.min(100, Math.round((data.used / data.cap) * 100));
