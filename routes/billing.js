@@ -12,6 +12,7 @@ const { stripe } = require("../lib/stripeClient");
 const { getPlan, getSubscription, getCreditBalance, DEFAULT_PLAN_ID, TRIAL_CAP } = require("../lib/billingRepo");
 const { getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP, POINTS_PER_GENERATION } = require("../lib/worldConfigRepo");
 const { countEntries } = require("../lib/entriesRepo");
+const { getAiEnabled, setAiEnabled } = require("../lib/userSettingsRepo");
 
 const router = express.Router();
 
@@ -66,8 +67,16 @@ async function buildEntryCapStatus(worldId, subscriptionActive) {
 }
 
 // Combined trial/subscription/credit status for the Settings page.
+// aiEnabled (account-level AI toggle, migrations/016_ai_toggle.sql) rides
+// along on every branch below rather than getting its own endpoint --
+// this is already the one account-status route Settings polls on load,
+// and archive/js/render.js's getAiEnabledStatus() reuses this same call
+// on every other page too, so it's the natural place for the frontend to
+// pick it up without an extra round trip.
 router.get("/billing/status", async (req, res) => {
   try {
+    const aiEnabled = await getAiEnabled(req.userId);
+
     if (!BILLING_ENABLED) {
       const usedPoints = await getGenerationCount(req.worldId);
       return res.json({
@@ -76,7 +85,8 @@ router.get("/billing/status", async (req, res) => {
         cap: pointsToGenerations(GENERATION_CAP),
         remaining: pointsToGenerations(Math.max(0, GENERATION_CAP - usedPoints)),
         fieldAssistsRemaining: Math.max(0, GENERATION_CAP - usedPoints),
-        entryCap: await buildEntryCapStatus(req.worldId, false)
+        entryCap: await buildEntryCapStatus(req.worldId, false),
+        aiEnabled
       });
     }
 
@@ -93,7 +103,8 @@ router.get("/billing/status", async (req, res) => {
         trialRemaining: pointsToGenerations(Math.max(0, TRIAL_CAP - trialUsedPoints)),
         creditBalance: pointsToGenerations(creditBalancePoints),
         fieldAssistsRemaining: Math.max(0, TRIAL_CAP - trialUsedPoints) + creditBalancePoints,
-        entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive)
+        entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive),
+        aiEnabled
       });
     }
 
@@ -109,10 +120,29 @@ router.get("/billing/status", async (req, res) => {
       currentPeriodEnd: subscription.current_period_end,
       creditBalance: pointsToGenerations(creditBalancePoints),
       fieldAssistsRemaining: remainingThisCyclePoints + creditBalancePoints,
-      entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive)
+      entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive),
+      aiEnabled
     });
   } catch (err) {
     console.error("Loading billing status failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Flips the account-level AI toggle. Deliberately its own tiny endpoint
+// rather than folded into a generic "update settings" route -- there's
+// only the one setting today, and a real generic settings route can
+// arrive later if a second one shows up.
+router.patch("/settings/ai-toggle", async (req, res) => {
+  try {
+    const { aiEnabled } = req.body || {};
+    if (typeof aiEnabled !== "boolean") {
+      return res.status(400).json({ error: "aiEnabled must be a boolean." });
+    }
+    const saved = await setAiEnabled(req.userId, aiEnabled);
+    res.json({ aiEnabled: saved });
+  } catch (err) {
+    console.error("Updating AI toggle failed:", err);
     res.status(500).json({ error: err.message });
   }
 });

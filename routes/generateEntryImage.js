@@ -54,6 +54,7 @@ const {
 const { getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -92,7 +93,7 @@ async function loadEntryOrRespondError(req, res) {
 // Generates a brand-new (or regenerated) portrait from the entry's
 // existing content via the art-prompt-writer -> Gemini pipeline, same
 // as entry creation used to do inline.
-router.post("/entries/:category/:id/generate-image", enforceGenerationCap, async (req, res) => {
+router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceGenerationCap, async (req, res) => {
   try {
     const { category, id } = req.params;
     const loaded = await loadEntryOrRespondError(req, res);

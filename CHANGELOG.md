@@ -21,6 +21,24 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **"Create Entry" staged reveal + account-level AI toggle.** Each
+  category page's always-visible trio (AI fields + submit, "+ Create
+  Manually", "Generate Procedurally") collapsed into a two-click reveal:
+  "+ Create Entry" → "Generate with AI" / "Enter Manually" / "Roll
+  Randomly" → (AI only) the category's existing form fields + submit.
+  Manual/Procedural fire immediately, same handlers as before, just
+  reachable from the collapsed panel instead of two standalone buttons.
+  Paired with a new per-account "AI Features" toggle (Settings) that
+  turns off every AI-spend surface — category-page AI generation, Fill
+  In, Regenerate, ✨ Help Me, and portrait Generate — enforced
+  server-side (`middleware/requireAiEnabled.js`, new `user_settings`
+  table) so a hidden button isn't the only thing stopping a direct API
+  call; Manual entry, Roll Randomly, and Upload Image keep working with
+  AI off. Wizard AI steps, Campaign Module generation, and World Mood
+  Board/Faction Banner art are explicitly out of scope for this pass —
+  still fire regardless of the toggle. **Migration pending:**
+  `migrations/016_ai_toggle.sql` still needs to run against Supabase.
+  See: `session_addendum_create_entry_collapse_and_ai_toggle.md`.
 - **Procedural (non-AI) generation, all 8 categories.** New "Generate
   Procedurally" option next to "Generate with AI"/"+ Create Manually" on
   every category page — instant, zero API cost, weighted-table +

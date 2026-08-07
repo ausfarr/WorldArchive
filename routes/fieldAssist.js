@@ -12,12 +12,13 @@
 
 const express = require("express");
 const { enforceFieldAssist } = require("../middleware/enforceGenerationCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { getFieldAssistSuggestion } = require("../lib/fieldAssist");
 const { getFieldAssistConfig } = require("../lib/fieldAssistFields");
 
 const router = express.Router();
 
-router.post("/field-assist", enforceFieldAssist, async (req, res) => {
+router.post("/field-assist", requireAiEnabled, enforceFieldAssist, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { category, fieldId, currentEntryData } = req.body || {};
