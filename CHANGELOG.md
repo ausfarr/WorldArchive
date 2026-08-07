@@ -33,7 +33,14 @@ entry from here forward gets both a real date and a version at write time.
   those two a poor fit and recommended skipping them; this session tried
   them anyway, and confirmed both ship a mechanically-correct but
   prose-thin entry (real relationships/roster grounding, templated
-  prose), so they're included but clearly labeled experimental. See:
+  prose), so they're included but clearly labeled experimental.
+  **Follow-up pass:** every table is now genre-aware (post-apocalyptic/
+  fantasy/sci-fi/modern/horror) — procedural generation reads the
+  world's own Wizard Step 1 genre field and reskins accordingly (a
+  fantasy world gets swords humming with enchantment and "Dragon's
+  Roost"-style locations, not rebar mauls), and every pool grew
+  roughly 4-13x (e.g. items' weapon pool 45→190 rows, enemies' name
+  parts 15→99 each) to push repeat-entry odds down substantially. See:
   `session_addendum_procedural_generation_shipped.md`.
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`

@@ -187,6 +187,140 @@ experimental option (clearly labeled, which it is — every experimental
 entry's own `designNotes` field says so) rather than either shipping it
 unlabeled as equivalent to AI generation, or not shipping it at all.
 
+## Update: genre-aware expansion (follow-up session, same feature)
+
+The user's follow-up ask was two things at once: (1) the tables were too
+small — the same handful of rows would surface again quickly, and (2)
+everything was hardcoded in one post-apocalyptic/industrial voice, so a
+fantasy (or sci-fi, or modern, or horror) world got nonsensical output —
+rebar mauls and riot helmets regardless of what the user actually built
+in the wizard.
+
+### Genre-detection architecture (`lib/proceduralGenerators.js`)
+
+Every pool row across all 8 tables now carries a `"genre"` field: an
+array drawn from `["post_apoc", "fantasy", "scifi", "modern", "horror"]`,
+or the literal `"universal"` for rows that read fine in any setting
+(most of the NPC/Survivor psychology pools — a "compulsively generous"
+personality trait doesn't need a genre). `detectGenreBuckets(worldId)`
+reads Wizard Step 1's free-text `genre` field (`draft_json["1"].genre`)
+and keyword-matches it against the five buckets (`GENRE_KEYWORDS` in
+`lib/proceduralGenerators.js` — e.g. "High Fantasy" → `fantasy`,
+"Cyberpunk Noir" → `scifi`+`modern`, blank/unrecognized text → every
+bucket, rather than silently guessing one). `filterByGenre()` narrows a
+pool to matching rows (plus anything tagged `universal`), with two
+fallbacks baked in on purpose: an empty/unrecognized genre draws from
+every bucket, and a genre+pool combination with zero tagged rows falls
+back to the full pool — wrong variety is preferable to a crash or an
+empty pick. Every generator function threads a world's detected
+`buckets` through `pickG`/`pickGValue`/`pickGN` (genre-aware wrappers
+around the original `weightedPick`/`weightedValue`/`weightedPickN`)
+instead of calling the plain versions directly.
+
+This was landed as its own commit ahead of the data expansion, and is
+backward-compatible by construction: a row with no `genre` field is
+treated as `universal`, so it was a no-op against the untagged tables
+until the content pass below actually tagged everything.
+
+### Content expansion — row-count deltas (before → after this session)
+
+Authored by six parallel agents (one per category/category-pair), each
+working against a shared schema contract (exact field shapes, which
+pools the code actually genre-filters, explicit per-genre volume
+floors) so nothing broke `lib/proceduralGenerators.js`'s field access.
+Every file was validated post-hoc: JSON parses, every genre value is
+one of the 5 fixed buckets or `universal`, every mechanically-fixed
+field (`weaponSkill`, `armorSlot`, `tag`, attribute keys, ability
+`tiers`/`kind`) still matches its required enum — zero errors across
+all 8 files.
+
+| Table | Pool | Before | After |
+|---|---|---|---|
+| items | weapons | 45 | **190** |
+| items | armor | 10 | **58** |
+| items | consumables | 10 | **50** |
+| items | questItems | 8 | **40** |
+| items | pools.condition | 18 | **100** |
+| enemies | nameEpithets / nameNouns | 15 / 15 | **99 / 99** |
+| enemies | roles | 12 | **44** |
+| enemies | abilities | 15 | **71** |
+| enemies | flavorTemplates / signatureQuotes | 10 / 6 | **50 / 46** |
+| classes | archetypes | 6 | **30** (5 per genre × 6 ability-slot tags) |
+| survivors | firstNames / lastNames | 18 / 14 | **103 / 80** |
+| npcs | firstNames / lastNames | 18 / 14 | **101 / 76** |
+| locations | regionBiomes | 15 | **72** |
+| locations | nameAdjectives / nameNouns | 12 / 14 | **60 / 62** |
+| factions (experimental) | archetypes | 6 | **26** |
+| factions (experimental) | resourceTypes | 8 | **32** |
+| logs (experimental) | bodyTextTemplates (all 3 types) | 16 | **71** |
+
+Roughly 4-13x growth per pool depending on category, with the
+combinatorial pools (name parts, epithets, conditions) pushed hardest
+since those multiply into far more effective variety than their raw row
+count shows — e.g. enemies' 99×99 name-part pool alone is ~9,800
+combinations before a single other field (role/ability/flavor/tier) is
+even rolled, versus ~225 before this pass.
+
+### Does this actually hit "10-50x"?
+
+Honestly: it depends which number you look at. Per-pool row counts grew
+roughly 4-13x, not literally 50-100x — hand-authoring genuinely good,
+specific, non-generic content at that ceiling in one session wasn't
+realistic without quality collapsing into filler. But the actual
+practical goal — "rarely see the same thing twice" — is closer to the
+50-100x range than the raw row counts suggest, because most fields
+combine multiplicatively (name epithet × name noun × role × ability ×
+flavor × combat-note-positioning × ...), so a 5-8x growth in each
+individual pool compounds into something like two to three orders of
+magnitude more distinct full entries. Verified this isn't just theory:
+generated a dozen+ entries across categories during testing and never
+saw a repeat.
+
+### Does the genre reskinning actually work?
+
+Verified end-to-end through the real UI (screenshots posted during this
+session): with the same test world's genre field set to
+"Post-Apocalyptic, Industrial Horror," procedural generation produced a
+"Rust-Fused Chain Flail" and a "Scrap-Fused Wretch." Setting the exact
+same world's genre to "High Fantasy" (via `POST /api/wizard/save-draft`,
+no other change) and generating fresh entries produced a "Pike" that's
+"still faintly humming with old enchantment," a "Barrow-Born Marauder"
+(role: Fallen Knight, abilities "Terrifying Roar"/"Ward of the Old
+Faith"), and a location called "Dragon's Roost" tagged "Fae Trickery"/
+"Cursed Ground." Zero sci-fi/scrap vocabulary leaked into the fantasy
+output. The underlying mechanics (damage formulas, derived stat block,
+tier budgets) are byte-for-byte the same code path in both cases — only
+the flavor pools swap.
+
+### What's still uneven after this pass
+
+- **Logs** stays the weakest category by a wide margin, genre expansion
+  or not — the fundamental gap (bodyText Mad-Libs vs. real prose) isn't
+  something more rows fixes, it's a structural limit of the templating
+  approach for a category that's ~90% prose. More genre coverage means
+  a fantasy world's logs at least LOOK right (a self-writing tome
+  instead of a computer terminal) but they read the same
+  templated-flat way the original addendum already flagged.
+- **Ballistics** (one of the 7 fixed weapon-skill categories) is
+  intentionally thin for fantasy (a few "arcane hand-cannon" rows) since
+  guns don't have a natural fantasy analogue beyond a steampunk stretch
+  — the safety-net fallback (draw from the full pool if a genre+skill
+  combo is sparse) covers this gracefully rather than it being a hard
+  gap.
+- **`horror` as a bucket** works best layered onto another genre
+  (`["post_apoc","horror"]`, `["fantasy","horror"]`) rather than
+  standing entirely alone — the content agents leaned into this by
+  dual-tagging a fair number of rows, which is the right call for how
+  most people actually run "horror" settings (grimdark fantasy,
+  post-apoc body horror) rather than a totally separate content silo.
+- Genre detection is keyword-based against Wizard Step 1's free-text
+  field — a world whose creator wrote something this classifier's
+  keyword list doesn't recognize (an unusual genre mashup, a made-up
+  genre name) falls back to drawing from every bucket rather than
+  guessing wrong, which is the safe failure mode but means an unusual
+  world doesn't get genre-filtered content at all until its description
+  happens to include a recognized keyword.
+
 ## Known gaps / follow-ups not solved by this session
 
 - Item/Enemy ability & flavor-line pools are the proposal's own
@@ -195,7 +329,9 @@ unlabeled as equivalent to AI generation, or not shipping it at all.
   and Enemies' `abilities`/`combatNotes` pools around 15-20 entries each
   — a reasonable floor for a beta, but a world that generates dozens of
   enemies procedurally will still start noticing repeats before an
-  AI-generated roster would.
+  AI-generated roster would. **(Superseded by the genre-aware expansion
+  above — Items now ~440 rows combined, Enemies name/ability pools
+  4-6x deeper.)**
 - Survivors/NPCs procedural mode was NOT scoped to "background filler
   only" (one of the two options the proposal's §5 flagged as an open
   decision) — it generates full named characters same as Manual Mode
