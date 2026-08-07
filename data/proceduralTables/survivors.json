@@ -1,0 +1,226 @@
+{
+  "_comment": "Procedural table for Survivors (PCs). attributes{} are NOT authored here -- lib/proceduralGenerators.js rolls 6 values against the same ~50-60 point 'capable starting adventurer' budget prompts/survivorContentPrompt.js uses (PC_ATTRIBUTE_BUDGET_HINT), nudged toward whichever class was assigned. className is picked from this world's own live class roster (lib/roster.js's buildAvailableClassesText) when any exist, falling back to the same FALLBACK_CLASS_LIST that module already uses. faction is picked from the world's own live faction roster. bond.effect stays a roleplay hook per prompts/survivorContentPrompt.js's own correction (never a numeric modifier) -- see procedural_generation_scope_proposal.md #0. Every row below carries a `genre` array (post_apoc/fantasy/scifi/modern/horror, or `universal` for anything genre-agnostic) -- see lib/proceduralGenerators.js's 'Genre awareness' section for how detectGenreBuckets()/filterByGenre() use it. Rows tagged with two genres (e.g. [\"modern\",\"horror\"]) read fine in either.",
+  "firstNames": [
+    { "value": "Mara", "weight": 1, "genre": ["universal"] }, { "value": "Desmond", "weight": 1, "genre": ["universal"] }, { "value": "Yulia", "weight": 1, "genre": ["universal"] },
+    { "value": "Ochre", "weight": 1, "genre": ["post_apoc"] }, { "value": "Priya", "weight": 1, "genre": ["universal"] }, { "value": "Tobias", "weight": 1, "genre": ["universal"] },
+    { "value": "Kestrel", "weight": 1, "genre": ["universal"] }, { "value": "Amadi", "weight": 1, "genre": ["universal"] }, { "value": "Lenna", "weight": 1, "genre": ["universal"] },
+    { "value": "Soren", "weight": 1, "genre": ["universal"] }, { "value": "Odalys", "weight": 1, "genre": ["universal"] }, { "value": "Rutger", "weight": 1, "genre": ["universal"] },
+    { "value": "Ines", "weight": 1, "genre": ["universal"] }, { "value": "Cassidy", "weight": 1, "genre": ["universal"] }, { "value": "Petra", "weight": 1, "genre": ["universal"] },
+    { "value": "Dov", "weight": 1, "genre": ["universal"] }, { "value": "Halcyon", "weight": 1, "genre": ["post_apoc", "horror"] }, { "value": "Miriam", "weight": 1, "genre": ["universal", "horror"] },
+    { "value": "Ezra", "weight": 1, "genre": ["universal"] }, { "value": "Two-Names Rin", "weight": 1, "genre": ["post_apoc"] },
+
+    { "value": "Aldric", "weight": 1, "genre": ["fantasy"] }, { "value": "Seraphine", "weight": 1, "genre": ["fantasy"] }, { "value": "Cassian", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Isolde", "weight": 1, "genre": ["fantasy"] }, { "value": "Percival", "weight": 1, "genre": ["fantasy"] }, { "value": "Rosalind", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Tristan", "weight": 1, "genre": ["fantasy"] }, { "value": "Elowen", "weight": 1, "genre": ["fantasy"] }, { "value": "Godric", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Marigold", "weight": 1, "genre": ["fantasy"] }, { "value": "Wilhet", "weight": 1, "genre": ["fantasy"] }, { "value": "Branagh", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Tamsin", "weight": 1, "genre": ["fantasy"] }, { "value": "Della", "weight": 1, "genre": ["fantasy"] }, { "value": "Osric", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Fenwick", "weight": 1, "genre": ["fantasy"] }, { "value": "Hollis", "weight": 1, "genre": ["fantasy"] }, { "value": "Maddock", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Greta", "weight": 1, "genre": ["fantasy"] }, { "value": "Corbin", "weight": 1, "genre": ["fantasy"] }, { "value": "Sylvaine", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Thessaly", "weight": 1, "genre": ["fantasy"] }, { "value": "Nimue", "weight": 1, "genre": ["fantasy"] }, { "value": "Vesper", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Wrenna", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Zara", "weight": 1, "genre": ["scifi"] }, { "value": "Kael", "weight": 1, "genre": ["scifi"] }, { "value": "Doran", "weight": 1, "genre": ["scifi"] },
+    { "value": "Solene", "weight": 1, "genre": ["scifi"] }, { "value": "Juno", "weight": 1, "genre": ["scifi"] }, { "value": "Nyx", "weight": 1, "genre": ["scifi"] },
+    { "value": "Aurelia", "weight": 1, "genre": ["scifi"] }, { "value": "Ilan", "weight": 1, "genre": ["scifi"] }, { "value": "Cato", "weight": 1, "genre": ["scifi"] },
+    { "value": "Yara", "weight": 1, "genre": ["scifi"] }, { "value": "Bex", "weight": 1, "genre": ["scifi"] }, { "value": "Ondine", "weight": 1, "genre": ["scifi"] },
+    { "value": "Zephyrine", "weight": 1, "genre": ["scifi"] }, { "value": "Cyrus", "weight": 1, "genre": ["scifi"] }, { "value": "Nova", "weight": 1, "genre": ["scifi"] },
+    { "value": "Io", "weight": 1, "genre": ["scifi"] }, { "value": "Vale", "weight": 1, "genre": ["scifi"] }, { "value": "Xandra", "weight": 1, "genre": ["scifi"] },
+    { "value": "Corin", "weight": 1, "genre": ["scifi"] }, { "value": "Mireille", "weight": 1, "genre": ["scifi"] }, { "value": "Tavish", "weight": 1, "genre": ["scifi"] },
+    { "value": "Suri", "weight": 1, "genre": ["scifi"] }, { "value": "Anouk", "weight": 1, "genre": ["scifi"] }, { "value": "Rhian", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Jasmine", "weight": 1, "genre": ["modern"] }, { "value": "Carlos", "weight": 1, "genre": ["modern"] }, { "value": "Aisha", "weight": 1, "genre": ["modern"] },
+    { "value": "Ryan", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Fatima", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Derek", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Mei", "weight": 1, "genre": ["modern"] }, { "value": "Andre", "weight": 1, "genre": ["modern"] }, { "value": "Priyanka", "weight": 1, "genre": ["modern"] },
+    { "value": "Diego", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Chloe", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Malik", "weight": 1, "genre": ["modern"] },
+    { "value": "Sofia", "weight": 1, "genre": ["modern"] }, { "value": "Trevor", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Ngozi", "weight": 1, "genre": ["modern"] },
+    { "value": "Brianna", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Hassan", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Kayla", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Wei", "weight": 1, "genre": ["modern"] }, { "value": "Natalie", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Emeka", "weight": 1, "genre": ["modern"] },
+    { "value": "Courtney", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Rajesh", "weight": 1, "genre": ["modern"] }, { "value": "Megan", "weight": 1, "genre": ["modern", "horror"] },
+
+    { "value": "Mortimer", "weight": 1, "genre": ["horror"] }, { "value": "Evangeline", "weight": 1, "genre": ["horror"] }, { "value": "Silas", "weight": 1, "genre": ["horror"] },
+    { "value": "Ligeia", "weight": 1, "genre": ["horror"] }, { "value": "Absalom", "weight": 1, "genre": ["horror"] }, { "value": "Wilhelmina", "weight": 1, "genre": ["horror"] },
+    { "value": "Constance", "weight": 1, "genre": ["horror"] }, { "value": "Ambrose", "weight": 1, "genre": ["horror"] }, { "value": "Cordelia", "weight": 1, "genre": ["horror"] },
+    { "value": "Thaddeus", "weight": 1, "genre": ["horror"] }
+  ],
+  "lastNames": [
+    { "value": "Okonkwo", "weight": 1, "genre": ["universal"] }, { "value": "Fenrick", "weight": 1, "genre": ["universal"] }, { "value": "Vashti", "weight": 1, "genre": ["universal"] },
+    { "value": "Kess", "weight": 1, "genre": ["universal"] }, { "value": "Marlowe", "weight": 1, "genre": ["universal"] }, { "value": "Duarte", "weight": 1, "genre": ["universal"] },
+    { "value": "Ostrowski", "weight": 1, "genre": ["universal"] }, { "value": "Ade", "weight": 1, "genre": ["universal"] }, { "value": "Halloran", "weight": 1, "genre": ["universal"] },
+    { "value": "Voss", "weight": 1, "genre": ["universal"] }, { "value": "Nakagawa", "weight": 1, "genre": ["universal"] }, { "value": "Brandt", "weight": 1, "genre": ["universal"] },
+    { "value": "Escobedo", "weight": 1, "genre": ["universal"] }, { "value": "Whitlock", "weight": 1, "genre": ["universal"] }, { "value": "Amadeo", "weight": 1, "genre": ["universal"] },
+    { "value": "Grier", "weight": 1, "genre": ["universal"] }, { "value": "Pemberton", "weight": 1, "genre": ["universal"] }, { "value": "Solis", "weight": 1, "genre": ["universal"] },
+
+    { "value": "Thistledown", "weight": 1, "genre": ["fantasy"] }, { "value": "Ravenscar", "weight": 1, "genre": ["fantasy"] }, { "value": "Blackwood", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Ashvale", "weight": 1, "genre": ["fantasy"] }, { "value": "Emberlyn", "weight": 1, "genre": ["fantasy"] }, { "value": "Stormcrow", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Nightshade", "weight": 1, "genre": ["fantasy"] }, { "value": "Wyndham", "weight": 1, "genre": ["fantasy"] }, { "value": "Fairweather", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Thorne", "weight": 1, "genre": ["fantasy"] }, { "value": "Greycastle", "weight": 1, "genre": ["fantasy"] }, { "value": "Hallowmere", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Duskwater", "weight": 1, "genre": ["fantasy"] }, { "value": "Ironwood", "weight": 1, "genre": ["fantasy"] }, { "value": "Cinderfall", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Wolfsbane", "weight": 1, "genre": ["fantasy"] }, { "value": "Larkspur", "weight": 1, "genre": ["fantasy"] }, { "value": "Moonwhistle", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Vantablack", "weight": 1, "genre": ["scifi"] }, { "value": "Solstice", "weight": 1, "genre": ["scifi"] }, { "value": "Nine-Oh-Two", "weight": 1, "genre": ["scifi"] },
+    { "value": "Actinide", "weight": 1, "genre": ["scifi"] }, { "value": "Chen-Voss", "weight": 1, "genre": ["scifi"] }, { "value": "Okafor-Lin", "weight": 1, "genre": ["scifi"] },
+    { "value": "Meridian", "weight": 1, "genre": ["scifi"] }, { "value": "Kessler", "weight": 1, "genre": ["scifi"] }, { "value": "Ferrante", "weight": 1, "genre": ["scifi"] },
+    { "value": "Osei-Delacroix", "weight": 1, "genre": ["scifi"] }, { "value": "Voskuijlen", "weight": 1, "genre": ["scifi"] }, { "value": "Draycott", "weight": 1, "genre": ["scifi"] },
+    { "value": "Ngata", "weight": 1, "genre": ["scifi"] }, { "value": "Halvorsen", "weight": 1, "genre": ["scifi"] }, { "value": "Wren-7", "weight": 1, "genre": ["scifi"] },
+    { "value": "Iyer", "weight": 1, "genre": ["scifi"] }, { "value": "Castellan", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Sullivan", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Chen", "weight": 1, "genre": ["modern"] }, { "value": "Reyes", "weight": 1, "genre": ["modern"] },
+    { "value": "Thompson", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Patel", "weight": 1, "genre": ["modern"] }, { "value": "Nguyen", "weight": 1, "genre": ["modern"] },
+    { "value": "Brooks", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Kowalski", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Ibrahim", "weight": 1, "genre": ["modern"] },
+    { "value": "Delgado", "weight": 1, "genre": ["modern"] }, { "value": "Mercer", "weight": 1, "genre": ["modern", "horror"] }, { "value": "O'Brien", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Yamamoto", "weight": 1, "genre": ["modern"] }, { "value": "Osei", "weight": 1, "genre": ["modern"] }, { "value": "Castillo", "weight": 1, "genre": ["modern"] },
+    { "value": "Fitzgerald", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Abara", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Ravensworth", "weight": 1, "genre": ["horror"] }, { "value": "Sallow", "weight": 1, "genre": ["horror"] }, { "value": "Grimsby", "weight": 1, "genre": ["horror"] },
+    { "value": "Ashcombe", "weight": 1, "genre": ["horror"] }, { "value": "Vane", "weight": 1, "genre": ["horror"] }, { "value": "Creed", "weight": 1, "genre": ["horror"] },
+    { "value": "Marrow", "weight": 1, "genre": ["horror"] }, { "value": "Coffin", "weight": 1, "genre": ["horror"] }, { "value": "Whitlow", "weight": 1, "genre": ["horror"] },
+    { "value": "Deverell", "weight": 1, "genre": ["horror"] }
+  ],
+  "callsigns": [
+    { "value": null, "weight": 4, "genre": ["universal"] },
+    { "value": "Six-Fingers", "weight": 1, "genre": ["post_apoc"] }, { "value": "Quietkill", "weight": 1, "genre": ["post_apoc"] }, { "value": "Patches", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "The Ledger", "weight": 1, "genre": ["post_apoc"] }, { "value": "Halfmoon", "weight": 1, "genre": ["universal"] }, { "value": "Rustnail", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "No-Sleep", "weight": 1, "genre": ["universal"] }, { "value": "Copper", "weight": 1, "genre": ["universal"] }, { "value": "The Understudy", "weight": 1, "genre": ["universal"] },
+    { "value": "Late Bell", "weight": 1, "genre": ["universal"] },
+
+    { "value": "Stormcaller", "weight": 1, "genre": ["fantasy"] }, { "value": "Ashenhand", "weight": 1, "genre": ["fantasy"] }, { "value": "The Wayfarer", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Grimtooth", "weight": 1, "genre": ["fantasy"] }, { "value": "Silvertongue", "weight": 1, "genre": ["fantasy"] }, { "value": "The Lanternbearer", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Ninefingers", "weight": 1, "genre": ["fantasy"] }, { "value": "The Unbroken", "weight": 1, "genre": ["fantasy"] }, { "value": "Ravencloak", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Doomsayer", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Static", "weight": 1, "genre": ["scifi"] }, { "value": "Blackbox", "weight": 1, "genre": ["scifi"] }, { "value": "Orbital", "weight": 1, "genre": ["scifi"] },
+    { "value": "Nullsignal", "weight": 1, "genre": ["scifi"] }, { "value": "The Glitch", "weight": 1, "genre": ["scifi"] }, { "value": "Vacuum", "weight": 1, "genre": ["scifi"] },
+    { "value": "Redshift", "weight": 1, "genre": ["scifi"] }, { "value": "Ghostcode", "weight": 1, "genre": ["scifi"] }, { "value": "Zero-G", "weight": 1, "genre": ["scifi"] },
+    { "value": "The Uplink", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Ace", "weight": 1, "genre": ["modern"] }, { "value": "Shortstop", "weight": 1, "genre": ["modern"] }, { "value": "The Fixer", "weight": 1, "genre": ["modern"] },
+    { "value": "Roadrunner", "weight": 1, "genre": ["modern"] }, { "value": "Motormouth", "weight": 1, "genre": ["modern"] }, { "value": "Lucky", "weight": 1, "genre": ["modern"] },
+    { "value": "The Closer", "weight": 1, "genre": ["modern"] }, { "value": "Hollywood", "weight": 1, "genre": ["modern"] }, { "value": "Doc", "weight": 1, "genre": ["modern"] },
+    { "value": "Tank", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Hollow", "weight": 1, "genre": ["horror"] }, { "value": "The Widow", "weight": 1, "genre": ["horror"] }, { "value": "Graveworm", "weight": 1, "genre": ["horror"] },
+    { "value": "Nightlatch", "weight": 1, "genre": ["horror"] }, { "value": "The Unseen", "weight": 1, "genre": ["horror"] }, { "value": "Wraith", "weight": 1, "genre": ["horror"] },
+    { "value": "Deadlight", "weight": 1, "genre": ["horror"] }, { "value": "The Hush", "weight": 1, "genre": ["horror"] }, { "value": "Bonefinder", "weight": 1, "genre": ["horror"] },
+    { "value": "Stillwater", "weight": 1, "genre": ["horror"] }
+  ],
+  "personalityTraits": [
+    { "value": "Compulsively generous, even when it costs them", "weight": 2, "genre": ["universal"] },
+    { "value": "Keeps a running mental list of who owes who what", "weight": 2, "genre": ["universal"] },
+    { "value": "Treats every plan like it needs a backup plan", "weight": 2, "genre": ["universal"] },
+    { "value": "Can't stop narrating what they're doing under stress", "weight": 1, "genre": ["universal"] },
+    { "value": "Fiercely, almost irrationally loyal to whoever earns it first", "weight": 2, "genre": ["universal"] },
+    { "value": "Trusts machines more than people, and says so", "weight": 1, "genre": ["universal"] },
+    { "value": "Turns fear into jokes nobody asked for", "weight": 2, "genre": ["universal"] },
+    { "value": "Collects small, useless things and won't explain why", "weight": 1, "genre": ["universal"] },
+    { "value": "Never raises their voice, which somehow makes it worse when they're angry", "weight": 1, "genre": ["universal"] },
+    { "value": "Volunteers for the worst job before anyone else can", "weight": 2, "genre": ["universal"] },
+    { "value": "Keeps promises nobody remembers asking for", "weight": 1, "genre": ["universal"] },
+    { "value": "Argues with authority on principle, even when it's the losing move", "weight": 1, "genre": ["universal"] },
+
+    { "value": "Quietly devout to a god nobody else here still worships", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Speaks to their weapon like it can hear them, and isn't entirely sure it can't", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Trusts a ship's systems more than most of the people aboard it", "weight": 1, "genre": ["scifi"] },
+    { "value": "Answers work messages at 2am out of habit, even now", "weight": 1, "genre": ["modern"] },
+    { "value": "Counts exits in every room without meaning to", "weight": 1, "genre": ["horror"] }
+  ],
+  "contradictions": [
+    { "value": "Talks a big game about self-reliance but is the first to ask for help when it actually matters.", "weight": 1, "genre": ["universal"] },
+    { "value": "Preaches caution to everyone else and takes the worst risks themselves.", "weight": 1, "genre": ["universal"] },
+    { "value": "Claims not to care what people think, then works twice as hard when someone's watching.", "weight": 1, "genre": ["universal"] },
+    { "value": "Says they're done trusting people, and keeps doing it anyway, every time.", "weight": 1, "genre": ["universal"] },
+    { "value": "Insists they're just here for the job, but remembers everyone's birthday.", "weight": 1, "genre": ["universal"] },
+    { "value": "Acts like the past doesn't matter, but it's the only thing they actually talk about when drunk.", "weight": 1, "genre": ["universal"] },
+    { "value": "Swears they'll walk away from this life the moment they're able to, and never takes the exit when it's offered.", "weight": 1, "genre": ["universal"] },
+    { "value": "Plays the cynic in every conversation but is the easiest person here to talk into a bad idea for a good reason.", "weight": 1, "genre": ["universal"] }
+  ],
+  "wants": [
+    { "value": "Enough put away to actually stop and not just survive the next stretch.", "weight": 1, "genre": ["universal"] },
+    { "value": "To find the person they lost track of, whatever that takes.", "weight": 1, "genre": ["universal"] },
+    { "value": "To be the one who's finally, actually in control of something.", "weight": 1, "genre": ["universal"] },
+    { "value": "A reputation solid enough that nobody questions them twice.", "weight": 1, "genre": ["universal"] },
+    { "value": "To pay off a debt that's been sitting on them for years.", "weight": 1, "genre": ["universal"] },
+    { "value": "A place that feels like it's actually theirs.", "weight": 1, "genre": ["universal"] },
+    { "value": "To prove a specific person wrong, once and for good.", "weight": 1, "genre": ["universal"] },
+    { "value": "To matter to more than the handful of people who already rely on them.", "weight": 1, "genre": ["universal"] },
+
+    { "value": "To be knighted before their family name is forgotten entirely.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "To see the old realm's borders restored in their lifetime, however unlikely that's become.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "To be remembered in a song worth singing, even an unflattering one.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "To buy back a contract that never should have been signed away.", "weight": 1, "genre": ["scifi"] },
+    { "value": "To see a planetside sky again before running out of reasons to keep trying.", "weight": 1, "genre": ["scifi"] },
+    { "value": "To finally make partner, or admit that was never really the plan.", "weight": 1, "genre": ["modern"] },
+    { "value": "To pay off the house before anyone finds out how close it came to being lost.", "weight": 1, "genre": ["modern"] },
+    { "value": "For whatever's in the walls to finally just show itself, so the waiting would stop.", "weight": 1, "genre": ["horror"] },
+    { "value": "To be believed, just once, by someone who actually matters.", "weight": 1, "genre": ["horror"] }
+  ],
+  "actuallyNeeds": [
+    { "value": "To let someone else carry something for once.", "weight": 1, "genre": ["universal"] },
+    { "value": "To forgive themselves for a decision they can't undo.", "weight": 1, "genre": ["universal"] },
+    { "value": "To stop treating every relationship like it's temporary.", "weight": 1, "genre": ["universal"] },
+    { "value": "To admit the plan they're clinging to already failed.", "weight": 1, "genre": ["universal"] },
+    { "value": "To be somewhere long enough to actually be known.", "weight": 1, "genre": ["universal"] },
+    { "value": "To stop needing to win every argument to feel safe.", "weight": 1, "genre": ["universal"] },
+    { "value": "Rest, plainly, which they will not ask for.", "weight": 1, "genre": ["universal"] },
+    { "value": "To believe the people who keep telling them they're enough.", "weight": 1, "genre": ["universal"] }
+  ],
+  "backstoryTemplates": [
+    { "value": "Before all this, {name} worked a job that no longer exists in any meaningful sense -- the kind of steady, unglamorous work that taught them patience and not much else. A specific bad night changed that, the details of which they don't share easily. Now they run with whoever's headed the same direction, officially as a {className}, and haven't fully decided whether that's a career or a delay tactic.", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "{name} grew up somewhere quieter than where they ended up, in a household that either didn't survive the transition or didn't come with them. They picked up {className} work out of necessity long before it became identity, and they're still a little surprised at how good they turned out to be at it. Most days that's enough of an answer for why they keep going.", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "There was a version of {name} that had different plans -- a version that existed before circumstances made the choice for them. What's left is someone who's competent as a {className} and privately still grieving whoever they were supposed to become instead. They don't talk about it unless it's late and someone else brings it up first.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} didn't choose this life so much as get funneled into it -- one bad break, one closed door, one favor called in, and suddenly {className} work was the only door still open. They've made a kind of peace with that, mostly. The rest shows up at inconvenient times.", "weight": 1, "genre": ["universal"] },
+    { "value": "Before the {className} work, {name} was known for something else entirely -- a reputation that still occasionally catches up with them in places they didn't expect to be recognized. They left that life behind for reasons they'll explain eventually, if pressed the right way, by the right person.", "weight": 1, "genre": ["universal"] },
+
+    { "value": "Before {name} took up the {className}'s path, they were meant for something quieter -- a trade, a trothplight, a life measured in seasons rather than battles. The old life ended the day the roads stopped being safe, and {name} has been walking them anyway ever since.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "{name} was fostered in a hall that no longer stands, trained half-formally in {className} work by a mentor who expected great things and got, instead, someone stubborn enough to survive. That's turned out to matter more than talent, most days.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "There's a title {name} was born to and never claimed -- an inheritance left behind at a crossroads, along with the name that came with it. What remains is the {className} work, which asks fewer questions.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "{name} apprenticed under a {className} guild that scattered when the trouble came, and never quite reassembled. What they kept was the training; what they lost was anyone left to answer to.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "A prophecy once named someone very like {name}, in wording vague enough that half the village argued about who it meant. {name} left before the argument could be settled, and has been a working {className} ever since -- prophecy, as far as they're concerned, can wait.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "{name} swore an oath once, to a house or a god or a person, and won't say which. The {className} work is what's left when an oath outlives the reason for taking it.", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "{name} shipped out on a contract that no longer exists on paper -- the company folded, the records purged, the obligation somehow still binding in every way that matters. {className} work pays better anyway, and asks fewer questions about jurisdiction.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Before the {className} work, {name} ran systems on a station that isn't in any registry anymore, for reasons {name} doesn't volunteer and nobody's pressed hard enough to hear.", "weight": 1, "genre": ["scifi"] },
+    { "value": "{name} was grown, trained, or recruited -- the paperwork disagrees with itself -- for a program that got quietly shelved. The {className} skills stuck around after the program didn't.", "weight": 1, "genre": ["scifi"] },
+    { "value": "There's a version of {name} still on file somewhere, in a system {name} would rather stayed unqueried. The {className} life started the day that version stopped being useful to keep.", "weight": 1, "genre": ["scifi"] },
+    { "value": "{name} came out of cryo, cold-storage, or a border crossing -- the details shift depending who's asking -- into a world that had moved on without them, and picked up {className} work because it was the fastest way to catch up.", "weight": 1, "genre": ["scifi"] },
+    { "value": "A contract dispute, a corporate reassignment, or something closer to a defection -- {name} doesn't clarify which -- ended one career and started the {className} one currently in progress.", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "{name} had a normal enough life before -- a lease, a job, a routine -- until one decision unraveled it faster than expected. The {className} work started as a stopgap and became the thing that actually stuck.", "weight": 1, "genre": ["modern"] },
+    { "value": "Before this, {name} was on a very different track: school, or a career, or a family expectation that didn't survive contact with reality. {className} work wasn't the plan. It's what was left when the plan fell through.", "weight": 1, "genre": ["modern"] },
+    { "value": "{name} used to be good at pretending things were fine. The {className} life started around the same time that stopped working.", "weight": 1, "genre": ["modern"] },
+    { "value": "There's a version of {name} that still shows up at family gatherings and lets everyone believe the old story. The {className} work is the part nobody back home actually knows about.", "weight": 1, "genre": ["modern"] },
+    { "value": "{name} left a stable job for reasons that sounded better in the moment than they do now, and has been making {className} work stick ever since through sheer refusal to admit it was a mistake.", "weight": 1, "genre": ["modern"] },
+    { "value": "A settlement, an inheritance, or a debt -- nobody's gotten a straight answer -- is the reason {name} could afford to walk away and take up {className} work instead. What they walked away from, they don't discuss.", "weight": 1, "genre": ["modern"] },
+
+    { "value": "{name} doesn't talk about what happened in the year before the {className} work started, and the one time someone pushed, they didn't get an answer worth repeating.", "weight": 1, "genre": ["horror"] },
+    { "value": "There's a house, a hospital, or a stretch of road {name} won't go near, and a very good reason why -- one that doesn't sound sane out loud, which is exactly why {name} stopped saying it out loud.", "weight": 1, "genre": ["horror"] },
+    { "value": "{name} was the only one who came back. The {className} work started because staying still felt more dangerous than staying busy.", "weight": 1, "genre": ["horror"] },
+    { "value": "Something followed {name} out of wherever this started, or so {name} believes, quietly and completely, in a way that no amount of reasoning has managed to dislodge.", "weight": 1, "genre": ["horror"] },
+    { "value": "{name} used to sleep fine. That ended around the same time the {className} work began, and the two are connected in ways {name} has stopped trying to explain to people who weren't there.", "weight": 1, "genre": ["horror"] },
+    { "value": "A promise was made to someone who didn't survive the making of it, and {name} has been keeping it through {className} work ever since, whether or not it still makes sense to.", "weight": 1, "genre": ["horror"] }
+  ],
+  "bondNames": [
+    { "value": "An Old Debt", "weight": 1, "genre": ["universal"] }, { "value": "The One That Got Away", "weight": 1, "genre": ["universal"] }, { "value": "A Name They Don't Say", "weight": 1, "genre": ["universal"] },
+    { "value": "The Promise", "weight": 1, "genre": ["universal"] }, { "value": "Unfinished Business", "weight": 1, "genre": ["universal"] }, { "value": "The Watcher", "weight": 1, "genre": ["universal"] },
+    { "value": "What's Left Behind", "weight": 1, "genre": ["universal"] }, { "value": "The Second Chance", "weight": 1, "genre": ["universal"] }, { "value": "A Debt in the Other Direction", "weight": 1, "genre": ["universal"] },
+    { "value": "The Reason They Left", "weight": 1, "genre": ["universal"] }
+  ],
+  "bondEffects": [
+    { "value": "Someone from before still knows a secret about them, and hasn't decided yet whether to use it.", "weight": 1, "genre": ["universal"] },
+    { "value": "They owe a favor to someone dangerous, and it hasn't been called in yet -- but it will be.", "weight": 1, "genre": ["universal"] },
+    { "value": "There's a person they'd drop everything for, no questions, if that person ever actually asked.", "weight": 1, "genre": ["universal"] },
+    { "value": "A promise made under duress still hangs over them, unresolved and increasingly inconvenient.", "weight": 1, "genre": ["universal"] },
+    { "value": "They're being quietly watched by someone with their own reasons -- benign or not, still unclear.", "weight": 1, "genre": ["universal"] },
+    { "value": "Somebody they wronged is still out there, and this world is small enough that a reckoning feels inevitable.", "weight": 1, "genre": ["universal"] },
+    { "value": "There's a place they can never go back to, for reasons that would explain a lot if they ever told anyone.", "weight": 1, "genre": ["universal"] }
+  ],
+  "bondFlavorLines": [
+    { "value": "It's the kind of thing you don't bring up unless you have to. They haven't had to yet.", "weight": 1, "genre": ["universal"] },
+    { "value": "They'll deny it means anything, right up until it clearly does.", "weight": 1, "genre": ["universal"] },
+    { "value": "Ask them about it directly and watch the subject change in real time.", "weight": 1, "genre": ["universal"] },
+    { "value": "Everyone who's been around long enough has learned not to push on this one.", "weight": 1, "genre": ["universal"] },
+    { "value": "It's the one thing on their sheet that isn't really about the job.", "weight": 1, "genre": ["universal"] }
+  ],
+  "designNotes": [
+    { "value": "Rolled procedurally -- attribute split nudged toward the assigned class, but backstory/bond are Mad-Libs placeholders worth a manual pass before this PC sees real play.", "weight": 1 }
+  ]
+}

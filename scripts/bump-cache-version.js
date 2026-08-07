@@ -17,7 +17,6 @@
 
 const fs = require("fs");
 const path = require("path");
-const glob = require("glob");
 
 const newVersion = process.argv[2];
 if (!newVersion || !/^v\d+\.\d+(\.\d+)?$/.test(newVersion)) {

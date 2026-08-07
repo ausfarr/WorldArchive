@@ -1,0 +1,195 @@
+{
+  "_comment": "Procedural table for Locations. faction is picked from the world's own live faction roster (or 'unaligned'). notableNpcs[] is left empty by default (a procedural Location shouldn't invent a fake NPC id that doesn't exist in the roster) -- lib/proceduralGenerators.js may link an existing NPC if this world already has one archived, same 'reference, don't invent' principle roster.js follows elsewhere. Every row below carries a `genre` array (post_apoc/fantasy/scifi/modern/horror, or `universal`) consumed by filterByGenre() in lib/proceduralGenerators.js -- see that file's 'Genre awareness' section for the detection/fallback rules. The original table (pre-genre-expansion) was entirely post-apocalyptic-industrial; those rows are now tagged ['post_apoc'] rather than reworded, with new pools added per genre alongside them.",
+  "nameAdjectives": [
+    { "value": "The Hollow", "weight": 1, "genre": ["post_apoc"] }, { "value": "The Broken", "weight": 1, "genre": ["post_apoc"] }, { "value": "The Salt", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "The Long", "weight": 1, "genre": ["post_apoc"] }, { "value": "The Sunken", "weight": 1, "genre": ["post_apoc"] }, { "value": "The Rust", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "The Quiet", "weight": 1, "genre": ["post_apoc"] }, { "value": "The Grey", "weight": 1, "genre": ["post_apoc"] }, { "value": "The Splintered", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Old", "weight": 2, "genre": ["post_apoc"] }, { "value": "Lower", "weight": 1, "genre": ["post_apoc"] }, { "value": "Upper", "weight": 1, "genre": ["post_apoc"] },
+
+    { "value": "The Ashen", "weight": 1, "genre": ["fantasy"] }, { "value": "The Iron", "weight": 1, "genre": ["fantasy"] }, { "value": "Widow's", "weight": 1, "genre": ["fantasy"] },
+    { "value": "The Elder", "weight": 1, "genre": ["fantasy"] }, { "value": "The Gilded", "weight": 1, "genre": ["fantasy"] }, { "value": "The Shattered", "weight": 1, "genre": ["fantasy"] },
+    { "value": "The Verdant", "weight": 1, "genre": ["fantasy"] }, { "value": "The Moss-Grown", "weight": 1, "genre": ["fantasy"] }, { "value": "The Forgotten", "weight": 1, "genre": ["fantasy"] },
+    { "value": "High", "weight": 2, "genre": ["fantasy"] }, { "value": "Deep", "weight": 1, "genre": ["fantasy"] }, { "value": "The Sunlit", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "The Null", "weight": 1, "genre": ["scifi"] }, { "value": "Reactor", "weight": 1, "genre": ["scifi"] }, { "value": "Drift", "weight": 1, "genre": ["scifi"] },
+    { "value": "The Void", "weight": 1, "genre": ["scifi"] }, { "value": "Ion", "weight": 1, "genre": ["scifi"] }, { "value": "The Derelict", "weight": 1, "genre": ["scifi"] },
+    { "value": "Fringe", "weight": 1, "genre": ["scifi"] }, { "value": "Orbital", "weight": 2, "genre": ["scifi"] }, { "value": "The Silent", "weight": 1, "genre": ["scifi"] },
+    { "value": "Vector", "weight": 1, "genre": ["scifi"] }, { "value": "Quantum", "weight": 1, "genre": ["scifi"] }, { "value": "The Dead", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "The Old", "weight": 2, "genre": ["modern"] }, { "value": "North", "weight": 1, "genre": ["modern"] }, { "value": "South", "weight": 1, "genre": ["modern"] },
+    { "value": "Historic", "weight": 1, "genre": ["modern"] }, { "value": "Downtown", "weight": 2, "genre": ["modern"] }, { "value": "Riverside", "weight": 1, "genre": ["modern"] },
+    { "value": "The Vacant", "weight": 1, "genre": ["modern"] }, { "value": "Cross-Town", "weight": 1, "genre": ["modern"] }, { "value": "The Forgotten", "weight": 1, "genre": ["modern"] },
+    { "value": "Metro", "weight": 1, "genre": ["modern"] }, { "value": "Backlot", "weight": 1, "genre": ["modern"] }, { "value": "The Shuttered", "weight": 1, "genre": ["modern"] },
+
+    { "value": "The Weeping", "weight": 1, "genre": ["horror"] }, { "value": "Forgotten", "weight": 1, "genre": ["horror"] }, { "value": "The Drowned", "weight": 1, "genre": ["horror"] },
+    { "value": "The Screaming", "weight": 1, "genre": ["horror"] }, { "value": "The Rotting", "weight": 1, "genre": ["horror"] }, { "value": "The Whispering", "weight": 1, "genre": ["horror"] },
+    { "value": "The Cursed", "weight": 1, "genre": ["horror"] }, { "value": "The Nameless", "weight": 1, "genre": ["horror"] }, { "value": "The Crooked", "weight": 1, "genre": ["horror"] },
+    { "value": "The Silent", "weight": 1, "genre": ["horror"] }, { "value": "The Foul", "weight": 1, "genre": ["horror"] }, { "value": "The Unquiet", "weight": 1, "genre": ["horror"] }
+  ],
+  "nameNouns": [
+    { "value": "Quarter", "weight": 2, "genre": ["post_apoc"] }, { "value": "Yards", "weight": 2, "genre": ["post_apoc"] }, { "value": "Crossing", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Terminal", "weight": 1, "genre": ["post_apoc"] }, { "value": "Hollow", "weight": 1, "genre": ["post_apoc"] }, { "value": "Flats", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Works", "weight": 2, "genre": ["post_apoc"] }, { "value": "Row", "weight": 1, "genre": ["post_apoc"] }, { "value": "Depot", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Reach", "weight": 1, "genre": ["post_apoc"] }, { "value": "Gate", "weight": 1, "genre": ["post_apoc"] }, { "value": "Wharf", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Terrace", "weight": 1, "genre": ["post_apoc"] }, { "value": "Sprawl", "weight": 1, "genre": ["post_apoc"] },
+
+    { "value": "Keep", "weight": 2, "genre": ["fantasy"] }, { "value": "Hollow", "weight": 1, "genre": ["fantasy"] }, { "value": "Vale", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Crossing", "weight": 1, "genre": ["fantasy"] }, { "value": "Spire", "weight": 1, "genre": ["fantasy"] }, { "value": "Hold", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Warren", "weight": 1, "genre": ["fantasy"] }, { "value": "Barrow", "weight": 1, "genre": ["fantasy"] }, { "value": "Glade", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Fen", "weight": 1, "genre": ["fantasy"] }, { "value": "March", "weight": 1, "genre": ["fantasy"] }, { "value": "Cairn", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Station", "weight": 2, "genre": ["scifi"] }, { "value": "Array", "weight": 1, "genre": ["scifi"] }, { "value": "Sector", "weight": 2, "genre": ["scifi"] },
+    { "value": "Ring", "weight": 1, "genre": ["scifi"] }, { "value": "Bay", "weight": 1, "genre": ["scifi"] }, { "value": "Node", "weight": 1, "genre": ["scifi"] },
+    { "value": "Deck", "weight": 1, "genre": ["scifi"] }, { "value": "Colony", "weight": 1, "genre": ["scifi"] }, { "value": "Outpost", "weight": 2, "genre": ["scifi"] },
+    { "value": "Berth", "weight": 1, "genre": ["scifi"] }, { "value": "Cluster", "weight": 1, "genre": ["scifi"] }, { "value": "Yard", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "District", "weight": 2, "genre": ["modern"] }, { "value": "Yard", "weight": 1, "genre": ["modern"] }, { "value": "Row", "weight": 1, "genre": ["modern"] },
+    { "value": "Plaza", "weight": 1, "genre": ["modern"] }, { "value": "Complex", "weight": 1, "genre": ["modern"] }, { "value": "Strip", "weight": 1, "genre": ["modern"] },
+    { "value": "Junction", "weight": 1, "genre": ["modern"] }, { "value": "Commons", "weight": 1, "genre": ["modern"] }, { "value": "Overpass", "weight": 1, "genre": ["modern"] },
+    { "value": "Annex", "weight": 1, "genre": ["modern"] }, { "value": "Lot", "weight": 1, "genre": ["modern"] }, { "value": "Block", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Hollow", "weight": 2, "genre": ["horror"] }, { "value": "Threshold", "weight": 1, "genre": ["horror"] }, { "value": "Asylum", "weight": 1, "genre": ["horror"] },
+    { "value": "Crypt", "weight": 1, "genre": ["horror"] }, { "value": "Chapel", "weight": 1, "genre": ["horror"] }, { "value": "Gallows", "weight": 1, "genre": ["horror"] },
+    { "value": "Mire", "weight": 1, "genre": ["horror"] }, { "value": "Grave", "weight": 1, "genre": ["horror"] }, { "value": "Cellar", "weight": 1, "genre": ["horror"] },
+    { "value": "Attic", "weight": 1, "genre": ["horror"] }, { "value": "Passage", "weight": 1, "genre": ["horror"] }, { "value": "Sanatorium", "weight": 1, "genre": ["horror"] }
+  ],
+  "properNames": [
+    { "value": "Saltmarsh Crossing", "weight": 1, "genre": ["post_apoc"] }, { "value": "Founder's Reach", "weight": 1, "genre": ["post_apoc"] }, { "value": "The Long Silence", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Nine Mile Depot", "weight": 1, "genre": ["post_apoc"] }, { "value": "The Hangnail District", "weight": 1, "genre": ["post_apoc"] }, { "value": "Widow's Wharf", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "The Cinderline", "weight": 1, "genre": ["post_apoc"] }, { "value": "Halfway Gate", "weight": 1, "genre": ["post_apoc"] },
+
+    { "value": "Ironhold", "weight": 1, "genre": ["fantasy"] }, { "value": "Ravenspire", "weight": 1, "genre": ["fantasy"] }, { "value": "Duskmere", "weight": 1, "genre": ["fantasy"] },
+    { "value": "The Wyrmwood", "weight": 1, "genre": ["fantasy"] }, { "value": "Thornwatch", "weight": 1, "genre": ["fantasy"] }, { "value": "Highmoor Keep", "weight": 1, "genre": ["fantasy"] },
+    { "value": "The Sundered Vale", "weight": 1, "genre": ["fantasy"] }, { "value": "Grimfen Crossing", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Kepler Station", "weight": 1, "genre": ["scifi"] }, { "value": "The Long Drift", "weight": 1, "genre": ["scifi"] }, { "value": "Reactor Nine", "weight": 1, "genre": ["scifi"] },
+    { "value": "Halcyon Array", "weight": 1, "genre": ["scifi"] }, { "value": "The Null Sector", "weight": 1, "genre": ["scifi"] }, { "value": "Cryo-Bay Seven", "weight": 1, "genre": ["scifi"] },
+    { "value": "Meridian Outpost", "weight": 1, "genre": ["scifi"] }, { "value": "The Dead Relay", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Old Millbrook District", "weight": 1, "genre": ["modern"] }, { "value": "North Harbor Row", "weight": 1, "genre": ["modern"] }, { "value": "The Vacant Lot", "weight": 1, "genre": ["modern"] },
+    { "value": "Crestline Plaza", "weight": 1, "genre": ["modern"] }, { "value": "Route 9 Rest Stop", "weight": 1, "genre": ["modern"] }, { "value": "Downtown Substation", "weight": 1, "genre": ["modern"] },
+    { "value": "Riverside Commons", "weight": 1, "genre": ["modern"] }, { "value": "The Shuttered Mall", "weight": 1, "genre": ["modern"] },
+
+    { "value": "The Weeping Hollow", "weight": 1, "genre": ["horror"] }, { "value": "Widow's Threshold", "weight": 1, "genre": ["horror"] }, { "value": "The Forgotten Asylum", "weight": 1, "genre": ["horror"] },
+    { "value": "Blackthorn Cemetery", "weight": 1, "genre": ["horror"] }, { "value": "The Sunken Chapel", "weight": 1, "genre": ["horror"] }, { "value": "Hollow's Mire", "weight": 1, "genre": ["horror"] },
+    { "value": "The Nameless Crypt", "weight": 1, "genre": ["horror"] }, { "value": "Ashgrave Sanatorium", "weight": 1, "genre": ["horror"] }
+  ],
+  "regionBiomes": [
+    { "value": "Industrial Ruins", "weight": 3, "genre": ["post_apoc"] }, { "value": "Flooded Underground", "weight": 2, "genre": ["post_apoc"] }, { "value": "Overgrown Rooftops", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Market Sprawl", "weight": 2, "genre": ["post_apoc"] }, { "value": "Tunnel Network", "weight": 2, "genre": ["post_apoc"] }, { "value": "Scrapyard Fields", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Signal Dead Zone", "weight": 1, "genre": ["post_apoc"] }, { "value": "Collapsed Transit Hub", "weight": 2, "genre": ["post_apoc"] }, { "value": "Refinery Complex", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Farming Terraces", "weight": 1, "genre": ["post_apoc"] }, { "value": "Quarantine Block", "weight": 1, "genre": ["post_apoc"] }, { "value": "Harbor Wreckage", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Data Vault Ruins", "weight": 1, "genre": ["post_apoc"] }, { "value": "Grid-Fringe Settlement", "weight": 2, "genre": ["post_apoc"] }, { "value": "Ashfall Flats", "weight": 1, "genre": ["post_apoc"] },
+
+    { "value": "Enchanted Forest", "weight": 3, "genre": ["fantasy"] }, { "value": "Goblin Warrens", "weight": 2, "genre": ["fantasy"] }, { "value": "Ancient Ruins", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Mountain Pass", "weight": 2, "genre": ["fantasy"] }, { "value": "Sunken Temple", "weight": 1, "genre": ["fantasy"] }, { "value": "Fae Crossing", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Dragon's Roost", "weight": 1, "genre": ["fantasy"] }, { "value": "Wizard's Spire District", "weight": 2, "genre": ["fantasy"] }, { "value": "Border Marches", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Sacred Grove", "weight": 1, "genre": ["fantasy"] }, { "value": "Underdark Tunnels", "weight": 1, "genre": ["fantasy"] }, { "value": "Haunted Battlefield", "weight": 1, "genre": ["fantasy", "horror"] },
+    { "value": "Riverside Trade Town", "weight": 2, "genre": ["fantasy"] }, { "value": "Highland Clanhold", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Orbital Station", "weight": 2, "genre": ["scifi"] }, { "value": "Derelict Colony Ship", "weight": 2, "genre": ["scifi"] }, { "value": "Alien Biome", "weight": 1, "genre": ["scifi"] },
+    { "value": "Cryo-Vault Ruins", "weight": 1, "genre": ["scifi"] }, { "value": "Terraforming Failure Zone", "weight": 1, "genre": ["scifi"] }, { "value": "Corporate Arcology", "weight": 2, "genre": ["scifi"] },
+    { "value": "Asteroid Mining Camp", "weight": 2, "genre": ["scifi"] }, { "value": "Xenobotanical Preserve", "weight": 1, "genre": ["scifi"] }, { "value": "Null-Gravity Wreck Field", "weight": 1, "genre": ["scifi"] },
+    { "value": "Void Trade Post", "weight": 1, "genre": ["scifi"] }, { "value": "Reactor Core Ruins", "weight": 1, "genre": ["scifi"] }, { "value": "Quarantined Research Station", "weight": 1, "genre": ["scifi"] },
+    { "value": "Zero-G Slum Ring", "weight": 1, "genre": ["scifi"] }, { "value": "Failing Life-Support Ring", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Downtown District", "weight": 2, "genre": ["modern"] }, { "value": "Industrial Park", "weight": 2, "genre": ["modern"] }, { "value": "Suburban Sprawl", "weight": 2, "genre": ["modern"] },
+    { "value": "Abandoned Mall", "weight": 1, "genre": ["modern"] }, { "value": "Waterfront District", "weight": 1, "genre": ["modern"] }, { "value": "University Campus", "weight": 1, "genre": ["modern"] },
+    { "value": "Rural Backroad Town", "weight": 1, "genre": ["modern"] }, { "value": "Highway Rest Stop", "weight": 1, "genre": ["modern"] }, { "value": "Warehouse District", "weight": 2, "genre": ["modern"] },
+    { "value": "Strip Mall Corridor", "weight": 1, "genre": ["modern"] }, { "value": "Public Housing Block", "weight": 1, "genre": ["modern"] }, { "value": "Municipal Park", "weight": 1, "genre": ["modern"] },
+    { "value": "Storage Facility Row", "weight": 1, "genre": ["modern"] }, { "value": "Commuter Rail Station", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Fog-Bound Hollow", "weight": 2, "genre": ["horror"] }, { "value": "Abandoned Asylum", "weight": 2, "genre": ["modern", "horror"] }, { "value": "Cursed Cemetery", "weight": 1, "genre": ["fantasy", "horror"] },
+    { "value": "Sunken Chapel", "weight": 1, "genre": ["fantasy", "horror"] }, { "value": "The Place Maps Disagree About", "weight": 1, "genre": ["horror"] }, { "value": "Blighted Farmstead", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Rot-Choked Swamp", "weight": 1, "genre": ["fantasy", "horror"] }, { "value": "The House That Isn't There Twice", "weight": 1, "genre": ["horror"] }, { "value": "Plague Quarantine Ward", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Abandoned Children's Ward", "weight": 1, "genre": ["modern", "horror"] }, { "value": "Moonless Hollow", "weight": 1, "genre": ["fantasy", "horror"] }, { "value": "The Second Basement", "weight": 1, "genre": ["modern", "horror"] },
+    { "value": "Witch-Burned Grove", "weight": 1, "genre": ["fantasy", "horror"] }, { "value": "Static-Choked Relay Station", "weight": 1, "genre": ["scifi", "horror"] }, { "value": "The Ward That Shouldn't Exist", "weight": 1, "genre": ["horror"] }
+  ],
+  "dangerTags": [
+    { "value": "Structural Collapse Risk", "weight": 2, "genre": ["post_apoc"] }, { "value": "Territorial Enemies", "weight": 3, "genre": ["post_apoc"] }, { "value": "Toxic Air", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Flooded Passages", "weight": 1, "genre": ["post_apoc"] }, { "value": "Unstable Signal", "weight": 1, "genre": ["post_apoc"] }, { "value": "Scavenger Ambush", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Radiation Pocket", "weight": 1, "genre": ["post_apoc"] }, { "value": "Locked/Sealed Sections", "weight": 2, "genre": ["post_apoc"] }, { "value": "Nocturnal Threats", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Contested Ground", "weight": 2, "genre": ["post_apoc"] }, { "value": "Buried Ordnance", "weight": 1, "genre": ["post_apoc"] }, { "value": "Feral Wildlife", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Faction Patrols", "weight": 2, "genre": ["post_apoc"] }, { "value": "No Clean Water", "weight": 1, "genre": ["post_apoc"] }, { "value": "Structural Fires", "weight": 1, "genre": ["post_apoc"] },
+
+    { "value": "Cursed Ground", "weight": 2, "genre": ["fantasy"] }, { "value": "Beast-Infested", "weight": 2, "genre": ["fantasy"] }, { "value": "Bandit Territory", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Fae Trickery", "weight": 1, "genre": ["fantasy"] }, { "value": "Unstable Ley Lines", "weight": 1, "genre": ["fantasy"] }, { "value": "Undead Wandering", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Sacred Ground (Trespass Forbidden)", "weight": 1, "genre": ["fantasy"] }, { "value": "Goblin Raiders", "weight": 2, "genre": ["fantasy"] },
+
+    { "value": "Vacuum Exposure Risk", "weight": 2, "genre": ["scifi"] }, { "value": "Hostile AI Presence", "weight": 1, "genre": ["scifi"] }, { "value": "Radiation Leak", "weight": 2, "genre": ["scifi"] },
+    { "value": "Alien Contagion", "weight": 1, "genre": ["scifi"] }, { "value": "Zero-G Hazard", "weight": 1, "genre": ["scifi"] }, { "value": "Life Support Failing", "weight": 2, "genre": ["scifi"] },
+    { "value": "Hull Breach Risk", "weight": 1, "genre": ["scifi"] }, { "value": "Rogue Drone Patrol", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Gang Territory", "weight": 2, "genre": ["modern"] }, { "value": "Structural Fire Risk", "weight": 1, "genre": ["modern"] }, { "value": "Police Presence", "weight": 2, "genre": ["modern"] },
+    { "value": "Flood Zone", "weight": 1, "genre": ["modern"] }, { "value": "Surveillance Heavy", "weight": 1, "genre": ["modern"] }, { "value": "Rival Crew Turf", "weight": 1, "genre": ["modern"] },
+    { "value": "Condemned Building", "weight": 1, "genre": ["modern"] }, { "value": "Active Crime Scene", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Reality Instability", "weight": 1, "genre": ["horror"] }, { "value": "Cursed Object Nearby", "weight": 1, "genre": ["horror"] }, { "value": "Something Watches", "weight": 2, "genre": ["horror"] },
+    { "value": "Whispers in the Walls", "weight": 1, "genre": ["horror"] }, { "value": "Time Moves Wrong Here", "weight": 1, "genre": ["horror"] }, { "value": "Ritual Site", "weight": 1, "genre": ["horror"] },
+    { "value": "Missing Persons Pattern", "weight": 1, "genre": ["horror"] }, { "value": "Do Not Look Back", "weight": 1, "genre": ["horror"] }
+  ],
+  "descriptorLineTemplates": [
+    { "value": "Nobody planned for it to end up like this. Nobody's fixed it either.", "weight": 1, "genre": ["universal"] },
+    { "value": "Whatever this place used to be, it's had a long time to become something else.", "weight": 1, "genre": ["universal"] },
+    { "value": "Quiet in a way that puts people on edge, and probably should.", "weight": 1, "genre": ["universal"] },
+    { "value": "Still standing, mostly out of spite.", "weight": 1, "genre": ["universal"] },
+    { "value": "The kind of place people pass through fast, or not at all.", "weight": 1, "genre": ["universal"] }
+  ],
+  "notableFeaturesTemplates": [
+    { "value": "A tangle of {regionBiome} that's been picked over more than once, but never quite cleaned out. Whatever's left is worth the risk to whoever gets there first.", "weight": 1, "genre": ["universal"] },
+    { "value": "The layout here rewards knowing it -- shortcuts, blind spots, and at least one route that isn't on any map still in circulation. Getting turned around in {regionBiome} like this can cost more than time.", "weight": 1, "genre": ["universal"] },
+    { "value": "Signs of recent activity are everywhere -- fresh tracks, disturbed debris, a fire pit still warm. Something is using this stretch of {regionBiome}, regularly.", "weight": 1, "genre": ["universal"] },
+    { "value": "Half-collapsed and half-improvised into something livable, this corner of {regionBiome} has clearly been claimed by someone, even if they're not obviously present right now.", "weight": 1, "genre": ["universal"] },
+    { "value": "Old signage and structural bones hint at what this {regionBiome} used to serve, before whatever happened here happened.", "weight": 1, "genre": ["universal"] },
+
+    { "value": "Faint ley-line resonance hums through this stretch of {regionBiome}, strong enough that hedge-mages can feel it from the road. Whether that's a blessing or a warning depends who you ask.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Old wardstones, half-sunk and moss-grown, ring the edges of this {regionBiome} -- someone meant to keep something in, or out, and never got around to renewing the working.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "The local wildlife gives this {regionBiome} a wide berth, which the more superstitious locals take as proof enough of what's really out there.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Weathered runes are carved into every standing surface of this {regionBiome}, in a script no scholar who's passed through has been able to fully place.", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "Derelict systems still cycle through this {regionBiome} on backup power, running routines for a crew that's been gone for years.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Warning placards in three dead corporate dialects still cling to the bulkheads of this {regionBiome} -- whatever the hazard was, nobody bothered updating the signage.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Salvageable tech litters this {regionBiome}, most of it fried, some of it worryingly still live.", "weight": 1, "genre": ["scifi"] },
+    { "value": "A low structural groan runs through this {regionBiome} on a cycle nobody's timed -- pressure differential, probably. Probably.", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "Faded municipal signage still marks this {regionBiome} for a renovation that was announced, funded, and then quietly never happened.", "weight": 1, "genre": ["modern"] },
+    { "value": "Security cameras dot this {regionBiome}, most of them dead housings -- but not all, and there's no reliable way to tell which from the ground.", "weight": 1, "genre": ["modern"] },
+    { "value": "Somebody's clearly still using this {regionBiome} after hours -- the kind of use that doesn't show up on any permit.", "weight": 1, "genre": ["modern"] },
+    { "value": "Graffiti layers deep enough to read like sediment cover every flat surface in this {regionBiome}, a rough timeline of who's claimed it and when.", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Something about the geometry of this {regionBiome} doesn't sit right -- distances that don't match on the way back, angles that photograph wrong.", "weight": 1, "genre": ["horror"] },
+    { "value": "A cold spot moves through this {regionBiome} independent of any draft anyone's found the source of.", "weight": 1, "genre": ["horror"] },
+    { "value": "Every animal that wanders into this {regionBiome} leaves fast, and quiet, and doesn't come back through the same way.", "weight": 1, "genre": ["horror"] },
+    { "value": "The silence in this {regionBiome} has a quality to it -- less an absence of sound than something actively being held back.", "weight": 1, "genre": ["horror"] }
+  ],
+  "hooksSecretsTemplates": [
+    { "value": "Something valuable is rumored to still be buried here -- enough people have gone looking, and not come back, that most locals treat the rumor as fact.", "weight": 1, "genre": ["universal"] },
+    { "value": "A sealed section hasn't been opened in longer than anyone currently around can explain, and whoever sealed it left it that way for a reason.", "weight": 1, "genre": ["universal"] },
+    { "value": "This place quietly changes hands more often than anyone advertises -- worth knowing who actually controls it before showing up uninvited.", "weight": 1, "genre": ["universal"] },
+    { "value": "No secrets surfaced yet -- a straightforward roster addition, ready for a hook to be added later.", "weight": 2, "genre": ["universal"] },
+    { "value": "Locals avoid one specific part of it, for reasons nobody's willing to fully explain to an outsider.", "weight": 1, "genre": ["universal"] },
+
+    { "value": "A binding laid generations ago is coming loose here, and the only people who'd know how to renew it died out with the last war.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Local legend places a sleeping something beneath this ground -- the kind of story every generation retells and nobody's bothered to verify.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "A hedge-witch swears the ley lines under this spot have shifted in living memory, and won't say what she thinks that means.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "Fae favor is said to run strong here on certain nights -- along with fae bargains, which rarely favor the mortal side.", "weight": 1, "genre": ["fantasy"] },
+
+    { "value": "An old distress beacon still cycles from somewhere in this site, on a frequency the local relay network insists isn't in use.", "weight": 1, "genre": ["scifi"] },
+    { "value": "Corporate salvage rights to this site were never formally revoked -- meaning someone with the right paperwork could still show up and claim it out from under whoever's squatting here.", "weight": 1, "genre": ["scifi"] },
+    { "value": "A dormant AI core is rumored to still be intact somewhere on-site, along with whatever judgment it formed about the people who abandoned it.", "weight": 1, "genre": ["scifi"] },
+    { "value": "The last maintenance log from this site cuts off mid-sentence, and nobody's found the rest of it.", "weight": 1, "genre": ["scifi"] },
+
+    { "value": "City records list this site as slated for demolition three separate times over the past decade, and it's still standing every time.", "weight": 1, "genre": ["modern"] },
+    { "value": "A cold case connects to this address, according to the one detective who still brings it up, unprompted, whenever it comes up.", "weight": 1, "genre": ["modern"] },
+    { "value": "Somebody with real money quietly bought up the surrounding lots -- nobody's figured out why yet.", "weight": 1, "genre": ["modern"] },
+    { "value": "The insurance payout on this place would be substantial, which is exactly the kind of detail that makes people nervous about how it might eventually burn.", "weight": 1, "genre": ["modern"] },
+
+    { "value": "Whoever lived here last left everything behind -- meals half-eaten, lights on, no sign of where they went or why they didn't take anything.", "weight": 1, "genre": ["horror"] },
+    { "value": "Local kids dare each other to go inside, and every generation, one of them stops daring anyone to do it again.", "weight": 1, "genre": ["horror"] },
+    { "value": "Something was clearly buried here, deliberately and with care, by someone who wanted it found again -- or wanted to be sure it never was.", "weight": 1, "genre": ["horror"] },
+    { "value": "The details of what happened here change depending on who's telling it, which is itself the part that worries the people who've heard every version.", "weight": 1, "genre": ["horror"] }
+  ],
+  "designNotes": [
+    { "value": "Rolled procedurally -- region/danger tags are solid, but notableFeatures/hooksSecrets are Mad-Libs placeholders worth a manual pass before this location anchors a real scene.", "weight": 1 }
+  ]
+}

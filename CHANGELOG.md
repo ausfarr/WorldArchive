@@ -21,6 +21,27 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Procedural (non-AI) generation, all 8 categories.** New "Generate
+  Procedurally" option next to "Generate with AI"/"+ Create Manually" on
+  every category page — instant, zero API cost, weighted-table +
+  Mad-Libs-template generation routed through the existing
+  `/api/confirm-entry` write path (no new DB columns). Items/Enemies
+  numeric fields go through the existing `lib/itemFormulas.js`/
+  `lib/statFormulas.js`, not new math. Built on top of
+  `procedural_generation_scope_proposal.md`'s scoping work (PR #3), but
+  deliberately extended to Factions and Logs too — that proposal called
+  those two a poor fit and recommended skipping them; this session tried
+  them anyway, and confirmed both ship a mechanically-correct but
+  prose-thin entry (real relationships/roster grounding, templated
+  prose), so they're included but clearly labeled experimental.
+  **Follow-up pass:** every table is now genre-aware (post-apocalyptic/
+  fantasy/sci-fi/modern/horror) — procedural generation reads the
+  world's own Wizard Step 1 genre field and reskins accordingly (a
+  fantasy world gets swords humming with enchantment and "Dragon's
+  Roost"-style locations, not rebar mauls), and every pool grew
+  roughly 4-13x (e.g. items' weapon pool 45→190 rows, enemies' name
+  parts 15→99 each) to push repeat-entry odds down substantially. See:
+  `session_addendum_procedural_generation_shipped.md`.
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`
 - **Future roadmap ideas (unranked, no version yet):** table/dungeon
