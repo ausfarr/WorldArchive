@@ -351,7 +351,7 @@ table.derived td.formula { color: var(--ink-faint); font-size: 0.68rem; }
 }
 .live-frame .frame-bar .dots { display: flex; gap: 4px; margin-right: 8px; }
 .live-frame .frame-bar .dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--border-line); display: inline-block; }
-.live-frame img { width: 100%; display: block; }
+.live-frame img { width: 100%; height: auto; display: block; }
 @media (max-width: 900px) { .live-shots { grid-template-columns: 1fr; } }
 
 /* ---------- Demo widget ---------- */
