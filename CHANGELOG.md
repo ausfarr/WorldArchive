@@ -21,45 +21,6 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
-- **"Create Entry" staged reveal + account-level AI toggle.** Each
-  category page's always-visible trio (AI fields + submit, "+ Create
-  Manually", "Generate Procedurally") collapsed into a two-click reveal:
-  "+ Create Entry" → "Generate with AI" / "Enter Manually" / "Roll
-  Randomly" → (AI only) the category's existing form fields + submit.
-  Manual/Procedural fire immediately, same handlers as before, just
-  reachable from the collapsed panel instead of two standalone buttons.
-  Paired with a new per-account "AI Features" toggle (Settings) that
-  turns off every AI-spend surface — category-page AI generation, Fill
-  In, Regenerate, ✨ Help Me, and portrait Generate — enforced
-  server-side (`middleware/requireAiEnabled.js`, new `user_settings`
-  table) so a hidden button isn't the only thing stopping a direct API
-  call; Manual entry, Roll Randomly, and Upload Image keep working with
-  AI off. Wizard AI steps, Campaign Module generation, and World Mood
-  Board/Faction Banner art are explicitly out of scope for this pass —
-  still fire regardless of the toggle. **Migration pending:**
-  `migrations/016_ai_toggle.sql` still needs to run against Supabase.
-  See: `session_addendum_create_entry_collapse_and_ai_toggle.md`.
-- **Procedural (non-AI) generation, all 8 categories.** New "Generate
-  Procedurally" option next to "Generate with AI"/"+ Create Manually" on
-  every category page — instant, zero API cost, weighted-table +
-  Mad-Libs-template generation routed through the existing
-  `/api/confirm-entry` write path (no new DB columns). Items/Enemies
-  numeric fields go through the existing `lib/itemFormulas.js`/
-  `lib/statFormulas.js`, not new math. Built on top of
-  `procedural_generation_scope_proposal.md`'s scoping work (PR #3), but
-  deliberately extended to Factions and Logs too — that proposal called
-  those two a poor fit and recommended skipping them; this session tried
-  them anyway, and confirmed both ship a mechanically-correct but
-  prose-thin entry (real relationships/roster grounding, templated
-  prose), so they're included but clearly labeled experimental.
-  **Follow-up pass:** every table is now genre-aware (post-apocalyptic/
-  fantasy/sci-fi/modern/horror) — procedural generation reads the
-  world's own Wizard Step 1 genre field and reskins accordingly (a
-  fantasy world gets swords humming with enchantment and "Dragon's
-  Roost"-style locations, not rebar mauls), and every pool grew
-  roughly 4-13x (e.g. items' weapon pool 45→190 rows, enemies' name
-  parts 15→99 each) to push repeat-entry odds down substantially. See:
-  `session_addendum_procedural_generation_shipped.md`.
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`
 - **Future roadmap ideas (unranked, no version yet):** table/dungeon
@@ -78,7 +39,7 @@ entry from here forward gets both a real date and a version at write time.
 
 ---
 
-## v0.9 — [DATE] — Manual Mode
+## v0.9 — 08/10/2026 — Manual Mode
 **Phase:** Unscoped additions (post-Quests/Campaigns)
 
 - **New: full manual entry mode.** Every category can now be created and
@@ -112,6 +73,38 @@ entry from here forward gets both a real date and a version at write time.
   fully real, complete faction entries in the shorter Step 4 layout, and
   any single faction can still be expanded later via its own
   "Regenerate" button.
+- **New: "Generate Procedurally" — a third, zero-AI-cost way to create
+  any entry**, across all 8 categories. Instant weighted-table +
+  Mad-Libs-template generation (no API call, no spend against your
+  generation cap — only the shared entries-per-world cap applies).
+  Items and Enemies still run through the real damage/derived-stat
+  formulas, not new math, so a rolled item or enemy is mechanically
+  identical in rigor to an AI-generated one. Factions and Logs are
+  included too but labeled experimental — both produce mechanically
+  correct, correctly-grounded entries (real relationships, real roster
+  references) with templated prose, a reasonable first draft rather
+  than a finished entry. **Follow-up pass: genre-aware.** Every table
+  now reads your world's own Genre field from setup and reskins
+  accordingly — a fantasy world rolls enchanted blades and
+  "Dragon's Roost"-style locations, a post-apocalyptic world rolls
+  scrap-fused scavenger gear, with zero cross-genre bleed. Every pool
+  also grew roughly 4-13x (e.g. items' weapon pool 45→190 rows,
+  enemies' name parts 15→99 each) to push repeat-entry odds down
+  substantially.
+- **New: streamlined "+ Create Entry" flow.** Each category page used
+  to show the AI form, "Create Manually", and "Generate Procedurally"
+  all at once. Collapsed into a single "+ Create Entry" button that
+  opens a clean three-way choice — Generate with AI / Enter Manually /
+  Roll Randomly — instead of a cluttered panel.
+- **New: account-level "AI Features" toggle** (Settings). Turns off
+  every AI-spend surface for your account — category-page AI
+  generation, Fill In, Regenerate, ✨ Help Me, and portrait Generate —
+  enforced server-side, not just a hidden button, so it's a real kill
+  switch. Manual Entry, Roll Randomly, and Upload Image all keep
+  working with AI off. (Wizard AI steps, Quest/Campaign AI generation,
+  and World Mood Board/Faction Banner art are explicitly out of scope
+  for this pass and still fire regardless of the toggle — flagged as a
+  known gap for a follow-up.)
 - **Fixed: blank optional fields no longer show unrelated placeholder
   copy.** The homepage and every category page had leftover flavor text
   baked into the base template from Chronicled's own single-tenant
@@ -120,7 +113,9 @@ entry from here forward gets both a real date and a version at write time.
   copy that doesn't fit the world you're building.
 - See: `session_addendum_manual_entry_mode_shipped.md`,
   `session_addendum_field_assist_shipped.md`,
-  `session_addendum_manual_wizard_path_shipped.md`
+  `session_addendum_manual_wizard_path_shipped.md`,
+  `session_addendum_procedural_generation_shipped.md`,
+  `session_addendum_create_entry_collapse_and_ai_toggle.md`
 
 ---
 

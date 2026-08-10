@@ -1,7 +1,6 @@
 -- 016_ai_toggle.sql
 --
--- PENDING -- Austin still needs to run this by hand against Supabase
--- (SQL editor or CLI), same as 015_field_assist_points.sql before it.
+-- Run against Supabase 08/10/2026, shipped as part of v0.9.
 --
 -- Account-level "AI features" kill switch (Settings > AI Features). See
 -- session_addendum_create_entry_collapse_and_ai_toggle.md for the full
