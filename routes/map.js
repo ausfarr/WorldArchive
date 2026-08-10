@@ -1,4 +1,5 @@
 const express = require("express");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { callClaude } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildMapBackdropSystemPrompt } = require("../prompts/mapBackdropPrompt");
@@ -133,12 +134,21 @@ router.get("/map/backdrop", async (req, res) => {
 // POST generate — deliberately NOT gated by enforceGenerationCap. This
 // mirrors the reasoning already documented in
 // middleware/enforceGenerationCap.js for wizard "generate for me" calls:
-// a bounded, one-time, auto-triggered setup cost per world (at most one
-// real image call per world, ever, since the Map page only calls this
-// when GET /map/backdrop says none exists yet), not the open-ended
-// per-action risk the cap exists to bound. Flagged for Austin to
-// override if he'd rather it count.
-router.post("/map/generate-backdrop", async (req, res) => {
+// a bounded, at-most-once setup cost per world (mapBackdropExists below
+// still short-circuits a repeat call), not the open-ended per-action
+// risk the cap exists to bound. Flagged for Austin to override if he'd
+// rather it count.
+//
+// IS gated by requireAiEnabled, same as every other AI-spend route --
+// this used to be the one AI call in the app that could fire with no
+// button press at all (archive/map.html auto-POSTed here on page load
+// whenever no backdrop existed yet), which meant an account with AI
+// Features turned off would still burn a real image generation just by
+// opening the Map tab. Fixed on the frontend (Generate Backdrop is now
+// a real button, gated client-side by the ai-action class) AND here
+// server-side, so there's no path left -- old cached page, direct
+// fetch(), whatever -- that bypasses the toggle.
+router.post("/map/generate-backdrop", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
 

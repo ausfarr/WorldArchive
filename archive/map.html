@@ -109,6 +109,19 @@
 
   <div class="map-wrap">
     <div id="map-status">Loading…</div>
+    <!-- No-backdrop empty state -- mirrors the battle-map empty state on
+         Location dossier pages (archive/js/render.js's renderDungeonMapZone):
+         nothing generates automatically. A backdrop only appears here after
+         an explicit click on Generate Backdrop, or via the always-available
+         Upload Custom Map control in the toolbar above. "Generate Backdrop"
+         carries the ai-action class, so css/style.css's body.ai-disabled
+         rule hides it for AI-off accounts -- Upload is unaffected, since it
+         doesn't spend an AI call. -->
+    <div id="map-backdrop-empty" class="battle-map-empty-note" style="display:none;">
+      <p>No map backdrop yet. Generate one with AI, or use Upload Custom Map above.</p>
+      <button id="generate-backdrop-btn" type="button" class="bm-btn ai-action">Generate Backdrop</button>
+      <span id="generate-backdrop-status" class="bm-status"></span>
+    </div>
     <div id="map-canvas" style="display:none;"></div>
     <button id="map-lock-btn" type="button" title="Lock the map to stop pins from being dragged" style="display:none; position:absolute; top:12px; right:12px; z-index:1000; width:36px; height:36px; background: var(--bg-panel); border: 1px solid var(--border-line); color: var(--ink); font-size:1rem; cursor:pointer; border-radius:4px;">🔓</button>
     <div class="map-legend" id="map-legend"></div>
@@ -196,23 +209,23 @@
     const statusEl = document.getElementById("map-status");
     const canvasEl = document.getElementById("map-canvas");
     const legendEl = document.getElementById("map-legend");
+    const emptyEl = document.getElementById("map-backdrop-empty");
     try {
-      // Step 1: does a shared base backdrop already exist? Only auto-
-      // generate if not -- this must never fire more than once per world
-      // in the normal case (see routes/map.js's own idempotency check as
-      // a second line of defense against a double-click/double-load
-      // race). The art itself is still deliberately atmosphere-only (see
-      // prompts/mapBackdropPrompt.js) -- it's never told where any
-      // faction's territory should go. What connects the two is a
-      // separate vision pass run right after generation (see
-      // routes/map.js's detectFactionAnchors): Claude looks at the
-      // finished image and finds real structures/regions that plausibly
-      // match each faction's own territory description, returned here as
-      // `anchors`. A faction with a genuine visual match gets pinned
-      // there; anything else falls back to the existing circular layout
-      // (see anchorOverrides below).
-      let backdropUrl = null;
-      let normalizedAnchors = {};
+      // Step 1: does a shared base backdrop already exist? Never auto-
+      // generate one -- same pattern as every other AI image in the app
+      // (portraits, battle maps): nothing spends an AI call without an
+      // explicit click. If none exists yet, show the empty state below
+      // and stop here; loadAndRenderMap() re-runs after Generate Backdrop
+      // or Upload Custom Map succeeds. The art itself is still
+      // deliberately atmosphere-only (see prompts/mapBackdropPrompt.js)
+      // -- it's never told where any faction's territory should go. What
+      // connects the two is a separate vision pass run right after
+      // generation (see routes/map.js's detectFactionAnchors): Claude
+      // looks at the finished image and finds real structures/regions
+      // that plausibly match each faction's own territory description,
+      // returned here as `anchors`. A faction with a genuine visual
+      // match gets pinned there; anything else falls back to the
+      // existing circular layout (see anchorOverrides below).
       const [statusRes, lockRes] = await Promise.all([
         authFetch("/api/map/backdrop"),
         authFetch("/api/map/lock")
@@ -225,19 +238,15 @@
       } catch (lockErr) {
         console.error("Loading map lock state failed, defaulting to unlocked:", lockErr);
       }
-      if (statusData.exists) {
-        backdropUrl = statusData.url;
-        normalizedAnchors = statusData.anchors || {};
-      } else {
-        statusEl.textContent = "Generating your world's map backdrop — this only happens once, give it a moment…";
-        showGenerationOverlay(["Painting the backdrop…", "Studying the layout…", "This only happens once…", "Almost there…"]);
-        const genRes = await authFetch("/api/map/generate-backdrop", { method: "POST" });
-        const genData = await genRes.json();
-        hideGenerationOverlay();
-        if (!genRes.ok) throw new Error(genData.error || "Backdrop generation failed");
-        backdropUrl = genData.url;
-        normalizedAnchors = genData.anchors || {};
+
+      if (!statusData.exists) {
+        statusEl.style.display = "none";
+        emptyEl.style.display = "block";
+        return;
       }
+      emptyEl.style.display = "none";
+      const backdropUrl = statusData.url;
+      const normalizedAnchors = statusData.anchors || {};
 
       // Step 2: locations + faction order/lookup
       const [locRes, facRes, factionLookup] = await Promise.all([
@@ -505,7 +514,29 @@
     renderAuthStatus();
     applyCategoryConfig();
     applySiteTheme();
+    applyAiEnabledGating(); // hides Generate Backdrop (.ai-action) for AI-off accounts; Upload stays visible
     loadAndRenderMap();
+  });
+
+  // Generate Backdrop -- explicit click only (see loadAndRenderMap's Step
+  // 1 comment). Hidden entirely for AI-off accounts via the ai-action
+  // class; also enforced server-side (routes/map.js's requireAiEnabled
+  // on POST /map/generate-backdrop) so there's no way around the toggle.
+  document.getElementById("generate-backdrop-btn").addEventListener("click", async () => {
+    const status = document.getElementById("generate-backdrop-status");
+    status.textContent = "";
+    showGenerationOverlay(["Painting the backdrop…", "Studying the layout…", "This only happens once…", "Almost there…"]);
+    try {
+      const res = await authFetch("/api/map/generate-backdrop", { method: "POST" });
+      const data = await res.json();
+      hideGenerationOverlay();
+      if (!res.ok) throw new Error(formatGenerationError(data, { asHtml: false }));
+      loadAndRenderMap();
+    } catch (err) {
+      hideGenerationOverlay();
+      console.error("Backdrop generation failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+    }
   });
 
   // Upload Custom Map -- replaces the AI-generated backdrop with the
