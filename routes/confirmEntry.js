@@ -17,6 +17,7 @@ const { checkEntryCap } = require("../middleware/enforceEntryCap");
 const { withLock } = require("../lib/asyncLock");
 const { getRuleset } = require("../lib/worldConfigRepo");
 const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
+const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
 
 const router = express.Router();
 
@@ -117,6 +118,7 @@ router.post("/confirm-entry", async (req, res) => {
       if (category === "enemies") {
         const ruleset = await getRuleset(worldId);
         if (ruleset === "5e") writer = save5eEnemyEntry;
+        else if (ruleset === "pf2e") writer = savePf2eEnemyEntry;
       }
       if (!writer) {
         return { status: 400, body: { error: `Unknown category '${category}'` } };

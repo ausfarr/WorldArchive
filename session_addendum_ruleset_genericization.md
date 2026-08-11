@@ -127,6 +127,41 @@ unreachable from this build's sandboxed network egress policy, so
 Paizo's own `/licenses` page — the authoritative source for what's
 actually released under ORC — could not be checked directly.
 
+## PF2e update — Homebrew tier unblocked, Import/Reflavor still blocked
+
+Revisited after the initial pass, at Austin's request, checking two
+specific sources (`legacy.aonprd.com`, a Paizo `PZOCUP...` PDF). Both
+confirmed dead ends (OGL 1.0a + wrong ruleset era; Community Use Policy,
+same problem as before) — but the research surfaced a real path: PF2e's
+own monster-design MATH (GM Core's "Building Creatures" level/tier budget
+tables) is game-balance numbers, not literary text, the same legal
+category as the 5e DMG's CR table this project already uses. Found and
+programmatically extracted (not hand-transcribed) a verified MIT-licensed
+encoding of these tables (`miki4920/pf2e-monster-maker`), built
+`lib/rulesets/pf2e/statFormulas.js`, `lib/rulesets/pf2e/enemyTemplate.js`
+(a real, level-centric, trait-tagged PF2e stat block — genuinely
+different layout from both Echoes' and 5e's), and
+`prompts/rulesets/pf2e/enemyContentPrompt.js` + a `routes/generateEnemy.js`
+pf2e branch — **Homebrew tier only**. `scripts/testPf2eStatFormulas.js`
+hard-asserts known table values, a full monotonicity sweep (catches the
+kind of transcription bug already found once in the 5e table), and
+`buildCreatureBudget()` assembly across every role template.
+
+This does not change the Import/Reflavor answer — those need actual
+monster CONTENT under a verified ORC license, a separate question from
+the math being safe. Requesting `mode !== 'homebrew'` on a pf2e world
+gets an explicit 501, not a silent fallback.
+
+**Verification is weaker here than the 5e table**: no second independent
+PF2e source could be reached to cross-check every value (this sandbox's
+network egress policy blocks essentially every TTRPG-adjacent domain
+tried, including Wikipedia and the Wayback Machine, leaving only GitHub's
+raw content host reachable). Confidence rests on internal consistency
+(monotonicity across all 26 levels × 4 tiers, zero anomalies) and general
+domain knowledge spot-checks, not independent cross-referencing. **Flagged
+prominently in the module's own header comment — Austin should verify a
+few rows against his own GM Core before trusting this for anything real.**
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules

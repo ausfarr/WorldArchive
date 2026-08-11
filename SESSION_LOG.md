@@ -153,6 +153,65 @@ screenshot only because this sandbox has no real Supabase project for
 `/api/wizard/ruleset-options` to hit, expected per the Pre-flight notes
 above).
 
+## Phase 2/9 addendum — PF2e revisited (post-Phase-3 checkpoint)
+
+Austin asked to look harder at two specific sources before accepting
+"blocked" for PF2e: `legacy.aonprd.com/indices/bestiary.html` and a
+Paizo-hosted "Monster and Hazard Creation" preview PDF
+(`PZOCUP024E_...pdf`). Both domains (`legacy.aonprd.com`,
+`downloads.paizo.com`) are blocked by this build's network egress
+policy, so neither could be fetched directly — same restriction that
+already blocked `paizo.com`. Confirmed via search instead:
+`legacy.aonprd.com` is the **OGL 1.0a**-licensed Pathfinder Reference
+Document (pre-Remaster PF1e/PF2e-beta era) — wrong license (OGL not
+ORC) AND wrong ruleset generation, so it's a dead end even setting aside
+that scraping Archives of Nethys directly was already ruled out. The
+`PZOCUP` product-code prefix is Paizo's own **Community Use Policy**
+naming convention (confirmed via search results describing Paizo's CUP
+program) — same licensing problem as `pf2ools-data`, not ORC.
+
+**However — found a real, usable path forward.** PF2e's actual monster-
+design MATH (the GM Core's "Building Creatures" budget tables: AC/HP/
+Perception/Saves/Strike-bonus/Strike-damage/Skills/Spellcasting by level
+and tier) is, like 5e's DMG CR table, a set of game-balance NUMBERS, not
+literary rules text — the same non-copyrightable-mechanics reasoning
+already used for the 5e CR table. Found `miki4920/pf2e-monster-maker`
+(MIT-licensed Foundry VTT module) with these tables fully encoded in
+`src/Values.ts`, extracted PROGRAMMATICALLY (not hand-transcribed, to
+avoid the kind of transcription error already caught once in the 5e
+table) into `lib/rulesets/pf2e/statFormulas.js`. This unblocks real,
+tested **Homebrew-tier** PF2e Bestiary generation — PF2e's own design
+method (pick a level + tier, read the table) is actually MORE
+deterministic than 5e's CR-estimation, since there's no "estimate and
+hope it's close" step.
+
+**This does NOT unblock Import/Reflavor** — those need actual monster
+CONTENT (names, stat blocks) under a verified ORC license, which is a
+completely separate question from the MATH being safe to use, and
+remains unresolved (see the Phase 2 entry above — still needs a direct
+answer from Paizo). `prompts/rulesets/pf2e/enemyContentPrompt.js` and
+`routes/generateEnemy.js`'s pf2e branch enforce this explicitly: a
+request for `mode !== 'homebrew'` gets a clear 501, not a silent
+fallback.
+
+**Verification caveat, stated honestly**: unlike the 5e CR table, a
+second independent PF2e source could not be reached to cross-check every
+value (paizo.com, aonprd.com, d20pfsrd.com, pf2calc.com, and even
+en.wikipedia.org and web.archive.org are all blocked by this sandbox's
+network egress policy — it appears to allow raw.githubusercontent.com/
+github.com for code hosting and not much else in the TTRPG space).
+Confidence rests on the table's internal consistency (a monotonicity
+sweep across all 26 levels × 4 tiers found zero anomalies — see
+`scripts/testPf2eStatFormulas.js`), the source project's specific claim
+to implement the real core-rules tables, and spot-checks against general
+PF2e knowledge. **Austin should verify a handful of rows against his own
+GM Core before trusting this for anything real** — flagged prominently
+in the module's own header comment, not just here.
+
+Starfinder or another alternative was NOT pursued, per the "if you find
+a real PF2e path, use it" instruction — a real, if partial (Homebrew-tier
+only), PF2e path was found.
+
 ## Phase 3 — Bestiary / Monsters (5e proof of concept)
 
 **CR table provenance**: `lib/rulesets/5e/statFormulas.js`'s

@@ -23,6 +23,15 @@ const { mapSrdMonsterMechanics } = require("../lib/rulesets/5e/srdMonsterMapper"
 const { buildHomebrewEnemySystemPrompt, buildReflavorEnemySystemPrompt } = require("../prompts/rulesets/5e/enemyContentPrompt");
 const { getSrdEntry, findNearestCrMonsters, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 
+// Multi-ruleset genericization, PF2e Bestiary (Homebrew tier only --
+// see lib/rulesets/pf2e/statFormulas.js and
+// prompts/rulesets/pf2e/enemyContentPrompt.js for why Import/Reflavor
+// aren't available yet).
+const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
+const { slugify: slugifyPf2e, buildEnemyBodyHtml: buildEnemyBodyHtmlPf2e } = require("../lib/rulesets/pf2e/enemyTemplate");
+const { buildCreatureBudget, ROLE_TEMPLATES } = require("../lib/rulesets/pf2e/statFormulas");
+const { buildHomebrewPf2eEnemySystemPrompt } = require("../prompts/rulesets/pf2e/enemyContentPrompt");
+
 const router = express.Router();
 
 router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
@@ -31,6 +40,9 @@ router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEn
 
     if (ruleset === "5e") {
       return await handle5eEnemyGenerate(req, res);
+    }
+    if (ruleset === "pf2e") {
+      return await handlePf2eEnemyGenerate(req, res);
     }
     if (ruleset !== "echoes") {
       // This category isn't built for this ruleset yet (pf2e/generic --
@@ -186,7 +198,7 @@ function looksLikeBroadResistanceOrImmunity(text) {
   return items.length >= 3 || /\ball\b/i.test(text);
 }
 
-async function findExisting5eEntry(worldId, fillExistingId) {
+async function findExistingEnemyEntry(worldId, fillExistingId) {
   const manifest = await listEntries(worldId, "enemies");
   const existingEntry = manifest.find((m) => m.id === fillExistingId);
   if (!existingEntry) return null;
@@ -203,7 +215,7 @@ async function handle5eEnemyGenerate(req, res) {
   let isFill = false;
   let isRegenerate = false;
   if (fillExistingId) {
-    existingEntry = await findExisting5eEntry(worldId, fillExistingId);
+    existingEntry = await findExistingEnemyEntry(worldId, fillExistingId);
     if (!existingEntry) {
       if (req.refundGeneration) await req.refundGeneration();
       return res.status(404).json({ error: `No existing enemy entry found with id '${fillExistingId}'` });
@@ -345,6 +357,85 @@ async function handle5eEnemyGenerate(req, res) {
   }
 
   await save5eEnemyEntry(worldId, enemy, null);
+  res.json({ preview: false, id: enemy.id, name: enemy.name, faction: enemy.faction, summary: enemy.designNotes });
+}
+
+// ============================================================
+// PF2e path -- Homebrew tier only (see this file's top comment). No
+// `mode` branching the way 5e has: every generation is a Homebrew
+// build, so a request that explicitly asks for import/reflavor gets a
+// clear 501 rather than silently treating it as Homebrew.
+// ============================================================
+async function handlePf2eEnemyGenerate(req, res) {
+  const worldId = req.worldId;
+  const { name, faction, fillExistingId, level, role } = req.body || {};
+  const requestedMode = req.body && req.body.mode;
+
+  if (requestedMode && requestedMode !== "homebrew") {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(501).json({ error: `Bestiary '${requestedMode}' mode isn't available for the pf2e ruleset yet -- only Homebrew generation is supported (no verified ORC-licensed monster dataset exists to import/reflavor from).` });
+  }
+
+  let existingEntry = null;
+  let isFill = false;
+  let isRegenerate = false;
+  if (fillExistingId) {
+    existingEntry = await findExistingEnemyEntry(worldId, fillExistingId);
+    if (!existingEntry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No existing enemy entry found with id '${fillExistingId}'` });
+    }
+    isFill = existingEntry.manifestEntry.locked;
+    isRegenerate = !isFill;
+  }
+
+  const targetLevel = level != null ? level : (existingEntry && existingEntry.raw && existingEntry.raw.level) || 1;
+  const targetRole = role || (existingEntry && existingEntry.raw && existingEntry.raw.role) || null;
+  const roleTemplate = (targetRole && ROLE_TEMPLATES[targetRole]) || {};
+  const budget = buildCreatureBudget(targetLevel, roleTemplate);
+
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
+  const rosterEntries = await listEntries(worldId, "enemies", { locked: false });
+  const rosterContext = rosterEntries.length
+    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}: Level ${(e.level != null ? e.level : "?")}`).join("\n")
+    : "No enemies archived yet -- any concept is available.";
+
+  const systemPrompt = buildHomebrewPf2eEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, faction, level: targetLevel, role: targetRole, budget });
+  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the creature now.", maxTokens: 2000 });
+
+  // Strike "bonus" is code-authoritative (from the pre-computed budget),
+  // never model-proposed -- same "model writes narrative, code writes
+  // math" split as every other ruleset here. The model only supplies
+  // name/traits/damage flavor text per Strike (see the prompt's schema).
+  const attachBonus = (strikes) => (strikes || []).map((s) => ({ ...s, bonus: budget.strikeBonus, description: s.damageDescription || s.description }));
+
+  const enemy = {
+    ...proposed,
+    id: fillExistingId || slugifyPf2e(proposed.name),
+    faction: faction || null,
+    level: budget.level,
+    rarity: proposed.rarity || "Common",
+    abilities: budget.abilities,
+    armorClass: budget.armorClass,
+    hitPoints: budget.hitPoints,
+    perception: budget.perception,
+    savingThrows: budget.savingThrows,
+    melee: attachBonus(proposed.melee),
+    ranged: attachBonus(proposed.ranged),
+    role: targetRole,
+    sourceMode: "homebrew"
+  };
+
+  if (existingEntry) enemy.id = existingEntry.manifestEntry.id;
+
+  if (isRegenerate) {
+    const newBodyHtmlPreview = buildEnemyBodyHtmlPf2e(enemy, null);
+    return res.json({ preview: true, mode: "regenerate", category: "enemies", id: enemy.id, name: enemy.name, entry: enemy, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+  }
+
+  await savePf2eEnemyEntry(worldId, enemy, null);
   res.json({ preview: false, id: enemy.id, name: enemy.name, faction: enemy.faction, summary: enemy.designNotes });
 }
 

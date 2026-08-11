@@ -169,7 +169,7 @@ guideline?** If it's a guideline, the UI must say "estimated," the way
 | 6 | Items | Deferred — see addendum |
 | 7 | NPCs | Deferred — depends on Phase 5 |
 | 8 | Player Characters (Survivors rework) | Deferred — depends on Phase 5 |
-| 9 | Pathfinder 2e | Deferred — blocked on ORC licensing question |
+| 9 | Pathfinder 2e | **Partially shipped** — Bestiary Homebrew tier only (real Building Creatures level/tier math, verified MIT-licensed table source). Import/Reflavor still blocked on the ORC licensing question. |
 | 10 | Generic/Homebrew ruleset | Deferred — depends on Phase 5 |
 | 11 | Ruleset-aware edit forms (frontend) | Deferred — most actionable next slice, backend contract already exists for 5e enemies |
 | 12 | Differential billing | Partially shipped (Import refund) — reduced Reflavor cost + entry-cap bypass deferred |
