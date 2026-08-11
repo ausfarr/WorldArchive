@@ -4,6 +4,7 @@ const { listLoreSections } = require("../lib/loreRepo");
 const { listEntries } = require("../lib/entriesRepo");
 const { generateFactionDeepLore } = require("../lib/factionDeepLore");
 const { saveFactionEntry } = require("../lib/fileWriter");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -54,7 +55,11 @@ router.get("/wizard/review", async (req, res) => {
 // factions, well within safe concurrent Claude API usage. Failures are
 // per-faction and non-fatal -- one bad generation shouldn't block the
 // rest.
-router.post("/wizard/upgrade-factions", async (req, res) => {
+//
+// requireAiEnabled gates this like every other AI-spend route -- this
+// was previously missing here (a real gap: this is a Claude call per
+// faction) despite every other wizard generate route having it added.
+router.post("/wizard/upgrade-factions", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
     const factionEntries = await listEntries(worldId, "factions");
