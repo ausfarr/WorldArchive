@@ -3238,6 +3238,12 @@ function initSiteSearch() {
   if (!input || !results) return;
   const prefix = getSitePrefix();
   let debounceTimer = null;
+  // Bumped on every runSearch call and stamped onto that call's response
+  // handling -- without this, a slower earlier response (e.g. the user
+  // paused just past the 250ms debounce, then kept typing) can resolve
+  // AFTER a faster later response and overwrite the results list with
+  // stale matches for a query that's no longer in the input box.
+  let searchRequestId = 0;
 
   function hideResults() {
     results.style.display = "none";
@@ -3266,13 +3272,16 @@ function initSiteSearch() {
       hideResults();
       return;
     }
+    const requestId = ++searchRequestId;
     try {
       const res = await authFetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Search failed.");
+      if (requestId !== searchRequestId) return; // a newer search has since started -- discard this stale response
       renderSearchResults(data.results || []);
     } catch (err) {
       console.error("Search failed:", err);
+      if (requestId !== searchRequestId) return;
       hideResults();
     }
   }
