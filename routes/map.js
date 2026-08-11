@@ -15,6 +15,7 @@ const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getStyleGuide } = require("../lib/worldFlavor");
 const { getLocationsMapLocked, setLocationsMapLocked } = require("../lib/worldConfigRepo");
 const { readFactionManifest, readFactionEntry } = require("../lib/roster");
+const { withLock } = require("../lib/asyncLock");
 
 const router = express.Router();
 
@@ -149,49 +150,59 @@ router.get("/map/backdrop", async (req, res) => {
 // server-side, so there's no path left -- old cached page, direct
 // fetch(), whatever -- that bypasses the toggle.
 router.post("/map/generate-backdrop", requireAiEnabled, async (req, res) => {
+  const worldId = req.worldId;
   try {
-    const worldId = req.worldId;
+    // The whole check-then-act section runs inside a per-world lock (see
+    // lib/asyncLock.js) -- two near-simultaneous requests (double-click,
+    // two tabs) would otherwise both see "doesn't exist yet" and both
+    // pay for a real Claude+Gemini call. The second caller's own
+    // exists-check, run again after it acquires the lock, now sees the
+    // first caller's freshly-saved backdrop and skips straight to
+    // returning it instead of spending anything.
+    const result = await withLock(`map-backdrop:${worldId}`, async () => {
+      // Don't regenerate if one already exists -- this endpoint is only
+      // ever meant to fire once per world via the auto-trigger on the Map
+      // page. (No "Regenerate Backdrop" UI yet; add one later if wanted,
+      // pointed at this same endpoint with a force flag.)
+      const alreadyExists = await mapBackdropExists(worldId);
+      if (alreadyExists) {
+        const anchors = await getMapAnchors(worldId);
+        return { url: getMapBackdropUrl(worldId), generated: false, anchors: anchors || {} };
+      }
 
-    // Don't regenerate if one already exists -- this endpoint is only
-    // ever meant to fire once per world via the auto-trigger on the Map
-    // page. (No "Regenerate Backdrop" UI yet; add one later if wanted,
-    // pointed at this same endpoint with a force flag.)
-    const alreadyExists = await mapBackdropExists(worldId);
-    if (alreadyExists) {
-      const anchors = await getMapAnchors(worldId);
-      return res.json({ url: getMapBackdropUrl(worldId), generated: false, anchors: anchors || {} });
-    }
+      const [settingContext, loreContext, styleGuide, factionSummaryText] = await Promise.all([
+        getSettingContext(worldId),
+        getLoreContext(worldId, {}),
+        getStyleGuide(worldId),
+        buildFactionSummaryText(worldId)
+      ]);
 
-    const [settingContext, loreContext, styleGuide, factionSummaryText] = await Promise.all([
-      getSettingContext(worldId),
-      getLoreContext(worldId, {}),
-      getStyleGuide(worldId),
-      buildFactionSummaryText(worldId)
-    ]);
+      const systemPrompt = buildMapBackdropSystemPrompt({ settingContext, loreContext, styleGuide, factionSummaryText });
+      const artPrompt = await callClaude({
+        systemPrompt,
+        userMessage: "Write the prompt now.",
+        maxTokens: 500
+      });
 
-    const systemPrompt = buildMapBackdropSystemPrompt({ settingContext, loreContext, styleGuide, factionSummaryText });
-    const artPrompt = await callClaude({
-      systemPrompt,
-      userMessage: "Write the prompt now.",
-      maxTokens: 500
+      const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim(), { imageSize: "2K" });
+      const url = await saveMapBackdrop(worldId, imageBuffer, mimeType);
+
+      // Non-fatal: the backdrop itself is already saved and usable even if
+      // this fails. Errors are logged and swallowed rather than thrown, so
+      // a vision-call hiccup doesn't turn a successful image generation
+      // into a failed response.
+      let anchors = {};
+      try {
+        anchors = await detectFactionAnchors(worldId, imageBuffer, mimeType);
+        await saveMapAnchors(worldId, anchors);
+      } catch (anchorErr) {
+        console.error("Faction anchor detection failed, continuing without it:", anchorErr.message);
+      }
+
+      return { url, generated: true, anchors };
     });
 
-    const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim(), { imageSize: "2K" });
-    const url = await saveMapBackdrop(worldId, imageBuffer, mimeType);
-
-    // Non-fatal: the backdrop itself is already saved and usable even if
-    // this fails. Errors are logged and swallowed rather than thrown, so
-    // a vision-call hiccup doesn't turn a successful image generation
-    // into a failed response.
-    let anchors = {};
-    try {
-      anchors = await detectFactionAnchors(worldId, imageBuffer, mimeType);
-      await saveMapAnchors(worldId, anchors);
-    } catch (anchorErr) {
-      console.error("Faction anchor detection failed, continuing without it:", anchorErr.message);
-    }
-
-    res.json({ url, generated: true, anchors });
+    res.json(result);
   } catch (err) {
     console.error("Map backdrop generation failed:", err);
     res.status(500).json({ error: err.message });
