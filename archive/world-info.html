@@ -219,6 +219,7 @@ async function init() {
   renderAuthStatus();
   applyCategoryConfig();
   applySiteTheme();
+  applyAiEnabledGating(); // hides the mood board's Generate Image button (.ai-action) for AI-off accounts; Upload stays visible
   try {
     const res = await authFetch("/api/wizard/review");
     if (!res.ok) throw new Error("Failed to load world info.");

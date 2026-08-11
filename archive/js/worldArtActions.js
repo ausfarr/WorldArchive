@@ -37,7 +37,11 @@ function renderMoodBoardPendingSlot(host) {
 
   const genBtn = document.createElement("button");
   genBtn.type = "button";
-  genBtn.className = "portrait-action-btn";
+  // ai-action -- matches portraitActions.js's own Generate Image button;
+  // css/style.css's body.ai-disabled rule hides it for AI-off accounts,
+  // leaving only Upload Image (see applyAiEnabledGating() call in
+  // world-info.html).
+  genBtn.className = "portrait-action-btn ai-action";
   genBtn.textContent = "Generate Image";
   genBtn.addEventListener("click", generateMoodBoard);
   actions.appendChild(genBtn);
@@ -134,7 +138,9 @@ function renderFactionBannerPendingSlot(host, factionId) {
 
   const genBtn = document.createElement("button");
   genBtn.type = "button";
-  genBtn.className = "portrait-action-btn";
+  // ai-action -- see renderMoodBoardPendingSlot's identical comment
+  // above. dossier.html already calls applyAiEnabledGating().
+  genBtn.className = "portrait-action-btn ai-action";
   genBtn.textContent = "Generate Image";
   genBtn.addEventListener("click", () => generateFactionBanner(factionId));
   actions.appendChild(genBtn);

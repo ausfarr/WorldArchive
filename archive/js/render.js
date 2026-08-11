@@ -2744,7 +2744,7 @@ function renderLocationBattleMap(entry) {
     host.innerHTML = `
       <h2>Battle Map</h2>
       <p class="battle-map-empty-note">Generate an AI battle map for this location to use at the table (the grid is baked into the generated image), or upload your own.</p>
-      <button id="generate-battle-map-btn" class="bm-btn">Generate Battle Map</button>
+      <button id="generate-battle-map-btn" class="bm-btn ai-action">Generate Battle Map</button>
       <label class="bm-btn bm-btn-secondary bm-upload-label">
         Upload Battle Map
         <input type="file" id="upload-battle-map-input" accept="image/*" style="display:none;">
@@ -2765,7 +2765,7 @@ function renderLocationBattleMap(entry) {
     <h2>Battle Map</h2>
     <div class="battle-map-toolbar">
       <span class="bm-hint">${bmHint}</span>
-      <button id="regenerate-battle-map-btn" class="bm-btn bm-btn-secondary">Regenerate Map</button>
+      <button id="regenerate-battle-map-btn" class="bm-btn bm-btn-secondary ai-action">Regenerate Map</button>
       <label class="bm-btn bm-btn-secondary bm-upload-label">
         Upload New Image
         <input type="file" id="upload-battle-map-input" accept="image/*" style="display:none;">
