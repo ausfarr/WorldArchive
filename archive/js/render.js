@@ -2815,12 +2815,7 @@ function wireUploadBattleMapInput(locationId) {
     const status = document.getElementById("battle-map-status");
     status.textContent = "Uploading…";
     try {
-      const imageBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error("Could not read the selected file."));
-        reader.readAsDataURL(file);
-      });
+      const imageBase64 = await readFileAsDataUrl(file);
       const res = await authFetch(`/api/entries/locations/${locationId}/dungeon-map/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
