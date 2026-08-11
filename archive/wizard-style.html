@@ -29,7 +29,7 @@
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Style Guide</h1>
       <div style="display:flex; gap:8px;">
         <button type="button" id="preview-theme" class="generate-btn" style="border-color: var(--ink-faint); color: var(--ink-dim);">Preview on this page</button>
-        <button type="button" id="generate-base" class="generate-btn">Generate for me</button>
+        <button type="button" id="generate-base" class="generate-btn ai-action">Generate for me</button>
       </div>
     </div>
     <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">This becomes the visual bible future art-prompt generation will draw from, so everything generated stays consistent.</p>
@@ -93,7 +93,7 @@
 
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
       <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1rem; color: var(--neon-cyan); margin: 0;">Faction Accent Colors</h2>
-      <button type="button" id="generate-accents" class="generate-btn">Generate for me</button>
+      <button type="button" id="generate-accents" class="generate-btn ai-action">Generate for me</button>
     </div>
     <p id="no-factions-note" style="color: var(--ink-faint); font-size: 0.85rem; display:none;">No factions saved yet (Step 4) — add some there first, then come back.</p>
     <div id="accents-list"></div>
@@ -114,7 +114,7 @@
       <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1rem; color: var(--neon-cyan); margin: 0 0 8px;">World Art</h2>
       <p style="color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 18px;">Generate a world mood board and a banner for each faction, using the style guide above. Optional — skip now and generate or upload these later from World Info or a faction's page.</p>
       <button type="button" id="skip-art" class="secondary-btn" style="margin-right: 12px;">Skip for now</button>
-      <button type="button" id="generate-art" class="primary-btn">Generate World Art</button>
+      <button type="button" id="generate-art" class="primary-btn ai-action">Generate World Art</button>
     </div>
   </div>
 </div>
@@ -170,9 +170,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.15"></script>
-<script src="/js/wizardSession.js?v=v0.15"></script>
-<script src="js/render.js?v=v0.15"></script>
+<script src="/js/auth.js?v=v0.16"></script>
+<script src="/js/wizardSession.js?v=v0.16"></script>
+<script src="js/render.js?v=v0.16"></script>
 <script>
 function previewThemeOnThisPage() {
   const hex = /^#[0-9a-fA-F]{6}$/;
@@ -419,6 +419,7 @@ async function init() {
   await requireAuth();
   renderAuthStatus();
   await ensureWizardSession();
+  applyAiEnabledGating(); // hides all three Generate buttons (.ai-action) for AI-off accounts -- Preview/Skip/manual fields stay available
 
   let styleGuide = null;
   try {

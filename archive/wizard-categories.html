@@ -27,7 +27,7 @@
   <div class="sheet" style="padding: 32px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Category Configuration</h1>
-      <button type="button" id="generate-all" class="generate-btn">Generate for me</button>
+      <button type="button" id="generate-all" class="generate-btn ai-action">Generate for me</button>
     </div>
     <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">The 7 content categories themselves are fixed — this just relabels them in your world's own vocabulary and lets you turn any off you don't need. "Generate for me" also names the archive site itself.</p>
 
@@ -98,9 +98,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.15"></script>
-<script src="/js/wizardSession.js?v=v0.15"></script>
-<script src="js/render.js?v=v0.15"></script>
+<script src="/js/auth.js?v=v0.16"></script>
+<script src="/js/wizardSession.js?v=v0.16"></script>
+<script src="js/render.js?v=v0.16"></script>
 <script>
 const CATEGORIES = [
   { key: "npcs", canonName: "npcs" },
@@ -215,6 +215,7 @@ async function init() {
   await requireAuth();
   renderAuthStatus();
   await ensureWizardSession();
+  applyAiEnabledGating(); // hides "Generate for me" (.ai-action) for AI-off accounts -- every field stays manually fillable
   try {
     const res = await authFetch("/api/wizard/category-config");
     const { categoryConfig: loaded } = await res.json();

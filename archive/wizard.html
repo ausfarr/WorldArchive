@@ -63,7 +63,7 @@
       <div class="field-group">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <label class="field-label" style="margin-bottom:0;">Core Tension</label>
-          <button type="button" class="generate-btn" data-target="all">Generate for me</button>
+          <button type="button" class="generate-btn ai-action" data-target="all">Generate for me</button>
         </div>
         <textarea id="core-tension" class="field-input" rows="2" placeholder="The standing conflict or pressure that drives this world's stories."></textarea>
       </div>
@@ -136,9 +136,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.15"></script>
-<script src="/js/wizardSession.js?v=v0.15"></script>
-<script src="js/render.js?v=v0.15"></script>
+<script src="/js/auth.js?v=v0.16"></script>
+<script src="/js/wizardSession.js?v=v0.16"></script>
+<script src="js/render.js?v=v0.16"></script>
 <script>
 const GENRE_OPTIONS = ["Fantasy", "Sci-Fi", "Post-Apocalyptic", "Horror", "Urban Fantasy", "Historical", "Cyberpunk", "Steampunk", "Grimdark", "Hopepunk", "Noir", "Mythic"];
 const SCALE_OPTIONS = ["Single City/Settlement", "Regional", "Continental", "Global", "Multiverse"];
@@ -173,6 +173,7 @@ async function init() {
   await requireAuth();
   renderAuthStatus();
   await ensureWizardSession();
+  applyAiEnabledGating(); // hides "Generate for me" (.ai-action) for AI-off accounts -- every field here stays manually fillable
 
   populateChecklist(document.getElementById("genre-checklist"), GENRE_OPTIONS);
   populateSelect(document.getElementById("scale"), SCALE_OPTIONS);
