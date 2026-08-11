@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Licenses — Chronicled</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+  </div>
+</header>
+
+<div class="wrap" style="max-width: 720px; padding-top: 40px; padding-bottom: 80px;">
+
+  <p class="crumb" style="padding: 0 0 18px;">Content Licenses</p>
+
+  <div class="sheet" style="padding: 32px;">
+    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;">Content Licenses &amp; Attribution</h1>
+    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 28px;">
+      Worlds built on the 5th Edition or Pathfinder 2nd Edition rulesets can import real, official
+      content alongside anything Chronicled generates. That canonical content comes from
+      free, openly-licensed reference material — never from copyrighted books, paid PDFs, or
+      third-party aggregator sites. This page carries the attribution those licenses require.
+    </p>
+
+    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.05rem; margin: 32px 0 10px;">D&amp;D 5th Edition</h2>
+    <p style="font-size: 0.9rem; color: var(--ink-dim); margin: 0 0 12px;">
+      5th Edition monster content available for import in Chronicled is sourced from the free
+      <strong>System Reference Document 5.1 (“SRD 5.1”)</strong>, released by Wizards of the Coast LLC
+      under the Creative Commons Attribution 4.0 International License (“CC-BY-4.0”), via a
+      structured-data conversion by <a href="https://www.tabyltop.com" target="_blank" rel="noopener">Tabyltop</a>.
+    </p>
+    <blockquote style="border-left: 2px solid var(--border-line); padding: 4px 0 4px 16px; margin: 0 0 12px; font-size: 0.85rem; color: var(--ink-dim); font-style: italic;">
+      This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of
+      the Coast LLC and available at
+      <a href="https://dnd.wizards.com/resources/systems-reference-document" target="_blank" rel="noopener">https://dnd.wizards.com/resources/systems-reference-document</a>.
+      The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at
+      <a href="https://creativecommons.org/licenses/by/4.0/legalcode" target="_blank" rel="noopener">https://creativecommons.org/licenses/by/4.0/legalcode</a>.
+      Conversion of this document from the original PDF to other formats was performed by the team at
+      <a href="https://www.tabyltop.com" target="_blank" rel="noopener">Tabyltop</a>.
+    </blockquote>
+    <p style="font-size: 0.82rem; color: var(--ink-faint); margin: 0 0 12px;">
+      Spells, classes, and non-monster items are not yet available to import in the 5e ruleset — only
+      Homebrew (AI-generated) content is available for those categories today. Chronicled is not
+      endorsed by, associated with, or sponsored by Wizards of the Coast.
+    </p>
+
+    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.05rem; margin: 32px 0 10px;">Pathfinder 2nd Edition</h2>
+    <p style="font-size: 0.9rem; color: var(--ink-dim); margin: 0 0 12px;">
+      A canonical import library for Pathfinder 2e is not available yet. Chronicled only ships
+      officially-licensed content it can verify and attribute correctly — a source confirmed to be
+      released under Paizo's <a href="https://paizo.com/licenses" target="_blank" rel="noopener">ORC license</a>
+      hasn't been identified yet (see the project's development log for what was checked and ruled out).
+      Pathfinder 2e worlds can still generate original Homebrew content today; Chronicled is not
+      endorsed by, associated with, or sponsored by Paizo Inc.
+    </p>
+
+    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.05rem; margin: 32px 0 10px;">How this shows up in the Archive</h2>
+    <p style="font-size: 0.9rem; color: var(--ink-dim); margin: 0 0 12px;">
+      Any entry imported from official content is tagged with its source and license note directly on
+      its dossier page. Reflavored entries (AI-rewritten narrative over unchanged official mechanics)
+      and Homebrew entries (fully AI-generated, validated by this ruleset's real formulas) carry their
+      own tagging too, so it's always clear where an entry's mechanics came from.
+    </p>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">CHRONICLED<span class="app-version">v0.7 · beta</span></div>
+</footer>
+
+<script src="/config.js"></script>
+<script src="/version.js"></script>
+<script>
+  if (window.APP_VERSION) {
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = window.APP_VERSION + ' · beta';
+    });
+  }
+</script>
+
+</body>
+</html>
