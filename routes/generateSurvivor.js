@@ -12,10 +12,11 @@ const { slugify, buildSurvivorBodyHtml } = require("../lib/survivorTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent, getSkillSystem, formatFieldSkillsForPrompt, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { requireCategoryAvailable } = require("../middleware/requireCategoryAvailable");
 
 const router = express.Router();
 
-router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
+router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("survivors"), async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, className, faction, fillExistingId, importText } = req.body || {};

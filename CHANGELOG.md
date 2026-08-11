@@ -21,6 +21,18 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Multi-ruleset genericization (Phases 1–3 of 14 shipped)** — worlds can
+  now pick a `ruleset` at creation time (`echoes` | `5e` | `pf2e` |
+  `generic`), permanent once setup completes; Echoes stays fully intact
+  and admin-only. Shipped: schema + `lib/rulesets/index.js` registry, a
+  canonical 5e SRD content library (201 real monsters, verified
+  CC-BY-4.0), `archive/licenses.html` attribution, and a full 5e Bestiary
+  proof-of-concept — real DMG Challenge Rating math, three-tier
+  generation (Import / Reflavor / Homebrew). Pathfinder 2e is blocked on
+  an open licensing question (see addendum); Spells/Classes/Items/NPCs/
+  Player Characters/Generic ruleset/ruleset-aware UI/differential billing
+  are scoped but explicitly deferred, not built. See:
+  `session_addendum_ruleset_genericization.md`
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`
 - **Future roadmap ideas (unranked, no version yet):** table/dungeon

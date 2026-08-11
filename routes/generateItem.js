@@ -14,6 +14,7 @@ const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent, getSkillSystem, formatWeaponSkillsForPrompt, resolveWeaponSkillLabel } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
 const { createNewItem } = require("../lib/campaignEntryGenerators");
+const { requireCategoryAvailable } = require("../middleware/requireCategoryAvailable");
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ function parseSubtitleForItem(subtitle) {
   return { rarity, category };
 }
 
-router.post("/generate-item", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
+router.post("/generate-item", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("items"), async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, category, rarity, fillExistingId } = req.body || {};

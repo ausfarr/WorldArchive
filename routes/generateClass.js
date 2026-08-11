@@ -12,10 +12,11 @@ const { slugify, buildClassBodyHtml } = require("../lib/classTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getFactionAccent, getSkillSystem, formatFieldSkillsForPrompt, formatWeaponSkillsForPrompt } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { requireCategoryAvailable } = require("../middleware/requireCategoryAvailable");
 
 const router = express.Router();
 
-router.post("/generate-class", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
+router.post("/generate-class", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("classes"), async (req, res) => {
   try {
     const worldId = req.worldId;
     let { name, fillExistingId } = req.body || {};
