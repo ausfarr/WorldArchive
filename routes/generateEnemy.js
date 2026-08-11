@@ -46,7 +46,12 @@ router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEn
       }
       name = existingEntry.name;
       faction = existingEntry.faction || faction;
-      tier = existingEntry.tier || (existingEntry.subtitle || "").split("—")[0].trim() || tier;
+      // existingEntry.tier is already a real, structured field (see
+      // fileWriter.js's saveEnemyEntry) reliably present via raw_json
+      // spread -- dropped the subtitle-parsing fallback this used to
+      // fall through to, since it depended on subtitle formatting never
+      // changing and never actually fires for a real entry.
+      tier = existingEntry.tier || tier;
     }
 
     const rosterContext = await buildEnemyRosterContext(worldId);
