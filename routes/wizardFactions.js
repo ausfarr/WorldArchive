@@ -140,6 +140,12 @@ router.post("/wizard/save-factions", async (req, res) => {
     if (factions.length > MAX_FACTIONS) {
       return res.status(400).json({ error: `A world can have at most ${MAX_FACTIONS} factions.` });
     }
+    const emptyNameIndexes = factions
+      .map((f, i) => (!f.name || !f.name.trim() ? i + 1 : null))
+      .filter((i) => i !== null);
+    if (emptyNameIndexes.length > 0) {
+      return res.status(400).json({ error: `Every faction needs a name (slot${emptyNameIndexes.length > 1 ? "s" : ""} ${emptyNameIndexes.join(", ")} ${emptyNameIndexes.length > 1 ? "are" : "is"} blank).` });
+    }
     const withIds = factions.map((f) => ({ ...f, id: f.id || slugify(f.name) }));
     const seenIds = new Set();
     withIds.forEach((f) => {
