@@ -350,3 +350,48 @@ enemy generation UI is still Echoes-shaped. The backend API contract
 real and tested at the function level; wiring a ruleset-aware frontend is
 folded into Phase 11's scope (Ruleset-Aware Edit Forms / UI), not
 silently dropped.
+
+(Note on ordering: the "Phase 2/9 addendum" and "Phase 4" sections above
+this one were written after this Phase 3 section but got inserted before
+it in the file -- this log is the raw chronological trail, kept as-is
+rather than reordered; the polished, correctly-ordered account is
+`session_addendum_ruleset_genericization.md`.)
+
+## Phase 5 — Classes (5e, Homebrew tier) — "biggest single rework"
+
+Real 1-20 leveling math, cross-referenced against an independent source
+(5e-bits/5e-database's per-level class JSON -- used ONLY to verify
+mechanical numbers, not as a content/licensing source; that project's
+own content is OGL 1.0a per Phase 2's research, so nothing from it is
+shipped, only cross-checked): proficiency bonus by level, Ability Score
+Improvement levels (4/8/12/16/19 base pattern -- Fighter/Rogue's known
+extra ASIs at 6/14 and 10 respectively are NOT modeled, flagged
+explicitly in `classFormulas.js`'s header rather than silently wrong),
+per-class subclass-unlock level (verified: Cleric/Sorcerer/Warlock at
+1st, Druid/Wizard at 2nd, the other 7 core classes at 3rd), and full
+spell slot progressions for every caster type -- Full (Bard/Cleric/
+Druid/Sorcerer/Wizard), Half (Paladin/Ranger, starts level 2), Third
+(computed via the real floor(level/3) multiclassing rule into the
+full-caster table, not a separately hardcoded table), and Warlock's
+structurally different Pact Magic (few slots, always highest level,
+short-rest recharge). `scripts/test5eClassFormulas.js` hard-asserts
+every one of these against the cross-referenced values.
+
+**Design choice**: the model proposes feature names/descriptions at
+~6-10 meaningful milestone levels (matching how real published classes
+work -- not every level has a unique feature), not a mechanically
+exhaustive level-by-level writeup. Code inserts ASI levels and the
+subclass-unlock level automatically; the model never controls either.
+Subclass-unlock level is resolved by checking whether the proposed
+class's name matches one of the 12 core class names (e.g. a homebrew
+class called "Void Warlock" gets level 1, matching real Warlock);
+anything that doesn't match falls back to level 3, the shared default
+across 7 of the 12 core classes.
+
+**Scope explicitly NOT covered in this phase**: PF2e Classes (a large
+body of work of its own, and has no canonical class data available
+regardless, per the still-open ORC/CUP licensing question) and the
+Generic ruleset's world-configurable leveling system (depends on wizard
+UI work not undertaken here). Both are real, separate follow-up phases,
+not folded into this one. Frontend: same as Bestiary/Spells, the
+Classes generation UI stays Echoes-shaped (1-99 tree) -- Phase 11 scope.

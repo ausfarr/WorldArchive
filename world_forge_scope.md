@@ -183,7 +183,7 @@ guideline?** If it's a guideline, the UI must say "estimated," the way
 | 2 | SRD data ingestion (5e monsters; PF2e blocked) | **Shipped** (5e monsters only) |
 | 3 | Bestiary / Monsters (5e proof of concept) | **Shipped** |
 | 4 | Spells | **Partially shipped** — 5e Homebrew tier (backend + cantrip-scaling formula, tested). No canonical import data found (same CC-BY-4.0 structured-data gap as Classes/Items). Frontend nav/index page deferred to Phase 11. |
-| 5 | Classes (biggest single rework) | Deferred — see addendum |
+| 5 | Classes (biggest single rework) | **Partially shipped** — 5e Homebrew tier: real 1-20 leveling, proficiency bonus, ASI levels, per-class subclass-unlock level, full/half/third/warlock spell slot tables, all cross-referenced and tested. PF2e Classes and the Generic ruleset's configurable leveling deferred. |
 | 6 | Items | Deferred — see addendum |
 | 7 | NPCs | Deferred — depends on Phase 5 |
 | 8 | Player Characters (Survivors rework) | Deferred — depends on Phase 5 |

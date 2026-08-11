@@ -162,6 +162,48 @@ domain knowledge spot-checks, not independent cross-referencing. **Flagged
 prominently in the module's own header comment — Austin should verify a
 few rows against his own GM Core before trusting this for anything real.**
 
+## Phase 4/5 update — Spells and Classes (5e, Homebrew tier)
+
+Continued past the original Phases 1-3 stopping point at Austin's
+request ("go ahead and start building out the rest... just as detailed,
+not rushed"). Two more categories shipped with the same rigor:
+
+**Spells** (`lib/rulesets/5e/spellFormulas.js`/`spellTemplate.js`,
+`prompts/rulesets/5e/spellContentPrompt.js`, `routes/generateSpell.js`):
+a brand-new category with no Echoes equivalent at all. This surfaced and
+fixed a real bug in `middleware/requireCategoryAvailable.js` — its
+`ruleset === 'echoes'` bypass was only ever safe because every
+previously-gated category had a real Echoes registry entry; it broke for
+a category Echoes has never had. Fixed by relying purely on
+`hasCategory()`. The one genuinely formulaic piece of 5e spell design —
+cantrip damage scaling at character levels 5/11/17 — is implemented and
+verified against two real SRD cantrips (Fire Bolt, Chill Touch); no
+"spell power budget" formula was invented, because the source material
+doesn't have one. Frontend nav/index page deliberately not built (same
+reasoning as Bestiary — `CATEGORY_LABELS` drives homepage behavior for
+every world regardless of ruleset, and touching it without a real page
+behind it risked breaking existing worlds).
+
+**Classes** (`lib/rulesets/5e/classFormulas.js`/`classTemplate.js`/
+`classRepo.js`, `prompts/rulesets/5e/classContentPrompt.js`,
+`routes/generateClass.js`): real 1-20 leveling — proficiency bonus by
+level, Ability Score Improvement levels, the correct subclass-unlock
+level per class (Cleric/Sorcerer/Warlock 1st, Druid/Wizard 2nd, the rest
+3rd — verified), and full spell slot tables for every caster type
+including Warlock's structurally different Pact Magic. All cross-checked
+against an independent source (5e-bits/5e-database's per-level JSON,
+used only to verify NUMBERS — that project's actual content stays
+excluded on the same OGL-1.0a grounds established in Phase 2). One
+documented simplification: the base Ability-Score-Improvement pattern
+(4/8/12/16/19) is implemented; Fighter's and Rogue's extra ASIs (6/14
+and 10 respectively) are not modeled, flagged explicitly rather than
+silently dropped.
+
+Both categories: Homebrew tier only (no canonical CC-BY-4.0 data
+available for either), PF2e and Generic-ruleset variants explicitly
+deferred (not attempted), frontend UI deferred to Phase 11 alongside
+Bestiary's.
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules
