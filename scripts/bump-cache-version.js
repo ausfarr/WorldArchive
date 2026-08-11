@@ -1,19 +1,40 @@
 // scripts/bump-cache-version.js
 //
 // Bumps lib/version.js's APP_VERSION AND every `?v=...` cache-busting
-// query param on <script src="...render.js|mapLayout.js|portraitActions.js">
-// tags across archive/*.html and archive/*/*.html, in one command --
-// added this session after a real bug where a stale cached render.js
-// kept serving after deploy with no way for a browser to know a new
-// version existed (see lib/version.js's comment).
+// query param on <script src="...(one of CACHE_BUSTED_SCRIPTS)"> tags
+// across archive/*.html and archive/*/*.html, in one command -- added
+// this session after a real bug where a stale cached render.js kept
+// serving after deploy with no way for a browser to know a new version
+// existed (see lib/version.js's comment).
 //
 // Usage:
 //   node scripts/bump-cache-version.js v0.10
 //
-// Run this any time you ship a change to render.js, mapLayout.js, or
-// portraitActions.js -- if you forget, the deploy will still succeed,
-// it'll just be invisible to anyone with a warm browser cache until
-// they clear it or the browser's own heuristics eventually expire it.
+// Run this any time you ship a change to any file in CACHE_BUSTED_SCRIPTS
+// -- if you forget, the deploy will still succeed, it'll just be
+// invisible to anyone with a warm browser cache until they clear it or
+// the browser's own heuristics eventually expire it.
+//
+// CACHE_BUSTED_SCRIPTS is the single list this script matches against --
+// add a new archive/js/*.js file here the day it's created, not the day
+// someone notices it never got cache-busted. worldArtActions.js,
+// campaignArc.js, and campaignModule.js were all missing from the
+// original hardcoded (render|mapLayout|portraitActions) regex alternation
+// -- worldArtActions.js silently drifted to a stale ?v= no later run of
+// this script could ever fix (the regex didn't match its filename at
+// all, so the "already has a ?v=" replace path never triggered), and
+// campaignArc.js/campaignModule.js had no ?v= param whatsoever.
+const CACHE_BUSTED_SCRIPTS = [
+  "render",
+  "mapLayout",
+  "portraitActions",
+  "worldArtActions",
+  "campaignArc",
+  "campaignModule",
+  "auth",
+  "wizardSession",
+  "themeBootstrap"
+];
 
 const fs = require("fs");
 const path = require("path");
@@ -66,7 +87,8 @@ function findHtmlFiles() {
 
 const htmlFiles = findHtmlFiles();
 
-const scriptSrcPattern = /src="([^"]*(?:render|mapLayout|portraitActions)\.js)(?:\?v=[^"]*)?"/g;
+const scriptNameAlternation = CACHE_BUSTED_SCRIPTS.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+const scriptSrcPattern = new RegExp(`src="([^"]*(?:${scriptNameAlternation})\\.js)(?:\\?v=[^"]*)?"`, "g");
 let filesChanged = 0;
 let tagsChanged = 0;
 

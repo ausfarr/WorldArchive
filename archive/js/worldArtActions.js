@@ -85,7 +85,7 @@ async function uploadMoodBoard(inputEl) {
   if (statusEl) statusEl.textContent = "Uploading…";
 
   try {
-    const imageBase64 = await readFileAsDataUrlForArt(file);
+    const imageBase64 = await readFileAsDataUrl(file);
     const res = await authFetch("/api/world-art/upload-mood-board", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -182,7 +182,7 @@ async function uploadFactionBanner(factionId, inputEl) {
   if (statusEl) statusEl.textContent = "Uploading…";
 
   try {
-    const imageBase64 = await readFileAsDataUrlForArt(file);
+    const imageBase64 = await readFileAsDataUrl(file);
     const res = await authFetch(`/api/world-art/upload-faction-banner/${encodeURIComponent(factionId)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -208,15 +208,3 @@ function replaceFactionBannerSlotWithImage(url) {
   slot.replaceWith(img);
 }
 
-// Shared by both slot types above. Named distinctly from
-// portraitActions.js's own readFileAsDataUrl() since both scripts can be
-// loaded on the same page (dossier.html) and are otherwise
-// near-identical top-level functions.
-function readFileAsDataUrlForArt(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Could not read the selected file."));
-    reader.readAsDataURL(file);
-  });
-}

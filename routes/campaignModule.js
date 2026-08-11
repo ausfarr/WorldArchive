@@ -29,6 +29,8 @@
 
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { buildCampaignModuleSystemPrompt } = require("../prompts/campaignModulePrompt");
 const { buildRosterContext, buildLocationRosterContext, buildItemRosterContext, buildLogRosterContext, buildEnemyRosterContext } = require("../lib/roster");
@@ -43,6 +45,7 @@ const {
   updateCampaignModule,
   deleteCampaignModule
 } = require("../lib/campaignModuleRepo");
+const { removeQuestFromAllCampaignArcs } = require("../lib/campaignArcRepo");
 
 const router = express.Router();
 
@@ -75,7 +78,7 @@ router.get("/campaign-modules/:id", async (req, res) => {
 // archive (a hallucinated/stale id falls back to unmatched rather than
 // being trusted blind) and hydrated with its display name/subtitle for
 // the preview UI, since the model only returns bare ids.
-router.post("/campaign-modules/generate", enforceGenerationCap, async (req, res) => {
+router.post("/campaign-modules/generate", requireAiEnabled, enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { concept } = req.body || {};
@@ -117,24 +120,30 @@ router.post("/campaign-modules/generate", enforceGenerationCap, async (req, res)
     });
   } catch (err) {
     console.error("Quest generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST generate-slot-entry -- cap-gated. Fills ONE unmatched slot with a
-// brand-new, REAL, immediately-saved entry in its normal category (see
-// lib/campaignEntryGenerators.js's header comment for why it's saved for
-// real even before the Campaign Module itself is confirmed -- if the DM
-// ends up discarding the module preview, the new entry isn't wasted,
-// it's just sitting in its category tab like anything else generated
-// standalone). Returns the same shape as a "matched" preview entry so
-// the frontend can splice it directly into its local preview state.
-router.post("/campaign-modules/generate-slot-entry", enforceGenerationCap, async (req, res) => {
+// POST generate-slot-entry -- cap-gated on BOTH the generation cap and
+// the entry cap (see enforceEntryCapOnGenerate -- this creates a real
+// new entry same as any /generate-X route does, so it must count against
+// a free/trial world's entry limit the same way). Fills ONE unmatched
+// slot with a brand-new, REAL, immediately-saved entry in its normal
+// category (see lib/campaignEntryGenerators.js's header comment for why
+// it's saved for real even before the Campaign Module itself is
+// confirmed -- if the DM ends up discarding the module preview, the new
+// entry isn't wasted, it's just sitting in its category tab like
+// anything else generated standalone). Returns the same shape as a
+// "matched" preview entry so the frontend can splice it directly into
+// its local preview state.
+router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { category, concept } = req.body || {};
     const generator = SLOT_GENERATORS[category];
     if (!generator) {
+      if (req.refundGeneration) await req.refundGeneration();
       return res.status(400).json({ error: `Unknown category '${category}' for a Quest slot.` });
     }
     const result = await generator(worldId, { campaignContext: concept });
@@ -147,6 +156,7 @@ router.post("/campaign-modules/generate-slot-entry", enforceGenerationCap, async
     });
   } catch (err) {
     console.error("Quest slot-entry generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });
@@ -202,6 +212,15 @@ router.patch("/campaign-modules/:id", async (req, res) => {
 router.delete("/campaign-modules/:id", async (req, res) => {
   try {
     await deleteCampaignModule(req.worldId, req.params.id);
+    // Cleanup of OTHER records referencing this Quest, not the delete
+    // itself -- best-effort, same reasoning as routes/entries.js's
+    // delete handler. Without this, campaign_arcs.quest_ids kept the
+    // dead id forever.
+    try {
+      await removeQuestFromAllCampaignArcs(req.worldId, req.params.id);
+    } catch (cleanupErr) {
+      console.error(`Removing Quest ${req.params.id} from Campaigns after delete failed:`, cleanupErr);
+    }
     res.json({ success: true });
   } catch (err) {
     console.error("Deleting campaign module failed:", err);

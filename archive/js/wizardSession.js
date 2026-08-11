@@ -23,11 +23,24 @@ const WIZARD_SESSION_KEY = "worldforge_wizard_session_active";
 // progress server-side first -- the page's normal "load saved data" calls
 // that follow will then naturally return empty, so no separate
 // render-blank code path is needed anywhere else.
+//
+// The server refuses this auto-reset (409) if the world's setup is
+// already complete -- a stale bookmark, closed-and-reopened tab, or typed
+// URL landing on any wizard-*.html page for an already-live world must
+// never silently erase it (sessionStorage doesn't survive a closed tab,
+// so "new session" alone isn't a safe signal here). On that 409 we bounce
+// to the archive homepage instead of proceeding into a wizard page that
+// would otherwise render against wiped-then-reloaded-anyway data.
 async function ensureWizardSession() {
   const isContinuing = sessionStorage.getItem(WIZARD_SESSION_KEY) === "1";
   if (!isContinuing) {
     try {
-      await authFetch("/api/wizard/reset", { method: "POST" });
+      const res = await authFetch("/api/wizard/reset", { method: "POST" });
+      if (res.status === 409) {
+        sessionStorage.setItem(WIZARD_SESSION_KEY, "1");
+        window.location.href = "index.html";
+        return false;
+      }
     } catch (err) {
       console.error("Wizard auto-reset failed:", err);
     }
@@ -46,7 +59,11 @@ async function startOverWizard() {
   );
   if (!confirmed) return;
   try {
-    await authFetch("/api/wizard/reset", { method: "POST" });
+    await authFetch("/api/wizard/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ force: true })
+    });
   } catch (err) {
     console.error("Start Over failed:", err);
   }

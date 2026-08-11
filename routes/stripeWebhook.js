@@ -20,7 +20,7 @@
 
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
-const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, getSubscriptionByStripeId, addCredits } = require("../lib/billingRepo");
+const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, getSubscriptionByStripeId, addCredits, claimWebhookEvent, releaseWebhookEventClaim } = require("../lib/billingRepo");
 const { addPurchasedEntries, POINTS_PER_GENERATION } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
@@ -162,6 +162,23 @@ router.post("/", async (req, res) => {
     return res.status(400).send(`Webhook signature verification failed.`);
   }
 
+  // Claim event.id before doing anything else -- Stripe redelivers a
+  // webhook whenever it doesn't get a fast 2xx, and checkout.session.
+  // completed / invoice.payment_succeeded double-firing double-credits an
+  // account or resets used_this_cycle for a free extra month. A failed
+  // claim (already processed, or a concurrent duplicate delivery won the
+  // race) is not an error -- just acknowledge and stop.
+  let claimed = false;
+  try {
+    claimed = await claimWebhookEvent(event.id, event.type);
+  } catch (err) {
+    console.error(`Stripe webhook idempotency claim failed for event ${event.id}:`, err);
+    return res.status(500).json({ error: "Webhook idempotency check failed." });
+  }
+  if (!claimed) {
+    return res.json({ received: true, duplicate: true });
+  }
+
   try {
     switch (event.type) {
       case "checkout.session.completed":
@@ -187,8 +204,16 @@ router.post("/", async (req, res) => {
     res.json({ received: true });
   } catch (err) {
     console.error(`Stripe webhook handler failed for event ${event.type}:`, err);
-    // 500 here tells Stripe to retry the webhook delivery -- appropriate
-    // since the failure is on our end (DB write, etc.), not a bad event.
+    // Release the claim so a genuine Stripe retry of this same event.id
+    // can actually reprocess it instead of being silently swallowed as
+    // "already handled." 500 here tells Stripe to retry the delivery --
+    // appropriate since the failure is on our end (DB write, etc.), not a
+    // bad event.
+    try {
+      await releaseWebhookEventClaim(event.id);
+    } catch (releaseErr) {
+      console.error(`Stripe webhook claim release failed for event ${event.id}:`, releaseErr);
+    }
     res.status(500).json({ error: "Webhook handler failed." });
   }
 });

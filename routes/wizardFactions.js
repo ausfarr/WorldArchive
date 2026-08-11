@@ -5,6 +5,7 @@ const { backfillFactionTags } = require("../lib/loreRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { upsertEntry, patchEntryMeta } = require("../lib/entriesRepo");
 const { buildWizardFactionSystemPrompt } = require("../prompts/wizardFactionPrompt");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -85,7 +86,9 @@ router.get("/wizard/factions", async (req, res) => {
 // Fill one named slot (or invent one if name is omitted). Does NOT save --
 // returns the generated faction for review, same pattern as Lore's
 // generate/import endpoints.
-router.post("/wizard/generate-faction", async (req, res) => {
+// requireAiEnabled, not enforceGenerationCap -- wizard generation stays
+// free of the points/cap system by design.
+router.post("/wizard/generate-faction", requireAiEnabled, async (req, res) => {
   try {
     const { name, concept, politics, government, economy, military, tensions } = req.body || {};
     const existingFactions = await getFactions(req.worldId);
@@ -105,7 +108,7 @@ router.post("/wizard/generate-faction", async (req, res) => {
 // Step-level "generate this whole step for me" -- invents `count` new
 // factions from scratch (default 4), each aware of the ones generated
 // just before it in the same batch so they don't overlap. Does NOT save.
-router.post("/wizard/generate-factions-step", async (req, res) => {
+router.post("/wizard/generate-factions-step", requireAiEnabled, async (req, res) => {
   try {
     const requestedCount = Number(req.body && req.body.count) || 4;
     const existingFactions = await getFactions(req.worldId);
@@ -139,6 +142,12 @@ router.post("/wizard/save-factions", async (req, res) => {
     }
     if (factions.length > MAX_FACTIONS) {
       return res.status(400).json({ error: `A world can have at most ${MAX_FACTIONS} factions.` });
+    }
+    const emptyNameIndexes = factions
+      .map((f, i) => (!f.name || !f.name.trim() ? i + 1 : null))
+      .filter((i) => i !== null);
+    if (emptyNameIndexes.length > 0) {
+      return res.status(400).json({ error: `Every faction needs a name (slot${emptyNameIndexes.length > 1 ? "s" : ""} ${emptyNameIndexes.join(", ")} ${emptyNameIndexes.length > 1 ? "are" : "is"} blank).` });
     }
     const withIds = factions.map((f) => ({ ...f, id: f.id || slugify(f.name) }));
     const seenIds = new Set();

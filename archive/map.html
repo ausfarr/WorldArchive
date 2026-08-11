@@ -30,40 +30,7 @@
   .leaflet-control-zoom a { background: var(--bg-panel-raised); color: var(--ink); border-color: var(--border-line); }
   .leaflet-control-zoom a:hover { background: var(--bg-void); color: var(--neon-cyan); }
 </style>
-<script>
-(function() {
-  try {
-    var cached = localStorage.getItem('worldforge_theme_cache');
-    if (!cached) return;
-    var t = JSON.parse(cached);
-    var hex = /^#[0-9a-fA-F]{6}$/;
-    var overrides = [];
-    if (hex.test(t.backgroundColor)) overrides.push('--bg-void: ' + t.backgroundColor + ';');
-    if (hex.test(t.panelColor)) overrides.push('--bg-panel: ' + t.panelColor + '; --bg-panel-raised: ' + t.panelColor + ';');
-    if (hex.test(t.inkColor)) overrides.push('--ink: ' + t.inkColor + ';');
-    if (hex.test(t.primaryColor)) overrides.push('--neon-primary: ' + t.primaryColor + ';');
-    if (hex.test(t.secondaryColor)) overrides.push('--neon-cyan: ' + t.secondaryColor + ';');
-    if (t.fontDisplay) {
-      overrides.push("--font-display: '" + t.fontDisplay + "', sans-serif;");
-      var l1 = document.createElement('link');
-      l1.rel = 'stylesheet';
-      l1.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontDisplay).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
-      document.head.appendChild(l1);
-    }
-    if (t.fontBody) {
-      overrides.push("--font-body: '" + t.fontBody + "', sans-serif;");
-      var l2 = document.createElement('link');
-      l2.rel = 'stylesheet';
-      l2.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontBody).replace(/%20/g, '+') + ':wght@400;500;600&display=swap';
-      document.head.appendChild(l2);
-    }
-    var styleTag = document.createElement('style');
-    styleTag.id = 'world-theme-cached';
-    styleTag.textContent = ':root { ' + overrides.join(' ') + ' }';
-    document.head.appendChild(styleTag);
-  } catch (e) { /* no cache yet, or malformed -- fall back to default theme, async apply will fix it */ }
-})();
-</script>
+<script src="js/themeBootstrap.js?v=v0.15"></script>
 
 </head>
 <body data-category="map">
@@ -174,9 +141,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js"></script>
-<script src="js/render.js?v=v0.13"></script>
-<script src="js/mapLayout.js?v=v0.13"></script>
+<script src="/js/auth.js?v=v0.15"></script>
+<script src="js/render.js?v=v0.15"></script>
+<script src="js/mapLayout.js?v=v0.15"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
   // Faction accent colors reuse the same lookup NPC/Bestiary pages use
@@ -523,8 +490,15 @@
   // class; also enforced server-side (routes/map.js's requireAiEnabled
   // on POST /map/generate-backdrop) so there's no way around the toggle.
   document.getElementById("generate-backdrop-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("generate-backdrop-btn");
     const status = document.getElementById("generate-backdrop-status");
     status.textContent = "";
+    // Explicit disable, not just the overlay -- every other AI-generation
+    // button in the app does this (see portraitActions.js); relying on
+    // the overlay alone left a window (before it paints, or a
+    // synthetic/keyboard-triggered click) where a second click could
+    // fire a second paid image generation.
+    btn.disabled = true;
     showGenerationOverlay(["Painting the backdrop…", "Studying the layout…", "This only happens once…", "Almost there…"]);
     try {
       const res = await authFetch("/api/map/generate-backdrop", { method: "POST" });
@@ -536,6 +510,8 @@
       hideGenerationOverlay();
       console.error("Backdrop generation failed:", err);
       status.textContent = "Something went wrong: " + err.message;
+    } finally {
+      btn.disabled = false;
     }
   });
 
@@ -552,12 +528,7 @@
     const status = document.getElementById("upload-backdrop-status");
     status.textContent = "Uploading…";
     try {
-      const imageBase64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error("Could not read the selected file."));
-        reader.readAsDataURL(file);
-      });
+      const imageBase64 = await readFileAsDataUrl(file);
       const res = await authFetch("/api/map/upload-backdrop", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

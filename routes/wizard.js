@@ -1,8 +1,9 @@
 const express = require("express");
 const { callClaudeExpectingJson } = require("../lib/claude");
-const { getDraft, saveDraftStep, resetWorldConfig } = require("../lib/worldConfigRepo");
+const { getDraft, saveDraftStep, resetWorldConfig, getOrCreateWorldConfig } = require("../lib/worldConfigRepo");
 const { clearLoreSections } = require("../lib/loreRepo");
 const { buildWizardStep1SystemPrompt } = require("../prompts/wizardStep1Prompt");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -11,11 +12,23 @@ const router = express.Router();
 // row (loreRepo.clearLoreSections). Called two ways from the frontend
 // (see archive/js/wizardSession.js): automatically at the start of a new
 // browser session (sessionStorage flag absent), and on-demand via an
-// explicit "Start Over" button. Both wipe unconditionally -- there is no
-// server-side distinction between the two triggers, the frontend decides
-// when to call this.
+// explicit "Start Over" button. The auto trigger only ever wipes an
+// in-progress (not yet setup_completed_at) world -- without this guard, a
+// stale bookmark/back-button/reopened-tab visit to any wizard-*.html page
+// for an already-live world would silently erase it with no confirmation,
+// since sessionStorage (and thus the "continuing session" flag) doesn't
+// survive a closed tab. "Start Over" passes force:true because that's an
+// explicit, user-confirmed action (see wizardSession.js's confirm()) and
+// is allowed to wipe a completed world same as Delete World is.
 router.post("/wizard/reset", async (req, res) => {
   try {
+    const force = req.body && req.body.force === true;
+    if (!force) {
+      const config = await getOrCreateWorldConfig(req.worldId);
+      if (config.setup_completed_at) {
+        return res.status(409).json({ error: "World setup already complete; refusing auto-reset.", setupCompletedAt: config.setup_completed_at });
+      }
+    }
     await resetWorldConfig(req.worldId);
     await clearLoreSections(req.worldId);
     res.json({ reset: true });
@@ -60,7 +73,11 @@ router.post("/wizard/save-draft", async (req, res) => {
 // Does NOT save to the draft itself — the frontend fills the form fields
 // with the suggestions, and the user's own edits get saved via
 // /wizard/save-draft like any other field, same as manual entries.
-router.post("/wizard/generate-step1", async (req, res) => {
+// requireAiEnabled gates this like every other AI-spend route -- not
+// enforceGenerationCap, though: wizard generation stays free of the
+// points/cap system by design (setup-time AI assist shouldn't burn a
+// new world's generation budget before it's even archived anything).
+router.post("/wizard/generate-step1", requireAiEnabled, async (req, res) => {
   try {
     const { genre, scale, era, supernaturalSystem } = req.body || {};
     const systemPrompt = buildWizardStep1SystemPrompt({ genre, scale, era, supernaturalSystem });

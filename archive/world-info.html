@@ -5,40 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>World Info — The Archive</title>
 <link rel="stylesheet" href="css/style.css">
-<script>
-(function() {
-  try {
-    var cached = localStorage.getItem('worldforge_theme_cache');
-    if (!cached) return;
-    var t = JSON.parse(cached);
-    var hex = /^#[0-9a-fA-F]{6}$/;
-    var overrides = [];
-    if (hex.test(t.backgroundColor)) overrides.push('--bg-void: ' + t.backgroundColor + ';');
-    if (hex.test(t.panelColor)) overrides.push('--bg-panel: ' + t.panelColor + '; --bg-panel-raised: ' + t.panelColor + ';');
-    if (hex.test(t.inkColor)) overrides.push('--ink: ' + t.inkColor + ';');
-    if (hex.test(t.primaryColor)) overrides.push('--neon-primary: ' + t.primaryColor + ';');
-    if (hex.test(t.secondaryColor)) overrides.push('--neon-cyan: ' + t.secondaryColor + ';');
-    if (t.fontDisplay) {
-      overrides.push("--font-display: '" + t.fontDisplay + "', sans-serif;");
-      var l1 = document.createElement('link');
-      l1.rel = 'stylesheet';
-      l1.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontDisplay).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
-      document.head.appendChild(l1);
-    }
-    if (t.fontBody) {
-      overrides.push("--font-body: '" + t.fontBody + "', sans-serif;");
-      var l2 = document.createElement('link');
-      l2.rel = 'stylesheet';
-      l2.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontBody).replace(/%20/g, '+') + ':wght@400;500;600&display=swap';
-      document.head.appendChild(l2);
-    }
-    var styleTag = document.createElement('style');
-    styleTag.id = 'world-theme-cached';
-    styleTag.textContent = ':root { ' + overrides.join(' ') + ' }';
-    document.head.appendChild(styleTag);
-  } catch (e) { /* no cache yet, or malformed -- fall back to default theme, async apply will fix it */ }
-})();
-</script>
+<script src="js/themeBootstrap.js?v=v0.15"></script>
 
 </head>
 <body>
@@ -138,9 +105,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js"></script>
-<script src="js/render.js?v=v0.13"></script>
-<script src="js/worldArtActions.js?v=v0.11"></script>
+<script src="/js/auth.js?v=v0.15"></script>
+<script src="js/render.js?v=v0.15"></script>
+<script src="js/worldArtActions.js?v=v0.15"></script>
 <script>
 const CANONICAL_STATS = [
   { key: "body", mechanic: "Max health & physical resilience" },

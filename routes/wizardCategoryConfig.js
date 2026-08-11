@@ -3,6 +3,7 @@ const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft, getCategoryConfig, saveCategoryConfig } = require("../lib/worldConfigRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { buildWizardCategoryConfigSystemPrompt, CANONICAL_CATEGORIES } = require("../prompts/wizardCategoryConfigPrompt");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -18,7 +19,9 @@ router.get("/wizard/category-config", async (req, res) => {
   }
 });
 
-router.post("/wizard/generate-category-config", async (req, res) => {
+// requireAiEnabled, not enforceGenerationCap -- wizard generation stays
+// free of the points/cap system by design.
+router.post("/wizard/generate-category-config", requireAiEnabled, async (req, res) => {
   try {
     const draft = await getDraft(req.worldId);
     const step1 = draft["1"] || {};

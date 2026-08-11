@@ -105,15 +105,6 @@ async function uploadPortrait(category, entryId, inputEl) {
   }
 }
 
-function readFileAsDataUrl(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Could not read the selected file."));
-    reader.readAsDataURL(file);
-  });
-}
-
 // Swaps the pending slot back out for a real <img>, wired the same way
 // the server-rendered one is (same data attributes, same onerror), so a
 // future 404 (e.g. the portrait gets deleted some other way) falls back

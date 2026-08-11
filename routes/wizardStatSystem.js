@@ -3,6 +3,7 @@ const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft, getStatSystem, saveStatSystem } = require("../lib/worldConfigRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { buildWizardStatSystemPrompt } = require("../prompts/wizardStatSystemPrompt");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -18,7 +19,9 @@ router.get("/wizard/stat-system", async (req, res) => {
   }
 });
 
-router.post("/wizard/generate-stat-system", async (req, res) => {
+// requireAiEnabled, not enforceGenerationCap -- wizard generation stays
+// free of the points/cap system by design.
+router.post("/wizard/generate-stat-system", requireAiEnabled, async (req, res) => {
   try {
     const draft = await getDraft(req.worldId);
     const step1 = draft["1"] || {};

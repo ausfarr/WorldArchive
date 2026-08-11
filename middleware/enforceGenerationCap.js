@@ -36,8 +36,15 @@
 // route-level middleware, e.g.:
 //   router.post("/generate-npc", enforceGenerationCap, async (req, res) => {...
 //   router.post("/field-assist", enforceFieldAssist, async (req, res) => {...
-const { checkAndIncrementGenerationCount, GENERATION_CAP, POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
-const { getSubscription, spendSubscriptionGeneration, TRIAL_CAP } = require("../lib/billingRepo");
+//
+// On a successful spend, attaches req.refundGeneration() -- an
+// idempotent, non-throwing async function routes should call from their
+// catch block if the downstream Claude/Gemini call (or JSON parse, or
+// image generation) fails. Without this, a failed generation permanently
+// burned the point/cap/credit already deducted for zero output. See
+// migrations/018_generation_refund.sql.
+const { checkAndIncrementGenerationCount, refundGenerationCount, GENERATION_CAP, POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
+const { getSubscription, spendSubscriptionGeneration, refundSubscriptionGeneration, TRIAL_CAP } = require("../lib/billingRepo");
 
 // TODO(Austin): swap in a real contact address before beta testers see this.
 const CONTACT_EMAIL = "ausfarr@gmail.com";
@@ -66,6 +73,7 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
         });
       }
       req.generationCount = count;
+      req.refundGeneration = makeRefundOnce(() => refundGenerationCount(req.worldId, amount));
       return next();
     }
 
@@ -85,6 +93,7 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
         });
       }
       req.generationSource = result.source; // 'quota' | 'credit'
+      req.refundGeneration = makeRefundOnce(() => refundSubscriptionGeneration(req.userId, amount, result.source));
       return next();
     }
 
@@ -102,10 +111,32 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
       });
     }
     req.generationCount = count;
+    req.refundGeneration = makeRefundOnce(() => refundGenerationCount(req.worldId, amount));
     next();
   } catch (err) {
     next(err);
   }
+}
+
+// Wraps a tier-specific refund call as a safe, idempotent, non-throwing
+// function attached to req.refundGeneration -- every route's catch block
+// can just call `await req.refundGeneration();` with no extra try/catch
+// boilerplate. Idempotent (a second call is a no-op) so a route with
+// multiple catch paths, or one that double-checks, can't double-refund.
+// Swallows its own errors (logs and moves on) rather than throwing,
+// since a refund failure should never mask or replace the route's real
+// error response to the user.
+function makeRefundOnce(doRefund) {
+  let called = false;
+  return async function refundGeneration() {
+    if (called) return;
+    called = true;
+    try {
+      await doRefund();
+    } catch (err) {
+      console.error("Generation refund failed:", err);
+    }
+  };
 }
 
 // Field-assist variant -- same three-tier check, spends

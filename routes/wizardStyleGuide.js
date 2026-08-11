@@ -4,6 +4,7 @@ const { getDraft, getFactions, getStyleGuide, saveStyleGuide } = require("../lib
 const { getLoreContext } = require("../lib/loreContext");
 const { buildWizardStyleGuideSystemPrompt, buildFactionAccentsSystemPrompt } = require("../prompts/wizardStyleGuidePrompt");
 const { patchEntryMeta } = require("../lib/entriesRepo");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -26,7 +27,9 @@ router.get("/wizard/style-guide", async (req, res) => {
 // including per-faction accents -- that's a separate call below, since it
 // needs the base style already decided to stay consistent, and needs the
 // full faction list to assign distinct-from-each-other colors.
-router.post("/wizard/generate-style-guide", async (req, res) => {
+// requireAiEnabled, not enforceGenerationCap -- wizard generation stays
+// free of the points/cap system by design.
+router.post("/wizard/generate-style-guide", requireAiEnabled, async (req, res) => {
   try {
     const draft = await getDraft(req.worldId);
     const step1 = draft["1"] || {};
@@ -50,7 +53,7 @@ router.post("/wizard/generate-style-guide", async (req, res) => {
 // edits from the form, not necessarily what's persisted yet -- passed in
 // the request body rather than re-fetched, so the colors match what the
 // user is actually looking at).
-router.post("/wizard/generate-faction-accents", async (req, res) => {
+router.post("/wizard/generate-faction-accents", requireAiEnabled, async (req, res) => {
   try {
     const { baseStyle } = req.body || {};
     const factions = await getFactions(req.worldId);

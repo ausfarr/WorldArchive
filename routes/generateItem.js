@@ -128,6 +128,7 @@ router.post("/generate-item", requireAiEnabled, enforceGenerationCap, enforceEnt
     });
   } catch (err) {
     console.error("Item generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

@@ -121,3 +121,18 @@ async function renderAuthStatus() {
     signOut();
   };
 }
+
+// Not auth-specific, but this file is the one thing every page that
+// needs it (render.js, portraitActions.js, worldArtActions.js, map.html)
+// already loads first -- previously reimplemented identically 4 times
+// (portraitActions.js's own copy, worldArtActions.js's renamed
+// readFileAsDataUrlForArt to avoid colliding with it, and inline in both
+// map.html and render.js) rather than shared.
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Could not read the selected file."));
+    reader.readAsDataURL(file);
+  });
+}

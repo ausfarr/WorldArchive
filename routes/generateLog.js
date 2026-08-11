@@ -41,11 +41,18 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
         priorBodyHtml = prior ? prior.bodyHtml : null;
       }
       name = existingEntry.name;
-      // Subtitle format: "Terminal — The Board" - first segment is the type.
-      const typeGuess = (existingEntry.subtitle || "").split("—")[0].trim();
-      if (/terminal/i.test(typeGuess)) logType = "Terminal";
-      else if (/audio/i.test(typeGuess)) logType = "Audio";
-      else if (/journal/i.test(typeGuess)) logType = "Journal";
+      // existingEntry.logType is already a real, structured field --
+      // entriesRepo.js's rowToManifestEntry spreads the entry's raw_json
+      // (which is exactly where fileWriter.js's saveLogEntry stores
+      // `logType`) onto every manifest row. The previous version instead
+      // tried to guess the type by parsing existingEntry.subtitle for
+      // "Terminal — The Board"-shaped text, but a log's stored subtitle
+      // is actually "Character(s): ..." (see saveLogEntry's entryMeta),
+      // never that shape -- so the guess silently failed on every single
+      // regenerate, leaving logType undefined and letting the type
+      // (Audio/Journal/Terminal) drift on every regenerate of an
+      // existing log.
+      logType = existingEntry.logType || logType;
     }
 
     const rosterContext = await buildLogRosterContext(worldId);
@@ -93,6 +100,7 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
     });
   } catch (err) {
     console.error("Log generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

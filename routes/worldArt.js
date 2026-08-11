@@ -31,6 +31,12 @@
 // cap exists to bound -- true whether it fires from the wizard or later
 // from World Info / a faction dossier page.
 //
+// The three generate routes below ARE gated by requireAiEnabled, same as
+// every other AI-spend route (see routes/map.js's backdrop route for the
+// identical reasoning) -- an account with AI Features turned off must
+// not be able to burn a real Claude+Gemini call just by hitting World
+// Info or a faction dossier's Generate button.
+//
 // Upload routes are NOT capped either, matching /entries/:category/:id/
 // upload-image -- a user's own file, no AI spend, nothing to protect
 // against.
@@ -50,6 +56,8 @@ const {
 const { getFactions, getStyleGuide } = require("../lib/worldConfigRepo");
 const { getSettingContext, getFactionAccent } = require("../lib/worldFlavor");
 const { patchEntryMeta } = require("../lib/entriesRepo");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
+const { withLock } = require("../lib/asyncLock");
 
 const router = express.Router();
 
@@ -69,37 +77,46 @@ router.get("/world-art/mood-board", async (req, res) => {
 // POST generate -- called once, right after Step 6 is saved. Skips work
 // if one already exists (no "force" flag yet -- add one alongside a real
 // regenerate button later, matching the map backdrop's same current gap).
-router.post("/world-art/generate-mood-board", async (req, res) => {
+router.post("/world-art/generate-mood-board", requireAiEnabled, async (req, res) => {
+  const worldId = req.worldId;
   try {
-    const worldId = req.worldId;
-    const alreadyExists = await worldMoodBoardExists(worldId);
-    if (alreadyExists) {
-      return res.json({ url: getWorldMoodBoardUrl(worldId), generated: false });
-    }
+    // Locked (see lib/asyncLock.js) so two near-simultaneous requests
+    // can't both see "doesn't exist yet" and both pay for a real
+    // Claude+Gemini call -- the second caller's own exists-check, run
+    // again after it acquires the lock, sees the first's freshly-saved
+    // board and skips straight to returning it.
+    const result = await withLock(`mood-board:${worldId}`, async () => {
+      const alreadyExists = await worldMoodBoardExists(worldId);
+      if (alreadyExists) {
+        return { url: getWorldMoodBoardUrl(worldId), generated: false };
+      }
 
-    const [settingContext, styleGuide] = await Promise.all([
-      getSettingContext(worldId),
-      getStyleGuide(worldId)
-    ]);
+      const [settingContext, styleGuide] = await Promise.all([
+        getSettingContext(worldId),
+        getStyleGuide(worldId)
+      ]);
 
-    const subjectJson = { worldSetting: settingContext };
-    const artSystemPrompt = buildArtPromptSystemPrompt({
-      category: "world-mood",
-      subjectJson,
-      styleGuide,
-      factionAccent: null
+      const subjectJson = { worldSetting: settingContext };
+      const artSystemPrompt = buildArtPromptSystemPrompt({
+        category: "world-mood",
+        subjectJson,
+        styleGuide,
+        factionAccent: null
+      });
+      const artPrompt = await callClaude({
+        systemPrompt: artSystemPrompt,
+        userMessage: "Write the prompt now.",
+        maxTokens: 500,
+        model: HAIKU_MODEL
+      });
+
+      const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim());
+      const url = await saveWorldMoodBoard(worldId, imageBuffer, mimeType);
+
+      return { url, generated: true };
     });
-    const artPrompt = await callClaude({
-      systemPrompt: artSystemPrompt,
-      userMessage: "Write the prompt now.",
-      maxTokens: 500,
-      model: HAIKU_MODEL
-    });
 
-    const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
-    const url = await saveWorldMoodBoard(worldId, imageBuffer);
-
-    res.json({ url, generated: true });
+    res.json(result);
   } catch (err) {
     console.error("World mood board generation failed:", err);
     res.status(500).json({ error: err.message });
@@ -144,8 +161,8 @@ async function generateOneFactionBanner(worldId, faction, styleGuide) {
     model: HAIKU_MODEL
   });
 
-  const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
-  const imageUrl = await saveFactionBanner(worldId, faction.id, imageBuffer);
+  const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim());
+  const imageUrl = await saveFactionBanner(worldId, faction.id, imageBuffer, mimeType);
 
   // Bridges into the entries table the same way accentColor already
   // does (see routes/wizardStyleGuide.js's save-style-guide) -- the
@@ -162,7 +179,7 @@ async function generateOneFactionBanner(worldId, faction, styleGuide) {
 // from the others (one bad prompt shouldn't cost every faction its
 // banner). Non-fatal per faction: a failure is recorded in `results`,
 // not thrown, so one broken faction doesn't block the rest.
-router.post("/world-art/generate-faction-banners", async (req, res) => {
+router.post("/world-art/generate-faction-banners", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
     const factions = await getFactions(worldId);
@@ -175,6 +192,8 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
 
     for (const faction of factions) {
       try {
+        // Locked per faction (same key namespace as the single-faction
+        // route below, so the two coordinate) -- see lib/asyncLock.js.
         // Skip factions that already have a banner -- generate-once, same
         // guard generate-mood-board already has above. Without this, going
         // back to Step 6 and clicking Save & Continue again (browser back
@@ -182,14 +201,15 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
         // EVERY faction on each pass, since this loop had no per-faction
         // exists-check at all -- the real cost multiplier in the bug
         // report, since it's N Gemini calls per re-save, not 1.
-        const alreadyHasBanner = await factionBannerExists(worldId, faction.id);
-        if (alreadyHasBanner) {
-          results.push({ id: faction.id, imageUrl: getFactionBannerUrl(worldId, faction.id), generated: false });
-          continue;
-        }
-
-        const imageUrl = await generateOneFactionBanner(worldId, faction, styleGuide);
-        results.push({ id: faction.id, imageUrl, generated: true });
+        const result = await withLock(`faction-banner:${worldId}:${faction.id}`, async () => {
+          const alreadyHasBanner = await factionBannerExists(worldId, faction.id);
+          if (alreadyHasBanner) {
+            return { id: faction.id, imageUrl: getFactionBannerUrl(worldId, faction.id), generated: false };
+          }
+          const imageUrl = await generateOneFactionBanner(worldId, faction, styleGuide);
+          return { id: faction.id, imageUrl, generated: true };
+        });
+        results.push(result);
       } catch (factionErr) {
         console.error(`Faction banner generation failed for '${faction.id}':`, factionErr.message);
         results.push({ id: faction.id, imageUrl: null, imageError: factionErr.message });
@@ -208,27 +228,38 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
 // Mirrors /entries/:category/:id/generate-image's single-subject shape.
 // Same generate-once guard as the batch route: re-clicking after success
 // just returns the existing URL instead of spending another generation.
-router.post("/world-art/generate-faction-banner/:factionId", async (req, res) => {
+router.post("/world-art/generate-faction-banner/:factionId", requireAiEnabled, async (req, res) => {
+  const worldId = req.worldId;
+  const { factionId } = req.params;
   try {
-    const worldId = req.worldId;
-    const { factionId } = req.params;
+    // Same lock key namespace as the batch route above, so a batch
+    // generate and an on-demand single generate for the same faction
+    // can't race each other either.
+    const result = await withLock(`faction-banner:${worldId}:${factionId}`, async () => {
+      const alreadyHasBanner = await factionBannerExists(worldId, factionId);
+      if (alreadyHasBanner) {
+        return { imageUrl: getFactionBannerUrl(worldId, factionId), generated: false };
+      }
 
-    const alreadyHasBanner = await factionBannerExists(worldId, factionId);
-    if (alreadyHasBanner) {
-      return res.json({ imageUrl: getFactionBannerUrl(worldId, factionId), generated: false });
-    }
+      const factions = await getFactions(worldId);
+      const faction = factions.find((f) => f.id === factionId);
+      if (!faction) {
+        const notFound = new Error("Faction not found.");
+        notFound.statusCode = 404;
+        throw notFound;
+      }
 
-    const factions = await getFactions(worldId);
-    const faction = factions.find((f) => f.id === factionId);
-    if (!faction) {
-      return res.status(404).json({ error: "Faction not found." });
-    }
+      const styleGuide = await getStyleGuide(worldId);
+      const imageUrl = await generateOneFactionBanner(worldId, faction, styleGuide);
+      return { imageUrl, generated: true };
+    });
 
-    const styleGuide = await getStyleGuide(worldId);
-    const imageUrl = await generateOneFactionBanner(worldId, faction, styleGuide);
-    res.json({ imageUrl, generated: true });
+    res.json(result);
   } catch (err) {
-    console.error(`Single faction banner generation failed for '${req.params.factionId}':`, err);
+    if (err.statusCode === 404) {
+      return res.status(404).json({ error: err.message });
+    }
+    console.error(`Single faction banner generation failed for '${factionId}':`, err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -243,9 +274,11 @@ router.post("/world-art/upload-mood-board", async (req, res) => {
     if (!imageBase64) {
       return res.status(400).json({ error: "imageBase64 is required." });
     }
+    const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+    const mimeType = match ? match[1] : "image/png";
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const imageBuffer = Buffer.from(base64Data, "base64");
-    const url = await saveWorldMoodBoard(req.worldId, imageBuffer);
+    const url = await saveWorldMoodBoard(req.worldId, imageBuffer, mimeType);
     res.json({ url });
   } catch (err) {
     console.error("World mood board upload failed:", err);
@@ -263,9 +296,11 @@ router.post("/world-art/upload-faction-banner/:factionId", async (req, res) => {
     if (!imageBase64) {
       return res.status(400).json({ error: "imageBase64 is required." });
     }
+    const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+    const mimeType = match ? match[1] : "image/png";
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const imageBuffer = Buffer.from(base64Data, "base64");
-    const imageUrl = await saveFactionBanner(worldId, factionId, imageBuffer);
+    const imageUrl = await saveFactionBanner(worldId, factionId, imageBuffer, mimeType);
     await patchEntryMeta(worldId, "factions", factionId, { bannerImageUrl: imageUrl });
     res.json({ imageUrl });
   } catch (err) {

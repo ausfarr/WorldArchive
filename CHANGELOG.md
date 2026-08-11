@@ -39,6 +39,23 @@ entry from here forward gets both a real date and a version at write time.
 
 ---
 
+## v0.10 — [DATE] — App-Wide Bug Audit & Fixes
+
+- **Full-app bug audit and fix pass**, covering the generation pipeline,
+  data layer, middleware/caps/billing, frontend, PDF/image/map
+  compositing, and campaign/procedural generation. Fixed a wizard
+  data-loss bug (auto-reset could wipe an already-completed world), a
+  handful of real money leaks (AI-toggle bypasses, missing Stripe
+  webhook idempotency, no refund path on failed generations, unlocked
+  check-then-act art generation), several correctness bugs (image
+  mimetype mislabeling, log regenerate silently losing its type,
+  dangling references left behind by deletes), a few races, and a round
+  of efficiency cleanup (N+1 roster fetches, unbounded queries, capped
+  Chromium concurrency, deduped frontend helpers). See:
+  `session_addendum_bug_audit_fixes_shipped.md` for the full list.
+
+---
+
 ## v0.9 — 08/10/2026 — Manual Mode
 **Phase:** Unscoped additions (post-Quests/Campaigns)
 

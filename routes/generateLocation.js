@@ -108,6 +108,7 @@ router.post("/generate-location", requireAiEnabled, enforceGenerationCap, enforc
     });
   } catch (err) {
     console.error("Location generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });
