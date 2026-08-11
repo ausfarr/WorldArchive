@@ -523,8 +523,15 @@
   // class; also enforced server-side (routes/map.js's requireAiEnabled
   // on POST /map/generate-backdrop) so there's no way around the toggle.
   document.getElementById("generate-backdrop-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("generate-backdrop-btn");
     const status = document.getElementById("generate-backdrop-status");
     status.textContent = "";
+    // Explicit disable, not just the overlay -- every other AI-generation
+    // button in the app does this (see portraitActions.js); relying on
+    // the overlay alone left a window (before it paints, or a
+    // synthetic/keyboard-triggered click) where a second click could
+    // fire a second paid image generation.
+    btn.disabled = true;
     showGenerationOverlay(["Painting the backdrop…", "Studying the layout…", "This only happens once…", "Almost there…"]);
     try {
       const res = await authFetch("/api/map/generate-backdrop", { method: "POST" });
@@ -536,6 +543,8 @@
       hideGenerationOverlay();
       console.error("Backdrop generation failed:", err);
       status.textContent = "Something went wrong: " + err.message;
+    } finally {
+      btn.disabled = false;
     }
   });
 
