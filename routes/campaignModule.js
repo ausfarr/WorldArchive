@@ -29,6 +29,7 @@
 
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { buildCampaignModuleSystemPrompt } = require("../prompts/campaignModulePrompt");
@@ -123,15 +124,19 @@ router.post("/campaign-modules/generate", requireAiEnabled, enforceGenerationCap
   }
 });
 
-// POST generate-slot-entry -- cap-gated. Fills ONE unmatched slot with a
-// brand-new, REAL, immediately-saved entry in its normal category (see
-// lib/campaignEntryGenerators.js's header comment for why it's saved for
-// real even before the Campaign Module itself is confirmed -- if the DM
-// ends up discarding the module preview, the new entry isn't wasted,
-// it's just sitting in its category tab like anything else generated
-// standalone). Returns the same shape as a "matched" preview entry so
-// the frontend can splice it directly into its local preview state.
-router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGenerationCap, async (req, res) => {
+// POST generate-slot-entry -- cap-gated on BOTH the generation cap and
+// the entry cap (see enforceEntryCapOnGenerate -- this creates a real
+// new entry same as any /generate-X route does, so it must count against
+// a free/trial world's entry limit the same way). Fills ONE unmatched
+// slot with a brand-new, REAL, immediately-saved entry in its normal
+// category (see lib/campaignEntryGenerators.js's header comment for why
+// it's saved for real even before the Campaign Module itself is
+// confirmed -- if the DM ends up discarding the module preview, the new
+// entry isn't wasted, it's just sitting in its category tab like
+// anything else generated standalone). Returns the same shape as a
+// "matched" preview entry so the frontend can splice it directly into
+// its local preview state.
+router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { category, concept } = req.body || {};

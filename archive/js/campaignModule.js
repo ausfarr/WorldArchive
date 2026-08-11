@@ -283,7 +283,39 @@ function cmRenderPreview(proposal) {
   `;
   cmRenderPreviewEntries(proposal.entries);
   document.getElementById("cm-accept-preview-btn").addEventListener("click", () => cmAcceptPreview(proposal));
-  document.getElementById("cm-discard-preview-btn").addEventListener("click", () => { zone.innerHTML = ""; });
+  document.getElementById("cm-discard-preview-btn").addEventListener("click", cmDiscardPreview);
+}
+
+// Discarding the preview used to just clear the DOM -- but any slot
+// filled via "Generate one" (cmGenerateSlot) already saved a REAL,
+// cap-charged entry to its category the moment it was generated (see
+// lib/campaignEntryGenerators.js's header comment for why), so discarding
+// without deleting those left orphaned, paid-for entries behind with no
+// warning. Entries picked via "Pick existing instead" are NOT touched --
+// those are pre-existing archive content this preview only referenced.
+async function cmDiscardPreview() {
+  const zone = document.getElementById("cm-preview-zone");
+  const freshEntries = (cmCurrentPreview ? cmCurrentPreview.entries : []).filter((e) => e.freshlyGenerated && e.entryId);
+
+  if (freshEntries.length > 0) {
+    const names = freshEntries.map((e) => e.name || e.entryId).join(", ");
+    const confirmed = confirm(
+      `This preview includes ${freshEntries.length} freshly-generated ${freshEntries.length === 1 ? "entry" : "entries"} (${names}) that ${freshEntries.length === 1 ? "was" : "were"} already saved for real. ` +
+      `Discarding will permanently delete ${freshEntries.length === 1 ? "it" : "them"} too, not just the preview. Continue?`
+    );
+    if (!confirmed) return;
+
+    for (const e of freshEntries) {
+      try {
+        await authFetch(`/api/entries/${e.category}/${e.entryId}`, { method: "DELETE" });
+      } catch (err) {
+        console.error(`Failed to delete discarded Quest slot entry ${e.category}/${e.entryId}:`, err);
+      }
+    }
+  }
+
+  cmCurrentPreview = null;
+  zone.innerHTML = "";
 }
 
 function cmRenderPreviewEntries(entries) {
@@ -411,7 +443,12 @@ async function cmGenerateSlot(index) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(formatGenerationError(data, { asHtml: false }));
-    cmCurrentPreview.entries[index] = { ...slot, matched: true, entryId: data.entryId, name: data.name, subtitle: data.subtitle };
+    // freshlyGenerated marks this as a real, immediately-saved,
+    // cap-charged entry created JUST for this slot -- as opposed to an
+    // existing entry the DM picked via "Pick existing instead" (line
+    // ~352 below), which must never be deleted on discard since it's
+    // pre-existing archive content, not something this preview created.
+    cmCurrentPreview.entries[index] = { ...slot, matched: true, entryId: data.entryId, name: data.name, subtitle: data.subtitle, freshlyGenerated: true };
     cmRenderPreviewEntries(cmCurrentPreview.entries);
   } catch (err) {
     statusEl.textContent = "Failed: " + err.message;
