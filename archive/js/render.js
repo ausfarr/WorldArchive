@@ -3,6 +3,20 @@
 // keeps working when opened directly from disk (file://), where fetch()
 // of local files is blocked by browser CORS rules.
 
+// NOTE: multi-ruleset genericization added a "spells" category
+// (lib/rulesets/index.js -- 5e only, no Echoes equivalent) with real
+// backend support (routes/generateSpell.js, lib/rulesets/5e/spellTemplate.js)
+// but deliberately does NOT add it here yet. CATEGORY_LABELS drives the
+// homepage's category-count fetch loop (loadAndRenderHomepageCounts,
+// below) and nav-{category} element lookups for EVERY world regardless
+// of ruleset -- adding a category here without also building its
+// index/nav UI risks subtle breakage across every existing (including
+// Echoes) world for a page that doesn't exist yet. Ruleset-aware nav
+// (only showing Spells for 5e worlds, wiring its own index page) is
+// Phase 11 scope -- see session_addendum_ruleset_genericization.md. A
+// spell entry's dossier page still works via the generic
+// /api/entries/:category/:id route; it just shows the raw "spells"
+// string as its crumb label until that phase adds a real one here.
 const CATEGORY_LABELS = {
   factions: "Factions",
   npcs: "NPCs",

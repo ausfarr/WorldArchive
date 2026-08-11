@@ -13,6 +13,7 @@ const generateFactionRoute = require("./routes/generateFaction");
 const generateLocationRoute = require("./routes/generateLocation");
 const generateProceduralRoute = require("./routes/generateProcedural");
 const generateEntryImageRoute = require("./routes/generateEntryImage");
+const generateSpellRoute = require("./routes/generateSpell"); // multi-ruleset genericization, Phase 4 -- 5e-only category, no Echoes equivalent
 const fieldAssistRoute = require("./routes/fieldAssist");
 const mapRoute = require("./routes/map");
 const dungeonMapRoute = require("./routes/dungeonMap");
@@ -116,6 +117,7 @@ app.use("/api", generateFactionRoute);
 app.use("/api", generateLocationRoute);
 app.use("/api", generateProceduralRoute);
 app.use("/api", generateEntryImageRoute);
+app.use("/api", generateSpellRoute);
 app.use("/api", fieldAssistRoute);
 app.use("/api", mapRoute);
 app.use("/api", dungeonMapRoute);

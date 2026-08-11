@@ -212,6 +212,51 @@ Starfinder or another alternative was NOT pursued, per the "if you find
 a real PF2e path, use it" instruction — a real, if partial (Homebrew-tier
 only), PF2e path was found.
 
+## Phase 4 — Spells (5e, Homebrew tier)
+
+New category end-to-end — Spells has no Echoes equivalent at all (Echoes
+is a non-magical sci-fi/post-apocalyptic setting). This surfaced a real
+bug in `middleware/requireCategoryAvailable.js`: it special-cased
+`ruleset === 'echoes'` to always pass, which was safe for the Phase 3
+guards (Classes/Items/Survivors all have real Echoes registry entries)
+but wrong the moment a category with NO Echoes entry at all needed
+gating — an Echoes world hitting `/generate-spell` would have bypassed
+the guard and crashed deep in a route with nothing to dispatch to,
+instead of a clean 501 at the gate. Fixed by removing the bypass
+entirely and relying purely on `hasCategory()`, which is correct for
+both cases (confirmed via direct test: `hasCategory('echoes','classes')`
+stays `true`, `hasCategory('echoes','spells')` is `false`).
+
+**Formula scope, stated honestly**: unlike Bestiary CR math, 5e spell
+design has no official per-level power-budget formula in the source
+material — inventing one would be fabricating a rule that doesn't exist.
+The one genuinely formulaic piece is cantrip damage scaling (fixed
+breakpoints at character levels 5/11/17, verified against two real SRD
+cantrips, Fire Bolt and Chill Touch) — implemented in
+`lib/rulesets/5e/spellFormulas.js` and hard-tested in
+`scripts/test5eSpellFormulas.js`. Everything else about a Homebrew
+spell's balance is GM judgment, same as it is for a real human
+homebrewing a spell.
+
+**Data**: no verified CC-BY-4.0 *structured* spell dataset exists
+(same gap noted in Phase 2 — Tabyltop only ships monsters as structured
+JSON). Homebrew tier only, same pattern as PF2e Bestiary.
+
+**Frontend deliberately NOT built.** Added "spells" to
+`routes/entries.js`/`routes/export.js`'s category validation (needed for
+the read/export API to recognize the category at all), but did NOT add
+it to `archive/js/render.js`'s `CATEGORY_LABELS` — that map drives the
+homepage's per-category count-fetch loop and `nav-{category}` lookups
+for EVERY world regardless of ruleset, and adding an entry there without
+a real index page/nav link behind it risked subtle breakage across every
+existing world (including Echoes) for a page that doesn't exist yet.
+Caught this before committing it, not after. A spell entry's dossier
+page still works via the generic `/api/entries/:category/:id` route; it
+just shows the raw "spells" string as its crumb label until Phase 11
+builds real ruleset-aware nav. This mirrors the same "backend proven,
+frontend deferred to Phase 11" scoping already established for the 5e
+Bestiary in Phase 3.
+
 ## Phase 3 — Bestiary / Monsters (5e proof of concept)
 
 **CR table provenance**: `lib/rulesets/5e/statFormulas.js`'s

@@ -18,6 +18,7 @@ const { withLock } = require("../lib/asyncLock");
 const { getRuleset } = require("../lib/worldConfigRepo");
 const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
 const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
+const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
 
 const router = express.Router();
 
@@ -31,7 +32,13 @@ const WRITERS = {
   survivors: saveSurvivorEntry,
   logs: saveLogEntry,
   classes: saveClassEntry,
-  locations: saveLocationEntry
+  locations: saveLocationEntry,
+  // "spells" has exactly one ruleset implementation today (5e -- Echoes
+  // has no spell system, see lib/rulesets/index.js), so unlike "enemies"
+  // it doesn't need a per-ruleset branch below -- a pf2e/generic/echoes
+  // world can never reach this writer since requireCategoryAvailable
+  // already turned its /generate-spell request away with a 501.
+  spells: save5eSpellEntry
 };
 
 // Categories whose writer function accepts a third imageUrl argument

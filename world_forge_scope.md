@@ -121,6 +121,24 @@ and fixed" #4). Factions/Locations/NPCs/Logs are the confirmed-narrative
 exceptions (no mechanical stats in any ruleset) and should stay ungated
 so they keep working identically across every ruleset.
 
+**The gate is `hasCategory()`, never a `ruleset === 'echoes'` bypass.**
+An earlier version of this middleware special-cased Echoes to always
+pass, which happened to be safe only because every category gated at the
+time had a real Echoes registry entry. It broke for Spells (Echoes has
+no spell system at all) — caught and fixed in Phase 4. `hasCategory()`
+alone is correct for both an existing-Echoes-category and a
+no-Echoes-equivalent-category, so there's no reason to ever reintroduce
+the bypass.
+
+**Adding a brand-new category (no Echoes equivalent) needs extra care
+frontend-side.** `archive/js/render.js`'s `CATEGORY_LABELS` map drives
+the homepage's per-category count-fetch loop and `nav-{category}`
+lookups for EVERY world, regardless of ruleset — adding a category there
+without a real index page/nav link behind it risks breaking the homepage
+for worlds that will never have that category (an Echoes world has no
+use for "Spells"). Phase 4 added Spells' full backend but deliberately
+left `CATEGORY_LABELS` alone, deferring real nav wiring to Phase 11.
+
 ## The three-tier generation pattern (proven on 5e Bestiary, repeat for every other category)
 
 1. **Import** — zero AI cost. Copy a `srd_library` row's `data_json`
@@ -164,7 +182,7 @@ guideline?** If it's a guideline, the UI must say "estimated," the way
 | 1 | Ruleset foundation (schema, registry, wizard picker) | **Shipped** |
 | 2 | SRD data ingestion (5e monsters; PF2e blocked) | **Shipped** (5e monsters only) |
 | 3 | Bestiary / Monsters (5e proof of concept) | **Shipped** |
-| 4 | Spells | Deferred — see addendum |
+| 4 | Spells | **Partially shipped** — 5e Homebrew tier (backend + cantrip-scaling formula, tested). No canonical import data found (same CC-BY-4.0 structured-data gap as Classes/Items). Frontend nav/index page deferred to Phase 11. |
 | 5 | Classes (biggest single rework) | Deferred — see addendum |
 | 6 | Items | Deferred — see addendum |
 | 7 | NPCs | Deferred — depends on Phase 5 |

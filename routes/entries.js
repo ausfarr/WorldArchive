@@ -12,7 +12,14 @@ const router = express.Router();
 // Section 5's "Known, deliberate simplifications" for the history of why
 // this was deferred, and this session's addendum for it closing.
 
-const VALID_CATEGORIES = new Set(["factions", "npcs", "enemies", "classes", "items", "logs", "survivors", "locations"]);
+// "spells" added for the multi-ruleset genericization project -- a
+// brand-new category with no Echoes equivalent (see
+// lib/rulesets/index.js's registry: only 5e has a `spells` entry).
+// Recognizing it here is a read-path/API concern, independent of
+// whether any given world's UI actually shows a Spells nav link -- that
+// frontend piece is Phase 11 scope, same as the 5e Bestiary's own
+// three-tier UI (see session_addendum_ruleset_genericization.md).
+const VALID_CATEGORIES = new Set(["factions", "npcs", "enemies", "classes", "items", "logs", "survivors", "locations", "spells"]);
 
 function requireValidCategory(req, res, next) {
   if (!VALID_CATEGORIES.has(req.params.category)) {

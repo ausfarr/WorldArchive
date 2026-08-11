@@ -15,7 +15,8 @@ const VALID_CATEGORIES = new Set([
   "items",
   "logs",
   "survivors",
-  "locations"
+  "locations",
+  "spells" // multi-ruleset genericization -- see entries.js's matching comment
 ]);
 
 // Query param default is "include images" -- matches the checked-by-
