@@ -49,6 +49,13 @@ let caQuestDetails = {}; // id -> {name, summary, broken}
 let caLoadedArc = null;
 let caQuestOptionsCache = null;
 let caPendingStages = []; // [{id, title, concept}] -- unmatched stages still needing a Quest, persisted server-side
+// Monotonic counter for pending-stage ids, not just Date.now()+random --
+// caCommitPlan below can mint several ids in one synchronous forEach
+// pass, all sharing the same Date.now() millisecond, and a 1-in-1000
+// random suffix had a real chance of colliding within a batch, which
+// would make caRemovePendingStage/appendQuestToArc's `s.id !== stageId`
+// filter remove the wrong stage.
+let caStageIdCounter = 0;
 
 async function initCampaignArcBuilder() {
   const params = new URLSearchParams(window.location.search);
@@ -313,7 +320,7 @@ async function caCommitPlan(proposal) {
         caQuestDetails[s.questId] = { name: s.questName, summary: s.questSummary, broken: false };
       }
     } else {
-      caPendingStages.push({ id: `stage-${Date.now()}-${Math.floor(Math.random() * 1000)}`, title: s.title || "Untitled stage", concept: s.concept || "" });
+      caPendingStages.push({ id: `stage-${Date.now()}-${caStageIdCounter++}`, title: s.title || "Untitled stage", concept: s.concept || "" });
     }
   });
 

@@ -14,6 +14,7 @@ const { buildFactionRoundup } = require("../lib/factionRoundup");
 const { syncReciprocalRelationships } = require("../lib/factionDeepLore");
 const { getEntry } = require("../lib/entriesRepo");
 const { checkEntryCap } = require("../middleware/enforceEntryCap");
+const { withLock } = require("../lib/asyncLock");
 
 const router = express.Router();
 
@@ -49,8 +50,8 @@ const HAS_PORTRAIT = {
 // "Save This Version." Takes the exact `entry` object the preview returned
 // and writes it for real — no re-generation happens here.
 router.post("/confirm-entry", async (req, res) => {
+  const worldId = req.worldId;
   try {
-    const worldId = req.worldId;
     const { category, entry } = req.body || {};
     if (!entry || !entry.id) {
       return res.status(400).json({ error: "Missing entry or entry.id" });
@@ -62,42 +63,59 @@ router.post("/confirm-entry", async (req, res) => {
     // entries that already exist. Only a genuinely NEW row should count
     // against the entry cap -- an edit or a regenerate confirm targets
     // an entry id that's already in the table.
+    //
+    // The cap check AND the write below both run inside one per-world
+    // lock (see lib/asyncLock.js) whenever this is a new entry --
+    // without that, two concurrent confirm-entry calls for two different
+    // new entries could both pass the count-check before either's write
+    // actually landed, letting a world exceed its entry cap by more than
+    // one. Cheap to hold for the whole handler here: unlike an
+    // AI-generation route, there's no Claude/Gemini call left to make by
+    // this point -- confirm-entry is a pure DB write.
     const alreadyExists = await getEntry(worldId, category, entry.id);
-    if (!alreadyExists) {
-      const capResult = await checkEntryCap(worldId, req.userId);
-      if (!capResult.allowed) {
-        return res.status(403).json({
-          error: "entry_cap_reached",
-          message: `You've reached the ${capResult.cap}-entry limit for this world. Subscribe for unlimited entries, or buy more from Settings.`,
-          cap: capResult.cap,
-          count: capResult.count
-        });
+    const doConfirm = async () => {
+      if (!alreadyExists) {
+        const capResult = await checkEntryCap(worldId, req.userId);
+        if (!capResult.allowed) {
+          return {
+            status: 403,
+            body: {
+              error: "entry_cap_reached",
+              message: `You've reached the ${capResult.cap}-entry limit for this world. Subscribe for unlimited entries, or buy more from Settings.`,
+              cap: capResult.cap,
+              count: capResult.count
+            }
+          };
+        }
       }
-    }
 
-    if (category === "factions") {
-      // Roundup is recomputed fresh at confirm-time rather than trusting
-      // whatever was true when the preview was generated — it's cheap,
-      // deterministic, and always-live by design (per factionRoundup.js),
-      // so this is more correct than a stale snapshot if other entries
-      // were generated in the gap between preview and confirm.
-      if (!entry.factionKey) {
-        return res.status(400).json({ error: "Faction entry is missing factionKey" });
+      if (category === "factions") {
+        // Roundup is recomputed fresh at confirm-time rather than trusting
+        // whatever was true when the preview was generated — it's cheap,
+        // deterministic, and always-live by design (per factionRoundup.js),
+        // so this is more correct than a stale snapshot if other entries
+        // were generated in the gap between preview and confirm.
+        if (!entry.factionKey) {
+          return { status: 400, body: { error: "Faction entry is missing factionKey" } };
+        }
+        const roundupRows = await buildFactionRoundup(worldId, entry.factionKey);
+        await saveFactionEntry(worldId, entry, roundupRows);
+        await syncReciprocalRelationships(worldId, entry);
+        return { status: 200, body: { saved: true, id: entry.id, category } };
       }
-      const roundupRows = await buildFactionRoundup(worldId, entry.factionKey);
-      await saveFactionEntry(worldId, entry, roundupRows);
-      await syncReciprocalRelationships(worldId, entry);
-      return res.json({ saved: true, id: entry.id, category });
-    }
 
-    const writer = WRITERS[category];
-    if (!writer) {
-      return res.status(400).json({ error: `Unknown category '${category}'` });
-    }
+      const writer = WRITERS[category];
+      if (!writer) {
+        return { status: 400, body: { error: `Unknown category '${category}'` } };
+      }
 
-    const imageUrl = HAS_PORTRAIT[category] ? getPortraitUrl(worldId, entry.id) : undefined;
-    await writer(worldId, entry, imageUrl);
-    res.json({ saved: true, id: entry.id, category });
+      const imageUrl = HAS_PORTRAIT[category] ? getPortraitUrl(worldId, entry.id) : undefined;
+      await writer(worldId, entry, imageUrl);
+      return { status: 200, body: { saved: true, id: entry.id, category } };
+    };
+
+    const result = alreadyExists ? await doConfirm() : await withLock(`entry-cap:${worldId}`, doConfirm);
+    res.status(result.status).json(result.body);
   } catch (err) {
     console.error("Confirm-save failed:", err);
     res.status(500).json({ error: err.message });
