@@ -82,25 +82,32 @@
     </div>
 
     <div class="sheet-body">
-      <h2>Plan with AI</h2>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px;">
-        <div style="flex: 1; min-width: 240px;">
-          <label for="ca-concept" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CONCEPT (optional)</label>
-          <input id="ca-concept" type="text" placeholder="leave blank to let it invent one" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+      <!-- ai-action: hidden entirely for AI-off accounts (see
+           css/style.css's body.ai-disabled rule and this page's
+           applyAiEnabledGating() call below) -- a Campaign becomes
+           fully manual (Stages: add an existing Quest only) with AI
+           turned off. -->
+      <div class="ai-action">
+        <h2>Plan with AI</h2>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px;">
+          <div style="flex: 1; min-width: 240px;">
+            <label for="ca-concept" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CONCEPT (optional)</label>
+            <input id="ca-concept" type="text" placeholder="leave blank to let it invent one" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+          </div>
+          <div>
+            <label for="ca-stage-count" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">STAGES</label>
+            <select id="ca-stage-count" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+              <option value="">Let it choose</option>
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+          <button type="button" id="ca-generate-btn" class="bm-btn">Plan Campaign (1 generation)</button>
         </div>
-        <div>
-          <label for="ca-stage-count" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">STAGES</label>
-          <select id="ca-stage-count" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-            <option value="">Let it choose</option>
-            <option value="2">2</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
-        <button type="button" id="ca-generate-btn" class="bm-btn">Plan Campaign (1 generation)</button>
+        <p id="ca-generate-status" class="bm-status"></p>
       </div>
-      <p id="ca-generate-status" class="bm-status"></p>
 
       <h2 style="margin-top: 28px;">Stages</h2>
       <p style="color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 12px;">The Quests that make up this Campaign, in order.</p>
@@ -152,6 +159,7 @@
     renderAuthStatus();
     applyCategoryConfig();
     applySiteTheme();
+    applyAiEnabledGating(); // hides the whole "Plan with AI" section (.ai-action) for AI-off accounts -- Stages stays fully manual
     initCampaignArcBuilder();
   });
 </script>
