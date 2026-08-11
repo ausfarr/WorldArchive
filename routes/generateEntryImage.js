@@ -110,8 +110,8 @@ router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceGe
       model: HAIKU_MODEL
     });
 
-    const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
-    const imageUrl = await saveImage(req.worldId, id, imageBuffer);
+    const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim());
+    const imageUrl = await saveImage(req.worldId, id, imageBuffer, mimeType);
     await saveFn(req.worldId, subjectJson, imageUrl);
 
     res.json({ imageUrl });
@@ -135,10 +135,12 @@ router.post("/entries/:category/:id/upload-image", async (req, res) => {
     if (!loaded) return;
     const { saveFn, subjectJson } = loaded;
 
+    const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+    const mimeType = match ? match[1] : "image/png";
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const imageBuffer = Buffer.from(base64Data, "base64");
 
-    const imageUrl = await saveImage(req.worldId, id, imageBuffer);
+    const imageUrl = await saveImage(req.worldId, id, imageBuffer, mimeType);
     await saveFn(req.worldId, subjectJson, imageUrl);
 
     res.json({ imageUrl });

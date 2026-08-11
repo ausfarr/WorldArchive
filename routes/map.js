@@ -177,7 +177,7 @@ router.post("/map/generate-backdrop", requireAiEnabled, async (req, res) => {
     });
 
     const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim(), { imageSize: "2K" });
-    const url = await saveMapBackdrop(worldId, imageBuffer);
+    const url = await saveMapBackdrop(worldId, imageBuffer, mimeType);
 
     // Non-fatal: the backdrop itself is already saved and usable even if
     // this fails. Errors are logged and swallowed rather than thrown, so

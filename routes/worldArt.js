@@ -96,8 +96,8 @@ router.post("/world-art/generate-mood-board", async (req, res) => {
       model: HAIKU_MODEL
     });
 
-    const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
-    const url = await saveWorldMoodBoard(worldId, imageBuffer);
+    const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim());
+    const url = await saveWorldMoodBoard(worldId, imageBuffer, mimeType);
 
     res.json({ url, generated: true });
   } catch (err) {
@@ -144,8 +144,8 @@ async function generateOneFactionBanner(worldId, faction, styleGuide) {
     model: HAIKU_MODEL
   });
 
-  const { buffer: imageBuffer } = await generateImage(artPrompt.trim());
-  const imageUrl = await saveFactionBanner(worldId, faction.id, imageBuffer);
+  const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim());
+  const imageUrl = await saveFactionBanner(worldId, faction.id, imageBuffer, mimeType);
 
   // Bridges into the entries table the same way accentColor already
   // does (see routes/wizardStyleGuide.js's save-style-guide) -- the
@@ -243,9 +243,11 @@ router.post("/world-art/upload-mood-board", async (req, res) => {
     if (!imageBase64) {
       return res.status(400).json({ error: "imageBase64 is required." });
     }
+    const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+    const mimeType = match ? match[1] : "image/png";
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const imageBuffer = Buffer.from(base64Data, "base64");
-    const url = await saveWorldMoodBoard(req.worldId, imageBuffer);
+    const url = await saveWorldMoodBoard(req.worldId, imageBuffer, mimeType);
     res.json({ url });
   } catch (err) {
     console.error("World mood board upload failed:", err);
@@ -263,9 +265,11 @@ router.post("/world-art/upload-faction-banner/:factionId", async (req, res) => {
     if (!imageBase64) {
       return res.status(400).json({ error: "imageBase64 is required." });
     }
+    const match = imageBase64.match(/^data:(image\/\w+);base64,/);
+    const mimeType = match ? match[1] : "image/png";
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
     const imageBuffer = Buffer.from(base64Data, "base64");
-    const imageUrl = await saveFactionBanner(worldId, factionId, imageBuffer);
+    const imageUrl = await saveFactionBanner(worldId, factionId, imageBuffer, mimeType);
     await patchEntryMeta(worldId, "factions", factionId, { bannerImageUrl: imageUrl });
     res.json({ imageUrl });
   } catch (err) {
