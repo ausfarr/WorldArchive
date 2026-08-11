@@ -30,6 +30,16 @@
   <div id="admin-content">
     <p style="color: var(--ink-dim);">Loading…</p>
   </div>
+
+  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 48px 0 8px;">Browse Worlds</h1>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;">
+    Read-only. Viewing a world opens the normal archive in a banner-flagged mode where every
+    generate/edit/delete action is disabled -- both in the UI and, as the actual guarantee, on
+    the server (<code>middleware/blockAdminViewMutations.js</code>).
+  </p>
+  <div id="admin-worlds-content">
+    <p style="color: var(--ink-dim);">Loading…</p>
+  </div>
 </div>
 
 <footer class="site-footer">
@@ -54,6 +64,16 @@
     text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border-line-soft);
   }
   table.cost-table th { color: var(--ink-faint); font-weight: 600; text-transform: uppercase; font-size: 0.72rem; }
+  .view-world-btn {
+    font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase;
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    color: var(--ink); padding: 4px 10px; cursor: pointer;
+  }
+  .view-world-btn:hover { border-color: var(--accent, #ffd479); }
+  .setup-badge {
+    font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase;
+    padding: 2px 6px; border: 1px solid var(--border-line-soft);
+  }
 </style>
 
 <script src="/config.js"></script>
@@ -66,7 +86,7 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.16"></script>
+<script src="/js/auth.js?v=v0.17"></script>
 <script>
 async function init() {
   const session = await requireAuth();
@@ -124,6 +144,62 @@ async function init() {
     console.error("Could not load cost summary:", err);
     el.innerHTML = "<p>Could not load cost summary.</p>";
   }
+
+  await loadWorlds();
+}
+
+async function loadWorlds() {
+  const el = document.getElementById("admin-worlds-content");
+  try {
+    const res = await authFetch("/api/admin/worlds");
+    if (res.status === 403) {
+      el.innerHTML = "<p>Not authorized to view this page.</p>";
+      return;
+    }
+    if (!res.ok) throw new Error("Failed to load worlds.");
+
+    const { worlds } = await res.json();
+
+    const rows = worlds.map((w) => `
+      <tr>
+        <td>${escapeHtml(w.name)}</td>
+        <td>${escapeHtml(w.ownerEmail)}</td>
+        <td>${w.entryCount}</td>
+        <td><span class="setup-badge">${w.setupCompleted ? "Complete" : "Mid-wizard"}</span></td>
+        <td>${new Date(w.createdAt).toLocaleDateString()}</td>
+        <td><button class="view-world-btn" data-world-id="${w.worldId}" data-world-name="${escapeHtml(w.name)}">View</button></td>
+      </tr>
+    `).join("");
+
+    el.innerHTML = `
+      <div class="info-section">
+        <table class="cost-table">
+          <thead>
+            <tr><th>World</th><th>Owner</th><th>Entries</th><th>Setup</th><th>Created</th><th></th></tr>
+          </thead>
+          <tbody>
+            ${rows || '<tr><td colspan="6">No worlds yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    el.querySelectorAll(".view-world-btn").forEach((btn) => {
+      btn.onclick = () => {
+        setAdminViewWorld(btn.dataset.worldId, btn.dataset.worldName);
+        window.location.href = "/index.html";
+      };
+    });
+  } catch (err) {
+    console.error("Could not load worlds:", err);
+    el.innerHTML = "<p>Could not load worlds.</p>";
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
 }
 
 init();

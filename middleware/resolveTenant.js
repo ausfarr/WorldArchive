@@ -19,6 +19,39 @@
 // req.worldId.
 
 const { supabase } = require("../lib/supabaseClient");
+const { isAdminEmail } = require("../lib/adminAccess");
+
+// Read-only admin "view as" override -- lets an allowlisted admin browse
+// another user's world through the normal archive UI without ever
+// authenticating as that user. Deliberately implemented as a request
+// header (`X-Admin-View-World-Id`), NOT a route param or query string
+// leaking into browser history/logs any more than necessary, and checked
+// AFTER the requester's own JWT has already resolved a real admin
+// identity -- a non-admin sending this header is silently ignored, never
+// given an error that would confirm the header does anything.
+//
+// This only ever swaps which worldId the rest of the request pipeline
+// reads/writes against -- req.userId/req.userEmail stay the admin's own,
+// so cost-logging (lib/costContext.js) and any future "who did this"
+// auditing still attributes correctly to the admin, not the viewed user.
+// Actual write-blocking for admin-view requests happens in
+// middleware/blockAdminViewMutations.js, mounted right after this one --
+// this file's job is only to resolve which worldId is in play.
+const ADMIN_VIEW_HEADER = "x-admin-view-world-id";
+
+async function resolveAdminViewOverride(req) {
+  const requestedWorldId = req.headers[ADMIN_VIEW_HEADER];
+  if (!requestedWorldId || !isAdminEmail(req.userEmail)) return null;
+
+  const { data, error } = await supabase
+    .from("worlds")
+    .select("id")
+    .eq("id", requestedWorldId)
+    .maybeSingle();
+  if (error || !data) return null; // bad/unknown id -- fall through to the admin's own world
+
+  return data.id;
+}
 
 function extractBearerToken(req) {
   const header = req.headers.authorization || "";
@@ -83,10 +116,16 @@ async function resolveTenant(req, res, next) {
   }
 
   try {
-    const worldId = await getOrCreateWorldId(userData.user.id);
     req.userId = userData.user.id;
     req.userEmail = userData.user.email;
-    req.worldId = worldId;
+
+    const adminViewWorldId = await resolveAdminViewOverride(req);
+    if (adminViewWorldId) {
+      req.worldId = adminViewWorldId;
+      req.isAdminView = true;
+    } else {
+      req.worldId = await getOrCreateWorldId(userData.user.id);
+    }
     next();
   } catch (err) {
     next(err);

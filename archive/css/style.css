@@ -427,11 +427,29 @@ footer.site-footer .wrap {
    features turned off. Hides every AI-spend control client-side; the
    real enforcement is server-side (middleware/requireAiEnabled.js). Does
    NOT touch Upload Image, Enter Manually, or Roll Randomly -- none of
-   those cost an AI call, so none carry these classes. */
+   those cost an AI call, so none carry these classes.
+
+   body.admin-view-mode (js/auth.js's renderAdminViewBanner(), added when
+   viewing another user's world read-only) reuses this same selector list
+   -- an admin browsing someone else's world has even less business
+   clicking these than an AI-disabled account does. #delete-entry-btn is
+   also hidden here since deletion doesn't belong in a read-only view
+   either, even though it's not AI-gated for the ai-disabled case above. */
 body.ai-disabled .ai-generate-entry-btn,
 body.ai-disabled .field-assist-btn,
 body.ai-disabled .regen-btn,
 body.ai-disabled .fill-in-btn,
-body.ai-disabled .ai-action {
+body.ai-disabled .ai-action,
+body.admin-view-mode .ai-generate-entry-btn,
+body.admin-view-mode .field-assist-btn,
+body.admin-view-mode .regen-btn,
+body.admin-view-mode .fill-in-btn,
+body.admin-view-mode .ai-action {
+  display: none !important;
+}
+
+body.admin-view-mode #delete-entry-btn,
+body.admin-view-mode #create-entry-stage0-btn,
+body.admin-view-mode #gen-form {
   display: none !important;
 }

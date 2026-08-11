@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const { resolveTenant } = require("./middleware/resolveTenant");
 const { attachCostContext } = require("./middleware/attachCostContext");
+const { blockAdminViewMutations } = require("./middleware/blockAdminViewMutations");
 const generateRoute = require("./routes/generate");
 const generateEnemyRoute = require("./routes/generateEnemy");
 const generateItemRoute = require("./routes/generateItem");
@@ -32,6 +33,7 @@ const exportRoute = require("./routes/export");
 const searchRoute = require("./routes/search");
 const deleteWorldRoute = require("./routes/deleteWorld");
 const adminCostRoute = require("./routes/adminCost");
+const adminWorldsRoute = require("./routes/adminWorlds");
 const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
 const stripeWebhookRoute = require("./routes/stripeWebhook");
@@ -99,6 +101,11 @@ app.use("/api", resolveTenant);
 // map -- carry cost-logging context. See middleware/attachCostContext.js
 // and lib/costContext.js.
 app.use("/api", attachCostContext);
+// Must run after resolveTenant (needs req.isAdminView) and before every
+// route below -- see middleware/blockAdminViewMutations.js. This is the
+// actual read-only enforcement for the admin "view as" feature; it's not
+// optional and every route mounted after it is covered automatically.
+app.use("/api", blockAdminViewMutations);
 app.use("/api", generateRoute);
 app.use("/api", generateEnemyRoute);
 app.use("/api", generateItemRoute);
@@ -130,6 +137,7 @@ app.use("/api", searchRoute);
 app.use("/api", deleteWorldRoute);
 app.use("/api", billingRoute);
 app.use("/api", adminCostRoute);
+app.use("/api", adminWorldsRoute);
 app.use("/api", debugCompareTextModelsRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 

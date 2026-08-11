@@ -13,16 +13,13 @@
 // the allowlist check happens before any query runs.
 const express = require("express");
 const { supabase } = require("../lib/supabaseClient");
+const { isAdminEmail } = require("../lib/adminAccess");
 
 const router = express.Router();
 
-// TODO(Austin): add any co-founder/teammate emails here if that ever
-// becomes a thing. Single-entry allowlist is fine for a solo beta.
-const ADMIN_EMAILS = ["ausfarr@gmail.com"];
-
 router.get("/admin/cost-summary", async (req, res) => {
   try {
-    if (!req.userEmail || !ADMIN_EMAILS.includes(req.userEmail)) {
+    if (!isAdminEmail(req.userEmail)) {
       return res.status(403).json({ error: "Not authorized." });
     }
 
