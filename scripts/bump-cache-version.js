@@ -32,7 +32,8 @@ const CACHE_BUSTED_SCRIPTS = [
   "campaignArc",
   "campaignModule",
   "auth",
-  "wizardSession"
+  "wizardSession",
+  "themeBootstrap"
 ];
 
 const fs = require("fs");
