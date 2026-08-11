@@ -1,11 +1,64 @@
 const express = require("express");
 const { callClaudeExpectingJson } = require("../lib/claude");
-const { getDraft, saveDraftStep, resetWorldConfig, getOrCreateWorldConfig } = require("../lib/worldConfigRepo");
+const { getDraft, saveDraftStep, resetWorldConfig, getOrCreateWorldConfig, getRuleset, setRuleset } = require("../lib/worldConfigRepo");
 const { clearLoreSections } = require("../lib/loreRepo");
 const { buildWizardStep1SystemPrompt } = require("../prompts/wizardStep1Prompt");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
+const { listRulesets, isValidRuleset } = require("../lib/rulesets");
+const { isAdminEmail } = require("../lib/adminAccess");
 
 const router = express.Router();
+
+// Multi-ruleset genericization, Phase 1 -- see migrations/020_ruleset_foundation.sql.
+// Ruleset options for Step 1's picker, filtered server-side (Echoes
+// dropped for non-admins -- see lib/rulesets/index.js's listRulesets,
+// the ONLY place that filter lives). `locked` tells the frontend whether
+// the picker should be editable at all -- true once this world's setup
+// is complete, since setRuleset() below refuses to write past that
+// point anyway; surfacing it here lets the page disable the control
+// instead of letting a user fill it in and then hit a confusing save
+// error.
+router.get("/wizard/ruleset-options", async (req, res) => {
+  try {
+    const [config, current] = await Promise.all([
+      getOrCreateWorldConfig(req.worldId),
+      getRuleset(req.worldId)
+    ]);
+    res.json({
+      options: listRulesets(req.userEmail),
+      current,
+      locked: !!config.setup_completed_at
+    });
+  } catch (err) {
+    console.error("Loading ruleset options failed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Sets world_config.ruleset directly (NOT via draft_json/save-draft --
+// this is a real, permanent commit from the moment it's first saved, not
+// scratch state). isValidRuleset() rejects anything outside the 4 known
+// values; the Echoes admin-only gate is re-checked here server-side too
+// (never trust the frontend picker having filtered it out) so a crafted
+// request can't set a non-admin world to 'echoes'. worldConfigRepo's
+// setRuleset() is what actually enforces "permanent once setup is
+// complete" -- see that function's comment.
+router.post("/wizard/set-ruleset", async (req, res) => {
+  try {
+    const { ruleset } = req.body || {};
+    if (!isValidRuleset(ruleset)) {
+      return res.status(400).json({ error: `Invalid ruleset '${ruleset}'. Must be one of: echoes, 5e, pf2e, generic.` });
+    }
+    if (ruleset === "echoes" && !isAdminEmail(req.userEmail)) {
+      return res.status(403).json({ error: "The Echoes of the Neon ruleset is admin-only." });
+    }
+    const saved = await setRuleset(req.worldId, ruleset);
+    res.json({ ruleset: saved });
+  } catch (err) {
+    console.error("Setting ruleset failed:", err);
+    res.status(400).json({ error: err.message });
+  }
+});
 
 // Wipes ALL wizard progress for this world -- draft_json, factions_json,
 // lore_doc_ref (worldConfigRepo.resetWorldConfig) and every lore_sections
