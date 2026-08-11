@@ -45,6 +45,7 @@ const {
   updateCampaignModule,
   deleteCampaignModule
 } = require("../lib/campaignModuleRepo");
+const { removeQuestFromAllCampaignArcs } = require("../lib/campaignArcRepo");
 
 const router = express.Router();
 
@@ -211,6 +212,15 @@ router.patch("/campaign-modules/:id", async (req, res) => {
 router.delete("/campaign-modules/:id", async (req, res) => {
   try {
     await deleteCampaignModule(req.worldId, req.params.id);
+    // Cleanup of OTHER records referencing this Quest, not the delete
+    // itself -- best-effort, same reasoning as routes/entries.js's
+    // delete handler. Without this, campaign_arcs.quest_ids kept the
+    // dead id forever.
+    try {
+      await removeQuestFromAllCampaignArcs(req.worldId, req.params.id);
+    } catch (cleanupErr) {
+      console.error(`Removing Quest ${req.params.id} from Campaigns after delete failed:`, cleanupErr);
+    }
     res.json({ success: true });
   } catch (err) {
     console.error("Deleting campaign module failed:", err);

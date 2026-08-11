@@ -1,6 +1,8 @@
 const express = require("express");
 const { listEntries, getEntry, deleteEntry, patchEntryMeta } = require("../lib/entriesRepo");
-const { deletePortrait } = require("../lib/fileWriter");
+const { deletePortrait, saveFactionEntry } = require("../lib/fileWriter");
+const { removeEntryFromAllCampaignModules } = require("../lib/campaignModuleRepo");
+const { buildFactionRoundup } = require("../lib/factionRoundup");
 
 const router = express.Router();
 
@@ -56,8 +58,39 @@ router.get("/entries/:category/:id", requireValidCategory, async (req, res) => {
 // portrait" from "regenerate shouldn't touch an existing one").
 router.delete("/entries/:category/:id", requireValidCategory, async (req, res) => {
   try {
-    await deleteEntry(req.worldId, req.params.category, req.params.id);
-    await deletePortrait(req.worldId, req.params.id);
+    const { category, id } = req.params;
+    const worldId = req.worldId;
+
+    // Fetched BEFORE deleting so its faction is still known afterward --
+    // used below to refresh that faction's Roundup, which otherwise keeps
+    // a dead dossier.html link for this entry until the faction happens
+    // to be regenerated/confirmed again for an unrelated reason.
+    const entryBeingDeleted = await getEntry(worldId, category, id);
+
+    await deleteEntry(worldId, category, id);
+    await deletePortrait(worldId, id);
+
+    // Both of these are cleanup of OTHER records that referenced this
+    // entry, not the delete itself -- best-effort, logged but not
+    // re-thrown, so a failure here never turns an already-successful
+    // delete into a 500 for the user.
+    if (entryBeingDeleted && entryBeingDeleted.faction) {
+      try {
+        const factionEntry = await getEntry(worldId, "factions", entryBeingDeleted.faction);
+        if (factionEntry && factionEntry.raw) {
+          const roundupRows = await buildFactionRoundup(worldId, entryBeingDeleted.faction);
+          await saveFactionEntry(worldId, factionEntry.raw, roundupRows);
+        }
+      } catch (roundupErr) {
+        console.error(`Refreshing faction Roundup after deleting ${category}/${id} failed:`, roundupErr);
+      }
+    }
+    try {
+      await removeEntryFromAllCampaignModules(worldId, category, id);
+    } catch (cleanupErr) {
+      console.error(`Removing ${category}/${id} from Quests after delete failed:`, cleanupErr);
+    }
+
     res.json({ deleted: true });
   } catch (err) {
     console.error(`Deleting entry (${req.params.category}/${req.params.id}) failed:`, err);
