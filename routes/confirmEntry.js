@@ -15,6 +15,8 @@ const { syncReciprocalRelationships } = require("../lib/factionDeepLore");
 const { getEntry } = require("../lib/entriesRepo");
 const { checkEntryCap } = require("../middleware/enforceEntryCap");
 const { withLock } = require("../lib/asyncLock");
+const { getRuleset } = require("../lib/worldConfigRepo");
+const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
 
 const router = express.Router();
 
@@ -104,7 +106,18 @@ router.post("/confirm-entry", async (req, res) => {
         return { status: 200, body: { saved: true, id: entry.id, category } };
       }
 
-      const writer = WRITERS[category];
+      // Multi-ruleset genericization: "enemies" is the one category so
+      // far (Phase 3) with a per-ruleset writer instead of a single
+      // fixed one -- WRITERS.enemies stays Echoes' saveEnemyEntry
+      // UNCHANGED (see that map above) so this only branches away from
+      // it for a ruleset that actually has its own enemy pipeline built.
+      // Every other category keeps going through WRITERS exactly as
+      // before this project.
+      let writer = WRITERS[category];
+      if (category === "enemies") {
+        const ruleset = await getRuleset(worldId);
+        if (ruleset === "5e") writer = save5eEnemyEntry;
+      }
       if (!writer) {
         return { status: 400, body: { error: `Unknown category '${category}'` } };
       }

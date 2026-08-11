@@ -2,119 +2,350 @@ const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
-const { callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
-const { generateImage } = require("../lib/imagegen");
+const { callClaudeExpectingJson } = require("../lib/claude");
 const { buildEnemyRosterContext, readEnemyManifest, readEnemyEntry } = require("../lib/roster");
 const { buildEnemyContentSystemPrompt } = require("../prompts/enemyContentPrompt");
-const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
-const { saveEnemyEntry, saveImage } = require("../lib/fileWriter");
+const { saveEnemyEntry } = require("../lib/fileWriter");
 const { slugify, buildEnemyBodyHtml } = require("../lib/enemyTemplate");
 const { attributeBudgetWarning } = require("../lib/statFormulas");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getStatLabels, formatStatLabelsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
-const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
 const { createNewEnemy } = require("../lib/campaignEntryGenerators");
+const { getRuleset } = require("../lib/worldConfigRepo");
+const { listEntries, getEntry } = require("../lib/entriesRepo");
+
+// Multi-ruleset genericization, Phase 3 (Bestiary proof of concept) --
+// see session_addendum_ruleset_genericization.md.
+const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
+const { slugify: slugify5e, buildEnemyBodyHtml: buildEnemyBodyHtml5e } = require("../lib/rulesets/5e/enemyTemplate");
+const { computeChallengeRating, averageDamageFromDice, XP_BY_CR } = require("../lib/rulesets/5e/statFormulas");
+const { mapSrdMonsterMechanics } = require("../lib/rulesets/5e/srdMonsterMapper");
+const { buildHomebrewEnemySystemPrompt, buildReflavorEnemySystemPrompt } = require("../prompts/rulesets/5e/enemyContentPrompt");
+const { getSrdEntry, findNearestCrMonsters, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 
 const router = express.Router();
 
 router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
-    const worldId = req.worldId;
-    let { name, faction, tier, fillExistingId } = req.body || {};
+    const ruleset = await getRuleset(req.worldId);
 
-    if (!fillExistingId) {
-      const result = await createNewEnemy(worldId, { name, faction, tier });
-      return res.json({ preview: false, ...result });
+    if (ruleset === "5e") {
+      return await handle5eEnemyGenerate(req, res);
+    }
+    if (ruleset !== "echoes") {
+      // This category isn't built for this ruleset yet (pf2e/generic --
+      // later phases). The generation cap was already spent by
+      // enforceGenerationCap before we knew that, so refund it rather
+      // than charging a world for an error response.
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(501).json({ error: `Bestiary generation isn't available yet for the '${ruleset}' ruleset.` });
     }
 
-    let existingEntry = null;
-    let priorRaw = null;
-    let priorBodyHtml = null;
-    let mode = "new";
-
-    if (fillExistingId) {
-      const manifest = await readEnemyManifest(worldId);
-      existingEntry = manifest.find((m) => m.id === fillExistingId);
-      if (!existingEntry) {
-        return res.status(404).json({ error: `No existing enemy entry found with id '${fillExistingId}'` });
-      }
-      mode = existingEntry.locked ? "fill" : "regenerate";
-      if (mode === "regenerate") {
-        const prior = await readEnemyEntry(worldId, fillExistingId);
-        priorRaw = prior && prior.raw ? prior.raw : null;
-        priorBodyHtml = prior ? prior.bodyHtml : null;
-      }
-      name = existingEntry.name;
-      faction = existingEntry.faction || faction;
-      // existingEntry.tier is already a real, structured field (see
-      // fileWriter.js's saveEnemyEntry) reliably present via raw_json
-      // spread -- dropped the subtitle-parsing fallback this used to
-      // fall through to, since it depended on subtitle formatting never
-      // changing and never actually fires for a real entry.
-      tier = existingEntry.tier || tier;
-    }
-
-    const rosterContext = await buildEnemyRosterContext(worldId);
-    const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
-    const settingContext = await getSettingContext(worldId);
-    const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
-    const statLabels = await getStatLabels(worldId);
-    const statLabelsText = formatStatLabelsForPrompt(statLabels);
-
-    const contentSystemPrompt = buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent: priorRaw });
-    const enemy = await callClaudeExpectingJson({
-      systemPrompt: contentSystemPrompt,
-      userMessage: "Generate the enemy now.",
-      maxTokens: 3000
-    });
-    enemy.id = fillExistingId || enemy.id || slugify(enemy.name);
-    if (existingEntry) enemy.name = existingEntry.name;
-
-    // Same fix as routes/generate.js — a user-selected faction is a known
-    // fact, not a suggestion, so it overrides whatever the model output.
-    if (faction) enemy.faction = faction;
-
-    const warning = attributeBudgetWarning(enemy.attributes, enemy.tier);
-    if (warning) console.warn("Attribute budget check:", warning);
-
-    if (mode === "regenerate") {
-      const newBodyHtmlPreview = buildEnemyBodyHtml(enemy, null, statLabels);
-      return res.json({
-        preview: true,
-        mode: "regenerate",
-        category: "enemies",
-        id: enemy.id,
-        name: enemy.name,
-        entry: enemy,
-        newBodyHtmlPreview,
-        oldBodyHtmlPreview: priorBodyHtml,
-        attributeBudgetWarning: warning
-      });
-    }
-
-    // Portrait generation is no longer bundled into entry creation --
-    // saved immediately with imageUrl: null, and the dossier page offers
-    // Generate/Upload actions via archive/js/portraitActions.js +
-    // routes/generateEntryImage.js instead. (This decoupling was
-    // originally done in a separate chat session in this project; being
-    // restored here after it was accidentally reverted by an unrelated
-    // later delivery that touched this same file.)
-    await saveEnemyEntry(worldId, enemy, null);
-
-    res.json({
-      preview: false,
-      id: enemy.id,
-      name: enemy.name,
-      tier: enemy.tier,
-      faction: enemy.faction,
-      summary: enemy.designNotes,
-      attributeBudgetWarning: warning
-    });
+    return await handleEchoesEnemyGenerate(req, res);
   } catch (err) {
     console.error("Enemy generation failed:", err);
     if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });
+
+// ============================================================
+// Echoes path -- UNCHANGED from before this project (moved into its own
+// function so the ruleset branch above can dispatch to it; the body
+// below is byte-for-byte the same logic that used to be the whole route
+// handler). See this project's hard constraint: every existing Echoes
+// world must keep generating exactly as it did before.
+// ============================================================
+async function handleEchoesEnemyGenerate(req, res) {
+  const worldId = req.worldId;
+  let { name, faction, tier, fillExistingId } = req.body || {};
+
+  if (!fillExistingId) {
+    const result = await createNewEnemy(worldId, { name, faction, tier });
+    return res.json({ preview: false, ...result });
+  }
+
+  let existingEntry = null;
+  let priorRaw = null;
+  let priorBodyHtml = null;
+  let mode = "new";
+
+  if (fillExistingId) {
+    const manifest = await readEnemyManifest(worldId);
+    existingEntry = manifest.find((m) => m.id === fillExistingId);
+    if (!existingEntry) {
+      return res.status(404).json({ error: `No existing enemy entry found with id '${fillExistingId}'` });
+    }
+    mode = existingEntry.locked ? "fill" : "regenerate";
+    if (mode === "regenerate") {
+      const prior = await readEnemyEntry(worldId, fillExistingId);
+      priorRaw = prior && prior.raw ? prior.raw : null;
+      priorBodyHtml = prior ? prior.bodyHtml : null;
+    }
+    name = existingEntry.name;
+    faction = existingEntry.faction || faction;
+    // existingEntry.tier is already a real, structured field (see
+    // fileWriter.js's saveEnemyEntry) reliably present via raw_json
+    // spread -- dropped the subtitle-parsing fallback this used to
+    // fall through to, since it depended on subtitle formatting never
+    // changing and never actually fires for a real entry.
+    tier = existingEntry.tier || tier;
+  }
+
+  const rosterContext = await buildEnemyRosterContext(worldId);
+  const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const statLabels = await getStatLabels(worldId);
+  const statLabelsText = formatStatLabelsForPrompt(statLabels);
+
+  const contentSystemPrompt = buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent: priorRaw });
+  const enemy = await callClaudeExpectingJson({
+    systemPrompt: contentSystemPrompt,
+    userMessage: "Generate the enemy now.",
+    maxTokens: 3000
+  });
+  enemy.id = fillExistingId || enemy.id || slugify(enemy.name);
+  if (existingEntry) enemy.name = existingEntry.name;
+
+  // Same fix as routes/generate.js — a user-selected faction is a known
+  // fact, not a suggestion, so it overrides whatever the model output.
+  if (faction) enemy.faction = faction;
+
+  const warning = attributeBudgetWarning(enemy.attributes, enemy.tier);
+  if (warning) console.warn("Attribute budget check:", warning);
+
+  if (mode === "regenerate") {
+    const newBodyHtmlPreview = buildEnemyBodyHtml(enemy, null, statLabels);
+    return res.json({
+      preview: true,
+      mode: "regenerate",
+      category: "enemies",
+      id: enemy.id,
+      name: enemy.name,
+      entry: enemy,
+      newBodyHtmlPreview,
+      oldBodyHtmlPreview: priorBodyHtml,
+      attributeBudgetWarning: warning
+    });
+  }
+
+  // Portrait generation is no longer bundled into entry creation --
+  // saved immediately with imageUrl: null, and the dossier page offers
+  // Generate/Upload actions via archive/js/portraitActions.js +
+  // routes/generateEntryImage.js instead. (This decoupling was
+  // originally done in a separate chat session in this project; being
+  // restored here after it was accidentally reverted by an unrelated
+  // later delivery that touched this same file.)
+  await saveEnemyEntry(worldId, enemy, null);
+
+  res.json({
+    preview: false,
+    id: enemy.id,
+    name: enemy.name,
+    tier: enemy.tier,
+    faction: enemy.faction,
+    summary: enemy.designNotes,
+    attributeBudgetWarning: warning
+  });
+}
+
+// ============================================================
+// 5e path -- Phase 3 proof of concept for the whole ruleset pattern.
+// Three tiers dispatched by req.body.mode: 'import' (no AI), 'reflavor'
+// (AI rewrites narrative only, mechanics untouched), 'homebrew' (AI
+// invents fresh stats, code computes the real CR).
+// ============================================================
+
+// Estimates offense (avg damage + attack bonus of the single most
+// damaging action) for CR computation. Deliberately simple -- see
+// scripts/test5eStatFormulas.js's header comment for why a perfect
+// multiattack/spellcasting-aware extraction wouldn't make CR estimation
+// exact anyway (WotC's own printed CRs aren't purely formula-derived
+// either). This is an ESTIMATE surfaced to the GM as one, not a claim of
+// authority -- see lib/rulesets/5e/enemyTemplate.js's "(estimated --
+// review before play)" badge.
+function extractOffenseForCr(enemy) {
+  const actions = Array.isArray(enemy.actions) ? enemy.actions : [];
+  let best = { avg: 0, toHit: 0 };
+  for (const action of actions) {
+    if (!action.damageDice) continue;
+    const avg = averageDamageFromDice(action.damageDice);
+    if (avg > best.avg) best = { avg, toHit: Number(action.toHit) || 0 };
+  }
+  return best;
+}
+
+// Rough approximation of "resistant/immune to a broad spread of common
+// damage" for the EHP adjustment -- see statFormulas.js's
+// effectiveHp() comment for why this whole adjustment is inherently a
+// judgment call, not a precise formula, even in the original DMG text.
+function looksLikeBroadResistanceOrImmunity(text) {
+  if (!text) return false;
+  const items = String(text).split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  return items.length >= 3 || /\ball\b/i.test(text);
+}
+
+async function findExisting5eEntry(worldId, fillExistingId) {
+  const manifest = await listEntries(worldId, "enemies");
+  const existingEntry = manifest.find((m) => m.id === fillExistingId);
+  if (!existingEntry) return null;
+  const full = await getEntry(worldId, "enemies", fillExistingId);
+  return { manifestEntry: existingEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
+}
+
+async function handle5eEnemyGenerate(req, res) {
+  const worldId = req.worldId;
+  const { name, faction, fillExistingId, srdLibraryId, targetCr } = req.body || {};
+  const mode = req.body && req.body.mode;
+
+  let existingEntry = null;
+  let isFill = false;
+  let isRegenerate = false;
+  if (fillExistingId) {
+    existingEntry = await findExisting5eEntry(worldId, fillExistingId);
+    if (!existingEntry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No existing enemy entry found with id '${fillExistingId}'` });
+    }
+    isFill = existingEntry.manifestEntry.locked;
+    isRegenerate = !isFill;
+  }
+
+  const effectiveMode = mode || (existingEntry && existingEntry.raw && existingEntry.raw.sourceMode) || "homebrew";
+  if (!["import", "reflavor", "homebrew"].includes(effectiveMode)) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "5e enemy generation requires a 'mode' of 'import', 'reflavor', or 'homebrew'." });
+  }
+
+  // ---- Import: zero AI cost, direct copy from srd_library ----
+  if (effectiveMode === "import") {
+    if (req.refundGeneration) await req.refundGeneration(); // Phase 12 scope is a full 0-point billing path; refunding here gets the same result today without a bigger enforceGenerationCap rework.
+    if (!srdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(srdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+
+    const alreadyImportedAs = await isAlreadyImported(worldId, srdLibraryId);
+    if (alreadyImportedAs && alreadyImportedAs !== fillExistingId) {
+      return res.status(409).json({ error: `This SRD monster was already imported into this world as '${alreadyImportedAs}'.` });
+    }
+
+    const mechanics = mapSrdMonsterMechanics(srdRow.data_json);
+    mechanics.challengeRating.xp = XP_BY_CR[mechanics.challengeRating.cr] || null;
+    const enemy = {
+      id: fillExistingId || slugify5e(srdRow.name),
+      name: srdRow.name,
+      faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null,
+      flavor: null,
+      designNotes: null,
+      sourceMode: "import",
+      srdSourceId: srdRow.srd_id,
+      srdLicenseNote: srdRow.license_note,
+      ...mechanics
+    };
+
+    if (isRegenerate) {
+      const newBodyHtmlPreview = buildEnemyBodyHtml5e(enemy, null);
+      return res.json({ preview: true, mode: "regenerate", category: "enemies", id: enemy.id, name: enemy.name, entry: enemy, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+    }
+
+    await save5eEnemyEntry(worldId, enemy, null);
+    await recordImport(worldId, srdLibraryId, enemy.id);
+    return res.json({ preview: false, id: enemy.id, name: enemy.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
+  }
+
+  // ---- Reflavor / Homebrew both call Claude ----
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
+
+  let enemy;
+
+  if (effectiveMode === "reflavor") {
+    // srdLibraryId (the srd_library row's UUID primary key) must be
+    // passed explicitly on every call, including a regenerate -- an
+    // existing reflavored entry only stores srdSourceId (the human
+    // slug, e.g. "goblin", kept for display) on its raw_json, not the
+    // UUID getSrdEntry() needs, and re-resolving slug -> UUID isn't
+    // worth a second lookup helper for this proof-of-concept phase. The
+    // frontend already has srdLibraryId on hand for a regenerate (it's
+    // how the reflavor was requested the first time), so this is a
+    // reasonable contract, not a real limitation.
+    if (!srdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(srdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+
+    const systemPrompt = buildReflavorEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, sourceMonster: srdRow.data_json, faction });
+    const reflavored = await callClaudeExpectingJson({ systemPrompt, userMessage: "Reflavor the monster now.", maxTokens: 2000 });
+
+    const mechanics = mapSrdMonsterMechanics(srdRow.data_json);
+    mechanics.challengeRating.xp = XP_BY_CR[mechanics.challengeRating.cr] || null;
+    enemy = {
+      id: fillExistingId || slugify5e(reflavored.name),
+      name: reflavored.name,
+      faction: faction || null,
+      flavor: reflavored.flavor,
+      designNotes: reflavored.designNotes,
+      sourceMode: "reflavor",
+      srdSourceId: srdRow.srd_id,
+      srdLicenseNote: srdRow.license_note,
+      ...mechanics,
+      // Model's rewritten narrative overrides the mapper's raw-source
+      // traits/actions -- but only the name/description text; the
+      // mapper's mechanics (AC/HP/abilities/resistances/etc.) above are
+      // NOT touched by the model at all.
+      traits: reflavored.traits || mechanics.traits,
+      actions: reflavored.actions && reflavored.actions.length === mechanics.actions.length ? reflavored.actions : mechanics.actions
+    };
+  } else {
+    // Homebrew
+    const rosterEntries = await listEntries(worldId, "enemies", { locked: false });
+    const rosterContext = rosterEntries.length
+      ? rosterEntries.map((e) => `- ${e.id} | ${e.name}: CR ${(e.challengeRating && e.challengeRating.cr) || "?"}`).join("\n")
+      : "No enemies archived yet -- any concept is available.";
+    const referenceMonsters = await findNearestCrMonsters("5e", targetCr ? parseFloat(targetCr) || null : null, { limit: 2 });
+
+    const systemPrompt = buildHomebrewEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, faction, targetCr, referenceMonsters, campaignContext: undefined });
+    const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the monster now.", maxTokens: 2500 });
+
+    const offense = extractOffenseForCr(proposed);
+    const crResult = computeChallengeRating({
+      hp: proposed.hitPoints,
+      ac: proposed.armorClass,
+      damagePerRound: offense.avg,
+      attackBonus: offense.toHit,
+      saveDC: 0,
+      resistantToCommonDamage: looksLikeBroadResistanceOrImmunity(proposed.damageResistances),
+      immuneToCommonDamage: looksLikeBroadResistanceOrImmunity(proposed.damageImmunities)
+    });
+
+    delete proposed.targetChallengeRating;
+    enemy = {
+      ...proposed,
+      id: fillExistingId || slugify5e(proposed.name),
+      faction: faction || proposed.faction || null,
+      sourceMode: "homebrew",
+      srdSourceId: null,
+      srdLicenseNote: null,
+      challengeRating: {
+        cr: crResult.cr,
+        xp: XP_BY_CR[crResult.cr] || null,
+        defensiveCr: crResult.defensiveCr,
+        offensiveCr: crResult.offensiveCr,
+        estimated: true
+      }
+    };
+  }
+
+  if (existingEntry) enemy.id = existingEntry.manifestEntry.id;
+
+  if (isRegenerate) {
+    const newBodyHtmlPreview = buildEnemyBodyHtml5e(enemy, null);
+    return res.json({ preview: true, mode: "regenerate", category: "enemies", id: enemy.id, name: enemy.name, entry: enemy, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+  }
+
+  await save5eEnemyEntry(worldId, enemy, null);
+  res.json({ preview: false, id: enemy.id, name: enemy.name, faction: enemy.faction, summary: enemy.designNotes });
+}
 
 module.exports = router;

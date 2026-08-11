@@ -152,3 +152,97 @@ Ruleset field lays out correctly — its `<select>` is empty in the
 screenshot only because this sandbox has no real Supabase project for
 `/api/wizard/ruleset-options` to hit, expected per the Pre-flight notes
 above).
+
+## Phase 3 — Bestiary / Monsters (5e proof of concept)
+
+**CR table provenance**: `lib/rulesets/5e/statFormulas.js`'s
+`CHALLENGE_THRESHOLDS` table (the DMG's "Monster Statistics by Challenge
+Rating") was cross-checked row-by-row against the independently-written,
+MIT-licensed `github.com/AsmodeusXI/dnd-5e-cr-calculator` (these are
+mechanical/balance numbers, not literary SRD text, so this isn't a
+licensing concern the way the monster data itself was). Found and fixed
+a real transcription bug in that reference project's own CR-25 row
+(`sdc: 11`, breaking an otherwise-monotonic 20/20/20/**21**/21/21/22/22/22/23
+sequence across neighboring rows) — used 21 here. Also verified the
+averaging/rounding rule (round UP on an exact .5, not down) against a
+worked DMG example quoted by a secondary source (offensive CR 9 +
+defensive CR 6 → published result is CR 8, not 7) — this is a real,
+easy-to-get-backwards rule and is now a dedicated hard-asserted test
+(`testAveragingRoundsUp` in `scripts/test5eStatFormulas.js`).
+
+**Real bug caught before shipping**: `averageDamageFromDice()` can return
+a fractional average (e.g. "1d6+2" → 5.5), but the DPR lookup table's
+bands are contiguous whole numbers -- an un-rounded 5.5 doesn't match ANY
+band and would have silently fallen through to the wrong index. Fixed by
+rounding before the lookup (`lib/rulesets/5e/statFormulas.js`'s
+`computeChallengeRating`); caught by testing against real monster data
+before writing the "final" test assertions, not by inspection.
+
+**Important finding, worth restating here since it changes how this tool
+should be presented to users**: applying this formula literally to real
+SRD monsters' real stats does NOT reliably reproduce their officially
+printed CR -- confirmed by hand-tracing the real Goblin (AC 15, HP 7,
++4/1d6+2) through the algorithm: computes to CR 1/2, not the printed CR
+1/4. This is NOT an implementation bug (verified independently against
+the AsmodeusXI reference implementation, which produces the identical
+result off the same inputs) -- it's a documented property of 5e's CR
+system: the DMG explicitly frames this method as a starting ESTIMATE for
+homebrew, and WotC's own low-CR monsters are known to be hand-tuned via
+playtesting rather than purely formula-derived (the low end of the CR
+scale has especially coarse HP/DPR bands). A full sweep across all 201
+ingested SRD monsters (informational only, not a hard test gate --
+`scripts/test5eStatFormulas.js`) using a simplified single-best-action
+DPR extraction gets an exact match on only 15% and "within one CR step"
+on 42% -- expected, given both the extraction's simplification
+(ignores Multiattack, spellcasting, legendary actions, resistances) AND
+the formula's own inherent looseness stack on top of each other.
+**Consequence**: `lib/rulesets/5e/enemyTemplate.js` labels
+code-computed CR as "(estimated — review before play)" for Homebrew
+entries; Import/Reflavor entries carry the real officially-printed CR
+unchanged (`estimated: false`) since their mechanics are untouched from
+the SRD source.
+
+**Three-tier pattern implemented**: Import (zero AI cost — direct copy
+from `srd_library` via `lib/rulesets/5e/srdMonsterMapper.js`, refunds the
+generation-cap spend immediately since full differential billing is
+Phase 12 scope but a free import shouldn't wait for that), Reflavor
+(`prompts/rulesets/5e/enemyContentPrompt.js`'s `buildReflavorEnemySystemPrompt`
+— model rewrites name/flavor/trait-and-action WORDING only, mechanics
+copied through unchanged from the mapper), Homebrew
+(`buildHomebrewEnemySystemPrompt` — model proposes full stats grounded
+against 1-2 real same-CR SRD monsters as labeled reference, code computes
+the real CR via `computeChallengeRating()`).
+
+**`routes/generateEnemy.js` restructure**: the entire pre-existing Echoes
+code path was moved verbatim into `handleEchoesEnemyGenerate()` (diffed
+against the original file to confirm every statement is unchanged, just
+relocated + wrapped in a ruleset branch — two explanatory comments that
+got dropped in the first pass were restored for full fidelity). A
+`generic`/`pf2e` world hitting this route gets an explicit 501 with a
+generation-cap refund, not a silent fallback to Echoes' code path.
+
+**Verification performed** (no real Supabase/Claude credentials in this
+sandbox, so verification is direct function-level testing, not a live
+end-to-end request):
+- `scripts/test5eStatFormulas.js`: all hard assertions pass (ability
+  modifiers, dice-average parsing, 3 hand-traced real-monster CR
+  component checks, the DMG averaging rule, proficiency bonus lookup).
+- `mapSrdMonsterMechanics()` output spot-checked against the real Ghost
+  and Lich SRD entries (resistances/immunities/saving throws/skills all
+  render correctly through `buildEnemyBodyHtml`).
+- Full Homebrew pipeline (prompt build → simulated model output →
+  `extractOffenseForCr` → `computeChallengeRating` → template render)
+  run end-to-end with a synthetic monster, confirmed correct estimated-CR
+  badge renders.
+- Server boots cleanly with every new route/module wired in; `POST
+  /api/generate-enemy` returns 401 pre-auth same as every other `/api/*`
+  route (no crash from the new dispatch logic).
+
+**Deferred within Phase 3 itself** (small, noted so it isn't confused
+with "done"): no frontend UI was built for the 5e three-tier picker
+(mode selection, SRD browse/import picker) — `archive/js/render.js`'s
+enemy generation UI is still Echoes-shaped. The backend API contract
+(`mode`, `srdLibraryId`, `targetCr` on `POST /api/generate-enemy`) is
+real and tested at the function level; wiring a ruleset-aware frontend is
+folded into Phase 11's scope (Ruleset-Aware Edit Forms / UI), not
+silently dropped.
