@@ -27,7 +27,7 @@
   <div class="sheet" style="padding: 32px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Stat System</h1>
-      <button type="button" id="generate-all" class="generate-btn">Generate for me</button>
+      <button type="button" id="generate-all" class="generate-btn ai-action">Generate for me</button>
     </div>
     <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Rename the six core attributes to fit your world's own voice. The underlying mechanics never change — this is labeling only.</p>
 
@@ -39,7 +39,7 @@
   <div class="sheet" style="padding: 32px; margin-top: 24px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Skills</h1>
-      <button type="button" id="generate-skills" class="generate-btn">Generate for me</button>
+      <button type="button" id="generate-skills" class="generate-btn ai-action">Generate for me</button>
     </div>
     <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Name your world's 7 weapon categories (their balance never changes, only the name). Then generate a fixed pool of field skills — every class and item will draw from this same list afterward instead of inventing new ones each time.</p>
 
@@ -119,9 +119,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.15"></script>
-<script src="/js/wizardSession.js?v=v0.15"></script>
-<script src="js/render.js?v=v0.15"></script>
+<script src="/js/auth.js?v=v0.16"></script>
+<script src="/js/wizardSession.js?v=v0.16"></script>
+<script src="js/render.js?v=v0.16"></script>
 <script>
 const CANONICAL_STATS = [
   { key: "body", mechanic: "Drives max health & physical resilience" },
@@ -295,6 +295,7 @@ async function init() {
   await requireAuth();
   renderAuthStatus();
   await ensureWizardSession();
+  applyAiEnabledGating(); // hides both Generate buttons (.ai-action) for AI-off accounts -- every field stays manually fillable
   try {
     const res = await authFetch("/api/wizard/stat-system");
     const { statSystem: loaded } = await res.json();

@@ -90,16 +90,22 @@
     </div>
 
     <div class="sheet-body">
-      <h2>Generate with AI</h2>
-      <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px;">
-        <div style="flex: 1; min-width: 240px;">
-          <label for="cm-concept" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CONCEPT (optional)</label>
-          <input id="cm-concept" type="text" placeholder="leave blank to let it invent one" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+      <!-- ai-action: hidden entirely for AI-off accounts (see
+           css/style.css's body.ai-disabled rule and this page's
+           applyAiEnabledGating() call below) -- a Quest becomes fully
+           manual (Entries section only) with AI turned off. -->
+      <div class="ai-action">
+        <h2>Generate with AI</h2>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 8px;">
+          <div style="flex: 1; min-width: 240px;">
+            <label for="cm-concept" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CONCEPT (optional)</label>
+            <input id="cm-concept" type="text" placeholder="leave blank to let it invent one" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+          </div>
+          <button type="button" id="cm-generate-btn" class="bm-btn">Generate Quest</button>
         </div>
-        <button type="button" id="cm-generate-btn" class="bm-btn">Generate Quest</button>
+        <p id="cm-generate-status" class="bm-status"></p>
+        <div id="cm-preview-zone"></div>
       </div>
-      <p id="cm-generate-status" class="bm-status"></p>
-      <div id="cm-preview-zone"></div>
 
       <h2 style="margin-top: 28px;">Entries</h2>
       <p style="color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 12px;">What this module references, in order.</p>
@@ -159,15 +165,16 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.15"></script>
-<script src="../js/render.js?v=v0.15"></script>
-<script src="../js/campaignModule.js?v=v0.15"></script>
+<script src="/js/auth.js?v=v0.16"></script>
+<script src="../js/render.js?v=v0.16"></script>
+<script src="../js/campaignModule.js?v=v0.16"></script>
 <script>
   requireAuth().then((session) => {
     if (!session) return;
     renderAuthStatus();
     applyCategoryConfig();
     applySiteTheme();
+    applyAiEnabledGating(); // hides the whole "Generate with AI" section (.ai-action) for AI-off accounts -- Entries stays fully manual
     initCampaignBuilder();
   });
 </script>

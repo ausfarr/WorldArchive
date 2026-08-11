@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>World Info — The Archive</title>
 <link rel="stylesheet" href="css/style.css">
-<script src="js/themeBootstrap.js?v=v0.15"></script>
+<script src="js/themeBootstrap.js?v=v0.16"></script>
 
 </head>
 <body>
@@ -105,9 +105,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.15"></script>
-<script src="js/render.js?v=v0.15"></script>
-<script src="js/worldArtActions.js?v=v0.15"></script>
+<script src="/js/auth.js?v=v0.16"></script>
+<script src="js/render.js?v=v0.16"></script>
+<script src="js/worldArtActions.js?v=v0.16"></script>
 <script>
 const CANONICAL_STATS = [
   { key: "body", mechanic: "Max health & physical resilience" },
@@ -219,6 +219,7 @@ async function init() {
   renderAuthStatus();
   applyCategoryConfig();
   applySiteTheme();
+  applyAiEnabledGating(); // hides the mood board's Generate Image button (.ai-action) for AI-off accounts; Upload stays visible
   try {
     const res = await authFetch("/api/wizard/review");
     if (!res.ok) throw new Error("Failed to load world info.");

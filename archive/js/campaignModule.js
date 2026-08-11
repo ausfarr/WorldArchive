@@ -336,7 +336,7 @@ function cmRenderPreviewEntries(entries) {
         <strong style="margin-left:6px; color: var(--ink-faint);">Nothing existing fits</strong>
         <p style="margin:4px 0 8px; font-size:0.8rem; color: var(--ink-dim);">${cmEscapeHtml(e.neededConcept || e.note || "")}</p>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button type="button" class="bm-btn" onclick="cmGenerateSlot(${i})">Generate one (1 generation)</button>
+          <button type="button" class="bm-btn ai-action" onclick="cmGenerateSlot(${i})">Generate one (1 generation)</button>
           <button type="button" class="bm-btn bm-btn-secondary" onclick="cmOpenSlotPicker(${i})">Pick existing instead</button>
           <button type="button" class="bm-btn bm-btn-secondary" onclick="cmLeaveSlotEmpty(${i})">Leave empty</button>
         </div>

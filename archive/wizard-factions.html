@@ -27,7 +27,7 @@
   <div class="sheet" style="padding: 32px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Factions</h1>
-      <button type="button" id="generate-step" class="generate-btn">Generate this whole step for me</button>
+      <button type="button" id="generate-step" class="generate-btn ai-action">Generate this whole step for me</button>
     </div>
     <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Up to 8 factions. Add a slot with just a name (or a name + one-line concept) and generate its full profile, or let the step-level button invent some from scratch.</p>
 
@@ -99,9 +99,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.15"></script>
-<script src="/js/wizardSession.js?v=v0.15"></script>
-<script src="js/render.js?v=v0.15"></script>
+<script src="/js/auth.js?v=v0.16"></script>
+<script src="/js/wizardSession.js?v=v0.16"></script>
+<script src="js/render.js?v=v0.16"></script>
 <script>
 const MAX_FACTIONS = 8;
 let factions = []; // each: { id, name, concept, politics, government, economy, military, tensions }
@@ -115,7 +115,7 @@ function render() {
     <div class="faction-card" data-index="${i}">
       <div class="faction-card-top">
         <input class="faction-name-input" placeholder="Faction name" value="${(f.name || "").replace(/"/g, "&quot;")}">
-        <button type="button" class="generate-btn" data-action="generate-one">Generate for me</button>
+        <button type="button" class="generate-btn ai-action" data-action="generate-one">Generate for me</button>
         <button type="button" class="remove-slot" data-action="remove">✕</button>
       </div>
       <label class="field-label">Concept (one line)</label>
@@ -267,6 +267,7 @@ async function init() {
   await requireAuth();
   renderAuthStatus();
   await ensureWizardSession();
+  applyAiEnabledGating(); // hides both Generate buttons (.ai-action) for AI-off accounts -- every field stays manually fillable
   try {
     const res = await authFetch("/api/wizard/factions");
     const { factions: loaded } = await res.json();

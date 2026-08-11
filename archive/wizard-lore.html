@@ -31,7 +31,7 @@
     <!-- Choice screen -->
     <div id="choice-screen">
       <div style="display:flex; gap:16px;">
-        <button type="button" id="choose-generate" class="choice-card">
+        <button type="button" id="choose-generate" class="choice-card ai-action">
           <strong>Generate Fresh</strong>
           <span>Compose a new lore document from what you set up in Step 1.</span>
         </button>
@@ -58,7 +58,7 @@
     <div id="generate-panel" style="display:none; text-align:center; padding: 20px 0;">
       <p style="color: var(--ink-dim); font-size: 0.9rem;">This uses whatever you saved in Step 1 (genre, scale, core tension, etc.) as grounding context.</p>
       <button type="button" id="back-from-generate" class="secondary-btn" style="margin-right: 12px;">← Back</button>
-      <button type="button" id="run-generate" class="primary-btn">Generate Lore Document</button>
+      <button type="button" id="run-generate" class="primary-btn ai-action">Generate Lore Document</button>
     </div>
 
     <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
@@ -130,9 +130,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.15"></script>
-<script src="/js/wizardSession.js?v=v0.15"></script>
-<script src="js/render.js?v=v0.15"></script>
+<script src="/js/auth.js?v=v0.16"></script>
+<script src="/js/wizardSession.js?v=v0.16"></script>
+<script src="js/render.js?v=v0.16"></script>
 <script>
 let currentSections = [];
 let currentSource = "generated";
@@ -254,6 +254,7 @@ async function init() {
   await requireAuth();
   renderAuthStatus();
   await ensureWizardSession();
+  applyAiEnabledGating(); // hides "Generate Fresh" (.ai-action) for AI-off accounts -- Import Existing stays available
   try {
     const res = await authFetch("/api/wizard/lore");
     const { sections } = await res.json();
