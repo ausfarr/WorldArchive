@@ -4,6 +4,7 @@ const { getDraft } = require("../lib/worldConfigRepo");
 const { listLoreSections, replaceLoreSections } = require("../lib/loreRepo");
 const { parseLoreDocument } = require("../lib/loreParsing");
 const { buildWizardStep3SystemPrompt } = require("../prompts/wizardStep3Prompt");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -34,7 +35,9 @@ router.get("/wizard/lore", async (req, res) => {
 // Generate-fresh path: composes the doc via one Claude call grounded in
 // the world's saved Step 1 draft, then splits it into tagged sections
 // using the known schema (no keyword-guessing needed here).
-router.post("/wizard/generate-lore", async (req, res) => {
+// requireAiEnabled, not enforceGenerationCap -- wizard generation stays
+// free of the points/cap system by design.
+router.post("/wizard/generate-lore", requireAiEnabled, async (req, res) => {
   try {
     const draft = await getDraft(req.worldId);
     const step1 = draft["1"] || {};

@@ -36,6 +36,7 @@ const { saveDungeonMapImage } = require("../lib/fileWriter");
 const { getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -46,7 +47,11 @@ const DEFAULT_GRID_SIZE = 20;
 // POST generate -- also doubles as "Regenerate Map." There's no separate
 // force flag because, unlike the world backdrop, this route is always
 // meant to produce a fresh image when called, not skip if one exists.
-router.post("/entries/locations/:id/dungeon-map/generate", enforceGenerationCap, async (req, res) => {
+// requireAiEnabled runs first, same order as every other AI-spend route
+// (see middleware/requireAiEnabled.js) -- an account with AI Features off
+// shouldn't reach the points check at all, let alone the real Claude+
+// Gemini calls below.
+router.post("/entries/locations/:id/dungeon-map/generate", requireAiEnabled, enforceGenerationCap, async (req, res) => {
   try {
     const { id } = req.params;
     const entry = await getEntry(req.worldId, "locations", id);

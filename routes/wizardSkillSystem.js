@@ -4,6 +4,7 @@ const { getDraft, getSkillSystem, saveSkillSystem } = require("../lib/worldConfi
 const { getLoreContext } = require("../lib/loreContext");
 const { getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
 const { buildWizardSkillSystemPrompt, WEAPON_SKILL_KEYS } = require("../prompts/wizardSkillSystemPrompt");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -19,7 +20,9 @@ router.get("/wizard/skill-system", async (req, res) => {
   }
 });
 
-router.post("/wizard/generate-skill-system", async (req, res) => {
+// requireAiEnabled, not enforceGenerationCap -- wizard generation stays
+// free of the points/cap system by design.
+router.post("/wizard/generate-skill-system", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
     const draft = await getDraft(worldId);

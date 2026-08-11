@@ -3,6 +3,7 @@ const { callClaudeExpectingJson } = require("../lib/claude");
 const { getDraft, saveDraftStep, resetWorldConfig, getOrCreateWorldConfig } = require("../lib/worldConfigRepo");
 const { clearLoreSections } = require("../lib/loreRepo");
 const { buildWizardStep1SystemPrompt } = require("../prompts/wizardStep1Prompt");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -72,7 +73,11 @@ router.post("/wizard/save-draft", async (req, res) => {
 // Does NOT save to the draft itself — the frontend fills the form fields
 // with the suggestions, and the user's own edits get saved via
 // /wizard/save-draft like any other field, same as manual entries.
-router.post("/wizard/generate-step1", async (req, res) => {
+// requireAiEnabled gates this like every other AI-spend route -- not
+// enforceGenerationCap, though: wizard generation stays free of the
+// points/cap system by design (setup-time AI assist shouldn't burn a
+// new world's generation budget before it's even archived anything).
+router.post("/wizard/generate-step1", requireAiEnabled, async (req, res) => {
   try {
     const { genre, scale, era, supernaturalSystem } = req.body || {};
     const systemPrompt = buildWizardStep1SystemPrompt({ genre, scale, era, supernaturalSystem });

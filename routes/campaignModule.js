@@ -29,6 +29,7 @@
 
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { buildCampaignModuleSystemPrompt } = require("../prompts/campaignModulePrompt");
 const { buildRosterContext, buildLocationRosterContext, buildItemRosterContext, buildLogRosterContext, buildEnemyRosterContext } = require("../lib/roster");
@@ -75,7 +76,7 @@ router.get("/campaign-modules/:id", async (req, res) => {
 // archive (a hallucinated/stale id falls back to unmatched rather than
 // being trusted blind) and hydrated with its display name/subtitle for
 // the preview UI, since the model only returns bare ids.
-router.post("/campaign-modules/generate", enforceGenerationCap, async (req, res) => {
+router.post("/campaign-modules/generate", requireAiEnabled, enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { concept } = req.body || {};
@@ -129,7 +130,7 @@ router.post("/campaign-modules/generate", enforceGenerationCap, async (req, res)
 // it's just sitting in its category tab like anything else generated
 // standalone). Returns the same shape as a "matched" preview entry so
 // the frontend can splice it directly into its local preview state.
-router.post("/campaign-modules/generate-slot-entry", enforceGenerationCap, async (req, res) => {
+router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { category, concept } = req.body || {};

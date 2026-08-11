@@ -27,6 +27,7 @@ const {
   appendQuestToArc
 } = require("../lib/campaignArcRepo");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -60,7 +61,10 @@ router.get("/campaign-arcs/:id", async (req, res) => {
 // ONLY (nothing saved). Matched stages are re-verified against the real
 // campaign_modules table, same defensive posture as routes/campaignModule.js's
 // own /generate (a hallucinated/stale questId falls back to unmatched).
-router.post("/campaign-arcs/generate", enforceGenerationCap, async (req, res) => {
+// requireAiEnabled runs first, same as every other AI-spend route -- this
+// was previously missing here despite the route calling a real Claude
+// call, letting an AI-off account bypass the toggle.
+router.post("/campaign-arcs/generate", requireAiEnabled, enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { concept, stageCount } = req.body || {};

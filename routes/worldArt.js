@@ -31,6 +31,12 @@
 // cap exists to bound -- true whether it fires from the wizard or later
 // from World Info / a faction dossier page.
 //
+// The three generate routes below ARE gated by requireAiEnabled, same as
+// every other AI-spend route (see routes/map.js's backdrop route for the
+// identical reasoning) -- an account with AI Features turned off must
+// not be able to burn a real Claude+Gemini call just by hitting World
+// Info or a faction dossier's Generate button.
+//
 // Upload routes are NOT capped either, matching /entries/:category/:id/
 // upload-image -- a user's own file, no AI spend, nothing to protect
 // against.
@@ -50,6 +56,7 @@ const {
 const { getFactions, getStyleGuide } = require("../lib/worldConfigRepo");
 const { getSettingContext, getFactionAccent } = require("../lib/worldFlavor");
 const { patchEntryMeta } = require("../lib/entriesRepo");
+const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
@@ -69,7 +76,7 @@ router.get("/world-art/mood-board", async (req, res) => {
 // POST generate -- called once, right after Step 6 is saved. Skips work
 // if one already exists (no "force" flag yet -- add one alongside a real
 // regenerate button later, matching the map backdrop's same current gap).
-router.post("/world-art/generate-mood-board", async (req, res) => {
+router.post("/world-art/generate-mood-board", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
     const alreadyExists = await worldMoodBoardExists(worldId);
@@ -162,7 +169,7 @@ async function generateOneFactionBanner(worldId, faction, styleGuide) {
 // from the others (one bad prompt shouldn't cost every faction its
 // banner). Non-fatal per faction: a failure is recorded in `results`,
 // not thrown, so one broken faction doesn't block the rest.
-router.post("/world-art/generate-faction-banners", async (req, res) => {
+router.post("/world-art/generate-faction-banners", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
     const factions = await getFactions(worldId);
@@ -208,7 +215,7 @@ router.post("/world-art/generate-faction-banners", async (req, res) => {
 // Mirrors /entries/:category/:id/generate-image's single-subject shape.
 // Same generate-once guard as the batch route: re-clicking after success
 // just returns the existing URL instead of spending another generation.
-router.post("/world-art/generate-faction-banner/:factionId", async (req, res) => {
+router.post("/world-art/generate-faction-banner/:factionId", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { factionId } = req.params;
