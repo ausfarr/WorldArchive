@@ -107,6 +107,7 @@ router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEn
     });
   } catch (err) {
     console.error("Enemy generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

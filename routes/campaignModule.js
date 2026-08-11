@@ -118,6 +118,7 @@ router.post("/campaign-modules/generate", requireAiEnabled, enforceGenerationCap
     });
   } catch (err) {
     console.error("Quest generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });
@@ -136,6 +137,7 @@ router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGe
     const { category, concept } = req.body || {};
     const generator = SLOT_GENERATORS[category];
     if (!generator) {
+      if (req.refundGeneration) await req.refundGeneration();
       return res.status(400).json({ error: `Unknown category '${category}' for a Quest slot.` });
     }
     const result = await generator(worldId, { campaignContext: concept });
@@ -148,6 +150,7 @@ router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGe
     });
   } catch (err) {
     console.error("Quest slot-entry generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

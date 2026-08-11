@@ -50,6 +50,7 @@ router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforce
     });
   } catch (err) {
     console.error("Faction generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

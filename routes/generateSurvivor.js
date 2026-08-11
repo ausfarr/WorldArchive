@@ -101,6 +101,7 @@ router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforc
     });
   } catch (err) {
     console.error("PC generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

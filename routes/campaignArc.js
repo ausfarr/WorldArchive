@@ -97,6 +97,7 @@ router.post("/campaign-arcs/generate", requireAiEnabled, enforceGenerationCap, a
     });
   } catch (err) {
     console.error("Campaign generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

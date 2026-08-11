@@ -55,7 +55,10 @@ router.post("/entries/locations/:id/dungeon-map/generate", requireAiEnabled, enf
   try {
     const { id } = req.params;
     const entry = await getEntry(req.worldId, "locations", id);
-    if (!entry) return res.status(404).json({ error: "Location not found." });
+    if (!entry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: "Location not found." });
+    }
     const location = entry.raw || entry;
 
     const styleGuide = await getStyleGuide(req.worldId);
@@ -80,6 +83,7 @@ router.post("/entries/locations/:id/dungeon-map/generate", requireAiEnabled, enf
     res.json({ dungeonMap });
   } catch (err) {
     console.error("Dungeon map generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

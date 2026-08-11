@@ -97,7 +97,10 @@ router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceGe
   try {
     const { category, id } = req.params;
     const loaded = await loadEntryOrRespondError(req, res);
-    if (!loaded) return;
+    if (!loaded) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return;
+    }
     const { saveFn, subjectJson } = loaded;
 
     const styleGuide = await getStyleGuide(req.worldId);
@@ -117,6 +120,7 @@ router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceGe
     res.json({ imageUrl });
   } catch (err) {
     console.error("Portrait generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

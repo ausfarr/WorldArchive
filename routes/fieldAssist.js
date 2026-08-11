@@ -24,9 +24,11 @@ router.post("/field-assist", requireAiEnabled, enforceFieldAssist, async (req, r
     const { category, fieldId, currentEntryData } = req.body || {};
 
     if (!category || !fieldId) {
+      if (req.refundGeneration) await req.refundGeneration();
       return res.status(400).json({ error: "category and fieldId are required" });
     }
     if (!getFieldAssistConfig(fieldId)) {
+      if (req.refundGeneration) await req.refundGeneration();
       return res.status(400).json({ error: `'${fieldId}' isn't a field Help Me supports.` });
     }
 
@@ -34,6 +36,7 @@ router.post("/field-assist", requireAiEnabled, enforceFieldAssist, async (req, r
     res.json({ suggestion });
   } catch (err) {
     console.error("Field assist failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

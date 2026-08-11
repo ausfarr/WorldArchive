@@ -93,6 +93,7 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
     });
   } catch (err) {
     console.error("Log generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

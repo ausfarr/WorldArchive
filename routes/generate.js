@@ -148,6 +148,7 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     });
   } catch (err) {
     console.error("NPC generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

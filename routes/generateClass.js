@@ -95,6 +95,7 @@ router.post("/generate-class", requireAiEnabled, enforceGenerationCap, enforceEn
     });
   } catch (err) {
     console.error("Class generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });
