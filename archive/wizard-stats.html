@@ -26,7 +26,7 @@
 
   <!-- Echoes-only: renaming the six fixed canonical attributes, plus
        Echoes' fixed weapon/field skill lists. Hidden entirely for every
-       other ruleset -- 5e/pf2e use their own fixed ability arrays
+       other ruleset -- 5e uses its own fixed ability array
        (STR/DEX/etc, not user-configurable), and Generic worlds get their
        own attribute BUILDER below instead of a relabeling form, since
        there's no fixed underlying system to relabel. See
@@ -108,7 +108,7 @@
     </div>
   </div>
 
-  <!-- 5e / pf2e: fixed ability arrays baked into lib/rulesets/<id>/statFormulas.js
+  <!-- 5e: fixed ability array baked into lib/rulesets/5e/statFormulas.js
        -- nothing for this world owner to configure here at all. -->
   <div id="fixed-ruleset-container" style="display:none;">
     <div class="sheet" style="padding: 32px;">
@@ -557,7 +557,7 @@ async function init() {
 
   document.getElementById("echoes-stat-skill-container").style.display = ruleset === "echoes" ? "" : "none";
   document.getElementById("generic-system-container").style.display = ruleset === "generic" ? "" : "none";
-  document.getElementById("fixed-ruleset-container").style.display = (ruleset === "5e" || ruleset === "pf2e") ? "" : "none";
+  document.getElementById("fixed-ruleset-container").style.display = (ruleset === "5e") ? "" : "none";
 
   if (ruleset === "echoes") {
     try {
@@ -588,9 +588,8 @@ async function init() {
     }
     renderGenericSystem();
   } else {
-    const label = ruleset === "5e" ? "D&D 5th Edition" : "Pathfinder 2nd Edition";
     document.getElementById("fixed-ruleset-note").textContent =
-      `${label} uses its own fixed set of core abilities — there's nothing to configure here. Continue to the next step.`;
+      "D&D 5th Edition uses its own fixed set of core abilities — there's nothing to configure here. Continue to the next step.";
   }
 }
 

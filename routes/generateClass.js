@@ -20,14 +20,6 @@ const { slugify: slugify5e, buildClassBodyHtml: buildClassBodyHtml5e } = require
 const { subclassUnlockLevel } = require("../lib/rulesets/5e/classFormulas");
 const { buildHomebrewClassSystemPrompt } = require("../prompts/rulesets/5e/classContentPrompt");
 
-// PF2e Classes (Homebrew tier only) -- see
-// prompts/rulesets/pf2e/classContentPrompt.js and
-// lib/rulesets/pf2e/classFormulas.js's header comments.
-const { savePf2eClassEntry } = require("../lib/rulesets/pf2e/classRepo");
-const { slugify: slugifyPf2e, buildClassBodyHtml: buildClassBodyHtmlPf2e } = require("../lib/rulesets/pf2e/classTemplate");
-const { validateProficiencySchedule } = require("../lib/rulesets/pf2e/classFormulas");
-const { buildHomebrewClassSystemPrompt: buildHomebrewPf2eClassSystemPrompt } = require("../prompts/rulesets/pf2e/classContentPrompt");
-
 // Generic Classes (Homebrew only, narrative-first -- no leveling concept
 // exists for a Generic world) -- see
 // prompts/rulesets/generic/classContentPrompt.js and
@@ -44,9 +36,6 @@ router.post("/generate-class", requireAiEnabled, enforceGenerationCap, enforceEn
     const ruleset = await getRuleset(req.worldId);
     if (ruleset === "5e") {
       return await handle5eClassGenerate(req, res);
-    }
-    if (ruleset === "pf2e") {
-      return await handlePf2eClassGenerate(req, res);
     }
     if (ruleset === "generic") {
       return await handleGenericClassGenerate(req, res);
@@ -209,85 +198,10 @@ async function handle5eClassGenerate(req, res) {
 }
 
 // ============================================================
-// PF2e path -- Homebrew tier only. The model proposes its OWN
-// classDcSchedule and picks 2 of 3 "good" saves (see
-// prompts/rulesets/pf2e/classContentPrompt.js's header for why that's a
-// legitimate model choice here, unlike 5e's subclass-unlock level which
-// IS a fixed rule). Code validates the schedule is legal and normalizes
-// goodSaves rather than trusting the model's raw output outright --
-// classTemplate.js's level table calls validateProficiencySchedule
-// internally too and would throw on a malformed schedule, so a bad
-// response here would otherwise 500 instead of falling back cleanly.
-// ============================================================
-const PF2E_SAVE_KEYS = ["fortitude", "reflex", "will"];
-const FALLBACK_CLASS_DC_SCHEDULE = [{ level: 1, rank: "trained" }, { level: 7, rank: "expert" }, { level: 15, rank: "master" }];
-
-async function handlePf2eClassGenerate(req, res) {
-  const worldId = req.worldId;
-  const { name, faction, fillExistingId } = req.body || {};
-
-  let existingEntry = null;
-  let isRegenerate = false;
-  if (fillExistingId) {
-    const manifest = await listEntries(worldId, "classes");
-    const manifestEntry = manifest.find((m) => m.id === fillExistingId);
-    if (!manifestEntry) {
-      if (req.refundGeneration) await req.refundGeneration();
-      return res.status(404).json({ error: `No existing class entry found with id '${fillExistingId}'` });
-    }
-    const full = await getEntry(worldId, "classes", fillExistingId);
-    existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
-    isRegenerate = !manifestEntry.locked;
-  }
-
-  const settingContext = await getSettingContext(worldId);
-  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
-  const loreContext = await getLoreContext(worldId, { category: "classes" });
-  const rosterEntries = await listEntries(worldId, "classes", { locked: false });
-  const rosterContext = rosterEntries.length
-    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
-    : "No classes archived yet -- any concept is available.";
-
-  const systemPrompt = buildHomebrewPf2eClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name });
-  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the class now.", maxTokens: 3500 });
-
-  // goodSaves: keep only real save keys, dedupe, take exactly 2 --
-  // backfill from the fixed key order if the model gave fewer than 2.
-  let goodSaves = Array.from(new Set((proposed.goodSaves || []).filter((s) => PF2E_SAVE_KEYS.includes(s)))).slice(0, 2);
-  if (goodSaves.length < 2) {
-    for (const s of PF2E_SAVE_KEYS) {
-      if (goodSaves.length >= 2) break;
-      if (!goodSaves.includes(s)) goodSaves.push(s);
-    }
-  }
-
-  const scheduleCheck = validateProficiencySchedule(proposed.classDcSchedule);
-  const classDcSchedule = scheduleCheck.valid ? scheduleCheck.schedule : FALLBACK_CLASS_DC_SCHEDULE;
-
-  const cls = {
-    ...proposed,
-    id: fillExistingId || slugifyPf2e(proposed.name),
-    faction: faction || null,
-    goodSaves,
-    classDcSchedule,
-    sourceMode: "homebrew"
-  };
-  if (existingEntry) cls.id = existingEntry.manifestEntry.id;
-
-  if (isRegenerate) {
-    const newBodyHtmlPreview = buildClassBodyHtmlPf2e(cls, null);
-    return res.json({ preview: true, mode: "regenerate", category: "classes", id: cls.id, name: cls.name, entry: cls, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
-  }
-
-  await savePf2eClassEntry(worldId, cls, null);
-  res.json({ preview: false, id: cls.id, name: cls.name, faction: cls.faction, summary: cls.designNotes });
-}
-
-// ============================================================
 // Generic path -- Homebrew only, narrative-first. keyAttribute is
 // validated against this world's own attribute keys (cleared to null
 // if the model hallucinates one that doesn't exist) rather than trusted
-// outright -- same defensive pattern used for pf2e's goodSaves.
+// outright.
 // ============================================================
 async function handleGenericClassGenerate(req, res) {
   const worldId = req.worldId;

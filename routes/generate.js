@@ -14,7 +14,6 @@ const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, get
 const { getStyleGuide, getRuleset } = require("../lib/worldConfigRepo");
 const { createNewNpc } = require("../lib/campaignEntryGenerators");
 const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
-const { DEFAULT_NPC_COMBAT_PROFILE: DEFAULT_NPC_COMBAT_PROFILE_PF2E } = require("../lib/rulesets/pf2e/npcCombatDefaults");
 const { buildDefaultCombatProfile: buildDefaultGenericCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 
@@ -48,7 +47,7 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       });
       npc.id = npc.id || slugify(npc.name);
       if (faction) npc.faction = faction;
-      // Phase 7 (multi-ruleset genericization) + PF2e expansion: see
+      // Phase 7 (multi-ruleset genericization): see
       // lib/campaignEntryGenerators.js's createNewNpc for the full
       // reasoning -- this import path bypasses that helper (needs
       // importSourceText threaded through), so the same attachment is
@@ -56,7 +55,6 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       {
         const importRuleset = await getRuleset(worldId);
         if (importRuleset === "5e") npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE;
-        else if (importRuleset === "pf2e") npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE_PF2E;
         else if (importRuleset === "generic") {
           const genericSystem = await getGenericSystem(worldId);
           if (genericSystem && Array.isArray(genericSystem.attributes) && genericSystem.attributes.length) {
@@ -147,7 +145,6 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       const fillRuleset = await getRuleset(worldId);
       let defaultProfile = null;
       if (fillRuleset === "5e") defaultProfile = DEFAULT_NPC_COMBAT_PROFILE;
-      else if (fillRuleset === "pf2e") defaultProfile = DEFAULT_NPC_COMBAT_PROFILE_PF2E;
       else if (fillRuleset === "generic") {
         const genericSystem = await getGenericSystem(worldId);
         if (genericSystem && Array.isArray(genericSystem.attributes) && genericSystem.attributes.length) {

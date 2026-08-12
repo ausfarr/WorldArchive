@@ -5,7 +5,7 @@
 // ruleset-genericized yet would silently fall through to Echoes' own
 // generation logic (BODY/REFLEX/KNOWLEDGE attributes, 1-99 class
 // leveling, the fixed weapon-skill list) -- mechanically wrong and
-// confusing output for a world that picked 5e/pf2e/generic specifically
+// confusing output for a world that picked 5e/generic specifically
 // to NOT get that. Categories with no ruleset-specific mechanics at all
 // (Factions, Locations, NPCs -- see world_forge_scope.md's registry
 // section for why) are intentionally never gated by this and keep

@@ -11,7 +11,6 @@
 
 const { buildBodyHtml } = require("../lib/entryTemplate");
 const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
-const { DEFAULT_NPC_COMBAT_PROFILE: DEFAULT_NPC_COMBAT_PROFILE_PF2E } = require("../lib/rulesets/pf2e/npcCombatDefaults");
 const { buildDefaultCombatProfile: buildDefaultGenericCombatProfile, denormalizeEnemyIntoCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
 
 const failures = [];
@@ -80,36 +79,6 @@ function testUpgradedCombatProfileRenders() {
   check("Twin Daggers action shown", html.includes("Twin Daggers"));
 }
 
-function testPf2eDefaultCombatProfileRenders() {
-  console.log("\nPF2e default combat profile (computed via verified Building Creatures math at level 0, low tier):");
-  const npc = { ...BASE_NPC, combatProfile: DEFAULT_NPC_COMBAT_PROFILE_PF2E };
-  const html = buildBodyHtml(npc);
-  check("dispatches to the PF2e renderer, not 5e's (no 'Armor Class' 5e-labeled row)", !html.includes("Armor Class</th>"));
-  check("includes a Combat Profile heading, labeled as default", html.includes("Combat Profile (default"));
-  check("PF2e-shaped Level row present", /Level<\/th><td>0\b/.test(html), html.match(/Level[\s\S]{0,20}/));
-  check("PF2e AC row present (different label than 5e's)", html.includes("<th>AC</th>"));
-  check("Fist strike present", html.includes("Fist"));
-  check("still includes Design Notes after the combat profile section", html.includes("Design Notes"));
-}
-
-function testPf2eUpgradedCombatProfileRenders() {
-  console.log("\nPF2e upgraded (Combatant) profile -- not labeled as default:");
-  const upgraded = {
-    ...DEFAULT_NPC_COMBAT_PROFILE_PF2E,
-    level: 3,
-    armorClass: 19,
-    hitPoints: 45,
-    abilities: { str: 3, dex: 2, con: 2, int: 0, wis: 1, cha: 0 },
-    melee: [{ name: "Longsword", bonus: 11, traits: ["versatile", "P"], description: "2d8+5 slashing" }],
-    isDefaultProfile: false
-  };
-  const npc = { ...BASE_NPC, combatProfile: upgraded };
-  const html = buildBodyHtml(npc);
-  check("Combat Profile heading present WITHOUT '(default...' label", html.includes("Combat Profile</h2>") && !html.includes("Combat Profile (default"));
-  check("upgraded level 3 shown", /Level<\/th><td>3\b/.test(html));
-  check("Longsword strike shown", html.includes("Longsword"));
-}
-
 const TEST_GENERIC_SYSTEM = {
   attributes: [{ key: "might", label: "Might" }, { key: "grit", label: "Grit" }],
   useFormula: true,
@@ -159,8 +128,6 @@ function main() {
   testNoCombatProfileIsUnchanged();
   testDefaultCombatProfileRenders();
   testUpgradedCombatProfileRenders();
-  testPf2eDefaultCombatProfileRenders();
-  testPf2eUpgradedCombatProfileRenders();
   testGenericDefaultCombatProfileRenders();
   testGenericUpgradedCombatProfileRenders();
   testRulesetFallbackDefaultsTo5e();

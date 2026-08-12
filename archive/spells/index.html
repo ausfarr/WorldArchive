@@ -88,7 +88,7 @@
 <script>
 // ============================================================
 // Multi-ruleset genericization. Spells has NO Echoes/generic
-// equivalent at all (see lib/rulesets/index.js -- only 5e/pf2e have a
+// equivalent at all (see lib/rulesets/index.js -- only 5e has a
 // `spells` registry entry), so unlike every other category page here
 // there's no Echoes fallback form to fail open to -- an Echoes/generic
 // world instead sees a plain explanation and no generate form, same
@@ -154,49 +154,6 @@ function wire5eSpellForm() {
   });
 }
 
-function wirePf2eSpellForm() {
-  const fieldsHost = document.getElementById('gen-form-fields');
-  fieldsHost.innerHTML = `
-    <div style="flex: 1; min-width: 200px;">
-      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
-      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-    </div>
-    <div style="flex: 1; min-width: 120px;">
-      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">RANK (optional)</label>
-      <input id="gen-field-2" type="number" min="1" max="10" placeholder="1-10" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-    </div>
-  `;
-
-  document.getElementById('gen-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('gen-submit');
-    const status = document.getElementById('gen-status');
-    btn.disabled = true; btn.textContent = 'Generating…';
-    showGenerationOverlay(['Writing the incantation…', 'Working out heightening…', 'Balancing against the spellbook…', 'Almost there…']);
-    status.style.display = 'block'; status.textContent = 'Calling the generator…';
-    try {
-      const rank = document.getElementById('gen-field-2').value;
-      const res = await authFetch('/api/generate-spell', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: document.getElementById('gen-name').value,
-          rank: rank ? Number(rank) : undefined
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(formatGenerationError(data));
-      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
-      setTimeout(() => window.location.reload(), 1200);
-    } catch (err) {
-      status.innerHTML = err.message;
-    } finally {
-      hideGenerationOverlay();
-      btn.disabled = false; btn.textContent = 'Generate';
-    }
-  });
-}
-
 function showSpellsUnavailable(ruleset) {
   document.getElementById('gen-form').style.display = 'none';
   const note = document.getElementById('gen-unavailable');
@@ -217,8 +174,6 @@ async function initSpellGenerateForm() {
   }
   if (ruleset === '5e') {
     wire5eSpellForm();
-  } else if (ruleset === 'pf2e') {
-    wirePf2eSpellForm();
   } else {
     showSpellsUnavailable(ruleset);
   }

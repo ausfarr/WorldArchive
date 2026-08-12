@@ -25,14 +25,6 @@ const { buildReflavorEnemySystemPrompt } = require("../prompts/rulesets/5e/enemy
 const { getSrdEntry, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
 
-// Multi-ruleset genericization, PF2e Bestiary (Homebrew tier only --
-// see lib/rulesets/pf2e/statFormulas.js and
-// prompts/rulesets/pf2e/enemyContentPrompt.js for why Import/Reflavor
-// aren't available yet).
-const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
-const { buildEnemyBodyHtml: buildEnemyBodyHtmlPf2e } = require("../lib/rulesets/pf2e/enemyTemplate");
-const { generateHomebrewPf2eEnemy } = require("../lib/rulesets/pf2e/homebrewEnemyGenerator");
-
 // Multi-ruleset genericization, Phase 10 (Generic ruleset).
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
 const { buildEnemyBodyHtml: buildEnemyBodyHtmlGeneric } = require("../lib/rulesets/generic/enemyTemplate");
@@ -48,15 +40,12 @@ router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEn
     if (ruleset === "5e") {
       return await handle5eEnemyGenerate(req, res);
     }
-    if (ruleset === "pf2e") {
-      return await handlePf2eEnemyGenerate(req, res);
-    }
     if (ruleset === "generic") {
       return await handleGenericEnemyGenerate(req, res);
     }
     if (ruleset !== "echoes") {
-      // This category isn't built for this ruleset yet (pf2e/generic --
-      // later phases). The generation cap was already spent by
+      // This category isn't built for this ruleset yet. The generation
+      // cap was already spent by
       // enforceGenerationCap before we knew that, so refund it rather
       // than charging a world for an error response.
       if (req.refundGeneration) await req.refundGeneration();
@@ -328,54 +317,6 @@ async function handle5eEnemyGenerate(req, res) {
 }
 
 // ============================================================
-// PF2e path -- Homebrew tier only (see this file's top comment). No
-// `mode` branching the way 5e has: every generation is a Homebrew
-// build, so a request that explicitly asks for import/reflavor gets a
-// clear 501 rather than silently treating it as Homebrew.
-// ============================================================
-async function handlePf2eEnemyGenerate(req, res) {
-  const worldId = req.worldId;
-  const { name, faction, fillExistingId, level, role } = req.body || {};
-  const requestedMode = req.body && req.body.mode;
-
-  if (requestedMode && requestedMode !== "homebrew") {
-    if (req.refundGeneration) await req.refundGeneration();
-    return res.status(501).json({ error: `Bestiary '${requestedMode}' mode isn't available for the pf2e ruleset yet -- only Homebrew generation is supported (no verified ORC-licensed monster dataset exists to import/reflavor from).` });
-  }
-
-  let existingEntry = null;
-  let isFill = false;
-  let isRegenerate = false;
-  if (fillExistingId) {
-    existingEntry = await findExistingEnemyEntry(worldId, fillExistingId);
-    if (!existingEntry) {
-      if (req.refundGeneration) await req.refundGeneration();
-      return res.status(404).json({ error: `No existing enemy entry found with id '${fillExistingId}'` });
-    }
-    isFill = existingEntry.manifestEntry.locked;
-    isRegenerate = !isFill;
-  }
-
-  const targetLevel = level != null ? level : (existingEntry && existingEntry.raw && existingEntry.raw.level) || 1;
-  const targetRole = role || (existingEntry && existingEntry.raw && existingEntry.raw.role) || null;
-
-  // Shared with the NPC "Combatant" upgrade
-  // (lib/rulesets/pf2e/homebrewEnemyGenerator.js) -- same "reuse it,
-  // don't fork it" pattern Phase 7 established for 5e.
-  const enemy = await generateHomebrewPf2eEnemy(worldId, { name, faction, level: targetLevel, role: targetRole });
-  if (fillExistingId) enemy.id = fillExistingId;
-  if (existingEntry) enemy.id = existingEntry.manifestEntry.id;
-
-  if (isRegenerate) {
-    const newBodyHtmlPreview = buildEnemyBodyHtmlPf2e(enemy, null);
-    return res.json({ preview: true, mode: "regenerate", category: "enemies", id: enemy.id, name: enemy.name, entry: enemy, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
-  }
-
-  await savePf2eEnemyEntry(worldId, enemy, null);
-  res.json({ preview: false, id: enemy.id, name: enemy.name, faction: enemy.faction, summary: enemy.designNotes });
-}
-
-// ============================================================
 // Generic ruleset path -- Homebrew only, by definition. Adapts to
 // whatever this world configured in generic_system_json (Phase 10):
 // world-defined attributes, and derived stats computed by code ONLY if
@@ -407,7 +348,7 @@ async function handleGenericEnemyGenerate(req, res) {
 
   // Shared with the NPC "Combatant" upgrade
   // (lib/rulesets/generic/homebrewEnemyGenerator.js) -- same "reuse it,
-  // don't fork it" pattern the 5e/pf2e versions already established.
+  // don't fork it" pattern the 5e version already established.
   const enemy = await generateHomebrewGenericEnemy(worldId, genericSystem, { name, faction });
   if (fillExistingId) enemy.id = fillExistingId;
   if (existingEntry) enemy.id = existingEntry.manifestEntry.id;

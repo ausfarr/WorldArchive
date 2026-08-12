@@ -114,9 +114,9 @@
 // Multi-ruleset genericization. Same fail-open dispatch pattern as
 // Bestiary/Classes -- Echoes keeps its own Category/Rarity form
 // untouched; 5e gets its own real rarity tiers (name/faction/rarity),
-// pf2e gets name/faction only (level/price-tier/rune-tiers are all
-// model-decided in the PF2e prompt, not form inputs -- see
-// routes/generateItem.js's handlePf2eItemGenerate).
+// Generic gets name/faction only (narrative-first, no rarity/pricing
+// system exists for a made-up world -- see
+// routes/generateItem.js's handleGenericItemGenerate).
 // ============================================================
 
 function wireEchoesItemForm() {
@@ -208,7 +208,7 @@ function wire5eItemForm() {
   });
 }
 
-function wirePf2eItemForm() {
+function wireGenericItemForm() {
   const fieldsHost = document.getElementById('gen-form-fields');
   fieldsHost.innerHTML = `
     <div style="flex: 1; min-width: 220px;">
@@ -229,7 +229,7 @@ function wirePf2eItemForm() {
     const btn = document.getElementById('gen-submit');
     const status = document.getElementById('gen-status');
     btn.disabled = true; btn.textContent = 'Generating…';
-    showGenerationOverlay(['Forging something worth finding…', 'Picking rune tiers and Bulk…', 'Estimating price guidance…', 'Almost there…']);
+    showGenerationOverlay(['Forging something worth finding…', 'Working out the flavor…', 'Almost there…']);
     status.style.display = 'block'; status.textContent = 'Calling the generator…';
     try {
       const res = await authFetch('/api/generate-item', {
@@ -264,12 +264,8 @@ async function initItemGenerateForm() {
   }
   if (ruleset === '5e') {
     wire5eItemForm();
-  } else if (ruleset === 'pf2e' || ruleset === 'generic') {
-    // Generic Items take the identical {name, faction} body shape as
-    // pf2e's (see routes/generateItem.js's handleGenericItemGenerate) --
-    // narrative-first, no rarity/rune fields to expose -- so the same
-    // form/handler covers both.
-    wirePf2eItemForm();
+  } else if (ruleset === 'generic') {
+    wireGenericItemForm();
   } else {
     wireEchoesItemForm();
   }
