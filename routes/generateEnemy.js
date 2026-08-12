@@ -33,6 +33,13 @@ const { slugify: slugifyPf2e, buildEnemyBodyHtml: buildEnemyBodyHtmlPf2e } = req
 const { buildCreatureBudget, ROLE_TEMPLATES } = require("../lib/rulesets/pf2e/statFormulas");
 const { buildHomebrewPf2eEnemySystemPrompt } = require("../prompts/rulesets/pf2e/enemyContentPrompt");
 
+// Multi-ruleset genericization, Phase 10 (Generic ruleset).
+const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
+const { slugify: slugifyGeneric, buildEnemyBodyHtml: buildEnemyBodyHtmlGeneric } = require("../lib/rulesets/generic/enemyTemplate");
+const { computeDerivedStats } = require("../lib/rulesets/generic/statFormulas");
+const { buildHomebrewGenericEnemySystemPrompt } = require("../prompts/rulesets/generic/enemyContentPrompt");
+const { getGenericSystem } = require("../lib/worldConfigRepo");
+
 const router = express.Router();
 
 router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
@@ -44,6 +51,9 @@ router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEn
     }
     if (ruleset === "pf2e") {
       return await handlePf2eEnemyGenerate(req, res);
+    }
+    if (ruleset === "generic") {
+      return await handleGenericEnemyGenerate(req, res);
     }
     if (ruleset !== "echoes") {
       // This category isn't built for this ruleset yet (pf2e/generic --
@@ -381,6 +391,65 @@ async function handlePf2eEnemyGenerate(req, res) {
   }
 
   await savePf2eEnemyEntry(worldId, enemy, null);
+  res.json({ preview: false, id: enemy.id, name: enemy.name, faction: enemy.faction, summary: enemy.designNotes });
+}
+
+// ============================================================
+// Generic ruleset path -- Homebrew only, by definition. Adapts to
+// whatever this world configured in generic_system_json (Phase 10):
+// world-defined attributes, and derived stats computed by code ONLY if
+// this world opted into a formula layer -- never fabricated otherwise.
+// ============================================================
+async function handleGenericEnemyGenerate(req, res) {
+  const worldId = req.worldId;
+  const { name, faction, fillExistingId } = req.body || {};
+
+  const genericSystem = await getGenericSystem(worldId);
+  if (!genericSystem || !Array.isArray(genericSystem.attributes) || !genericSystem.attributes.length) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "This world hasn't configured its homebrew attribute system yet -- finish that setup before generating a monster." });
+  }
+
+  let existingEntry = null;
+  let isRegenerate = false;
+  if (fillExistingId) {
+    const manifest = await listEntries(worldId, "enemies");
+    const manifestEntry = manifest.find((m) => m.id === fillExistingId);
+    if (!manifestEntry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No existing enemy entry found with id '${fillExistingId}'` });
+    }
+    const full = await getEntry(worldId, "enemies", fillExistingId);
+    existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
+    isRegenerate = !manifestEntry.locked;
+  }
+
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
+  const rosterEntries = await listEntries(worldId, "enemies", { locked: false });
+  const rosterContext = rosterEntries.length
+    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
+    : "No enemies archived yet -- any concept is available.";
+
+  const systemPrompt = buildHomebrewGenericEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, genericSystem });
+  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the monster now.", maxTokens: 2000 });
+
+  const enemy = {
+    ...proposed,
+    id: fillExistingId || slugifyGeneric(proposed.name),
+    faction: faction || null,
+    derivedStats: genericSystem.useFormula ? computeDerivedStats(genericSystem, proposed.attributes) : null,
+    sourceMode: "homebrew"
+  };
+  if (existingEntry) enemy.id = existingEntry.manifestEntry.id;
+
+  if (isRegenerate) {
+    const newBodyHtmlPreview = buildEnemyBodyHtmlGeneric(enemy, genericSystem, null);
+    return res.json({ preview: true, mode: "regenerate", category: "enemies", id: enemy.id, name: enemy.name, entry: enemy, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+  }
+
+  await saveGenericEnemyEntry(worldId, enemy, genericSystem, null);
   res.json({ preview: false, id: enemy.id, name: enemy.name, faction: enemy.faction, summary: enemy.designNotes });
 }
 

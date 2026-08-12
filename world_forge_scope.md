@@ -188,7 +188,7 @@ guideline?** If it's a guideline, the UI must say "estimated," the way
 | 7 | NPCs | **Shipped** — every 5e-world NPC gets a lightweight default combat profile (Commoner-equivalent) at creation; a "Combatant" upgrade (`POST /api/npc-combatant-upgrade`) reuses the exact Phase 3 Homebrew pipeline to give a specific NPC a full bespoke stat block. Additive-only change to the shared NPC template, regression-tested. |
 | 8 | Player Characters (Survivors rework) | **Shipped** — 5e Homebrew tier: a PC is a real Class instance (`classId` referencing a Phase 5 Class entry), with HP/proficiency bonus/spell slots computed from that class's actual hitDie/casterType. Category slug stays `survivors` (rename deferred as cosmetic/risky). |
 | 9 | Pathfinder 2e | **Partially shipped** — Bestiary Homebrew tier only (real Building Creatures level/tier math, verified MIT-licensed table source). Import/Reflavor still blocked on the ORC licensing question. |
-| 10 | Generic/Homebrew ruleset | Deferred — depends on Phase 5 |
+| 10 | Generic/Homebrew ruleset | **Partially shipped** — Bestiary proof of concept: `world_config.generic_system_json` stores a world-defined attribute list + formula toggle; a real single-attribute linear formula evaluator computes derived stats only when requested. No wizard UI yet to configure it (must be set by hand today) — Phase 11 scope. |
 | 11 | Ruleset-aware edit forms (frontend) | Deferred — most actionable next slice, backend contract already exists for 5e enemies |
 | 12 | Differential billing | Partially shipped (Import refund) — reduced Reflavor cost + entry-cap bypass deferred |
 | 13 | Regression pass | Done incrementally per-phase; full DB-backed pass needs real credentials, not run here |

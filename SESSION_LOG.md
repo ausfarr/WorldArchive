@@ -508,3 +508,48 @@ spell-slot computation. The model itself only proposes narrative
 (background/ideals/bonds/flaws/backstory/equipment) and ability scores --
 mirroring the exact "model writes narrative, code writes math" split
 used everywhere else in this project.
+
+## Phase 10 — Generic/Homebrew ruleset (Bestiary proof of concept)
+
+Skipped ahead of Phase 9's full PF2e expansion (see below) since Generic
+has no external licensing/data blocker at all -- it's genuinely
+achievable right now, unlike extending PF2e to more categories (which
+would need new verified PF2e-specific tables under the same network
+constraints that already made Bestiary/statFormulas.js's research slow).
+
+`migrations/021_generic_ruleset_system.sql` adds
+`world_config.generic_system_json`, same placement/pattern as the
+existing Skills wizard step's editable pool
+(migrations/005_skill_system.sql) -- not a new pattern, per the scope
+doc's own instruction. Shape: a world-chosen attribute list (any names,
+any count) plus a `useFormula` toggle exactly matching the scope doc's
+wording ("compute derived stats from a formula" vs. "let the model just
+write stat blocks as flavor text, no formula").
+
+`lib/rulesets/generic/statFormulas.js` is deliberately NOT a hardcoded
+game-math table like every other ruleset's formula file -- there's no
+official system to encode. It's a small, honest single-attribute linear
+formula evaluator (`base + coefficient * attributes[key]`) that computes
+whatever derived stats a world configured, and does nothing when a world
+opted for flavor-text-only stats (`computeDerivedStats()` returns `{}`
+rather than fabricating numbers). `scripts/testGenericStatFormulas.js`
+explicitly asserts the flavor-text-only path returns nothing, not just
+that the formula path computes correctly -- "don't force code-computed
+math where none was requested" is a real behavior to verify, not just a
+comment.
+
+`lib/rulesets/generic/enemyTemplate.js` renders whichever attributes/
+derived stats THIS world defined -- there's no fixed stat-block shape to
+target, so the template builds its tables from the world's own config at
+render time. Tested both modes end-to-end (formula: HP/Damage computed
+correctly from proposed attributes; flavor-text: no Derived Stats table
+renders at all, just the model's own `flavorStats` prose).
+
+**Frontend deliberately not built** (same pattern as every other
+category): no wizard UI exists yet for a world to actually define its
+Generic attribute list/formula toggle, so `generic_system_json` has to
+be set by hand (e.g. via a script or direct DB edit) to exercise this
+today. `routes/generateEnemy.js`'s generic branch fails with a clear 400
+("finish that setup before generating a monster") if it's missing,
+rather than guessing or crashing. Wizard UI for this is real, separate
+future work -- folded into Phase 11's scope, not silently dropped.

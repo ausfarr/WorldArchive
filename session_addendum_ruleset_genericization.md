@@ -270,6 +270,25 @@ world's own real generated Classes (clear 400 if none exist yet); HP/
 spell slots are computed from that class's actual hitDie/casterType, the
 model only writes narrative and picks ability scores.
 
+## Phase 10 update — Generic/Homebrew ruleset (Bestiary proof of concept)
+
+Skipped ahead of finishing Phase 9's full PF2e expansion since Generic
+has no external licensing/data blocker — genuinely buildable now.
+`migrations/021_generic_ruleset_system.sql` adds a world-defined
+attribute list + `useFormula` toggle to `world_config`, matching the
+existing Skills wizard step's editable-pool pattern rather than
+inventing something new. `lib/rulesets/generic/statFormulas.js` is
+deliberately NOT a hardcoded table like every other ruleset's formula
+file — there's no official system to encode — it's a small linear
+formula evaluator that computes whatever a world configured and does
+nothing when a world chose flavor-text-only stats (verified explicitly:
+`scripts/testGenericStatFormulas.js` asserts the no-formula path returns
+`{}`, not just that the formula path computes correctly). The Bestiary
+template adapts its rendered table to whatever attributes/derived stats
+the world actually defined. No wizard UI exists yet to configure
+`generic_system_json` (must be set by hand today) — folded into Phase
+11, not silently dropped.
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules

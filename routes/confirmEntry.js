@@ -22,6 +22,8 @@ const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
 const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
 const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
 const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
+const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
+const { getGenericSystem } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -129,6 +131,16 @@ router.post("/confirm-entry", async (req, res) => {
         const ruleset = await getRuleset(worldId);
         if (ruleset === "5e") writer = save5eEnemyEntry;
         else if (ruleset === "pf2e") writer = savePf2eEnemyEntry;
+        else if (ruleset === "generic") {
+          // saveGenericEnemyEntry() needs this world's generic_system_json
+          // as an extra argument (attribute/derived-stat definitions
+          // aren't fixed, unlike every other ruleset's writer) -- doesn't
+          // fit the plain writer(worldId, entry, imageUrl) shape below,
+          // so it's called directly here instead of assigned to `writer`.
+          const genericSystem = await getGenericSystem(worldId);
+          await saveGenericEnemyEntry(worldId, entry, genericSystem, undefined);
+          return { status: 200, body: { saved: true, id: entry.id, category } };
+        }
       }
       if (category === "classes") {
         const ruleset = await getRuleset(worldId);
