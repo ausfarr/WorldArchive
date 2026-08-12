@@ -21,11 +21,14 @@ const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
 const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
 const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
 const { savePf2eClassEntry } = require("../lib/rulesets/pf2e/classRepo");
+const { saveGenericClassEntry } = require("../lib/rulesets/generic/classRepo");
 const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
 const { savePf2eItemEntry } = require("../lib/rulesets/pf2e/itemRepo");
+const { saveGenericItemEntry } = require("../lib/rulesets/generic/itemRepo");
 const { savePf2eSpellEntry } = require("../lib/rulesets/pf2e/spellRepo");
 const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
 const { savePf2eSurvivorEntry } = require("../lib/rulesets/pf2e/survivorRepo");
+const { saveGenericSurvivorEntry } = require("../lib/rulesets/generic/survivorRepo");
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 
@@ -150,11 +153,24 @@ router.post("/confirm-entry", async (req, res) => {
         const ruleset = await getRuleset(worldId);
         if (ruleset === "5e") writer = save5eClassEntry;
         else if (ruleset === "pf2e") writer = savePf2eClassEntry;
+        else if (ruleset === "generic") {
+          // Same extra-argument shape as enemies' generic branch above --
+          // saveGenericClassEntry() needs this world's generic_system_json
+          // to resolve keyAttribute's display label.
+          const genericSystem = await getGenericSystem(worldId);
+          await saveGenericClassEntry(worldId, entry, genericSystem, undefined);
+          return { status: 200, body: { saved: true, id: entry.id, category } };
+        }
       }
       if (category === "items") {
         const ruleset = await getRuleset(worldId);
         if (ruleset === "5e") writer = save5eItemEntry;
         else if (ruleset === "pf2e") writer = savePf2eItemEntry;
+        else if (ruleset === "generic") {
+          const genericSystem = await getGenericSystem(worldId);
+          await saveGenericItemEntry(worldId, entry, genericSystem, undefined);
+          return { status: 200, body: { saved: true, id: entry.id, category } };
+        }
       }
       if (category === "spells") {
         const ruleset = await getRuleset(worldId);
@@ -164,6 +180,11 @@ router.post("/confirm-entry", async (req, res) => {
         const ruleset = await getRuleset(worldId);
         if (ruleset === "5e") writer = save5eSurvivorEntry;
         else if (ruleset === "pf2e") writer = savePf2eSurvivorEntry;
+        else if (ruleset === "generic") {
+          const genericSystem = await getGenericSystem(worldId);
+          await saveGenericSurvivorEntry(worldId, entry, genericSystem, undefined);
+          return { status: 200, body: { saved: true, id: entry.id, category } };
+        }
       }
       if (!writer) {
         return { status: 400, body: { error: `Unknown category '${category}'` } };

@@ -35,9 +35,8 @@ const { generateHomebrewPf2eEnemy } = require("../lib/rulesets/pf2e/homebrewEnem
 
 // Multi-ruleset genericization, Phase 10 (Generic ruleset).
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
-const { slugify: slugifyGeneric, buildEnemyBodyHtml: buildEnemyBodyHtmlGeneric } = require("../lib/rulesets/generic/enemyTemplate");
-const { computeDerivedStats } = require("../lib/rulesets/generic/statFormulas");
-const { buildHomebrewGenericEnemySystemPrompt } = require("../prompts/rulesets/generic/enemyContentPrompt");
+const { buildEnemyBodyHtml: buildEnemyBodyHtmlGeneric } = require("../lib/rulesets/generic/enemyTemplate");
+const { generateHomebrewGenericEnemy } = require("../lib/rulesets/generic/homebrewEnemyGenerator");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
@@ -406,24 +405,11 @@ async function handleGenericEnemyGenerate(req, res) {
     isRegenerate = !manifestEntry.locked;
   }
 
-  const settingContext = await getSettingContext(worldId);
-  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
-  const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
-  const rosterEntries = await listEntries(worldId, "enemies", { locked: false });
-  const rosterContext = rosterEntries.length
-    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
-    : "No enemies archived yet -- any concept is available.";
-
-  const systemPrompt = buildHomebrewGenericEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, genericSystem });
-  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the monster now.", maxTokens: 2000 });
-
-  const enemy = {
-    ...proposed,
-    id: fillExistingId || slugifyGeneric(proposed.name),
-    faction: faction || null,
-    derivedStats: genericSystem.useFormula ? computeDerivedStats(genericSystem, proposed.attributes) : null,
-    sourceMode: "homebrew"
-  };
+  // Shared with the NPC "Combatant" upgrade
+  // (lib/rulesets/generic/homebrewEnemyGenerator.js) -- same "reuse it,
+  // don't fork it" pattern the 5e/pf2e versions already established.
+  const enemy = await generateHomebrewGenericEnemy(worldId, genericSystem, { name, faction });
+  if (fillExistingId) enemy.id = fillExistingId;
   if (existingEntry) enemy.id = existingEntry.manifestEntry.id;
 
   if (isRegenerate) {

@@ -30,6 +30,14 @@ const { slugify: slugifyPf2e, buildItemBodyHtml: buildItemBodyHtmlPf2e } = requi
 const { priceGuidance, isValidLevel, BULK_TOKENS } = require("../lib/rulesets/pf2e/itemFormulas");
 const { buildHomebrewItemSystemPrompt: buildHomebrewPf2eItemSystemPrompt } = require("../prompts/rulesets/pf2e/itemContentPrompt");
 
+// Generic Items (Homebrew only, narrative-first) -- see
+// prompts/rulesets/generic/itemContentPrompt.js and
+// lib/rulesets/generic/itemTemplate.js's header comments.
+const { saveGenericItemEntry } = require("../lib/rulesets/generic/itemRepo");
+const { slugify: slugifyGeneric, buildItemBodyHtml: buildItemBodyHtmlGeneric } = require("../lib/rulesets/generic/itemTemplate");
+const { buildHomebrewItemSystemPrompt: buildHomebrewGenericItemSystemPrompt } = require("../prompts/rulesets/generic/itemContentPrompt");
+const { getGenericSystem } = require("../lib/worldConfigRepo");
+
 const router = express.Router();
 
 const RARITY_WORDS = ["Common", "Uncommon", "Rare", "Legendary"];
@@ -52,6 +60,9 @@ router.post("/generate-item", requireAiEnabled, enforceGenerationCap, enforceEnt
     }
     if (ruleset === "pf2e") {
       return await handlePf2eItemGenerate(req, res);
+    }
+    if (ruleset === "generic") {
+      return await handleGenericItemGenerate(req, res);
     }
     return await handleEchoesItemGenerate(req, res);
   } catch (err) {
@@ -305,6 +316,69 @@ async function handlePf2eItemGenerate(req, res) {
   }
 
   await savePf2eItemEntry(worldId, item, null);
+  res.json({ preview: false, id: item.id, name: item.name, faction: item.faction, summary: item.designNotes });
+}
+
+// ============================================================
+// Generic path -- Homebrew only, narrative-first. boostsAttribute is
+// validated against this world's own attribute keys (cleared to null,
+// along with boostAmount, if the model hallucinates one that doesn't
+// exist) rather than trusted outright, same defensive pattern used
+// throughout this ruleset's other categories.
+// ============================================================
+async function handleGenericItemGenerate(req, res) {
+  const worldId = req.worldId;
+  const { name, faction, fillExistingId } = req.body || {};
+
+  const genericSystem = await getGenericSystem(worldId);
+  if (!genericSystem || !Array.isArray(genericSystem.attributes) || !genericSystem.attributes.length) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "This world hasn't configured its homebrew attribute system yet -- finish that setup before generating an item." });
+  }
+
+  let existingEntry = null;
+  let isRegenerate = false;
+  if (fillExistingId) {
+    const manifest = await listEntries(worldId, "items");
+    const manifestEntry = manifest.find((m) => m.id === fillExistingId);
+    if (!manifestEntry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No existing item entry found with id '${fillExistingId}'` });
+    }
+    const full = await getEntry(worldId, "items", fillExistingId);
+    existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
+    isRegenerate = !manifestEntry.locked;
+  }
+
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const loreContext = await getLoreContext(worldId, { category: "items" });
+  const rosterEntries = await listEntries(worldId, "items", { locked: false });
+  const rosterContext = rosterEntries.length
+    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
+    : "No items archived yet -- any concept is available.";
+
+  const systemPrompt = buildHomebrewGenericItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, genericSystem });
+  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the item now.", maxTokens: 1500 });
+
+  const validAttributeKeys = new Set(genericSystem.attributes.map((a) => a.key));
+  const boostsAttribute = validAttributeKeys.has(proposed.boostsAttribute) ? proposed.boostsAttribute : null;
+  const item = {
+    ...proposed,
+    id: fillExistingId || slugifyGeneric(proposed.name),
+    faction: faction || null,
+    boostsAttribute,
+    boostAmount: boostsAttribute ? (Number(proposed.boostAmount) || 0) : null,
+    sourceMode: "homebrew"
+  };
+  if (existingEntry) item.id = existingEntry.manifestEntry.id;
+
+  if (isRegenerate) {
+    const newBodyHtmlPreview = buildItemBodyHtmlGeneric(item, genericSystem, null);
+    return res.json({ preview: true, mode: "regenerate", category: "items", id: item.id, name: item.name, entry: item, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+  }
+
+  await saveGenericItemEntry(worldId, item, genericSystem, null);
   res.json({ preview: false, id: item.id, name: item.name, faction: item.faction, summary: item.designNotes });
 }
 

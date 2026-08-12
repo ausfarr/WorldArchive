@@ -12,6 +12,7 @@
 const { buildBodyHtml } = require("../lib/entryTemplate");
 const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
 const { DEFAULT_NPC_COMBAT_PROFILE: DEFAULT_NPC_COMBAT_PROFILE_PF2E } = require("../lib/rulesets/pf2e/npcCombatDefaults");
+const { buildDefaultCombatProfile: buildDefaultGenericCombatProfile, denormalizeEnemyIntoCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
 
 const failures = [];
 function check(label, condition, detail) {
@@ -109,6 +110,42 @@ function testPf2eUpgradedCombatProfileRenders() {
   check("Longsword strike shown", html.includes("Longsword"));
 }
 
+const TEST_GENERIC_SYSTEM = {
+  attributes: [{ key: "might", label: "Might" }, { key: "grit", label: "Grit" }],
+  useFormula: true,
+  derivedStats: [{ key: "hitPoints", label: "Hit Points", attributeKey: "might", coefficient: 4, base: 10 }]
+};
+
+function testGenericDefaultCombatProfileRenders() {
+  console.log("\nGeneric default combat profile (all attributes zeroed, labels denormalized from this world's own system):");
+  const profile = buildDefaultGenericCombatProfile(TEST_GENERIC_SYSTEM);
+  const npc = { ...BASE_NPC, combatProfile: profile };
+  const html = buildBodyHtml(npc);
+  check("dispatches to the generic renderer (world-defined 'Might' label present)", html.includes("Might"));
+  check("includes a Combat Profile heading, labeled as default", html.includes("Combat Profile (default"));
+  check("attribute value 0 shown for a never-upgraded default", /Might<\/strong><br>0/.test(html));
+  check("Derived Stats section present (useFormula: true)", html.includes("Derived Stats"));
+  check("still includes Design Notes after the combat profile section", html.includes("Design Notes"));
+}
+
+function testGenericUpgradedCombatProfileRenders() {
+  console.log("\nGeneric upgraded (Combatant) profile -- denormalized from a Bestiary-shaped enemy result:");
+  const enemy = {
+    attributes: { might: 7, grit: 3 },
+    derivedStats: { hitPoints: 38 },
+    traits: [{ name: "Tough", description: "Resists blunt trauma." }],
+    actions: [{ name: "Strike", description: "A solid hit." }]
+  };
+  const profile = denormalizeEnemyIntoCombatProfile(enemy, TEST_GENERIC_SYSTEM);
+  const npc = { ...BASE_NPC, combatProfile: profile };
+  const html = buildBodyHtml(npc);
+  check("Combat Profile heading present WITHOUT '(default...' label", html.includes("Combat Profile</h2>") && !html.includes("Combat Profile (default"));
+  check("upgraded Might value 7 shown", /Might<\/strong><br>7/.test(html));
+  check("upgraded Hit Points 38 shown", html.includes("38"));
+  check("Tough trait shown", html.includes("Tough"));
+  check("Strike action shown", html.includes("Strike"));
+}
+
 function testRulesetFallbackDefaultsTo5e() {
   console.log("\nA combatProfile with no `ruleset` field (every profile saved before this field existed) falls back to the 5e renderer:");
   const legacyProfile = { ...DEFAULT_NPC_COMBAT_PROFILE };
@@ -124,6 +161,8 @@ function main() {
   testUpgradedCombatProfileRenders();
   testPf2eDefaultCombatProfileRenders();
   testPf2eUpgradedCombatProfileRenders();
+  testGenericDefaultCombatProfileRenders();
+  testGenericUpgradedCombatProfileRenders();
   testRulesetFallbackDefaultsTo5e();
 
   console.log("\n" + "=".repeat(50));

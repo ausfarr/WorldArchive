@@ -37,6 +37,15 @@ const { slugify: slugifyPf2e, buildSurvivorBodyHtml: buildSurvivorBodyHtmlPf2e }
 const { computePcProfile } = require("../lib/rulesets/pf2e/survivorFormulas");
 const { buildHomebrewSurvivorSystemPrompt: buildHomebrewPf2eSurvivorSystemPrompt } = require("../prompts/rulesets/pf2e/survivorContentPrompt");
 
+// Generic Player Characters (Homebrew only) -- see
+// prompts/rulesets/generic/survivorContentPrompt.js and
+// lib/rulesets/generic/survivorTemplate.js's header comments.
+const { saveGenericSurvivorEntry } = require("../lib/rulesets/generic/survivorRepo");
+const { slugify: slugifyGeneric, buildSurvivorBodyHtml: buildSurvivorBodyHtmlGeneric } = require("../lib/rulesets/generic/survivorTemplate");
+const { computeDerivedStats } = require("../lib/rulesets/generic/statFormulas");
+const { buildHomebrewSurvivorSystemPrompt: buildHomebrewGenericSurvivorSystemPrompt } = require("../prompts/rulesets/generic/survivorContentPrompt");
+const { getGenericSystem } = require("../lib/worldConfigRepo");
+
 const router = express.Router();
 
 router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("survivors"), async (req, res) => {
@@ -47,6 +56,9 @@ router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforc
     }
     if (ruleset === "pf2e") {
       return await handlePf2eSurvivorGenerate(req, res);
+    }
+    if (ruleset === "generic") {
+      return await handleGenericSurvivorGenerate(req, res);
     }
     return await handleEchoesSurvivorGenerate(req, res);
   } catch (err) {
@@ -280,6 +292,78 @@ async function handlePf2eSurvivorGenerate(req, res) {
   }
 
   await savePf2eSurvivorEntry(worldId, pc, null);
+  res.json({ preview: false, id: pc.id, name: pc.name, className: pc.className, faction: pc.faction, summary: pc.designNotes });
+}
+
+// ============================================================
+// Generic path -- Homebrew only. classId must reference a real Generic
+// Class entry this world already generated; attributes are validated
+// against this world's own attribute keys and derived stats are
+// code-computed (never model-stated) when this world uses a formula
+// layer, same "model writes narrative, code writes math" split
+// Bestiary's Generic Homebrew tier already established.
+// ============================================================
+async function handleGenericSurvivorGenerate(req, res) {
+  const worldId = req.worldId;
+  const { name, faction, fillExistingId } = req.body || {};
+
+  const genericSystem = await getGenericSystem(worldId);
+  if (!genericSystem || !Array.isArray(genericSystem.attributes) || !genericSystem.attributes.length) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "This world hasn't configured its homebrew attribute system yet -- finish that setup before creating a Player Character." });
+  }
+
+  let existingEntry = null;
+  let isRegenerate = false;
+  if (fillExistingId) {
+    const manifest = await listEntries(worldId, "survivors");
+    const manifestEntry = manifest.find((m) => m.id === fillExistingId);
+    if (!manifestEntry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No existing PC entry found with id '${fillExistingId}'` });
+    }
+    const full = await getEntry(worldId, "survivors", fillExistingId);
+    existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
+    isRegenerate = true; // PCs have no locked placeholders, same as every other ruleset
+  }
+
+  const classEntries = await listEntries(worldId, "classes", { locked: false });
+  if (!classEntries.length) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "This world has no Classes yet -- generate at least one Class before creating a Player Character." });
+  }
+  const availableClassesText = classEntries.map((c) => `- id: ${c.id} | ${c.name}`).join("\n");
+
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const loreContext = await getLoreContext(worldId, { category: "survivors", faction });
+  const rosterEntries = await listEntries(worldId, "survivors", { locked: false });
+  const rosterContext = rosterEntries.length
+    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}: ${e.subtitle || ""}`).join("\n")
+    : "No Player Characters archived yet -- any concept is available.";
+
+  const systemPrompt = buildHomebrewGenericSurvivorSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, availableClassesText, name, faction, genericSystem });
+  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Create the Player Character now.", maxTokens: 1800 });
+
+  const chosenClass = classEntries.find((c) => c.id === proposed.classId) || classEntries[0];
+
+  const pc = {
+    ...proposed,
+    id: fillExistingId || slugifyGeneric(proposed.name),
+    faction: faction || null,
+    classId: chosenClass.id,
+    className: chosenClass.name,
+    derivedStats: genericSystem.useFormula ? computeDerivedStats(genericSystem, proposed.attributes) : null,
+    sourceMode: "homebrew"
+  };
+  if (existingEntry) pc.id = existingEntry.manifestEntry.id;
+
+  if (isRegenerate) {
+    const newBodyHtmlPreview = buildSurvivorBodyHtmlGeneric(pc, genericSystem, null);
+    return res.json({ preview: true, mode: "regenerate", category: "survivors", id: pc.id, name: pc.name, entry: pc, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+  }
+
+  await saveGenericSurvivorEntry(worldId, pc, genericSystem, null);
   res.json({ preview: false, id: pc.id, name: pc.name, className: pc.className, faction: pc.faction, summary: pc.designNotes });
 }
 

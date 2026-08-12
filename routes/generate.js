@@ -15,6 +15,8 @@ const { getStyleGuide, getRuleset } = require("../lib/worldConfigRepo");
 const { createNewNpc } = require("../lib/campaignEntryGenerators");
 const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
 const { DEFAULT_NPC_COMBAT_PROFILE: DEFAULT_NPC_COMBAT_PROFILE_PF2E } = require("../lib/rulesets/pf2e/npcCombatDefaults");
+const { buildDefaultCombatProfile: buildDefaultGenericCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
+const { getGenericSystem } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -55,6 +57,12 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
         const importRuleset = await getRuleset(worldId);
         if (importRuleset === "5e") npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE;
         else if (importRuleset === "pf2e") npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE_PF2E;
+        else if (importRuleset === "generic") {
+          const genericSystem = await getGenericSystem(worldId);
+          if (genericSystem && Array.isArray(genericSystem.attributes) && genericSystem.attributes.length) {
+            npc.combatProfile = buildDefaultGenericCombatProfile(genericSystem);
+          }
+        }
       }
       await saveNpcEntry(worldId, npc, null);
       return res.json({
@@ -137,7 +145,15 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     // real NPC for the first time) gets the same default new NPCs get.
     {
       const fillRuleset = await getRuleset(worldId);
-      const defaultProfile = fillRuleset === "5e" ? DEFAULT_NPC_COMBAT_PROFILE : fillRuleset === "pf2e" ? DEFAULT_NPC_COMBAT_PROFILE_PF2E : null;
+      let defaultProfile = null;
+      if (fillRuleset === "5e") defaultProfile = DEFAULT_NPC_COMBAT_PROFILE;
+      else if (fillRuleset === "pf2e") defaultProfile = DEFAULT_NPC_COMBAT_PROFILE_PF2E;
+      else if (fillRuleset === "generic") {
+        const genericSystem = await getGenericSystem(worldId);
+        if (genericSystem && Array.isArray(genericSystem.attributes) && genericSystem.attributes.length) {
+          defaultProfile = buildDefaultGenericCombatProfile(genericSystem);
+        }
+      }
       if (defaultProfile) {
         npc.combatProfile = (mode === "regenerate" && priorRaw && priorRaw.combatProfile)
           ? priorRaw.combatProfile

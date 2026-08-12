@@ -19,6 +19,9 @@ const { getEntry } = require("../lib/entriesRepo");
 const { saveNpcEntry, getPortraitUrl } = require("../lib/fileWriter");
 const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
 const { generateHomebrewPf2eEnemy } = require("../lib/rulesets/pf2e/homebrewEnemyGenerator");
+const { generateHomebrewGenericEnemy } = require("../lib/rulesets/generic/homebrewEnemyGenerator");
+const { denormalizeEnemyIntoCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
+const { getGenericSystem } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -39,9 +42,18 @@ router.post("/npc-combatant-upgrade", requireAiEnabled, enforceGenerationCap, as
     }
 
     const ruleset = await getRuleset(worldId);
-    if (ruleset !== "5e" && ruleset !== "pf2e") {
+    if (ruleset !== "5e" && ruleset !== "pf2e" && ruleset !== "generic") {
       if (req.refundGeneration) await req.refundGeneration();
       return res.status(501).json({ error: `The Combatant upgrade isn't available for the '${ruleset}' ruleset yet.` });
+    }
+
+    let genericSystem = null;
+    if (ruleset === "generic") {
+      genericSystem = await getGenericSystem(worldId);
+      if (!genericSystem || !Array.isArray(genericSystem.attributes) || !genericSystem.attributes.length) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(400).json({ error: "This world hasn't configured its homebrew attribute system yet -- finish that setup before upgrading an NPC to a Combatant." });
+      }
     }
 
     const existing = await getEntry(worldId, "npcs", npcId);
@@ -59,15 +71,29 @@ router.post("/npc-combatant-upgrade", requireAiEnabled, enforceGenerationCap, as
     const npcContent = existing.raw || {};
     const campaignContext = `This is a combat stat block for an existing named NPC, "${existing.name}" -- ${npcContent.physicalDescription || ""} ${npcContent.contradiction || ""}`.trim();
 
-    const combatProfile = ruleset === "5e"
-      ? await generateHomebrew5eEnemy(worldId, { name: `${existing.name}'s combat profile`, faction: existing.faction, targetCr, campaignContext })
-      : await generateHomebrewPf2eEnemy(worldId, { name: `${existing.name}'s combat profile`, faction: existing.faction, level, role, campaignContext });
-    // The homebrew generator names/IDs this as if it were a standalone
-    // monster -- irrelevant here, this profile is embedded inside the
-    // NPC's own entry, not saved as its own `enemies` row.
-    delete combatProfile.id;
-    delete combatProfile.name;
-    combatProfile.isDefaultProfile = false;
+    let combatProfile;
+    if (ruleset === "5e") {
+      combatProfile = await generateHomebrew5eEnemy(worldId, { name: `${existing.name}'s combat profile`, faction: existing.faction, targetCr, campaignContext });
+      // The homebrew generator names/IDs this as if it were a standalone
+      // monster -- irrelevant here, this profile is embedded inside the
+      // NPC's own entry, not saved as its own `enemies` row.
+      delete combatProfile.id;
+      delete combatProfile.name;
+      combatProfile.isDefaultProfile = false;
+    } else if (ruleset === "pf2e") {
+      combatProfile = await generateHomebrewPf2eEnemy(worldId, { name: `${existing.name}'s combat profile`, faction: existing.faction, level, role, campaignContext });
+      delete combatProfile.id;
+      delete combatProfile.name;
+      combatProfile.isDefaultProfile = false;
+    } else {
+      // Generic: the Bestiary-shaped enemy result gets denormalized into
+      // the {key, label, value} combatProfile shape (see
+      // lib/rulesets/generic/npcCombatDefaults.js's header for why) --
+      // no id/name deletion needed here since denormalizeEnemyIntoCombatProfile()
+      // only pulls the fields it actually needs, not a full entry copy.
+      const enemy = await generateHomebrewGenericEnemy(worldId, genericSystem, { name: `${existing.name}'s combat profile`, faction: existing.faction, campaignContext });
+      combatProfile = denormalizeEnemyIntoCombatProfile(enemy, genericSystem);
+    }
 
     // saveNpcEntry() expects the ACTUAL npc content shape (the same
     // object npcContentPrompt.js's schema produces -- physicalDescription,

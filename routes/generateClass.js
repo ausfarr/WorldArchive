@@ -28,6 +28,15 @@ const { slugify: slugifyPf2e, buildClassBodyHtml: buildClassBodyHtmlPf2e } = req
 const { validateProficiencySchedule } = require("../lib/rulesets/pf2e/classFormulas");
 const { buildHomebrewClassSystemPrompt: buildHomebrewPf2eClassSystemPrompt } = require("../prompts/rulesets/pf2e/classContentPrompt");
 
+// Generic Classes (Homebrew only, narrative-first -- no leveling concept
+// exists for a Generic world) -- see
+// prompts/rulesets/generic/classContentPrompt.js and
+// lib/rulesets/generic/classTemplate.js's header comments.
+const { saveGenericClassEntry } = require("../lib/rulesets/generic/classRepo");
+const { slugify: slugifyGeneric, buildClassBodyHtml: buildClassBodyHtmlGeneric } = require("../lib/rulesets/generic/classTemplate");
+const { buildHomebrewClassSystemPrompt: buildHomebrewGenericClassSystemPrompt } = require("../prompts/rulesets/generic/classContentPrompt");
+const { getGenericSystem } = require("../lib/worldConfigRepo");
+
 const router = express.Router();
 
 router.post("/generate-class", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("classes"), async (req, res) => {
@@ -38,6 +47,9 @@ router.post("/generate-class", requireAiEnabled, enforceGenerationCap, enforceEn
     }
     if (ruleset === "pf2e") {
       return await handlePf2eClassGenerate(req, res);
+    }
+    if (ruleset === "generic") {
+      return await handleGenericClassGenerate(req, res);
     }
     return await handleEchoesClassGenerate(req, res);
   } catch (err) {
@@ -268,6 +280,66 @@ async function handlePf2eClassGenerate(req, res) {
   }
 
   await savePf2eClassEntry(worldId, cls, null);
+  res.json({ preview: false, id: cls.id, name: cls.name, faction: cls.faction, summary: cls.designNotes });
+}
+
+// ============================================================
+// Generic path -- Homebrew only, narrative-first. keyAttribute is
+// validated against this world's own attribute keys (cleared to null
+// if the model hallucinates one that doesn't exist) rather than trusted
+// outright -- same defensive pattern used for pf2e's goodSaves.
+// ============================================================
+async function handleGenericClassGenerate(req, res) {
+  const worldId = req.worldId;
+  const { name, faction, fillExistingId } = req.body || {};
+
+  const genericSystem = await getGenericSystem(worldId);
+  if (!genericSystem || !Array.isArray(genericSystem.attributes) || !genericSystem.attributes.length) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "This world hasn't configured its homebrew attribute system yet -- finish that setup before generating a class." });
+  }
+
+  let existingEntry = null;
+  let isRegenerate = false;
+  if (fillExistingId) {
+    const manifest = await listEntries(worldId, "classes");
+    const manifestEntry = manifest.find((m) => m.id === fillExistingId);
+    if (!manifestEntry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No existing class entry found with id '${fillExistingId}'` });
+    }
+    const full = await getEntry(worldId, "classes", fillExistingId);
+    existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
+    isRegenerate = !manifestEntry.locked;
+  }
+
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const loreContext = await getLoreContext(worldId, { category: "classes" });
+  const rosterEntries = await listEntries(worldId, "classes", { locked: false });
+  const rosterContext = rosterEntries.length
+    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
+    : "No classes archived yet -- any concept is available.";
+
+  const systemPrompt = buildHomebrewGenericClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, genericSystem });
+  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the class now.", maxTokens: 2000 });
+
+  const validAttributeKeys = new Set(genericSystem.attributes.map((a) => a.key));
+  const cls = {
+    ...proposed,
+    id: fillExistingId || slugifyGeneric(proposed.name),
+    faction: faction || null,
+    keyAttribute: validAttributeKeys.has(proposed.keyAttribute) ? proposed.keyAttribute : null,
+    sourceMode: "homebrew"
+  };
+  if (existingEntry) cls.id = existingEntry.manifestEntry.id;
+
+  if (isRegenerate) {
+    const newBodyHtmlPreview = buildClassBodyHtmlGeneric(cls, genericSystem, null);
+    return res.json({ preview: true, mode: "regenerate", category: "classes", id: cls.id, name: cls.name, entry: cls, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+  }
+
+  await saveGenericClassEntry(worldId, cls, genericSystem, null);
   res.json({ preview: false, id: cls.id, name: cls.name, faction: cls.faction, summary: cls.designNotes });
 }
 
