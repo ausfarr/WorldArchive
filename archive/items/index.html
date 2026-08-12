@@ -52,6 +52,7 @@
       <a href="../enemies/index.html" id="nav-enemies">Bestiary</a>
       <a href="../classes/index.html" id="nav-classes">Classes</a>
       <a href="../items/index.html" id="nav-items">Items</a>
+      <a href="../spells/index.html" id="nav-spells" style="display:none;">Spells</a>
       <a href="../logs/index.html" id="nav-logs">Logs</a>
       <a href="../survivors/index.html" id="nav-survivors">PCs</a>
       <a href="../locations/index.html" id="nav-locations">Locations</a>
@@ -109,34 +110,167 @@
   <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
 </div>
 <script>
-document.getElementById('gen-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('gen-submit');
-  const status = document.getElementById('gen-status');
-  btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Forging something worth finding…', 'Working out the numbers…','Weighing it in hand…','Working out what its worth…','Deciding who would want this…','Almost there…']);
-  status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
+// ============================================================
+// Multi-ruleset genericization. Same fail-open dispatch pattern as
+// Bestiary/Classes -- Echoes keeps its own Category/Rarity form
+// untouched; 5e gets its own real rarity tiers (name/faction/rarity),
+// pf2e gets name/faction only (level/price-tier/rune-tiers are all
+// model-decided in the PF2e prompt, not form inputs -- see
+// routes/generateItem.js's handlePf2eItemGenerate).
+// ============================================================
+
+function wireEchoesItemForm() {
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Forging something worth finding…', 'Working out the numbers…','Weighing it in hand…','Working out what its worth…','Deciding who would want this…','Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
+    try {
+      const res = await authFetch('/api/generate-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          category: document.getElementById('gen-field-2').value,
+          rarity: document.getElementById('gen-field-3').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name} (${data.category}${data.rarity ? ' — ' + data.rarity : ''})`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+function wire5eItemForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">RARITY</label>
+      <select id="gen-field-2" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose (may be mundane)</option>
+        <option value="Common">Common</option>
+        <option value="Uncommon">Uncommon</option>
+        <option value="Rare">Rare</option>
+        <option value="Very Rare">Very Rare</option>
+        <option value="Legendary">Legendary</option>
+        <option value="Artifact">Artifact</option>
+      </select>
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+  `;
+  populateFactionSelect('gen-field-3', { includeUnaligned: true });
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Forging something worth finding…', 'Resolving base weapon/armor stats…', 'Checking the rarity value range…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const res = await authFetch('/api/generate-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          rarity: document.getElementById('gen-field-2').value,
+          faction: document.getElementById('gen-field-3').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.rarity ? ' — ' + data.rarity : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+function wirePf2eItemForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 220px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-2" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+  `;
+  populateFactionSelect('gen-field-2', { includeUnaligned: true });
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Forging something worth finding…', 'Picking rune tiers and Bulk…', 'Estimating price guidance…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const res = await authFetch('/api/generate-item', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          faction: document.getElementById('gen-field-2').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+async function initItemGenerateForm() {
+  let ruleset = 'echoes';
   try {
-    const res = await authFetch('/api/generate-item', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: document.getElementById('gen-name').value,
-        category: document.getElementById('gen-field-2').value,
-        rarity: document.getElementById('gen-field-3').value
-      })
-    });
+    const res = await authFetch('/api/wizard/ruleset-options');
     const data = await res.json();
-    if (!res.ok) throw new Error(formatGenerationError(data));
-    status.textContent = `Generated: ${data.name} (${data.category}${data.rarity ? ' — ' + data.rarity : ''})`;
-    setTimeout(() => window.location.reload(), 1200);
+    ruleset = data.current || 'echoes';
   } catch (err) {
-    status.innerHTML = err.message;
-  } finally {
-    hideGenerationOverlay();
-    btn.disabled = false; btn.textContent = 'Generate';
+    console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
   }
-});
+  if (ruleset === '5e') {
+    wire5eItemForm();
+  } else if (ruleset === 'pf2e') {
+    wirePf2eItemForm();
+  } else {
+    wireEchoesItemForm();
+  }
+}
+document.addEventListener('DOMContentLoaded', initItemGenerateForm);
 </script>
 
 
@@ -231,6 +365,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html
     renderAuthStatus();
+    applySpellsNavVisibility();
     applyCategoryConfig();
     applySiteTheme();
     loadAndRenderCategoryIndex("items");

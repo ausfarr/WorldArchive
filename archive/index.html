@@ -19,6 +19,7 @@
       <a href="enemies/index.html" id="nav-enemies">Bestiary</a>
       <a href="classes/index.html" id="nav-classes">Classes</a>
       <a href="items/index.html" id="nav-items">Items</a>
+      <a href="spells/index.html" id="nav-spells" style="display:none;">Spells</a>
       <a href="logs/index.html" id="nav-logs">Logs</a>
       <a href="survivors/index.html" id="nav-survivors">PCs</a>
       <a href="locations/index.html" id="nav-locations">Locations</a>
@@ -204,6 +205,7 @@
       return;
     }
     renderAuthStatus();
+    applySpellsNavVisibility();
     applyCategoryConfig();
     applySiteTheme();
     loadAndRenderHomepageCounts();

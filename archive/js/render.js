@@ -3,30 +3,46 @@
 // keeps working when opened directly from disk (file://), where fetch()
 // of local files is blocked by browser CORS rules.
 
-// NOTE: multi-ruleset genericization added a "spells" category
-// (lib/rulesets/index.js -- 5e only, no Echoes equivalent) with real
-// backend support (routes/generateSpell.js, lib/rulesets/5e/spellTemplate.js)
-// but deliberately does NOT add it here yet. CATEGORY_LABELS drives the
-// homepage's category-count fetch loop (loadAndRenderHomepageCounts,
-// below) and nav-{category} element lookups for EVERY world regardless
-// of ruleset -- adding a category here without also building its
-// index/nav UI risks subtle breakage across every existing (including
-// Echoes) world for a page that doesn't exist yet. Ruleset-aware nav
-// (only showing Spells for 5e worlds, wiring its own index page) is
-// Phase 11 scope -- see session_addendum_ruleset_genericization.md. A
-// spell entry's dossier page still works via the generic
-// /api/entries/:category/:id route; it just shows the raw "spells"
-// string as its crumb label until that phase adds a real one here.
+// Multi-ruleset genericization: "spells" (5e/pf2e only, no Echoes/
+// generic equivalent) now has a real index page (archive/spells/) and
+// nav link on every archive page -- the nav-spells link is hidden by
+// default (see each page's <nav>) and only shown by
+// applySpellsNavVisibility() below when this world's ruleset actually
+// has a spells category. Homepage category counts (loadAndRenderHomepageCounts)
+// fetching a "spells" count for an Echoes/generic world is harmless --
+// GET /api/entries/spells is a valid route for every world (just always
+// returns zero entries there), same as any other category with nothing
+// generated yet.
 const CATEGORY_LABELS = {
   factions: "Factions",
   npcs: "NPCs",
   enemies: "Bestiary",
   classes: "Classes",
   items: "Items",
+  spells: "Spells",
   logs: "Logs",
   survivors: "PCs",
   locations: "Locations"
 };
+
+// Shows the nav-spells link only for rulesets that actually have a
+// spells category (5e, pf2e) -- fails CLOSED (stays hidden) on any
+// error, since a visible link to a category that would just 501 on
+// generate is worse UX than a temporarily-missing one. Call from every
+// archive page's init block, same as applyCategoryConfig()/applySiteTheme().
+async function applySpellsNavVisibility() {
+  const navLink = document.getElementById("nav-spells");
+  if (!navLink) return;
+  try {
+    const res = await authFetch("/api/wizard/ruleset-options");
+    const data = await res.json();
+    if (data.current === "5e" || data.current === "pf2e") {
+      navLink.style.display = "";
+    }
+  } catch (err) {
+    console.error("Could not determine ruleset for Spells nav visibility:", err);
+  }
+}
 
 // TODO(Austin): swap in the real Google Form URL once created.
 const BETA_FEEDBACK_FORM_URL = "https://forms.gle/UuQSHAetFnkAXxV87";
