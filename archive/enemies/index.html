@@ -5,6 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bestiary — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
+<style>
+  /* Import/Reflavor/Homebrew source picker (5e only) -- promoted to a
+     visible button row (finding #6) instead of the original <select>,
+     so "Import" (free, not an AI call) reads as its own first-class
+     option at a glance rather than a hidden sub-choice of "Generate". */
+  .mode-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    color: var(--ink-dim); padding: 8px 14px; cursor: pointer;
+    font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.82rem;
+  }
+  .mode-btn-tag {
+    font-family: var(--font-mono); text-transform: none; letter-spacing: 0; font-size: 0.65rem; color: var(--ink-faint);
+  }
+  .mode-btn-import { border-color: var(--neon-cyan); }
+  .mode-btn-import .mode-btn-tag { color: var(--neon-cyan); }
+  .mode-btn-active {
+    border-color: var(--neon-primary); color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--neon-primary);
+  }
+</style>
 <script>
 (function() {
   try {
@@ -157,13 +178,14 @@ async function wire5eEnemyForm() {
       <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
       <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
     </div>
-    <div style="flex: 1; min-width: 160px;">
-      <label for="gen-mode" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">MODE</label>
-      <select id="gen-mode" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-        <option value="homebrew">Homebrew (AI-designed)</option>
-        <option value="import">Import (from 5e SRD, free)</option>
-        <option value="reflavor">Reflavor (SRD mechanics, new narrative)</option>
-      </select>
+    <div style="flex-basis: 100%; min-width: 260px;">
+      <label style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 6px;">SOURCE</label>
+      <div id="gen-mode-buttons" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="mode-btn mode-btn-import" data-mode="import">Import<span class="mode-btn-tag">free · official SRD content</span></button>
+        <button type="button" class="mode-btn" data-mode="reflavor">Reflavor<span class="mode-btn-tag">AI · SRD stats, new narrative</span></button>
+        <button type="button" class="mode-btn" data-mode="homebrew">Homebrew AI<span class="mode-btn-tag">AI · fully new design</span></button>
+      </div>
+      <input type="hidden" id="gen-mode" value="import">
     </div>
     <div id="gen-srd-picker-wrap" style="flex: 1; min-width: 200px; display: none;">
       <label for="gen-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD MONSTER</label>
@@ -195,12 +217,23 @@ async function wire5eEnemyForm() {
     .map((m) => `<option value="${m.id}">${m.name}${m.cr != null ? ` (CR ${m.cr})` : ''}</option>`)
     .join('') || '<option value="">No SRD monsters available</option>';
 
+  const modeSubmitLabels = { import: 'Import', reflavor: 'Generate', homebrew: 'Generate' };
+
   function updateModeVisibility() {
     const mode = document.getElementById('gen-mode').value;
     document.getElementById('gen-srd-picker-wrap').style.display = (mode === 'import' || mode === 'reflavor') ? 'block' : 'none';
     document.getElementById('gen-cr-wrap').style.display = mode === 'homebrew' ? 'block' : 'none';
+    document.querySelectorAll('#gen-mode-buttons .mode-btn').forEach((b) => {
+      b.classList.toggle('mode-btn-active', b.dataset.mode === mode);
+    });
+    document.getElementById('gen-submit').textContent = modeSubmitLabels[mode] || 'Generate';
   }
-  document.getElementById('gen-mode').addEventListener('change', updateModeVisibility);
+  document.querySelectorAll('#gen-mode-buttons .mode-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.getElementById('gen-mode').value = b.dataset.mode;
+      updateModeVisibility();
+    });
+  });
   updateModeVisibility();
 
   document.getElementById('gen-form').addEventListener('submit', async (e) => {
@@ -208,7 +241,7 @@ async function wire5eEnemyForm() {
     const btn = document.getElementById('gen-submit');
     const status = document.getElementById('gen-status');
     const mode = document.getElementById('gen-mode').value;
-    btn.disabled = true; btn.textContent = 'Generating…';
+    btn.disabled = true; btn.textContent = mode === 'import' ? 'Importing…' : 'Generating…';
     showGenerationOverlay(mode === 'import' ? ['Copying the SRD stat block…'] : ['Rolling up a threat…', 'Computing Challenge Rating…', 'Balancing the stat block…', 'Almost there…']);
     status.style.display = 'block'; status.textContent = 'Calling the generator…';
     try {
@@ -233,7 +266,7 @@ async function wire5eEnemyForm() {
       status.innerHTML = err.message;
     } finally {
       hideGenerationOverlay();
-      btn.disabled = false; btn.textContent = 'Generate';
+      btn.disabled = false; btn.textContent = modeSubmitLabels[mode] || 'Generate';
     }
   });
 }
