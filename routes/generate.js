@@ -11,8 +11,9 @@ const { saveNpcEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildBodyHtml } = require("../lib/entryTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
-const { getStyleGuide } = require("../lib/worldConfigRepo");
+const { getStyleGuide, getRuleset } = require("../lib/worldConfigRepo");
 const { createNewNpc } = require("../lib/campaignEntryGenerators");
+const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
 
 const router = express.Router();
 
@@ -44,6 +45,14 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       });
       npc.id = npc.id || slugify(npc.name);
       if (faction) npc.faction = faction;
+      // Phase 7 (multi-ruleset genericization): see
+      // lib/campaignEntryGenerators.js's createNewNpc for the full
+      // reasoning -- this import path bypasses that helper (needs
+      // importSourceText threaded through), so the same attachment is
+      // duplicated here rather than left out.
+      if ((await getRuleset(worldId)) === "5e") {
+        npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE;
+      }
       await saveNpcEntry(worldId, npc, null);
       return res.json({
         preview: false,
@@ -114,6 +123,20 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     // grounded in that faction via loreContext, but the stored field
     // itself no longer depends on the model getting it right.
     if (faction) npc.faction = faction;
+
+    // Phase 7 (multi-ruleset genericization): fill/regenerate both need
+    // the combat profile explicitly carried over -- the model's own
+    // response never includes one (npcContentPrompt.js's schema has no
+    // such field), so without this a regenerate would silently drop a
+    // combat profile the moment the user confirms it, including one a
+    // GM had already upgraded to a bespoke Combatant stat block via
+    // routes/npcCombatant.js. "fill" (a locked placeholder becoming a
+    // real NPC for the first time) gets the same default new NPCs get.
+    if ((await getRuleset(worldId)) === "5e") {
+      npc.combatProfile = (mode === "regenerate" && priorRaw && priorRaw.combatProfile)
+        ? priorRaw.combatProfile
+        : DEFAULT_NPC_COMBAT_PROFILE;
+    }
 
     if (mode === "regenerate") {
       const newBodyHtmlPreview = buildBodyHtml(npc);

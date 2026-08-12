@@ -221,6 +221,36 @@ proposed value looks off for its stated rarity. Same pattern as every
 other category so far: Homebrew tier only, PF2e/Generic and frontend UI
 deferred.
 
+## Phase 7 update — NPCs (5e default combat profile + Combatant upgrade)
+
+Smaller in scope than 4-6 since NPCs have no mechanical fields at all in
+any ruleset today (verified by checking the NPC prompt schema). Every
+5e-world NPC now gets a lightweight default combat profile at creation
+(`lib/rulesets/5e/npcCombatDefaults.js` -- a Commoner-equivalent
+baseline matching the real SRD Commoner exactly, cross-checked against
+an independent source), wired into all three NPC-creation code paths
+including the fill/regenerate branch, which required explicitly
+preserving an already-upgraded Combatant's stats across a regenerate
+(the model's response never includes `combatProfile`, so without this a
+regenerate would have silently deleted a GM's earlier upgrade).
+
+The "Combatant" upgrade (`routes/npcCombatant.js`) reuses the exact
+Phase 3 Homebrew pipeline verbatim — `routes/generateEnemy.js`'s inline
+Homebrew logic was extracted into `lib/rulesets/5e/homebrewEnemyGenerator.js`
+and both routes now call the same function, matching the project's own
+"reuse it, don't fork it" instruction. A real bug was caught while
+wiring this: an early draft built the updated NPC object by spreading
+the flattened entry wrapper `getEntry()` returns instead of its nested
+`.raw` (the actual NPC content) — would have silently corrupted every
+upgraded NPC's narrative content. Fixed before shipping.
+
+`lib/entryTemplate.js` (the NPC template shared by every ruleset) got an
+additive-only Combat Profile section, gated on `npc.combatProfile` being
+present — undefined for every Echoes NPC and every pre-Phase-7 5e NPC,
+so existing output is byte-for-byte unchanged for them.
+`scripts/testNpcCombatProfile.js` hard-asserts that regression guarantee
+explicitly, not just by inspection.
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules

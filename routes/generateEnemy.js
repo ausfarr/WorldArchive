@@ -18,10 +18,11 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 // see session_addendum_ruleset_genericization.md.
 const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
 const { slugify: slugify5e, buildEnemyBodyHtml: buildEnemyBodyHtml5e } = require("../lib/rulesets/5e/enemyTemplate");
-const { computeChallengeRating, averageDamageFromDice, XP_BY_CR } = require("../lib/rulesets/5e/statFormulas");
+const { XP_BY_CR } = require("../lib/rulesets/5e/statFormulas");
 const { mapSrdMonsterMechanics } = require("../lib/rulesets/5e/srdMonsterMapper");
-const { buildHomebrewEnemySystemPrompt, buildReflavorEnemySystemPrompt } = require("../prompts/rulesets/5e/enemyContentPrompt");
-const { getSrdEntry, findNearestCrMonsters, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
+const { buildReflavorEnemySystemPrompt } = require("../prompts/rulesets/5e/enemyContentPrompt");
+const { getSrdEntry, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
+const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
 
 // Multi-ruleset genericization, PF2e Bestiary (Homebrew tier only --
 // see lib/rulesets/pf2e/statFormulas.js and
@@ -168,35 +169,11 @@ async function handleEchoesEnemyGenerate(req, res) {
 // (AI rewrites narrative only, mechanics untouched), 'homebrew' (AI
 // invents fresh stats, code computes the real CR).
 // ============================================================
-
-// Estimates offense (avg damage + attack bonus of the single most
-// damaging action) for CR computation. Deliberately simple -- see
-// scripts/test5eStatFormulas.js's header comment for why a perfect
-// multiattack/spellcasting-aware extraction wouldn't make CR estimation
-// exact anyway (WotC's own printed CRs aren't purely formula-derived
-// either). This is an ESTIMATE surfaced to the GM as one, not a claim of
-// authority -- see lib/rulesets/5e/enemyTemplate.js's "(estimated --
-// review before play)" badge.
-function extractOffenseForCr(enemy) {
-  const actions = Array.isArray(enemy.actions) ? enemy.actions : [];
-  let best = { avg: 0, toHit: 0 };
-  for (const action of actions) {
-    if (!action.damageDice) continue;
-    const avg = averageDamageFromDice(action.damageDice);
-    if (avg > best.avg) best = { avg, toHit: Number(action.toHit) || 0 };
-  }
-  return best;
-}
-
-// Rough approximation of "resistant/immune to a broad spread of common
-// damage" for the EHP adjustment -- see statFormulas.js's
-// effectiveHp() comment for why this whole adjustment is inherently a
-// judgment call, not a precise formula, even in the original DMG text.
-function looksLikeBroadResistanceOrImmunity(text) {
-  if (!text) return false;
-  const items = String(text).split(/[,;]/).map((s) => s.trim()).filter(Boolean);
-  return items.length >= 3 || /\ball\b/i.test(text);
-}
+// extractOffenseForCr / looksLikeBroadResistanceOrImmunity moved into
+// lib/rulesets/5e/homebrewEnemyGenerator.js when the Homebrew branch
+// below was extracted into a shared, reusable function (Phase 7 needed
+// the exact same pipeline for NPCs' "Combatant" upgrade -- "reuse it,
+// don't fork it").
 
 async function findExistingEnemyEntry(worldId, fillExistingId) {
   const manifest = await listEntries(worldId, "enemies");
@@ -310,43 +287,11 @@ async function handle5eEnemyGenerate(req, res) {
       actions: reflavored.actions && reflavored.actions.length === mechanics.actions.length ? reflavored.actions : mechanics.actions
     };
   } else {
-    // Homebrew
-    const rosterEntries = await listEntries(worldId, "enemies", { locked: false });
-    const rosterContext = rosterEntries.length
-      ? rosterEntries.map((e) => `- ${e.id} | ${e.name}: CR ${(e.challengeRating && e.challengeRating.cr) || "?"}`).join("\n")
-      : "No enemies archived yet -- any concept is available.";
-    const referenceMonsters = await findNearestCrMonsters("5e", targetCr ? parseFloat(targetCr) || null : null, { limit: 2 });
-
-    const systemPrompt = buildHomebrewEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, faction, targetCr, referenceMonsters, campaignContext: undefined });
-    const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the monster now.", maxTokens: 2500 });
-
-    const offense = extractOffenseForCr(proposed);
-    const crResult = computeChallengeRating({
-      hp: proposed.hitPoints,
-      ac: proposed.armorClass,
-      damagePerRound: offense.avg,
-      attackBonus: offense.toHit,
-      saveDC: 0,
-      resistantToCommonDamage: looksLikeBroadResistanceOrImmunity(proposed.damageResistances),
-      immuneToCommonDamage: looksLikeBroadResistanceOrImmunity(proposed.damageImmunities)
-    });
-
-    delete proposed.targetChallengeRating;
-    enemy = {
-      ...proposed,
-      id: fillExistingId || slugify5e(proposed.name),
-      faction: faction || proposed.faction || null,
-      sourceMode: "homebrew",
-      srdSourceId: null,
-      srdLicenseNote: null,
-      challengeRating: {
-        cr: crResult.cr,
-        xp: XP_BY_CR[crResult.cr] || null,
-        defensiveCr: crResult.defensiveCr,
-        offensiveCr: crResult.offensiveCr,
-        estimated: true
-      }
-    };
+    // Homebrew -- shared with Phase 7's NPC "Combatant" upgrade, see
+    // lib/rulesets/5e/homebrewEnemyGenerator.js's header comment for why
+    // this is a real extracted function and not inline logic anymore.
+    enemy = await generateHomebrew5eEnemy(worldId, { name, faction, targetCr });
+    if (fillExistingId) enemy.id = fillExistingId;
   }
 
   if (existingEntry) enemy.id = existingEntry.manifestEntry.id;

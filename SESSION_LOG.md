@@ -420,3 +420,59 @@ typical range for its stated rarity.
 No canonical magic item dataset ingested (same gap as Spells/Classes) --
 Homebrew tier only. PF2e Items and the Generic ruleset deferred, same as
 every other category so far.
+
+## Phase 7 — NPCs (5e default combat profile + Combatant upgrade)
+
+Smaller in scope than 4-6 since NPCs are otherwise ruleset-agnostic
+(confirmed by checking `prompts/npcContentPrompt.js`'s schema: no
+mechanical stat fields at all, pure narrative). Two pieces:
+
+1. **Default combat profile**: every NPC created in a 5e-ruleset world
+   now gets `combatProfile` attached automatically -- a Commoner-
+   equivalent baseline (AC 10, HP 4, all abilities +0, one weak Club
+   attack, CR 0) matching the real SRD Commoner exactly (cross-checked
+   against 5e-bits/5e-database's monster JSON), coded directly in
+   `lib/rulesets/5e/npcCombatDefaults.js` as a plain default rather than
+   ingested content -- same non-licensing-source treatment as every
+   other cross-referenced table in this project. Wired into THREE
+   separate NPC-creation code paths (`lib/campaignEntryGenerators.js`'s
+   `createNewNpc` -- the shared "plain new NPC" helper also used by
+   Quest auto-fill; `routes/generate.js`'s import-from-text branch,
+   which bypasses that helper; and the fill/regenerate branch, which
+   also had to explicitly PRESERVE an already-upgraded Combatant's real
+   stat block across a regenerate -- the model's own response never
+   includes combatProfile at all, so without this, confirming a
+   regenerate would have silently deleted a GM's earlier Combatant
+   upgrade).
+
+2. **"Combatant" upgrade** (`routes/npcCombatant.js`,
+   `POST /api/npc-combatant-upgrade`): reuses the *exact* Phase 3
+   Homebrew monster pipeline -- extracted `routes/generateEnemy.js`'s
+   inline Homebrew logic into a new shared function,
+   `lib/rulesets/5e/homebrewEnemyGenerator.js`'s `generateHomebrew5eEnemy()`,
+   used by BOTH the Bestiary route (now calling the extracted function
+   instead of duplicating the logic inline -- confirmed unchanged
+   behavior via the same synthetic-monster pipeline test as Phase 3) and
+   this new NPC route. Matches the project's own instruction verbatim:
+   "reuse it, don't fork it."
+
+**Real bug caught and fixed while wiring the upgrade route**: an early
+draft built `updatedNpc` by spreading `existing` (the FLATTENED entry
+object `getEntry()` returns -- id/name/subtitle/faction/tags/bodyHtml/
+etc.) instead of `existing.raw` (the actual NPC content object with
+physicalDescription/speech/relationships/etc.). Saving that broken
+object would have silently corrupted the NPC's own narrative content the
+first time anyone used the Combatant upgrade. Caught before shipping,
+not after.
+
+**Template change, kept safe deliberately**: `lib/entryTemplate.js`
+(the one NPC template shared by every ruleset, since NPCs were never
+previously ruleset-specific) got an additive-only "Combat Profile"
+section that only renders when `npc.combatProfile` is present --
+undefined for every Echoes NPC and every 5e NPC that predates this
+phase, so `buildBodyHtml()`'s output is byte-for-byte unchanged for
+them. `scripts/testNpcCombatProfile.js` hard-asserts this regression
+guarantee explicitly, plus correct rendering for both the default and an
+upgraded profile (including the "(default -- not yet a bespoke
+Combatant)" label disappearing once a real Combatant stat block replaces
+it).
