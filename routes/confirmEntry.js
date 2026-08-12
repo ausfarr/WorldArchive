@@ -20,6 +20,7 @@ const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
 const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
 const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
 const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
+const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
 
 const router = express.Router();
 
@@ -131,6 +132,10 @@ router.post("/confirm-entry", async (req, res) => {
       if (category === "classes") {
         const ruleset = await getRuleset(worldId);
         if (ruleset === "5e") writer = save5eClassEntry;
+      }
+      if (category === "items") {
+        const ruleset = await getRuleset(worldId);
+        if (ruleset === "5e") writer = save5eItemEntry;
       }
       if (!writer) {
         return { status: 400, body: { error: `Unknown category '${category}'` } };

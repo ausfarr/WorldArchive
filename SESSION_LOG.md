@@ -395,3 +395,28 @@ Generic ruleset's world-configurable leveling system (depends on wizard
 UI work not undertaken here). Both are real, separate follow-up phases,
 not folded into this one. Frontend: same as Bestiary/Spells, the
 Classes generation UI stays Echoes-shaped (1-99 tree) -- Phase 11 scope.
+
+## Phase 6 — Items (5e, Homebrew tier)
+
+`lib/rulesets/5e/itemFormulas.js`: real SRD weapon (all 14 Simple, all
+21 Martial) and armor (all 12 armors + shield) lookup tables plus the
+DMG's magic item rarity value-range table (Common 50-100gp through
+Legendary 50,000gp+, Artifact priceless) -- cross-referenced against
+5e-bits/5e-database's equipment JSON (numbers only, not a content
+source, same reasoning as every other cross-check in this project).
+This category really is "mostly a lookup table, not a derived formula"
+per the scope doc -- unlike Bestiary/Classes there's no complex math to
+verify, just correct transcription, which `scripts/test5eItemFormulas.js`
+hard-asserts against real known stats (Longsword 1d8 slashing Versatile,
+Chain Mail AC 16 no-dex Str-13-required, etc.).
+
+Homebrew generation resolves a magic weapon/armor's actual damage dice/
+AC from these tables plus the model's proposed base-item name and magic
+bonus -- the model never states final numbers directly. A loose
+rarity-vs-value sanity check (warn, don't block, same spirit as Echoes'
+`attributeBudgetWarning`) flags a proposed price that's out of the DMG's
+typical range for its stated rarity.
+
+No canonical magic item dataset ingested (same gap as Spells/Classes) --
+Homebrew tier only. PF2e Items and the Generic ruleset deferred, same as
+every other category so far.

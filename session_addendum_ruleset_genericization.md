@@ -204,6 +204,23 @@ available for either), PF2e and Generic-ruleset variants explicitly
 deferred (not attempted), frontend UI deferred to Phase 11 alongside
 Bestiary's.
 
+## Phase 6 update — Items (5e, Homebrew tier)
+
+`lib/rulesets/5e/itemFormulas.js`: real SRD weapon and armor lookup
+tables (all 14 Simple + 21 Martial weapons, all 12 armors + shield) plus
+the DMG's magic item rarity value-range table, cross-referenced against
+5e-bits/5e-database's equipment JSON for numbers only (not a content
+source). Unlike Bestiary/Classes, Items really is "mostly a lookup
+table, not a derived formula" as the scope doc anticipated — the
+verification bar here is correct transcription, not formula correctness,
+which `scripts/test5eItemFormulas.js` hard-asserts against known SRD
+stats. Homebrew generation resolves a magic weapon/armor's real damage
+dice/AC from these tables plus the model's proposed base item + magic
+bonus; a loose rarity-vs-price sanity check warns (never blocks) when a
+proposed value looks off for its stated rarity. Same pattern as every
+other category so far: Homebrew tier only, PF2e/Generic and frontend UI
+deferred.
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules
