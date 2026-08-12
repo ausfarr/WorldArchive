@@ -15,6 +15,22 @@ const { syncReciprocalRelationships } = require("../lib/factionDeepLore");
 const { getEntry } = require("../lib/entriesRepo");
 const { checkEntryCap } = require("../middleware/enforceEntryCap");
 const { withLock } = require("../lib/asyncLock");
+const { getRuleset } = require("../lib/worldConfigRepo");
+const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
+const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
+const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
+const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
+const { savePf2eClassEntry } = require("../lib/rulesets/pf2e/classRepo");
+const { saveGenericClassEntry } = require("../lib/rulesets/generic/classRepo");
+const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
+const { savePf2eItemEntry } = require("../lib/rulesets/pf2e/itemRepo");
+const { saveGenericItemEntry } = require("../lib/rulesets/generic/itemRepo");
+const { savePf2eSpellEntry } = require("../lib/rulesets/pf2e/spellRepo");
+const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
+const { savePf2eSurvivorEntry } = require("../lib/rulesets/pf2e/survivorRepo");
+const { saveGenericSurvivorEntry } = require("../lib/rulesets/generic/survivorRepo");
+const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
+const { getGenericSystem } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -28,7 +44,13 @@ const WRITERS = {
   survivors: saveSurvivorEntry,
   logs: saveLogEntry,
   classes: saveClassEntry,
-  locations: saveLocationEntry
+  locations: saveLocationEntry,
+  // "spells" default -- overridden below for pf2e (see the ruleset
+  // branch next to "classes"/"items"). Echoes/generic worlds can never
+  // reach this writer since requireCategoryAvailable already turned
+  // their /generate-spell request away with a 501 (neither has a
+  // `spells` registry entry -- see lib/rulesets/index.js).
+  spells: save5eSpellEntry
 };
 
 // Categories whose writer function accepts a third imageUrl argument
@@ -104,7 +126,66 @@ router.post("/confirm-entry", async (req, res) => {
         return { status: 200, body: { saved: true, id: entry.id, category } };
       }
 
-      const writer = WRITERS[category];
+      // Multi-ruleset genericization: "enemies" is the one category so
+      // far (Phase 3) with a per-ruleset writer instead of a single
+      // fixed one -- WRITERS.enemies stays Echoes' saveEnemyEntry
+      // UNCHANGED (see that map above) so this only branches away from
+      // it for a ruleset that actually has its own enemy pipeline built.
+      // Every other category keeps going through WRITERS exactly as
+      // before this project.
+      let writer = WRITERS[category];
+      if (category === "enemies") {
+        const ruleset = await getRuleset(worldId);
+        if (ruleset === "5e") writer = save5eEnemyEntry;
+        else if (ruleset === "pf2e") writer = savePf2eEnemyEntry;
+        else if (ruleset === "generic") {
+          // saveGenericEnemyEntry() needs this world's generic_system_json
+          // as an extra argument (attribute/derived-stat definitions
+          // aren't fixed, unlike every other ruleset's writer) -- doesn't
+          // fit the plain writer(worldId, entry, imageUrl) shape below,
+          // so it's called directly here instead of assigned to `writer`.
+          const genericSystem = await getGenericSystem(worldId);
+          await saveGenericEnemyEntry(worldId, entry, genericSystem, undefined);
+          return { status: 200, body: { saved: true, id: entry.id, category } };
+        }
+      }
+      if (category === "classes") {
+        const ruleset = await getRuleset(worldId);
+        if (ruleset === "5e") writer = save5eClassEntry;
+        else if (ruleset === "pf2e") writer = savePf2eClassEntry;
+        else if (ruleset === "generic") {
+          // Same extra-argument shape as enemies' generic branch above --
+          // saveGenericClassEntry() needs this world's generic_system_json
+          // to resolve keyAttribute's display label.
+          const genericSystem = await getGenericSystem(worldId);
+          await saveGenericClassEntry(worldId, entry, genericSystem, undefined);
+          return { status: 200, body: { saved: true, id: entry.id, category } };
+        }
+      }
+      if (category === "items") {
+        const ruleset = await getRuleset(worldId);
+        if (ruleset === "5e") writer = save5eItemEntry;
+        else if (ruleset === "pf2e") writer = savePf2eItemEntry;
+        else if (ruleset === "generic") {
+          const genericSystem = await getGenericSystem(worldId);
+          await saveGenericItemEntry(worldId, entry, genericSystem, undefined);
+          return { status: 200, body: { saved: true, id: entry.id, category } };
+        }
+      }
+      if (category === "spells") {
+        const ruleset = await getRuleset(worldId);
+        if (ruleset === "pf2e") writer = savePf2eSpellEntry;
+      }
+      if (category === "survivors") {
+        const ruleset = await getRuleset(worldId);
+        if (ruleset === "5e") writer = save5eSurvivorEntry;
+        else if (ruleset === "pf2e") writer = savePf2eSurvivorEntry;
+        else if (ruleset === "generic") {
+          const genericSystem = await getGenericSystem(worldId);
+          await saveGenericSurvivorEntry(worldId, entry, genericSystem, undefined);
+          return { status: 200, body: { saved: true, id: entry.id, category } };
+        }
+      }
       if (!writer) {
         return { status: 400, body: { error: `Unknown category '${category}'` } };
       }

@@ -52,6 +52,7 @@
       <a href="../enemies/index.html" id="nav-enemies">Bestiary</a>
       <a href="../classes/index.html" id="nav-classes">Classes</a>
       <a href="../items/index.html" id="nav-items">Items</a>
+      <a href="../spells/index.html" id="nav-spells" style="display:none;">Spells</a>
       <a href="../logs/index.html" id="nav-logs">Logs</a>
       <a href="../survivors/index.html" id="nav-survivors">PCs</a>
       <a href="../locations/index.html" id="nav-locations">Locations</a>
@@ -74,7 +75,7 @@
   <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Bestiary</h1>
   <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb"></p>
 
-  
+
 <div class="sheet" style="margin: 0 0 40px; padding: 24px 32px;">
   <p class="sheet-eyebrow" style="margin: 0 0 8px;">Generate New Entry</p>
   <form id="gen-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
@@ -104,35 +105,279 @@
   <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
 </div>
 <script>
-document.getElementById('gen-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('gen-submit');
-  const status = document.getElementById('gen-status');
-  btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Rolling up a threat…', 'Balancing the stat block…', 'Sketching claws and teeth…','Picking a fighting style…','Naming its favorite move…','Almost there…']);
-  status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
+// ============================================================
+// Multi-ruleset genericization, Phase 11. The generate form above is
+// Echoes' own shape (Name/Tier/Faction) and stays exactly that for an
+// Echoes world or if the ruleset lookup fails (fail open to the
+// long-established default rather than a broken/blank form). A 5e or
+// pf2e world gets its own field set + submit handler, built once the
+// world's ruleset is known -- see initEnemyGenerateForm() below.
+// ============================================================
+
+function wireEchoesEnemyForm() {
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Rolling up a threat…', 'Balancing the stat block…', 'Sketching claws and teeth…','Picking a fighting style…','Naming its favorite move…','Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
+    try {
+      const res = await authFetch('/api/generate-enemy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          tier: document.getElementById('gen-field-2').value,
+          faction: document.getElementById('gen-field-3').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name} (${data.tier} — ${data.faction})${data.attributeBudgetWarning ? ' — note: ' + data.attributeBudgetWarning : ''}` + (data.imageError ? ` — portrait failed: ${data.imageError}` : '');
+      setTimeout(() => window.location.reload(), data.imageError ? 6000 : 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+  populateFactionSelect('gen-field-3', { includeUnaligned: true });
+}
+
+// Real backend contract, tested at the function level in
+// scripts/test5eStatFormulas.js and by hand in this session -- see
+// routes/generateEnemy.js's 5e branch for the mode/srdLibraryId/targetCr
+// request shape this submits.
+async function wire5eEnemyForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-mode" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">MODE</label>
+      <select id="gen-mode" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="homebrew">Homebrew (AI-designed)</option>
+        <option value="import">Import (from 5e SRD, free)</option>
+        <option value="reflavor">Reflavor (SRD mechanics, new narrative)</option>
+      </select>
+    </div>
+    <div id="gen-srd-picker-wrap" style="flex: 1; min-width: 200px; display: none;">
+      <label for="gen-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD MONSTER</label>
+      <select id="gen-srd-picker" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;"></select>
+    </div>
+    <div id="gen-cr-wrap" style="flex: 1; min-width: 120px;">
+      <label for="gen-target-cr" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">TARGET CR (optional)</label>
+      <input id="gen-target-cr" type="text" placeholder="e.g. 1/2, 3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+  `;
+  populateFactionSelect('gen-field-3', { includeUnaligned: true });
+
+  let srdMonsters = [];
   try {
-    const res = await authFetch('/api/generate-enemy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: document.getElementById('gen-name').value,
-        tier: document.getElementById('gen-field-2').value,
-        faction: document.getElementById('gen-field-3').value
-      })
-    });
+    const res = await authFetch('/api/srd-library?ruleset=5e&category=monsters');
     const data = await res.json();
-    if (!res.ok) throw new Error(formatGenerationError(data));
-    status.textContent = `Generated: ${data.name} (${data.tier} — ${data.faction})${data.attributeBudgetWarning ? ' — note: ' + data.attributeBudgetWarning : ''}` + (data.imageError ? ` — portrait failed: ${data.imageError}` : '');
-    setTimeout(() => window.location.reload(), data.imageError ? 6000 : 1200);
+    srdMonsters = data.entries || [];
   } catch (err) {
-    status.innerHTML = err.message;
-  } finally {
-    hideGenerationOverlay();
-    btn.disabled = false; btn.textContent = 'Generate';
+    console.error('Could not load SRD monster list:', err);
   }
-});
-document.addEventListener('DOMContentLoaded', () => populateFactionSelect('gen-field-3', { includeUnaligned: true }));
+  const srdSelect = document.getElementById('gen-srd-picker');
+  srdSelect.innerHTML = srdMonsters
+    .map((m) => `<option value="${m.id}">${m.name}${m.cr != null ? ` (CR ${m.cr})` : ''}</option>`)
+    .join('') || '<option value="">No SRD monsters available</option>';
+
+  function updateModeVisibility() {
+    const mode = document.getElementById('gen-mode').value;
+    document.getElementById('gen-srd-picker-wrap').style.display = (mode === 'import' || mode === 'reflavor') ? 'block' : 'none';
+    document.getElementById('gen-cr-wrap').style.display = mode === 'homebrew' ? 'block' : 'none';
+  }
+  document.getElementById('gen-mode').addEventListener('change', updateModeVisibility);
+  updateModeVisibility();
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    const mode = document.getElementById('gen-mode').value;
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(mode === 'import' ? ['Copying the SRD stat block…'] : ['Rolling up a threat…', 'Computing Challenge Rating…', 'Balancing the stat block…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const body = {
+        name: document.getElementById('gen-name').value,
+        faction: document.getElementById('gen-field-3').value,
+        mode
+      };
+      if (mode === 'import' || mode === 'reflavor') body.srdLibraryId = document.getElementById('gen-srd-picker').value;
+      if (mode === 'homebrew' && document.getElementById('gen-target-cr').value) body.targetCr = document.getElementById('gen-target-cr').value;
+
+      const res = await authFetch('/api/generate-enemy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+// Real backend contract: routes/generateEnemy.js's handlePf2eEnemyGenerate
+// takes {name, faction, level, role} -- Homebrew only (no mode field at
+// all; PF2e Bestiary has no Import/Reflavor tier, see that route's
+// header comment). ROLE_TEMPLATES options mirror
+// lib/rulesets/pf2e/statFormulas.js's real preset names exactly.
+function wirePf2eEnemyForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 100px;">
+      <label for="gen-level" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">LEVEL</label>
+      <input id="gen-level" type="number" min="-1" max="24" placeholder="e.g. 3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-role" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">ROLE (optional)</label>
+      <select id="gen-role" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Generalist (no lean)</option>
+        <option value="brute">Brute</option>
+        <option value="magicalStriker">Magical Striker</option>
+        <option value="skirmisher">Skirmisher</option>
+        <option value="sniper">Sniper</option>
+        <option value="soldier">Soldier</option>
+        <option value="spellcaster">Spellcaster</option>
+      </select>
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+  `;
+  populateFactionSelect('gen-field-3', { includeUnaligned: true });
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Computing the level budget…', 'Rolling up a threat…', 'Naming its Strikes…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const level = document.getElementById('gen-level').value;
+      const res = await authFetch('/api/generate-enemy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          level: level ? Number(level) : undefined,
+          role: document.getElementById('gen-role').value,
+          faction: document.getElementById('gen-field-3').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+// Real backend contract: routes/generateEnemy.js's handleGenericEnemyGenerate
+// takes {name, faction} only -- attributes/derived stats are entirely
+// model-proposed against this world's own generic_system_json (Phase
+// 10), nothing ruleset-specific to expose as a form field here. A world
+// that hasn't configured generic_system_json yet gets a clear 400 from
+// the API (surfaced via formatGenerationError), not a broken form.
+function wireGenericEnemyForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 220px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-2" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+  `;
+  populateFactionSelect('gen-field-2', { includeUnaligned: true });
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Designing your world\'s creature…', 'Working out its attributes…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const res = await authFetch('/api/generate-enemy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          faction: document.getElementById('gen-field-2').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+async function initEnemyGenerateForm() {
+  let ruleset = 'echoes';
+  try {
+    const res = await authFetch('/api/wizard/ruleset-options');
+    const data = await res.json();
+    ruleset = data.current || 'echoes';
+  } catch (err) {
+    console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
+  }
+  if (ruleset === '5e') {
+    await wire5eEnemyForm();
+  } else if (ruleset === 'pf2e') {
+    wirePf2eEnemyForm();
+  } else if (ruleset === 'generic') {
+    wireGenericEnemyForm();
+  } else {
+    wireEchoesEnemyForm();
+  }
+}
+document.addEventListener('DOMContentLoaded', initEnemyGenerateForm);
 </script>
 
 
@@ -227,6 +472,7 @@ document.addEventListener('DOMContentLoaded', () => populateFactionSelect('gen-f
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html
     renderAuthStatus();
+    applySpellsNavVisibility();
     applyCategoryConfig();
     applySiteTheme();
     loadAndRenderCategoryIndex("enemies");

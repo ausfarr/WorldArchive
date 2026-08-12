@@ -52,6 +52,7 @@
       <a href="../enemies/index.html" id="nav-enemies">Bestiary</a>
       <a href="../classes/index.html" id="nav-classes">Classes</a>
       <a href="../items/index.html" id="nav-items">Items</a>
+      <a href="../spells/index.html" id="nav-spells" style="display:none;">Spells</a>
       <a href="../logs/index.html" id="nav-logs">Logs</a>
       <a href="../survivors/index.html" id="nav-survivors">PCs</a>
       <a href="../locations/index.html" id="nav-locations">Locations</a>
@@ -90,32 +91,109 @@
   <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
 </div>
 <script>
-document.getElementById('gen-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('gen-submit');
-  const status = document.getElementById('gen-status');
-  btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Planning a whole career…', 'Balancing the skill tree…','Naming the signature move…','Working out the endgame…','Deciding how this evolves…','Almost there…']);
-  status.style.display = 'block'; status.textContent = 'Building the full progression tree — this can take a while…';
+// ============================================================
+// Multi-ruleset genericization. Same fail-open dispatch pattern
+// archive/enemies/index.html's Phase 11 update established -- Echoes
+// keeps its own Level 1-99 form untouched; 5e/pf2e get a real name+
+// faction form wired to their own /api/generate-class contract (both
+// rulesets take the identical {name, faction} body shape, see
+// routes/generateClass.js's handle5eClassGenerate/handlePf2eClassGenerate).
+// ============================================================
+
+function wireEchoesClassForm() {
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Planning a whole career…', 'Balancing the skill tree…','Naming the signature move…','Working out the endgame…','Deciding how this evolves…','Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Building the full progression tree — this can take a while…';
+    try {
+      const res = await authFetch('/api/generate-class', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name} (${data.archetype})`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+function wireRealRulesetClassForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 220px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CONCEPT / NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to invent one" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-2" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+  `;
+  populateFactionSelect('gen-field-2', { includeUnaligned: true });
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Designing the class’s leveling math…', 'Writing milestone features…', 'Balancing against the roster…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const res = await authFetch('/api/generate-class', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          faction: document.getElementById('gen-field-2').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+async function initClassGenerateForm() {
+  let ruleset = 'echoes';
   try {
-    const res = await authFetch('/api/generate-class', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: document.getElementById('gen-name').value
-      })
-    });
+    const res = await authFetch('/api/wizard/ruleset-options');
     const data = await res.json();
-    if (!res.ok) throw new Error(formatGenerationError(data));
-    status.textContent = `Generated: ${data.name} (${data.archetype})`;
-    setTimeout(() => window.location.reload(), 1200);
+    ruleset = data.current || 'echoes';
   } catch (err) {
-    status.innerHTML = err.message;
-  } finally {
-    hideGenerationOverlay();
-    btn.disabled = false; btn.textContent = 'Generate';
+    console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
   }
-});
+  if (ruleset === '5e' || ruleset === 'pf2e' || ruleset === 'generic') {
+    // Generic Classes take the identical {name, faction} body shape as
+    // 5e/pf2e (see routes/generateClass.js's handleGenericClassGenerate)
+    // -- narrative-first, no leveling math to expose as a form field --
+    // so the same form/handler covers all three rulesets.
+    wireRealRulesetClassForm();
+  } else {
+    wireEchoesClassForm();
+  }
+}
+document.addEventListener('DOMContentLoaded', initClassGenerateForm);
 </script>
 
 
@@ -210,6 +288,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html
     renderAuthStatus();
+    applySpellsNavVisibility();
     applyCategoryConfig();
     applySiteTheme();
     loadAndRenderCategoryIndex("classes");

@@ -19,6 +19,7 @@
       <a href="enemies/index.html" id="nav-enemies">Bestiary</a>
       <a href="classes/index.html" id="nav-classes">Classes</a>
       <a href="items/index.html" id="nav-items">Items</a>
+      <a href="spells/index.html" id="nav-spells" style="display:none;">Spells</a>
       <a href="logs/index.html" id="nav-logs">Logs</a>
       <a href="survivors/index.html" id="nav-survivors">PCs</a>
       <a href="locations/index.html" id="nav-locations">Locations</a>
@@ -47,7 +48,7 @@
 </div>
 
 <footer class="site-footer">
-  <div class="wrap"><span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7 · beta</span></div>
+  <div class="wrap"><span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7 · beta</span><a href="licenses.html" class="footer-license-link">Content Licenses</a></div>
 </footer>
 
 <style>
@@ -217,6 +218,7 @@ async function init() {
   const session = await requireAuth();
   if (!session) return;
   renderAuthStatus();
+  applySpellsNavVisibility();
   applyCategoryConfig();
   applySiteTheme();
   applyAiEnabledGating(); // hides the mood board's Generate Image button (.ai-action) for AI-off accounts; Upload stays visible

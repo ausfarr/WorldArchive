@@ -13,6 +13,9 @@ const generateFactionRoute = require("./routes/generateFaction");
 const generateLocationRoute = require("./routes/generateLocation");
 const generateProceduralRoute = require("./routes/generateProcedural");
 const generateEntryImageRoute = require("./routes/generateEntryImage");
+const generateSpellRoute = require("./routes/generateSpell"); // multi-ruleset genericization, Phase 4 -- 5e-only category, no Echoes equivalent
+const npcCombatantRoute = require("./routes/npcCombatant"); // multi-ruleset genericization, Phase 7 -- NPC "Combatant" upgrade
+const srdLibraryRoute = require("./routes/srdLibrary"); // multi-ruleset genericization, Phase 11 -- read-only SRD browse for the frontend
 const fieldAssistRoute = require("./routes/fieldAssist");
 const mapRoute = require("./routes/map");
 const dungeonMapRoute = require("./routes/dungeonMap");
@@ -25,6 +28,7 @@ const wizardLoreRoute = require("./routes/wizardLore");
 const wizardFactionsRoute = require("./routes/wizardFactions");
 const wizardStatSystemRoute = require("./routes/wizardStatSystem");
 const wizardSkillSystemRoute = require("./routes/wizardSkillSystem");
+const wizardGenericSystemRoute = require("./routes/wizardGenericSystem");
 const wizardStyleGuideRoute = require("./routes/wizardStyleGuide");
 const wizardCategoryConfigRoute = require("./routes/wizardCategoryConfig");
 const wizardReviewRoute = require("./routes/wizardReview");
@@ -116,6 +120,9 @@ app.use("/api", generateFactionRoute);
 app.use("/api", generateLocationRoute);
 app.use("/api", generateProceduralRoute);
 app.use("/api", generateEntryImageRoute);
+app.use("/api", generateSpellRoute);
+app.use("/api", npcCombatantRoute);
+app.use("/api", srdLibraryRoute);
 app.use("/api", fieldAssistRoute);
 app.use("/api", mapRoute);
 app.use("/api", dungeonMapRoute);
@@ -128,6 +135,7 @@ app.use("/api", wizardLoreRoute);
 app.use("/api", wizardFactionsRoute);
 app.use("/api", wizardStatSystemRoute);
 app.use("/api", wizardSkillSystemRoute);
+app.use("/api", wizardGenericSystemRoute);
 app.use("/api", wizardStyleGuideRoute);
 app.use("/api", wizardCategoryConfigRoute);
 app.use("/api", wizardReviewRoute);

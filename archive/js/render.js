@@ -3,16 +3,46 @@
 // keeps working when opened directly from disk (file://), where fetch()
 // of local files is blocked by browser CORS rules.
 
+// Multi-ruleset genericization: "spells" (5e/pf2e only, no Echoes/
+// generic equivalent) now has a real index page (archive/spells/) and
+// nav link on every archive page -- the nav-spells link is hidden by
+// default (see each page's <nav>) and only shown by
+// applySpellsNavVisibility() below when this world's ruleset actually
+// has a spells category. Homepage category counts (loadAndRenderHomepageCounts)
+// fetching a "spells" count for an Echoes/generic world is harmless --
+// GET /api/entries/spells is a valid route for every world (just always
+// returns zero entries there), same as any other category with nothing
+// generated yet.
 const CATEGORY_LABELS = {
   factions: "Factions",
   npcs: "NPCs",
   enemies: "Bestiary",
   classes: "Classes",
   items: "Items",
+  spells: "Spells",
   logs: "Logs",
   survivors: "PCs",
   locations: "Locations"
 };
+
+// Shows the nav-spells link only for rulesets that actually have a
+// spells category (5e, pf2e) -- fails CLOSED (stays hidden) on any
+// error, since a visible link to a category that would just 501 on
+// generate is worse UX than a temporarily-missing one. Call from every
+// archive page's init block, same as applyCategoryConfig()/applySiteTheme().
+async function applySpellsNavVisibility() {
+  const navLink = document.getElementById("nav-spells");
+  if (!navLink) return;
+  try {
+    const res = await authFetch("/api/wizard/ruleset-options");
+    const data = await res.json();
+    if (data.current === "5e" || data.current === "pf2e") {
+      navLink.style.display = "";
+    }
+  } catch (err) {
+    console.error("Could not determine ruleset for Spells nav visibility:", err);
+  }
+}
 
 // TODO(Austin): swap in the real Google Form URL once created.
 const BETA_FEEDBACK_FORM_URL = "https://forms.gle/UuQSHAetFnkAXxV87";
@@ -2603,10 +2633,97 @@ function renderDossier(entry, factionLookup) {
     renderFactionColorPicker(entry, facColor);
   }
   renderFactionBanner(entry);
+  if (entry.category === "npcs") {
+    renderNpcCombatantAction(entry);
+  }
 
   wireDeleteEntryButton(entry);
   wireEntryExportButton(entry);
   renderLocationBattleMap(entry);
+}
+
+// Multi-ruleset genericization, NPC "Combatant" upgrade UI (Phase 11
+// scope). entry.combatProfile is directly present on the dossier's
+// entry object when set (rowToFullEntry() spreads raw_json's top-level
+// keys onto it, and combatProfile is one of them -- see
+// lib/campaignEntryGenerators.js). Only shown for 5e/pf2e worlds (the
+// only rulesets with a Combatant pipeline, see routes/npcCombatant.js)
+// -- fetches the ruleset fresh rather than trusting entry.combatProfile's
+// presence alone, since a legacy 5e NPC that predates Phase 7 has no
+// combatProfile at all yet but should still get the upgrade option.
+async function renderNpcCombatantAction(entry) {
+  const host = document.getElementById("npc-combatant-action");
+  if (!host) return;
+  host.innerHTML = "";
+
+  let ruleset = "echoes";
+  try {
+    const res = await authFetch("/api/wizard/ruleset-options");
+    const data = await res.json();
+    ruleset = data.current || "echoes";
+  } catch (err) {
+    console.error("Could not load ruleset for NPC Combatant action:", err);
+    return;
+  }
+  if (ruleset !== "5e" && ruleset !== "pf2e") return;
+
+  const hasBespokeProfile = entry.combatProfile && entry.combatProfile.isDefaultProfile === false;
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-line-soft); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;";
+
+  const extraFieldsHtml = ruleset === "5e"
+    ? `<input id="combatant-target-cr" type="text" placeholder="Target CR (optional)" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 160px;">`
+    : `<input id="combatant-level" type="number" min="-1" max="24" placeholder="Level (optional)" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 140px;">
+       <select id="combatant-role" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+         <option value="">Generalist (no lean)</option>
+         <option value="brute">Brute</option>
+         <option value="magicalStriker">Magical Striker</option>
+         <option value="skirmisher">Skirmisher</option>
+         <option value="sniper">Sniper</option>
+         <option value="soldier">Soldier</option>
+         <option value="spellcaster">Spellcaster</option>
+       </select>`;
+
+  wrap.innerHTML = `
+    ${extraFieldsHtml}
+    <button id="combatant-upgrade-btn" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 18px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">${hasBespokeProfile ? "Regenerate Combat Profile" : "Upgrade to Combatant"}</button>
+    <span id="combatant-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint);"></span>
+  `;
+  host.appendChild(wrap);
+
+  document.getElementById("combatant-upgrade-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("combatant-upgrade-btn");
+    const status = document.getElementById("combatant-status");
+    btn.disabled = true;
+    status.textContent = "Generating a full stat block…";
+    showGenerationOverlay(["Designing Strikes/Actions…", "Balancing against the world…", "Almost there…"]);
+    try {
+      const body = { npcId: entry.id };
+      if (ruleset === "5e") {
+        const cr = document.getElementById("combatant-target-cr").value;
+        if (cr) body.targetCr = cr;
+      } else {
+        const level = document.getElementById("combatant-level").value;
+        if (level) body.level = Number(level);
+        const role = document.getElementById("combatant-role").value;
+        if (role) body.role = role;
+      }
+      const res = await authFetch("/api/npc-combatant-upgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = "Upgraded — reloading…";
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false;
+    }
+  });
 }
 
 // Faction dossier pages only -- shows the Priority 6 mood banner if this

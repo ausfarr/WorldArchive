@@ -52,6 +52,7 @@
       <a href="../enemies/index.html" id="nav-enemies">Bestiary</a>
       <a href="../classes/index.html" id="nav-classes">Classes</a>
       <a href="../items/index.html" id="nav-items">Items</a>
+      <a href="../spells/index.html" id="nav-spells" style="display:none;">Spells</a>
       <a href="../logs/index.html" id="nav-logs">Logs</a>
       <a href="../survivors/index.html" id="nav-survivors">PCs</a>
       <a href="../locations/index.html" id="nav-locations">Locations</a>
@@ -103,35 +104,166 @@
   <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
 </div>
 <script>
-document.addEventListener('DOMContentLoaded', () => populateFactionSelect('gen-field-3', { includeUnaligned: true }));
-document.getElementById('gen-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const btn = document.getElementById('gen-submit');
-  const status = document.getElementById('gen-status');
-  btn.disabled = true; btn.textContent = 'Generating…';
-  showGenerationOverlay(['Rolling up a new character…', 'Working out their attributes…','Writing a rough backstory…','Working out who they know…', 'Almost there…']);
-  status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
+// ============================================================
+// Multi-ruleset genericization. Same fail-open dispatch pattern as
+// Bestiary/Classes/Items. Unlike those, 5e and pf2e Player Characters
+// take the IDENTICAL request body shape ({name, faction, classLevel} --
+// the model itself picks classId from this world's own real Class
+// roster server-side, see routes/generateSurvivor.js's
+// handle5eSurvivorGenerate/handlePf2eSurvivorGenerate), so one shared
+// form/handler covers both rather than duplicating it per ruleset.
+// ============================================================
+
+function wireEchoesSurvivorForm() {
+  populateFactionSelect('gen-field-3', { includeUnaligned: true });
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Rolling up a new character…', 'Working out their attributes…','Writing a rough backstory…','Working out who they know…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator — this can take a bit for content + art…';
+    try {
+      const res = await authFetch('/api/generate-survivor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          className: document.getElementById('gen-field-2').value,
+          faction: document.getElementById('gen-field-3').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name} (The ${data.className})` + (data.imageError ? ` — portrait failed: ${data.imageError}` : '');
+      setTimeout(() => window.location.reload(), data.imageError ? 6000 : 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+function wireClassBasedSurvivorForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 100px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">LEVEL (optional)</label>
+      <input id="gen-field-2" type="number" min="1" max="20" placeholder="1-20" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+  `;
+  populateFactionSelect('gen-field-3', { includeUnaligned: true });
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Picking a class from your roster…', 'Rolling up ability scores…', 'Computing HP/DC/saves from the class…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const res = await authFetch('/api/generate-survivor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          classLevel: document.getElementById('gen-field-2').value ? Number(document.getElementById('gen-field-2').value) : undefined,
+          faction: document.getElementById('gen-field-3').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.className ? ' (' + data.className + ')' : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+// Generic PCs take {name, faction} only (no classLevel -- a Generic
+// world has no leveling concept at all, see
+// routes/generateSurvivor.js's handleGenericSurvivorGenerate) -- its own
+// form rather than reusing wireClassBasedSurvivorForm(), so it doesn't
+// show a LEVEL field that would just be silently ignored server-side.
+function wireGenericSurvivorForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 220px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+      <select id="gen-field-2" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+      </select>
+    </div>
+  `;
+  populateFactionSelect('gen-field-2', { includeUnaligned: true });
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Picking a class from your roster…', 'Assigning attributes…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const res = await authFetch('/api/generate-survivor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          faction: document.getElementById('gen-field-2').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.className ? ' (' + data.className + ')' : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+async function initSurvivorGenerateForm() {
+  let ruleset = 'echoes';
   try {
-    const res = await authFetch('/api/generate-survivor', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: document.getElementById('gen-name').value,
-        className: document.getElementById('gen-field-2').value,
-        faction: document.getElementById('gen-field-3').value
-      })
-    });
+    const res = await authFetch('/api/wizard/ruleset-options');
     const data = await res.json();
-    if (!res.ok) throw new Error(formatGenerationError(data));
-    status.textContent = `Generated: ${data.name} (The ${data.className})` + (data.imageError ? ` — portrait failed: ${data.imageError}` : '');
-    setTimeout(() => window.location.reload(), data.imageError ? 6000 : 1200);
+    ruleset = data.current || 'echoes';
   } catch (err) {
-    status.innerHTML = err.message;
-  } finally {
-    hideGenerationOverlay();
-    btn.disabled = false; btn.textContent = 'Generate';
+    console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
   }
-});
+  if (ruleset === '5e' || ruleset === 'pf2e') {
+    wireClassBasedSurvivorForm();
+  } else if (ruleset === 'generic') {
+    wireGenericSurvivorForm();
+  } else {
+    wireEchoesSurvivorForm();
+  }
+}
+document.addEventListener('DOMContentLoaded', initSurvivorGenerateForm);
 </script>
 
 
@@ -226,6 +358,7 @@ document.getElementById('gen-form').addEventListener('submit', async (e) => {
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html
     renderAuthStatus();
+    applySpellsNavVisibility();
     applyCategoryConfig();
     applySiteTheme();
     loadAndRenderCategoryIndex("survivors");

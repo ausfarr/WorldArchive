@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spells — The Archive</title>
+<link rel="stylesheet" href="../css/style.css">
+<script>
+(function() {
+  try {
+    var cached = localStorage.getItem('worldforge_theme_cache');
+    if (!cached) return;
+    var t = JSON.parse(cached);
+    var hex = /^#[0-9a-fA-F]{6}$/;
+    var overrides = [];
+    if (hex.test(t.backgroundColor)) overrides.push('--bg-void: ' + t.backgroundColor + ';');
+    if (hex.test(t.panelColor)) overrides.push('--bg-panel: ' + t.panelColor + '; --bg-panel-raised: ' + t.panelColor + ';');
+    if (hex.test(t.inkColor)) overrides.push('--ink: ' + t.inkColor + ';');
+    if (hex.test(t.primaryColor)) overrides.push('--neon-primary: ' + t.primaryColor + ';');
+    if (hex.test(t.secondaryColor)) overrides.push('--neon-cyan: ' + t.secondaryColor + ';');
+    if (t.fontDisplay) {
+      overrides.push("--font-display: '" + t.fontDisplay + "', sans-serif;");
+      var l1 = document.createElement('link');
+      l1.rel = 'stylesheet';
+      l1.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontDisplay).replace(/%20/g, '+') + ':wght@400;600;700&display=swap';
+      document.head.appendChild(l1);
+    }
+    if (t.fontBody) {
+      overrides.push("--font-body: '" + t.fontBody + "', sans-serif;");
+      var l2 = document.createElement('link');
+      l2.rel = 'stylesheet';
+      l2.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(t.fontBody).replace(/%20/g, '+') + ':wght@400;500;600&display=swap';
+      document.head.appendChild(l2);
+    }
+    var styleTag = document.createElement('style');
+    styleTag.id = 'world-theme-cached';
+    styleTag.textContent = ':root { ' + overrides.join(' ') + ' }';
+    document.head.appendChild(styleTag);
+  } catch (e) { /* no cache yet, or malformed -- fall back to default theme, async apply will fix it */ }
+})();
+</script>
+
+</head>
+<body data-category="spells">
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="../index.html"><span id="site-title-text">The <span class="accent">Archive</span></span></a></div>
+    <nav class="site-nav">
+      <a href="../factions/index.html" id="nav-factions">Factions</a>
+      <a href="../npcs/index.html" id="nav-npcs">NPCs</a>
+      <a href="../enemies/index.html" id="nav-enemies">Bestiary</a>
+      <a href="../classes/index.html" id="nav-classes">Classes</a>
+      <a href="../items/index.html" id="nav-items">Items</a>
+      <a href="../spells/index.html" id="nav-spells" style="display:none;">Spells</a>
+      <a href="../logs/index.html" id="nav-logs">Logs</a>
+      <a href="../survivors/index.html" id="nav-survivors">PCs</a>
+      <a href="../locations/index.html" id="nav-locations">Locations</a>
+      <a href="../campaigns/index.html" id="nav-quests">Quests</a>
+      <a href="../campaign-arcs/index.html" id="nav-campaign-arcs">Campaigns</a>
+      <a href="../map.html" id="nav-map">Map</a>
+      <a href="../world-info.html" id="nav-world-info">World Info</a>
+      <a href="../settings.html" id="nav-settings">Settings</a>
+      <div class="site-search">
+        <input type="text" id="site-search-input" placeholder="Search the archive…" autocomplete="off">
+        <div id="site-search-results" class="site-search-results"></div>
+      </div>
+      <span id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></span>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span id="crumb-label">Spells</span></div>
+  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Spells</h1>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb"></p>
+
+
+<div class="sheet" style="margin: 0 0 40px; padding: 24px 32px;">
+  <p class="sheet-eyebrow" style="margin: 0 0 8px;">Generate New Entry</p>
+  <form id="gen-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+    <div id="gen-form-fields" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;"></div>
+    <button type="submit" id="gen-submit" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Generate</button>
+  </form>
+  <p id="gen-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 12px 0 0; display: none;"></p>
+  <p id="gen-unavailable" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint); margin: 0; display: none;"></p>
+</div>
+<script>
+// ============================================================
+// Multi-ruleset genericization. Spells has NO Echoes/generic
+// equivalent at all (see lib/rulesets/index.js -- only 5e/pf2e have a
+// `spells` registry entry), so unlike every other category page here
+// there's no Echoes fallback form to fail open to -- an Echoes/generic
+// world instead sees a plain explanation and no generate form, same
+// message shape routes/generateSpell.js's requireCategoryAvailable
+// gate would return if the form were submitted anyway.
+// ============================================================
+
+function wire5eSpellForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 200px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 120px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">LEVEL (optional)</label>
+      <input id="gen-field-2" type="number" min="0" max="9" placeholder="0-9" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SCHOOL (optional)</label>
+      <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+        <option value="Abjuration">Abjuration</option>
+        <option value="Conjuration">Conjuration</option>
+        <option value="Divination">Divination</option>
+        <option value="Enchantment">Enchantment</option>
+        <option value="Evocation">Evocation</option>
+        <option value="Illusion">Illusion</option>
+        <option value="Necromancy">Necromancy</option>
+        <option value="Transmutation">Transmutation</option>
+      </select>
+    </div>
+  `;
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Writing the incantation…', 'Working out the scaling…', 'Balancing against the spellbook…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const level = document.getElementById('gen-field-2').value;
+      const res = await authFetch('/api/generate-spell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          level: level ? Number(level) : undefined,
+          school: document.getElementById('gen-field-3').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+function wirePf2eSpellForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div style="flex: 1; min-width: 200px;">
+      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+    <div style="flex: 1; min-width: 120px;">
+      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">RANK (optional)</label>
+      <input id="gen-field-2" type="number" min="1" max="10" placeholder="1-10" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    </div>
+  `;
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    btn.disabled = true; btn.textContent = 'Generating…';
+    showGenerationOverlay(['Writing the incantation…', 'Working out heightening…', 'Balancing against the spellbook…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const rank = document.getElementById('gen-field-2').value;
+      const res = await authFetch('/api/generate-spell', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('gen-name').value,
+          rank: rank ? Number(rank) : undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = 'Generate';
+    }
+  });
+}
+
+function showSpellsUnavailable(ruleset) {
+  document.getElementById('gen-form').style.display = 'none';
+  const note = document.getElementById('gen-unavailable');
+  note.style.display = 'block';
+  note.textContent = ruleset === 'echoes'
+    ? "Echoes of the Neon has no spell system -- Spells isn't part of this world's ruleset."
+    : "This world's ruleset doesn't have a Spells category yet.";
+}
+
+async function initSpellGenerateForm() {
+  let ruleset = 'echoes';
+  try {
+    const res = await authFetch('/api/wizard/ruleset-options');
+    const data = await res.json();
+    ruleset = data.current || 'echoes';
+  } catch (err) {
+    console.error('Could not load this world\'s ruleset:', err);
+  }
+  if (ruleset === '5e') {
+    wire5eSpellForm();
+  } else if (ruleset === 'pf2e') {
+    wirePf2eSpellForm();
+  } else {
+    showSpellsUnavailable(ruleset);
+  }
+}
+document.addEventListener('DOMContentLoaded', initSpellGenerateForm);
+</script>
+
+
+  <div class="sheet" style="margin: 0 0 20px; padding: 16px 24px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+  <button id="export-category-btn" style="background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 8px 16px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.78rem; cursor: pointer;">Download PDF</button>
+  <label style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim); display: flex; align-items: center; gap: 6px;">
+    <input type="checkbox" id="export-include-images" checked> Include images
+  </label>
+  <span id="export-category-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint);"></span>
+</div>
+
+  <div class="entry-grid" id="entry-grid"></div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap"><span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7 · beta</span></div>
+</footer>
+
+<script>
+(function() {
+  try {
+    var cached = localStorage.getItem('worldforge_category_config_cache');
+    if (!cached) return;
+    var categoryConfig = JSON.parse(cached);
+    var site = categoryConfig._site || {};
+    if (site.title) {
+      var titleEl = document.getElementById('site-title-text');
+      if (titleEl) titleEl.textContent = site.title;
+      document.title = document.title.indexOf(' — ') !== -1
+        ? document.title.replace(/ — .+$/, ' — ' + site.title)
+        : site.title;
+    }
+    if (site.tagline) {
+      var taglineEl = document.getElementById('hero-tagline');
+      if (taglineEl) taglineEl.textContent = site.tagline;
+    }
+    if (site.footer) {
+      var footerEl = document.getElementById('site-footer-text');
+      if (footerEl) footerEl.textContent = site.footer;
+    }
+    Object.keys(categoryConfig).forEach(function(key) {
+      if (key === '_site') return;
+      var cfg = categoryConfig[key];
+      var navLink = document.getElementById('nav-' + key);
+      if (navLink) {
+        if (cfg.enabled === false) navLink.style.display = 'none';
+        else if (cfg.label) navLink.textContent = cfg.label;
+      }
+      var card = document.getElementById('card-' + key);
+      if (card) {
+        if (cfg.enabled === false) {
+          card.style.display = 'none';
+        } else if (cfg.label) {
+          var h2 = card.querySelector('h2');
+          if (h2) h2.textContent = cfg.label;
+        }
+      }
+      if (cfg.blurb) {
+        var cardDesc = document.getElementById('card-desc-' + key);
+        if (cardDesc) cardDesc.textContent = cfg.blurb;
+      }
+      if (document.body.dataset.category === key) {
+        if (cfg.label) {
+          var pageTitle = document.getElementById('page-title');
+          var crumbLabel = document.getElementById('crumb-label');
+          if (pageTitle) pageTitle.textContent = cfg.label;
+          if (crumbLabel) crumbLabel.textContent = cfg.label;
+          document.title = document.title.replace(/^[^—]+/, cfg.label + ' ');
+        }
+        if (cfg.blurb) {
+          var pageBlurb = document.getElementById('page-blurb');
+          if (pageBlurb) pageBlurb.textContent = cfg.blurb;
+        }
+      }
+    });
+  } catch (e) { /* no cache yet, or malformed -- async apply will fix it */ }
+})();
+</script>
+<script src="/config.js"></script>
+<script src="/version.js"></script>
+<script>
+  if (window.APP_VERSION) {
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = window.APP_VERSION + ' · beta';
+    });
+  }
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js?v=v0.17"></script>
+<script src="../js/render.js?v=v0.17"></script>
+<script>
+  requireAuth().then((session) => {
+    if (!session) return; // requireAuth already redirected to /login.html
+    renderAuthStatus();
+    applySpellsNavVisibility();
+    applyCategoryConfig();
+    applySiteTheme();
+    loadAndRenderCategoryIndex("spells");
+    wireCategoryExportButton();
+    wireCreateEntryCollapse();
+    applyAiEnabledGating();
+  });
+</script>
+
+</body>
+</html>

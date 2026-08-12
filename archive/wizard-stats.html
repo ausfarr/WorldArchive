@@ -24,42 +24,105 @@
 
   <a href="wizard-factions.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Factions</a>
 
-  <div class="sheet" style="padding: 32px;">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
-      <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Stat System</h1>
-      <button type="button" id="generate-all" class="generate-btn ai-action">Generate for me</button>
+  <!-- Echoes-only: renaming the six fixed canonical attributes, plus
+       Echoes' fixed weapon/field skill lists. Hidden entirely for every
+       other ruleset -- 5e/pf2e use their own fixed ability arrays
+       (STR/DEX/etc, not user-configurable), and Generic worlds get their
+       own attribute BUILDER below instead of a relabeling form, since
+       there's no fixed underlying system to relabel. See
+       lib/rulesets/index.js / world_forge_scope.md for why this step is
+       Echoes-shaped in the first place -- it predates multi-ruleset
+       support and its mechanics genuinely only apply there. -->
+  <div id="echoes-stat-skill-container">
+    <div class="sheet" style="padding: 32px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+        <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Stat System</h1>
+        <button type="button" id="generate-all" class="generate-btn ai-action">Generate for me</button>
+      </div>
+      <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Rename the six core attributes to fit your world's own voice. The underlying mechanics never change — this is labeling only.</p>
+
+      <div id="stats-list"></div>
+
+      <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
     </div>
-    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Rename the six core attributes to fit your world's own voice. The underlying mechanics never change — this is labeling only.</p>
 
-    <div id="stats-list"></div>
+    <div class="sheet" style="padding: 32px; margin-top: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+        <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Skills</h1>
+        <button type="button" id="generate-skills" class="generate-btn ai-action">Generate for me</button>
+      </div>
+      <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Name your world's 7 weapon categories (their balance never changes, only the name). Then generate a fixed pool of field skills — every class and item will draw from this same list afterward instead of inventing new ones each time.</p>
 
-    <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+      <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 0 0 10px;">Weapon Skills</h2>
+      <div id="weapon-skills-list"></div>
+
+      <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 24px 0 10px;">Field Skills</h2>
+      <div id="field-skills-list"></div>
+      <button type="button" id="add-field-skill" class="generate-btn" style="margin-top: 4px;">+ Add Skill</button>
+
+      <p id="skills-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+      <button type="button" id="save-stats" class="primary-btn">Save &amp; Continue →</button>
+    </div>
   </div>
 
-  <div class="sheet" style="padding: 32px; margin-top: 24px;">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
-      <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Skills</h1>
-      <button type="button" id="generate-skills" class="generate-btn ai-action">Generate for me</button>
+  <!-- Generic ruleset only: this world has no pre-existing mechanical
+       system, so instead of relabeling something fixed, it BUILDS its
+       own attribute list (and, optionally, a small set of formulas
+       computed from those attributes) -- see
+       lib/rulesets/generic/statFormulas.js for the single-term linear
+       formula engine this feeds. Hidden for every other ruleset. -->
+  <div id="generic-system-container" style="display:none;">
+    <div class="sheet" style="padding: 32px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+        <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Homebrew Attribute System</h1>
+        <button type="button" id="generic-generate-all" class="generate-btn ai-action">Generate for me</button>
+      </div>
+      <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Define the core attributes characters and creatures in this world will have. There's no fixed system underneath — you're inventing it.</p>
+
+      <div id="generic-attributes-list"></div>
+      <button type="button" id="generic-add-attribute" class="generate-btn" style="margin-top: 4px;">+ Add Attribute</button>
+
+      <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-line);">
+        <label style="display:flex; align-items:center; gap: 10px; font-family: var(--font-mono); font-size: 0.85rem; cursor: pointer;">
+          <input type="checkbox" id="generic-use-formula" style="width: 16px; height: 16px;">
+          Compute derived stats (like Hit Points) from attribute numbers
+        </label>
+        <p style="color: var(--ink-faint); font-size: 0.8rem; margin: 6px 0 0 26px;">Leave unchecked if attributes are flavor-only descriptors a GM interprets narratively, with no numbers driving anything mechanically.</p>
+      </div>
+
+      <div id="generic-derived-stats-section" style="display:none; margin-top: 18px;">
+        <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 0 0 10px;">Derived Stats</h2>
+        <p style="color: var(--ink-faint); font-size: 0.8rem; margin: 0 0 14px;">Each derived stat = base + (coefficient × one attribute's value).</p>
+        <div id="generic-derived-stats-list"></div>
+        <button type="button" id="generic-add-derived-stat" class="generate-btn" style="margin-top: 4px;">+ Add Derived Stat</button>
+      </div>
+
+      <p id="generic-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0 0;"></p>
     </div>
-    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Name your world's 7 weapon categories (their balance never changes, only the name). Then generate a fixed pool of field skills — every class and item will draw from this same list afterward instead of inventing new ones each time.</p>
 
-    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 0 0 10px;">Weapon Skills</h2>
-    <div id="weapon-skills-list"></div>
-
-    <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 24px 0 10px;">Field Skills</h2>
-    <div id="field-skills-list"></div>
-    <button type="button" id="add-field-skill" class="generate-btn" style="margin-top: 4px;">+ Add Skill</button>
-
-    <p id="skills-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
+    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+      <button type="button" id="generic-save" class="primary-btn">Save &amp; Continue →</button>
+    </div>
   </div>
 
-  <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
-    <button type="button" id="save-stats" class="primary-btn">Save &amp; Continue →</button>
+  <!-- 5e / pf2e: fixed ability arrays baked into lib/rulesets/<id>/statFormulas.js
+       -- nothing for this world owner to configure here at all. -->
+  <div id="fixed-ruleset-container" style="display:none;">
+    <div class="sheet" style="padding: 32px;">
+      <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 12px;">Stats &amp; Skills</h1>
+      <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0;" id="fixed-ruleset-note"></p>
+    </div>
+    <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
+      <button type="button" id="fixed-ruleset-continue" class="primary-btn">Continue →</button>
+    </div>
   </div>
 </div>
 
 <footer class="site-footer">
-  <div class="wrap">CHRONICLED<span class="app-version">v0.7 · beta</span></div>
+  <div class="wrap">CHRONICLED<span class="app-version">v0.7 · beta</span><a href="licenses.html" class="footer-license-link">Content Licenses</a></div>
 </footer>
 
 <style>
@@ -291,29 +354,244 @@ document.getElementById("save-stats").addEventListener("click", async () => {
   }
 });
 
+// ============================================================
+// Generic ruleset -- Homebrew Attribute System builder.
+// ============================================================
+let genericSystem = { attributes: [], useFormula: false, derivedStats: [] };
+
+function slugifyKey(label) {
+  return (label || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "attr";
+}
+
+function genericAttributeOptions(selectedKey) {
+  return genericSystem.attributes.map((a) => `<option value="${a.key}" ${a.key === selectedKey ? "selected" : ""}>${(a.label || a.key).replace(/"/g, "&quot;")}</option>`).join("");
+}
+
+function renderGenericAttributes() {
+  document.getElementById("generic-attributes-list").innerHTML = genericSystem.attributes.map((attr, i) => `
+    <div class="field-skill-card" data-index="${i}">
+      <div>
+        <input class="field-input generic-attr-label-input" placeholder="Attribute name (e.g. Might)" value="${(attr.label || "").replace(/"/g, "&quot;")}">
+        <input class="field-input generic-attr-key-input" style="margin-top:6px; font-family: var(--font-mono); font-size: 0.78rem;" placeholder="internal_key" value="${(attr.key || "").replace(/"/g, "&quot;")}">
+      </div>
+      <button type="button" class="remove-skill" data-action="remove-generic-attr">✕</button>
+    </div>
+  `).join("");
+
+  document.querySelectorAll('[data-action="remove-generic-attr"]').forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      syncGenericFromDOM();
+      const index = Number(e.target.closest(".field-skill-card").dataset.index);
+      const removedKey = genericSystem.attributes[index] && genericSystem.attributes[index].key;
+      genericSystem.attributes.splice(index, 1);
+      // Drop any derived stat that pointed at the attribute being removed
+      // -- an orphaned attributeKey would fail server-side validation on
+      // save anyway, better to keep the form self-consistent as you go.
+      genericSystem.derivedStats = genericSystem.derivedStats.filter((d) => d.attributeKey !== removedKey);
+      renderGenericAttributes();
+      renderGenericDerivedStats();
+    });
+  });
+}
+
+function renderGenericDerivedStats() {
+  document.getElementById("generic-derived-stats-list").innerHTML = genericSystem.derivedStats.map((stat, i) => `
+    <div class="field-skill-card" data-index="${i}">
+      <div>
+        <input class="field-input generic-stat-label-input" placeholder="Stat name (e.g. Hit Points)" value="${(stat.label || "").replace(/"/g, "&quot;")}">
+        <div style="display:grid; grid-template-columns: 1fr 90px 90px; gap: 8px; margin-top: 6px;">
+          <select class="field-input generic-stat-attr-select">${genericAttributeOptions(stat.attributeKey)}</select>
+          <input type="number" class="field-input generic-stat-coefficient-input" placeholder="× coeff" value="${stat.coefficient != null ? stat.coefficient : ""}">
+          <input type="number" class="field-input generic-stat-base-input" placeholder="+ base" value="${stat.base != null ? stat.base : ""}">
+        </div>
+      </div>
+      <button type="button" class="remove-skill" data-action="remove-generic-stat">✕</button>
+    </div>
+  `).join("");
+
+  document.querySelectorAll('[data-action="remove-generic-stat"]').forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      syncGenericFromDOM();
+      const index = Number(e.target.closest(".field-skill-card").dataset.index);
+      genericSystem.derivedStats.splice(index, 1);
+      renderGenericDerivedStats();
+    });
+  });
+}
+
+function renderGenericSystem() {
+  renderGenericAttributes();
+  document.getElementById("generic-use-formula").checked = !!genericSystem.useFormula;
+  document.getElementById("generic-derived-stats-section").style.display = genericSystem.useFormula ? "" : "none";
+  renderGenericDerivedStats();
+}
+
+function syncGenericFromDOM() {
+  const attributes = Array.from(document.querySelectorAll("#generic-attributes-list .field-skill-card")).map((card) => ({
+    label: card.querySelector(".generic-attr-label-input").value,
+    key: card.querySelector(".generic-attr-key-input").value
+  }));
+  const useFormula = document.getElementById("generic-use-formula").checked;
+  const derivedStats = useFormula ? Array.from(document.querySelectorAll("#generic-derived-stats-list .field-skill-card")).map((card) => ({
+    label: card.querySelector(".generic-stat-label-input").value,
+    attributeKey: card.querySelector(".generic-stat-attr-select").value,
+    coefficient: Number(card.querySelector(".generic-stat-coefficient-input").value) || 0,
+    base: Number(card.querySelector(".generic-stat-base-input").value) || 0
+  })) : [];
+  // Derived stat keys are slugified from their labels, same as
+  // attributes -- there's no separate "internal key" field for these in
+  // the UI since nothing else needs to reference a derived stat by key
+  // the way attributeKey references an attribute.
+  derivedStats.forEach((d) => { d.key = slugifyKey(d.label); });
+  genericSystem = { attributes, useFormula, derivedStats };
+}
+
+document.getElementById("generic-add-attribute").addEventListener("click", () => {
+  syncGenericFromDOM();
+  genericSystem.attributes.push({ label: "", key: "" });
+  renderGenericAttributes();
+});
+
+document.getElementById("generic-add-derived-stat").addEventListener("click", () => {
+  syncGenericFromDOM();
+  genericSystem.derivedStats.push({ label: "", attributeKey: genericSystem.attributes[0] ? genericSystem.attributes[0].key : "", coefficient: 1, base: 0 });
+  renderGenericDerivedStats();
+});
+
+document.getElementById("generic-use-formula").addEventListener("change", () => {
+  syncGenericFromDOM();
+  document.getElementById("generic-derived-stats-section").style.display = genericSystem.useFormula ? "" : "none";
+});
+
+// Auto-slug the key field from the label as the user types a NEW
+// attribute's label, but only while the key field is still empty/
+// untouched -- once a user has typed their own key, typing more of the
+// label shouldn't silently overwrite a deliberate custom key.
+document.getElementById("generic-attributes-list").addEventListener("input", (e) => {
+  if (!e.target.classList.contains("generic-attr-label-input")) return;
+  const card = e.target.closest(".field-skill-card");
+  const keyInput = card.querySelector(".generic-attr-key-input");
+  if (!keyInput.dataset.touched) keyInput.value = slugifyKey(e.target.value);
+});
+document.getElementById("generic-attributes-list").addEventListener("input", (e) => {
+  if (e.target.classList.contains("generic-attr-key-input")) e.target.dataset.touched = "1";
+});
+// Derived-stat attribute dropdowns need to reflect the CURRENT attribute
+// list, which can change after a dropdown is first rendered (add/remove/
+// rename an attribute) -- re-sync options on every attribute-list edit
+// rather than only at initial render.
+document.getElementById("generic-attributes-list").addEventListener("input", () => {
+  syncGenericFromDOM();
+  document.querySelectorAll(".generic-stat-attr-select").forEach((sel) => {
+    const current = sel.value;
+    sel.innerHTML = genericAttributeOptions(current);
+  });
+});
+
+document.getElementById("generic-generate-all").addEventListener("click", async () => {
+  const btn = document.getElementById("generic-generate-all");
+  const status = document.getElementById("generic-status");
+  btn.disabled = true;
+  status.textContent = "Generating…";
+  showGenerationOverlay(["Designing your world's attributes…", "Deciding what the numbers should drive…", "Balancing the formulas…", "Almost there…"]);
+  try {
+    const res = await authFetch("/api/wizard/generate-generic-system", { method: "POST" });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+    const data = await res.json();
+    genericSystem = data.genericSystem;
+    renderGenericSystem();
+    status.textContent = "Generated — edit freely before saving.";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    hideGenerationOverlay();
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("generic-save").addEventListener("click", async () => {
+  syncGenericFromDOM();
+  const status = document.getElementById("generic-status");
+  const btn = document.getElementById("generic-save");
+  if (!genericSystem.attributes.length) { status.textContent = "Add at least one attribute first."; return; }
+  btn.disabled = true;
+  status.textContent = "Saving…";
+  try {
+    const res = await authFetch("/api/wizard/save-generic-system", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ genericSystem })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Saving failed."); }
+    status.textContent = "Saved — continuing…";
+    window.location.href = "wizard-style.html";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("fixed-ruleset-continue").addEventListener("click", () => {
+  window.location.href = "wizard-style.html";
+});
+
 async function init() {
   await requireAuth();
   renderAuthStatus();
   await ensureWizardSession();
   applyAiEnabledGating(); // hides both Generate buttons (.ai-action) for AI-off accounts -- every field stays manually fillable
-  try {
-    const res = await authFetch("/api/wizard/stat-system");
-    const { statSystem: loaded } = await res.json();
-    statSystem = loaded || {};
-  } catch (err) {
-    console.error("Could not load existing stat system:", err);
-  }
-  render();
 
+  // This whole page is Echoes-shaped by origin (see the container
+  // comments above) -- figure out which ruleset this world is on before
+  // deciding what to even show, reusing the same ruleset-options
+  // endpoint the wizard's Step 1 and the 5e Bestiary form already call.
+  let ruleset = "echoes";
   try {
-    const res = await authFetch("/api/wizard/skill-system");
-    const { skillSystem: loaded } = await res.json();
-    skillSystem = loaded || { weaponSkills: {}, fieldSkills: [] };
+    const rulesetRes = await authFetch("/api/wizard/ruleset-options");
+    const data = await rulesetRes.json();
+    ruleset = data.current || "echoes";
   } catch (err) {
-    console.error("Could not load existing skill system:", err);
+    console.error("Could not load ruleset -- defaulting to the Echoes stat/skill form:", err);
   }
-  renderWeaponSkills();
-  renderFieldSkills();
+
+  document.getElementById("echoes-stat-skill-container").style.display = ruleset === "echoes" ? "" : "none";
+  document.getElementById("generic-system-container").style.display = ruleset === "generic" ? "" : "none";
+  document.getElementById("fixed-ruleset-container").style.display = (ruleset === "5e" || ruleset === "pf2e") ? "" : "none";
+
+  if (ruleset === "echoes") {
+    try {
+      const res = await authFetch("/api/wizard/stat-system");
+      const { statSystem: loaded } = await res.json();
+      statSystem = loaded || {};
+    } catch (err) {
+      console.error("Could not load existing stat system:", err);
+    }
+    render();
+
+    try {
+      const res = await authFetch("/api/wizard/skill-system");
+      const { skillSystem: loaded } = await res.json();
+      skillSystem = loaded || { weaponSkills: {}, fieldSkills: [] };
+    } catch (err) {
+      console.error("Could not load existing skill system:", err);
+    }
+    renderWeaponSkills();
+    renderFieldSkills();
+  } else if (ruleset === "generic") {
+    try {
+      const res = await authFetch("/api/wizard/generic-system");
+      const { genericSystem: loaded } = await res.json();
+      if (loaded) genericSystem = loaded;
+    } catch (err) {
+      console.error("Could not load existing generic system:", err);
+    }
+    renderGenericSystem();
+  } else {
+    const label = ruleset === "5e" ? "D&D 5th Edition" : "Pathfinder 2nd Edition";
+    document.getElementById("fixed-ruleset-note").textContent =
+      `${label} uses its own fixed set of core abilities — there's nothing to configure here. Continue to the next step.`;
+  }
 }
 
 init();

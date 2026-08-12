@@ -73,7 +73,7 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
         });
       }
       req.generationCount = count;
-      req.refundGeneration = makeRefundOnce(() => refundGenerationCount(req.worldId, amount));
+      req.refundGeneration = makeRefundOnce((amt) => refundGenerationCount(req.worldId, amt), amount);
       return next();
     }
 
@@ -93,7 +93,7 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
         });
       }
       req.generationSource = result.source; // 'quota' | 'credit'
-      req.refundGeneration = makeRefundOnce(() => refundSubscriptionGeneration(req.userId, amount, result.source));
+      req.refundGeneration = makeRefundOnce((amt) => refundSubscriptionGeneration(req.userId, amt, result.source), amount);
       return next();
     }
 
@@ -111,30 +111,46 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
       });
     }
     req.generationCount = count;
-    req.refundGeneration = makeRefundOnce(() => refundGenerationCount(req.worldId, amount));
+    req.refundGeneration = makeRefundOnce((amt) => refundGenerationCount(req.worldId, amt), amount);
     next();
   } catch (err) {
     next(err);
   }
 }
 
-// Wraps a tier-specific refund call as a safe, idempotent, non-throwing
-// function attached to req.refundGeneration -- every route's catch block
-// can just call `await req.refundGeneration();` with no extra try/catch
-// boilerplate. Idempotent (a second call is a no-op) so a route with
-// multiple catch paths, or one that double-checks, can't double-refund.
+// Wraps a tier-specific refund call as a safe, non-throwing function
+// attached to req.refundGeneration -- every route's catch block can just
+// call `await req.refundGeneration();` with no extra try/catch
+// boilerplate, and it refunds whatever's left of this request's spend
+// (idempotent -- a second no-arg call is a no-op, so a route with
+// multiple catch paths, or one that double-checks, can't double-refund).
+//
+// Multi-ruleset genericization, Phase 12 (Differential Billing): also
+// accepts an optional partial amount --
+// `req.refundGeneration(POINTS_PER_GENERATION - POINTS_PER_FIELD_ASSIST)`
+// refunds just the difference between what enforceGenerationCap already
+// spent and what a cheaper tier (e.g. Reflavor) should actually cost,
+// leaving the rest spent rather than the whole thing refunded. Clamped
+// to never refund more than is actually left outstanding, so a caller
+// can't accidentally over-refund by passing a bad number.
+//
 // Swallows its own errors (logs and moves on) rather than throwing,
 // since a refund failure should never mask or replace the route's real
-// error response to the user.
-function makeRefundOnce(doRefund) {
-  let called = false;
-  return async function refundGeneration() {
-    if (called) return;
-    called = true;
+// error response to the user; on failure, restores the attempted amount
+// to `remaining` so a later retry (rare, but possible if a route calls
+// this from more than one place) can still succeed.
+function makeRefundOnce(doRefund, fullAmount) {
+  let remaining = fullAmount;
+  return async function refundGeneration(partialAmount) {
+    if (remaining <= 0) return;
+    const amountToRefund = partialAmount != null ? Math.min(partialAmount, remaining) : remaining;
+    if (amountToRefund <= 0) return;
+    remaining -= amountToRefund;
     try {
-      await doRefund();
+      await doRefund(amountToRefund);
     } catch (err) {
       console.error("Generation refund failed:", err);
+      remaining += amountToRefund;
     }
   };
 }
@@ -148,4 +164,9 @@ function enforceFieldAssist(req, res, next) {
   return enforceGenerationCap(req, res, next, POINTS_PER_FIELD_ASSIST);
 }
 
-module.exports = { enforceGenerationCap, enforceFieldAssist, BILLING_ENABLED };
+// makeRefundOnce is exported for scripts/testRefundLogic.js -- every
+// other function in this file needs a live Supabase connection
+// (checkAndIncrementGenerationCount, getSubscription, etc.) to exercise
+// end-to-end, but the refund-amount bookkeeping itself is pure and
+// worth testing directly against a fake doRefund callback.
+module.exports = { enforceGenerationCap, enforceFieldAssist, makeRefundOnce, BILLING_ENABLED };
