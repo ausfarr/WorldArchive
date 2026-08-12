@@ -53,9 +53,9 @@ const {
   factionBannerExists,
   getFactionBannerUrl
 } = require("../lib/fileWriter");
-const { getFactions, getStyleGuide } = require("../lib/worldConfigRepo");
+const { getStyleGuide } = require("../lib/worldConfigRepo");
 const { getSettingContext, getFactionAccent } = require("../lib/worldFlavor");
-const { patchEntryMeta } = require("../lib/entriesRepo");
+const { patchEntryMeta, listEntries, getEntry } = require("../lib/entriesRepo");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { withLock } = require("../lib/asyncLock");
 
@@ -142,11 +142,26 @@ router.get("/world-art/faction-banner/:factionId", async (req, res) => {
 // below -- generates one faction's banner and writes it to Storage + the
 // entries bridge. Returns a plain result object rather than throwing, so
 // callers (batch or single) can each decide how to surface a failure.
+//
+// `faction` here is a live `entries` row (see listEntries/getEntry in
+// lib/entriesRepo.js), not a world_config.factions_json snapshot object --
+// as of the Fix 2 change (session_addendum_beta_feedback_batch3.md) this
+// is called for any faction in the archive, including ones created after
+// the wizard finished, which never land in factions_json. "concept" isn't
+// a mirrored column, so it only exists at the top level for a wizard-
+// bridged faction that hasn't had Deep Lore generated yet (routes/
+// wizardFactions.js's buildFactionEntryMeta doesn't set it either, only
+// subtitle) or nested under `.raw` once lib/factionDeepLore.js's
+// createNewFaction/generateFactionDeepLore have run (lib/fileWriter.js's
+// saveFactionEntry stores `raw: faction`). Checking both keeps this
+// working across a faction's whole lifecycle; concept is flavor context
+// for the art prompt, not load-bearing, so a null fallback is fine.
 async function generateOneFactionBanner(worldId, faction, styleGuide) {
   const factionAccent = await getFactionAccent(worldId, styleGuide, faction.id);
+  const concept = faction.concept || (faction.raw && faction.raw.concept) || null;
   const subjectJson = {
     factionName: faction.name,
-    concept: faction.concept || null
+    concept
   };
   const artSystemPrompt = buildArtPromptSystemPrompt({
     category: "faction-mood",
@@ -182,7 +197,12 @@ async function generateOneFactionBanner(worldId, faction, styleGuide) {
 router.post("/world-art/generate-faction-banners", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
-    const factions = await getFactions(worldId);
+    // Live archive, not the wizard's factions_json snapshot -- see Fix 2
+    // in session_addendum_beta_feedback_batch3.md. A faction created via
+    // the normal generate/create-entry flow after the wizard finished
+    // never gets appended to factions_json, so reading from there meant
+    // this batch call silently skipped every such faction.
+    const factions = await listEntries(worldId, "factions");
     if (factions.length === 0) {
       return res.json({ results: [] });
     }
@@ -241,8 +261,11 @@ router.post("/world-art/generate-faction-banner/:factionId", requireAiEnabled, a
         return { imageUrl: getFactionBannerUrl(worldId, factionId), generated: false };
       }
 
-      const factions = await getFactions(worldId);
-      const faction = factions.find((f) => f.id === factionId);
+      // Live archive lookup by id, same reasoning as the batch route above
+      // -- getFactions()/factions_json never sees a faction created after
+      // the wizard finished, which is exactly the case that used to throw
+      // "Faction not found." here.
+      const faction = await getEntry(worldId, "factions", factionId);
       if (!faction) {
         const notFound = new Error("Faction not found.");
         notFound.statusCode = 404;

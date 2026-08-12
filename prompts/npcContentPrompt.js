@@ -21,7 +21,7 @@
 // see git history if you need the original single-string version.
 
 const { buildCacheableSystemPrompt } = require("../lib/claude");
-const { QUOTE_CRAFT_GUIDANCE } = require("../lib/promptGuidance");
+const { QUOTE_CRAFT_GUIDANCE, PHYSICAL_DESCRIPTION_GUIDANCE } = require("../lib/promptGuidance");
 
 const SCHEMA_DESCRIPTION = `{
   "id": "kebab-case-slug",
@@ -62,6 +62,8 @@ ROLE ARCHETYPES (pick the closest match to the user's input, or choose one that 
 FACTION VOICE: derive how this character's faction actually sounds/thinks from the world lore provided below — don't default to a generic "evil empire" or "noble rebels" voice. The named character should feel like an individual within that faction's established culture, not a mission statement reciting it.
 
 RULE OF THUMB: the NPC needs one trait that COMPLICATES their role, not just decorates it.
+
+${PHYSICAL_DESCRIPTION_GUIDANCE} This applies to physicalDescription.
 
 RELATIONSHIPS: at minimum, state a faction allegiance (or explicit "unaligned"). Prefer connecting to an existing named NPC, enemy, class, or survivor from the roster provided below over a floating faction-only tie — and ONLY reference ids that actually appear in the FACTIONS list or the EXISTING ROSTER below, never an invented one. State each as one concrete sentence with a reason, never just a label. Relationship types to draw from: faction allegiance, chain of command, rivalry/grudge (with a specific concrete reason), debt/obligation, historical pre-collapse or pre-existing connection, romantic/found-family (sparingly, with real weight).
 

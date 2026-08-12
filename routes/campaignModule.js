@@ -36,6 +36,7 @@ const { buildCampaignModuleSystemPrompt } = require("../prompts/campaignModulePr
 const { buildRosterContext, buildLocationRosterContext, buildItemRosterContext, buildLogRosterContext, buildEnemyRosterContext } = require("../lib/roster");
 const { getSettingContext } = require("../lib/worldFlavor");
 const { getLoreContext } = require("../lib/loreContext");
+const { getCategoryConfig } = require("../lib/worldConfigRepo");
 const { getEntry } = require("../lib/entriesRepo");
 const { createNewNpc, createNewLocation, createNewItem, createNewLog, createNewEnemy } = require("../lib/campaignEntryGenerators");
 const {
@@ -51,6 +52,22 @@ const router = express.Router();
 
 const VALID_ENTRY_CATEGORIES = new Set(["npcs", "locations", "items", "logs", "enemies"]);
 const SLOT_GENERATORS = { npcs: createNewNpc, locations: createNewLocation, items: createNewItem, logs: createNewLog, enemies: createNewEnemy };
+
+// A world can disable any of the 5 Quest-eligible categories in Wizard
+// Step 7 (category_config_json) -- that hides the category's nav link and
+// page entirely (archive/js/render.js's applyCategoryConfigToDom), so the
+// Quest generator must never select or reference a category the user has
+// no page to view. A category with no saved config entry yet (config not
+// touched this session, or a legacy world predating Step 7) defaults to
+// enabled -- mirrors the frontend's own `cfg.enabled === false` check.
+async function getEffectiveEntryCategories(worldId) {
+  const categoryConfig = await getCategoryConfig(worldId);
+  const effective = new Set();
+  for (const cat of VALID_ENTRY_CATEGORIES) {
+    if (categoryConfig?.[cat]?.enabled !== false) effective.add(cat);
+  }
+  return effective;
+}
 
 router.get("/campaign-modules", async (req, res) => {
   try {
@@ -83,22 +100,36 @@ router.post("/campaign-modules/generate", requireAiEnabled, enforceGenerationCap
     const worldId = req.worldId;
     const { concept } = req.body || {};
 
+    const effectiveCategories = await getEffectiveEntryCategories(worldId);
+    if (effectiveCategories.size === 0) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(400).json({ error: "Every content category is disabled for this world, so a Quest has nothing to draw from. Enable at least one category (NPCs, Locations, Items, Logs, or Enemies) in Wizard Step 7 first." });
+    }
+
+    // Only build roster context for categories the model is actually
+    // allowed to reference -- skips the token cost of rosters for
+    // disabled categories entirely, not just filters them out after.
     const [npcRosterText, locationRosterText, itemRosterText, logRosterText, enemyRosterText, settingContext, loreContext] = await Promise.all([
-      buildRosterContext(worldId),
-      buildLocationRosterContext(worldId),
-      buildItemRosterContext(worldId),
-      buildLogRosterContext(worldId),
-      buildEnemyRosterContext(worldId),
+      effectiveCategories.has("npcs") ? buildRosterContext(worldId) : Promise.resolve(null),
+      effectiveCategories.has("locations") ? buildLocationRosterContext(worldId) : Promise.resolve(null),
+      effectiveCategories.has("items") ? buildItemRosterContext(worldId) : Promise.resolve(null),
+      effectiveCategories.has("logs") ? buildLogRosterContext(worldId) : Promise.resolve(null),
+      effectiveCategories.has("enemies") ? buildEnemyRosterContext(worldId) : Promise.resolve(null),
       getSettingContext(worldId),
       getLoreContext(worldId, {})
     ]);
 
-    const systemPrompt = buildCampaignModuleSystemPrompt({ settingContext, loreContext, npcRosterText, locationRosterText, itemRosterText, logRosterText, enemyRosterText, concept });
+    const systemPrompt = buildCampaignModuleSystemPrompt({ settingContext, loreContext, npcRosterText, locationRosterText, itemRosterText, logRosterText, enemyRosterText, concept, effectiveCategories });
     const proposal = await callClaudeExpectingJson({ systemPrompt, userMessage: "Assemble the Quest now.", maxTokens: 2000 });
 
+    // Fallback for a category the model gets wrong/omits: prefer "npcs"
+    // like before, but only if npcs itself is enabled -- if every
+    // eligible category is somehow disabled we already failed above, so
+    // by construction effectiveCategories is non-empty here.
+    const fallbackCategory = effectiveCategories.has("npcs") ? "npcs" : effectiveCategories.values().next().value;
     const rawEntries = Array.isArray(proposal.entries) ? proposal.entries : [];
     const hydratedEntries = await Promise.all(rawEntries.map(async (e) => {
-      const category = VALID_ENTRY_CATEGORIES.has(e.category) ? e.category : "npcs";
+      const category = effectiveCategories.has(e.category) ? e.category : fallbackCategory;
       if (e.matched && e.entryId) {
         const real = await getEntry(worldId, category, e.entryId);
         if (real) {
@@ -145,6 +176,11 @@ router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGe
     if (!generator) {
       if (req.refundGeneration) await req.refundGeneration();
       return res.status(400).json({ error: `Unknown category '${category}' for a Quest slot.` });
+    }
+    const effectiveCategories = await getEffectiveEntryCategories(worldId);
+    if (!effectiveCategories.has(category)) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(400).json({ error: `The '${category}' category is disabled for this world, so a Quest slot can't be filled there.` });
     }
     const result = await generator(worldId, { campaignContext: concept });
     res.json({
