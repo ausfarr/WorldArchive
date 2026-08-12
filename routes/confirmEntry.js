@@ -20,7 +20,10 @@ const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
 const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
 const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
 const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
+const { savePf2eClassEntry } = require("../lib/rulesets/pf2e/classRepo");
 const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
+const { savePf2eItemEntry } = require("../lib/rulesets/pf2e/itemRepo");
+const { savePf2eSpellEntry } = require("../lib/rulesets/pf2e/spellRepo");
 const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
@@ -38,11 +41,11 @@ const WRITERS = {
   logs: saveLogEntry,
   classes: saveClassEntry,
   locations: saveLocationEntry,
-  // "spells" has exactly one ruleset implementation today (5e -- Echoes
-  // has no spell system, see lib/rulesets/index.js), so unlike "enemies"
-  // it doesn't need a per-ruleset branch below -- a pf2e/generic/echoes
-  // world can never reach this writer since requireCategoryAvailable
-  // already turned its /generate-spell request away with a 501.
+  // "spells" default -- overridden below for pf2e (see the ruleset
+  // branch next to "classes"/"items"). Echoes/generic worlds can never
+  // reach this writer since requireCategoryAvailable already turned
+  // their /generate-spell request away with a 501 (neither has a
+  // `spells` registry entry -- see lib/rulesets/index.js).
   spells: save5eSpellEntry
 };
 
@@ -145,10 +148,16 @@ router.post("/confirm-entry", async (req, res) => {
       if (category === "classes") {
         const ruleset = await getRuleset(worldId);
         if (ruleset === "5e") writer = save5eClassEntry;
+        else if (ruleset === "pf2e") writer = savePf2eClassEntry;
       }
       if (category === "items") {
         const ruleset = await getRuleset(worldId);
         if (ruleset === "5e") writer = save5eItemEntry;
+        else if (ruleset === "pf2e") writer = savePf2eItemEntry;
+      }
+      if (category === "spells") {
+        const ruleset = await getRuleset(worldId);
+        if (ruleset === "pf2e") writer = savePf2eSpellEntry;
       }
       if (category === "survivors") {
         const ruleset = await getRuleset(worldId);

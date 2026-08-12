@@ -22,6 +22,14 @@ const { slugify: slugify5e, buildItemBodyHtml: buildItemBodyHtml5e } = require("
 const { lookupWeapon, lookupArmor, rarityValueWarning } = require("../lib/rulesets/5e/itemFormulas");
 const { buildHomebrewItemSystemPrompt } = require("../prompts/rulesets/5e/itemContentPrompt");
 
+// PF2e Items (Homebrew tier only) -- see
+// prompts/rulesets/pf2e/itemContentPrompt.js and
+// lib/rulesets/pf2e/itemFormulas.js's header comments.
+const { savePf2eItemEntry } = require("../lib/rulesets/pf2e/itemRepo");
+const { slugify: slugifyPf2e, buildItemBodyHtml: buildItemBodyHtmlPf2e } = require("../lib/rulesets/pf2e/itemTemplate");
+const { priceGuidance, isValidLevel, BULK_TOKENS } = require("../lib/rulesets/pf2e/itemFormulas");
+const { buildHomebrewItemSystemPrompt: buildHomebrewPf2eItemSystemPrompt } = require("../prompts/rulesets/pf2e/itemContentPrompt");
+
 const router = express.Router();
 
 const RARITY_WORDS = ["Common", "Uncommon", "Rare", "Legendary"];
@@ -41,6 +49,9 @@ router.post("/generate-item", requireAiEnabled, enforceGenerationCap, enforceEnt
     const ruleset = await getRuleset(req.worldId);
     if (ruleset === "5e") {
       return await handle5eItemGenerate(req, res);
+    }
+    if (ruleset === "pf2e") {
+      return await handlePf2eItemGenerate(req, res);
     }
     return await handleEchoesItemGenerate(req, res);
   } catch (err) {
@@ -215,6 +226,86 @@ async function handle5eItemGenerate(req, res) {
 
   await save5eItemEntry(worldId, item, null);
   res.json({ preview: false, id: item.id, name: item.name, rarity: item.rarity, summary: item.designNotes });
+}
+
+// ============================================================
+// PF2e path -- Homebrew tier only. The model picks level/priceCategory/
+// bulk/rune tiers; code computes the actual price guidance and never
+// trusts a model-stated gp number or rune bonus (see
+// prompts/rulesets/pf2e/itemContentPrompt.js's header). Also enforces
+// the real rule that strikingTier only applies to weapons and
+// resilientTier only to armor -- a model response that crosses those up
+// gets the invalid tier cleared rather than rendered as if it were
+// legal.
+// ============================================================
+function normalizePf2eItem(proposed) {
+  const level = isValidLevel(proposed.level) ? proposed.level : 0;
+  const priceCategory = ["primary", "secondary", "tertiary"].includes(proposed.priceCategory) ? proposed.priceCategory : "secondary";
+  const bulk = Object.prototype.hasOwnProperty.call(BULK_TOKENS, proposed.bulk) ? proposed.bulk : "negligible";
+  const validTier = (t) => [1, 2, 3].includes(t) ? t : null;
+
+  const isWeapon = proposed.itemType === "weapon";
+  const isArmor = proposed.itemType === "armor";
+
+  return {
+    level,
+    priceCategory,
+    bulk,
+    potencyTier: (isWeapon || isArmor) ? validTier(proposed.potencyTier) : null,
+    strikingTier: isWeapon ? validTier(proposed.strikingTier) : null,
+    resilientTier: isArmor ? validTier(proposed.resilientTier) : null
+  };
+}
+
+async function handlePf2eItemGenerate(req, res) {
+  const worldId = req.worldId;
+  const { name, faction, fillExistingId } = req.body || {};
+
+  let existingEntry = null;
+  let isRegenerate = false;
+  if (fillExistingId) {
+    const manifest = await listEntries(worldId, "items");
+    const manifestEntry = manifest.find((m) => m.id === fillExistingId);
+    if (!manifestEntry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No existing item entry found with id '${fillExistingId}'` });
+    }
+    const full = await getEntry(worldId, "items", fillExistingId);
+    existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
+    isRegenerate = !manifestEntry.locked;
+  }
+
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const loreContext = await getLoreContext(worldId, { category: "items" });
+  const rosterEntries = await listEntries(worldId, "items", { locked: false });
+  const rosterContext = rosterEntries.length
+    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
+    : "No items archived yet -- any concept is available.";
+
+  const systemPrompt = buildHomebrewPf2eItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name });
+  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the item now.", maxTokens: 1500 });
+
+  const normalized = normalizePf2eItem(proposed);
+  const runeSlotCount = normalized.potencyTier ? normalized.potencyTier : 0;
+  const item = {
+    ...proposed,
+    ...normalized,
+    id: fillExistingId || slugifyPf2e(proposed.name),
+    faction: faction || null,
+    propertyRuneNames: (proposed.propertyRuneNames || []).slice(0, runeSlotCount),
+    priceGuidance: priceGuidance(normalized.level, normalized.priceCategory),
+    sourceMode: "homebrew"
+  };
+  if (existingEntry) item.id = existingEntry.manifestEntry.id;
+
+  if (isRegenerate) {
+    const newBodyHtmlPreview = buildItemBodyHtmlPf2e(item, null);
+    return res.json({ preview: true, mode: "regenerate", category: "items", id: item.id, name: item.name, entry: item, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+  }
+
+  await savePf2eItemEntry(worldId, item, null);
+  res.json({ preview: false, id: item.id, name: item.name, faction: item.faction, summary: item.designNotes });
 }
 
 module.exports = router;
