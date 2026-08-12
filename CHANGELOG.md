@@ -53,6 +53,21 @@ entry from here forward gets both a real date and a version at write time.
   risky), and the subscription/credit billing path (verified safe by
   code reading only, not exercised against a live project). See:
   `session_addendum_ruleset_genericization.md`
+- **Beta feedback fixes (batch 3)** — six independent bugs from beta
+  tester feedback: Quest generation can no longer select/reference a
+  category the world has disabled in Wizard Step 7; faction banner
+  generation now reads the live archive instead of the wizard's
+  `factions_json` snapshot, so factions created after setup can get a
+  banner; PDF export now inlines faction banners and location battle maps
+  (previously silently absent — both are client-side-injected, never in
+  `bodyHtml`); Faction Deep Lore generation got a higher token ceiling
+  plus a reusable completeness check (`callClaudeExpectingJson`'s new
+  `requiredKeys` param) so a near-truncated response retries instead of
+  silently saving with missing sections; NPC `physicalDescription` gained
+  anti-cliché steering (was converging on a recurring "mismatched eye"
+  crutch); and image generation now retries once on a transient
+  no-image-data Gemini response, benefiting every image call site in the
+  app for free. See: `session_addendum_beta_feedback_batch3.md`
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`
 - **Future roadmap ideas (unranked, no version yet):** table/dungeon
