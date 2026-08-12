@@ -64,6 +64,20 @@ entry from here forward gets both a real date and a version at write time.
   ruleset picker, and every ruleset-aware frontend form. New migration
   `022_remove_pf2e.sql` tightens the `world_config` ruleset CHECK
   constraint. See: `session_addendum_pf2e_removal_shipped.md`
+- **Ruleset recovery, Phase R2 (small/contained fixes)** — five
+  independent fixes from the recovery plan's diagnostic findings: Spells
+  is now a real, ruleset-gated wizard category toggle; Bestiary's
+  Import/Reflavor/Homebrew picker got promoted out of a hidden `<select>`
+  AND out from behind the "Generate with AI" accordion stage into its
+  own visible Stage-1 button; the NPC Combatant upgrade button is now
+  gated behind the account's AI-features toggle; a real bug behind the
+  Combatant button's label not persisting was found and fixed (it read
+  `entry.combatProfile`, which is always undefined — the field only ever
+  lands at `entry.raw.combatProfile` — not the hypothesized regenerate
+  regression, which turned out not to exist); and portrait generation
+  now dispatches its save function by ruleset, not just category, fixing
+  a hard crash on Enemies/Classes for any non-Echoes world. See:
+  `session_addendum_r2_small_fixes_shipped.md`
 - **Beta feedback fixes (batch 3)** — six independent bugs from beta
   tester feedback: Quest generation can no longer select/reference a
   category the world has disabled in Wizard Step 7; faction banner
