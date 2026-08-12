@@ -15,7 +15,8 @@ const CANONICAL_CATEGORIES = {
   logs: "Found-text lore artifacts -- recordings, journals, terminal dumps.",
   survivors: "The player characters (PCs) actually being played at the table -- full character sheets: class, attributes, backstory, personality, and their bond/relationships to the world.",
   factions: "The major organized powers/groups in the world.",
-  locations: "Real, specific places the player can travel to -- strongholds, ruins, settlements, dungeons -- not vague region labels."
+  locations: "Real, specific places the player can travel to -- strongholds, ruins, settlements, dungeons -- not vague region labels.",
+  spells: "Spells, rituals, and other castable effects tied to a formal spellcasting system -- only meaningful for rulesets that actually have one."
 };
 
 const SCHEMA_DESCRIPTION = `{
@@ -32,7 +33,8 @@ const SCHEMA_DESCRIPTION = `{
   "logs": { "label": "...", "blurb": "..." },
   "survivors": { "label": "...", "blurb": "..." },
   "factions": { "label": "...", "blurb": "..." },
-  "locations": { "label": "...", "blurb": "..." }
+  "locations": { "label": "...", "blurb": "..." },
+  "spells": { "label": "...", "blurb": "..." }
 }`;
 
 function buildWizardCategoryConfigSystemPrompt({ step1, loreContext }) {
@@ -48,7 +50,7 @@ function buildWizardCategoryConfigSystemPrompt({ step1, loreContext }) {
     .map(([key, desc]) => `- ${key}: ${desc}`)
     .join("\n");
 
-  return `You are renaming a tabletop/game world's 8 FIXED content categories to fit its own in-world vocabulary, and giving the archive site itself a name and voice. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
+  return `You are renaming a tabletop/game world's FIXED content categories to fit its own in-world vocabulary, and giving the archive site itself a name and voice. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
 The categories and what each one actually contains are FIXED and do not change -- only the display label and a short flavor blurb change. A good label reads as native to this world's own terminology (e.g. "NPCs" might become "Named Contacts" or "The Ledger" depending on the setting) while still being clear enough that a user recognizes what they'll find there.
 

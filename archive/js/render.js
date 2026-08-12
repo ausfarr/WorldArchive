@@ -2643,15 +2643,24 @@ function renderDossier(entry, factionLookup) {
 }
 
 // Multi-ruleset genericization, NPC "Combatant" upgrade UI (Phase 11
-// scope). entry.combatProfile is directly present on the dossier's
-// entry object when set (rowToFullEntry() spreads raw_json's top-level
-// keys onto it, and combatProfile is one of them -- see
-// lib/campaignEntryGenerators.js). Only shown for 5e worlds (the
-// only ruleset with a Combatant pipeline wired up in this UI, see
-// routes/npcCombatant.js) -- fetches the ruleset fresh rather than
-// trusting entry.combatProfile's presence alone, since a legacy 5e NPC
-// that predates Phase 7 has no combatProfile at all yet but should
-// still get the upgrade option.
+// scope). combatProfile is set on the npc CONTENT object (see
+// lib/campaignEntryGenerators.js / routes/npcCombatant.js), which
+// lib/fileWriter.js's saveNpcEntry() then nests under entryMeta.raw
+// (raw: npc) rather than mirroring it onto entryMeta's own top level
+// the way roleArchetype/age/contradiction are -- so entriesRepo.js's
+// rowToFullEntry() spread only ever surfaces it at entry.raw.combatProfile,
+// never entry.combatProfile directly. Reading entry.combatProfile here
+// (finding #7's persistence bug) meant hasBespokeProfile was always
+// false and the button showed "Upgrade to Combatant" even immediately
+// after a real upgrade -- confirmed by exercising saveNpcEntry/getEntry
+// directly, not just a regenerate-specific regression; the regenerate
+// path's own combatProfile-preservation logic (routes/generate.js) was
+// already carrying isDefaultProfile through correctly. Only shown for
+// 5e worlds (the only ruleset with a Combatant pipeline wired up in
+// this UI, see routes/npcCombatant.js) -- fetches the ruleset fresh
+// rather than trusting combatProfile's presence alone, since a legacy
+// 5e NPC that predates Phase 7 has no combatProfile at all yet but
+// should still get the upgrade option.
 async function renderNpcCombatantAction(entry) {
   const host = document.getElementById("npc-combatant-action");
   if (!host) return;
@@ -2668,8 +2677,16 @@ async function renderNpcCombatantAction(entry) {
   }
   if (ruleset !== "5e") return;
 
-  const hasBespokeProfile = entry.combatProfile && entry.combatProfile.isDefaultProfile === false;
+  const combatProfile = entry.combatProfile || (entry.raw && entry.raw.combatProfile);
+  const hasBespokeProfile = combatProfile && combatProfile.isDefaultProfile === false;
   const wrap = document.createElement("div");
+  // ai-action: this whole row (target-CR input + button + status) is a
+  // real AI call (routes/npcCombatant.js), so it's hidden entirely for
+  // AI-off accounts -- same convention as campaign-arcs/builder.html's
+  // "Plan with AI" section -- rather than leaving an orphaned input
+  // behind a hidden button. requireAiEnabled already blocks this
+  // server-side; this is purely so a disabled feature doesn't invite a click.
+  wrap.className = "ai-action";
   wrap.style.cssText = "margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-line-soft); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;";
 
   const extraFieldsHtml = `<input id="combatant-target-cr" type="text" placeholder="Target CR (optional)" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 160px;">`;

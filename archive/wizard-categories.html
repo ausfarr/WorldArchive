@@ -29,7 +29,7 @@
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Category Configuration</h1>
       <button type="button" id="generate-all" class="generate-btn ai-action">Generate for me</button>
     </div>
-    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">The 7 content categories themselves are fixed — this just relabels them in your world's own vocabulary and lets you turn any off you don't need. "Generate for me" also names the archive site itself.</p>
+    <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">The content categories themselves are fixed — this just relabels them in your world's own vocabulary and lets you turn any off you don't need. "Generate for me" also names the archive site itself.</p>
 
     <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 0.95rem; color: var(--neon-cyan); margin: 0 0 10px;">Site Identity</h2>
     <label class="field-label" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px;">Site Title (replaces "The Archive")</label>
@@ -110,13 +110,18 @@ const CATEGORIES = [
   { key: "logs", canonName: "logs" },
   { key: "survivors", canonName: "PCs" },
   { key: "factions", canonName: "factions" },
-  { key: "locations", canonName: "locations" }
+  { key: "locations", canonName: "locations" },
+  // 5e-only (no Echoes/generic spell system) -- rendered conditionally,
+  // same fail-closed pattern as render.js's applySpellsNavVisibility().
+  { key: "spells", canonName: "spells", rulesetOnly: "5e" }
 ];
 
 let categoryConfig = {};
+let currentRuleset = "echoes";
 
 function render() {
-  document.getElementById("categories-list").innerHTML = CATEGORIES.map(({ key, canonName }) => {
+  const visibleCategories = CATEGORIES.filter((c) => !c.rulesetOnly || c.rulesetOnly === currentRuleset);
+  document.getElementById("categories-list").innerHTML = visibleCategories.map(({ key, canonName }) => {
     const c = categoryConfig[key] || { label: "", blurb: "", enabled: true };
     const enabled = c.enabled !== false;
     return `
@@ -149,6 +154,14 @@ function syncFromDOM() {
       blurb: card.querySelector(".category-blurb-input").value,
       enabled: card.querySelector(".category-enabled-input").checked
     };
+  });
+  // Categories filtered out of this ruleset (e.g. Spells on an
+  // Echoes/generic world) have no card in the DOM to read from --
+  // save-category-config still requires every canonical key present, so
+  // default any untouched one to a blank, disabled entry rather than
+  // dropping it (would 400 the save).
+  CATEGORIES.forEach(({ key }) => {
+    if (!categoryConfig[key]) categoryConfig[key] = { label: "", blurb: "", enabled: false };
   });
   categoryConfig._site = {
     title: document.getElementById("site-title-input").value,
@@ -216,6 +229,13 @@ async function init() {
   renderAuthStatus();
   await ensureWizardSession();
   applyAiEnabledGating(); // hides "Generate for me" (.ai-action) for AI-off accounts -- every field stays manually fillable
+  try {
+    const rulesetRes = await authFetch("/api/wizard/ruleset-options");
+    const rulesetData = await rulesetRes.json();
+    currentRuleset = rulesetData.current || "echoes";
+  } catch (err) {
+    console.error("Could not determine ruleset for category toggle list:", err);
+  }
   try {
     const res = await authFetch("/api/wizard/category-config");
     const { categoryConfig: loaded } = await res.json();
