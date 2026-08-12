@@ -289,6 +289,26 @@ the world actually defined. No wizard UI exists yet to configure
 `generic_system_json` (must be set by hand today) — folded into Phase
 11, not silently dropped.
 
+## Phase 11 update — Ruleset-Aware Edit Forms (5e Bestiary UI)
+
+Every earlier phase deferred frontend work to keep the verification bar
+consistent across phases; this phase actually finishes one category end
+to end — the 5e Bestiary, since its backend contract already existed and
+was already tested. `routes/srdLibrary.js` exposes the existing
+`listSrdEntries()` read path over HTTP for the frontend's Import/
+Reflavor picker. `archive/enemies/index.html`'s generate form now
+branches on the world's ruleset (reusing the existing, side-effect-free
+`/api/wizard/ruleset-options` endpoint) — a 5e world gets a real Mode
+selector with a live SRD dropdown and Target CR field; every other
+ruleset (or a lookup failure) keeps the original Echoes form, fail-open
+to the long-established default. Verified in a real headless browser,
+including a screenshot of the working 5e form with the SRD dropdown
+populated and the mode-visibility toggle switching correctly.
+
+PF2e/Generic Bestiary UI and any UI at all for Spells/Classes/Items/
+Player Characters/NPC Combatant upgrades remain deferred — real, tested
+backends with zero frontend, same as noted per-category above.
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules

@@ -553,3 +553,46 @@ today. `routes/generateEnemy.js`'s generic branch fails with a clear 400
 ("finish that setup before generating a monster") if it's missing,
 rather than guessing or crashing. Wizard UI for this is real, separate
 future work -- folded into Phase 11's scope, not silently dropped.
+
+## Phase 11 — Ruleset-Aware Edit Forms (5e Bestiary UI)
+
+Every earlier phase deliberately deferred frontend work to keep the
+backend/verification bar consistent. Picked ONE category to actually
+finish end-to-end -- the 5e Bestiary, flagged as "the most immediately
+actionable next slice" back in the original Phase 3 checkpoint, since
+its backend contract already existed and was already tested at the
+function level.
+
+`routes/srdLibrary.js` (`GET /api/srd-library?ruleset=&category=`) is a
+thin new read-only endpoint exposing `lib/srdLibraryRepo.js`'s existing
+`listSrdEntries()` over HTTP -- that function already existed
+server-side (used by the Homebrew route's reference-monster lookup) but
+had no browser-reachable path, needed for the frontend's Import/Reflavor
+picker to browse `srd_library` (this app has no client-side DB access,
+per CLAUDE.md).
+
+`archive/enemies/index.html`'s generate form now branches on the
+world's ruleset (reusing the existing `/api/wizard/ruleset-options`
+endpoint rather than building a new one -- it already returns `current`
+and is side-effect-free, safe to call from any page). A 5e world gets a
+real Mode selector (Homebrew/Import/Reflavor) with a live SRD monster
+dropdown and a Target CR field, replacing the Echoes Tier field; every
+other ruleset (including a ruleset-lookup failure) keeps the exact
+original Echoes-shaped form untouched, wired through the same code path
+as before this phase -- fail-open to the long-established default, not
+a broken/blank form. Verified in a real headless browser: the ruleset
+fetch fails in this sandboxed environment (no reachable Supabase CDN),
+and the page correctly falls back to the Echoes form with a logged
+warning, exactly as designed. Then directly exercised the 5e path itself
+(stubbing `authFetch`, bypassing the auth-gated ruleset lookup) and
+confirmed the SRD dropdown populates from real data, the mode-visibility
+toggle (Homebrew/Import/Reflavor showing/hiding the right fields) works,
+and the resulting layout matches the site's existing visual style --
+screenshot taken and reviewed.
+
+**What's still deferred**: PF2e/Generic Bestiary UI, and any frontend at
+all for Spells/Classes/Items/Player Characters/NPC Combatant upgrades --
+all real, tested backends with zero UI, same as noted in each of their
+own phase entries above. This phase proves the ruleset-aware-UI pattern
+works end-to-end for one category rather than spreading thin across all
+of them.
