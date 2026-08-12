@@ -1,15 +1,16 @@
 // routes/npcCombatant.js
 //
-// Multi-ruleset genericization, Phase 7: the "Combatant" upgrade --
-// takes a specific NPC and gives it a full, bespoke 5e stat block by
-// invoking the EXACT SAME Homebrew monster-generation pipeline Bestiary
-// uses (lib/rulesets/5e/homebrewEnemyGenerator.js), per the project's
+// Multi-ruleset genericization, Phase 7 (+ PF2e expansion): the
+// "Combatant" upgrade -- takes a specific NPC and gives it a full,
+// bespoke stat block by invoking the EXACT SAME Homebrew monster-
+// generation pipeline Bestiary uses
+// (lib/rulesets/<ruleset>/homebrewEnemyGenerator.js), per the project's
 // own instruction to "reuse it, don't fork it." The result is attached
 // to the NPC's own entry as `combatProfile` (replacing the lightweight
-// default every 5e NPC gets at creation -- see
-// lib/rulesets/5e/npcCombatDefaults.js) rather than creating a separate
-// `enemies` category row; an NPC upgraded this way is still one entry,
-// with richer stats.
+// default every NPC gets at creation -- see
+// lib/rulesets/<ruleset>/npcCombatDefaults.js) rather than creating a
+// separate `enemies` category row; an NPC upgraded this way is still
+// one entry, with richer stats.
 const express = require("express");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
@@ -17,6 +18,7 @@ const { getRuleset } = require("../lib/worldConfigRepo");
 const { getEntry } = require("../lib/entriesRepo");
 const { saveNpcEntry, getPortraitUrl } = require("../lib/fileWriter");
 const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
+const { generateHomebrewPf2eEnemy } = require("../lib/rulesets/pf2e/homebrewEnemyGenerator");
 
 const router = express.Router();
 
@@ -24,20 +26,20 @@ const router = express.Router();
 // existing NPC's combatProfile field, it never creates a new entry, so
 // the entry cap (which gates entry CREATION) doesn't apply. Not gated by
 // requireCategoryAvailable("npcs") either -- NPCs stay available on
-// every ruleset (narrative-only for everyone else); this route is
-// 5e-specific and checks the ruleset directly, since "Combatant upgrade"
-// only makes sense where a real Bestiary pipeline exists to reuse.
+// every ruleset (narrative-only for everyone else); this route checks
+// the ruleset directly, since "Combatant upgrade" only makes sense
+// where a real Bestiary pipeline exists to reuse.
 router.post("/npc-combatant-upgrade", requireAiEnabled, enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
-    const { npcId, targetCr } = req.body || {};
+    const { npcId, targetCr, level, role } = req.body || {};
     if (!npcId) {
       if (req.refundGeneration) await req.refundGeneration();
       return res.status(400).json({ error: "npcId is required." });
     }
 
     const ruleset = await getRuleset(worldId);
-    if (ruleset !== "5e") {
+    if (ruleset !== "5e" && ruleset !== "pf2e") {
       if (req.refundGeneration) await req.refundGeneration();
       return res.status(501).json({ error: `The Combatant upgrade isn't available for the '${ruleset}' ruleset yet.` });
     }
@@ -55,12 +57,11 @@ router.post("/npc-combatant-upgrade", requireAiEnabled, enforceGenerationCap, as
     // name/faction/contradiction happen to also be mirrored onto
     // entryMeta directly, but raw is the reliable place to read from).
     const npcContent = existing.raw || {};
-    const combatProfile = await generateHomebrew5eEnemy(worldId, {
-      name: `${existing.name}'s combat profile`,
-      faction: existing.faction,
-      targetCr,
-      campaignContext: `This is a combat stat block for an existing named NPC, "${existing.name}" -- ${npcContent.physicalDescription || ""} ${npcContent.contradiction || ""}`.trim()
-    });
+    const campaignContext = `This is a combat stat block for an existing named NPC, "${existing.name}" -- ${npcContent.physicalDescription || ""} ${npcContent.contradiction || ""}`.trim();
+
+    const combatProfile = ruleset === "5e"
+      ? await generateHomebrew5eEnemy(worldId, { name: `${existing.name}'s combat profile`, faction: existing.faction, targetCr, campaignContext })
+      : await generateHomebrewPf2eEnemy(worldId, { name: `${existing.name}'s combat profile`, faction: existing.faction, level, role, campaignContext });
     // The homebrew generator names/IDs this as if it were a standalone
     // monster -- irrelevant here, this profile is embedded inside the
     // NPC's own entry, not saved as its own `enemies` row.

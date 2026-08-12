@@ -29,6 +29,14 @@ const { slugify: slugify5e, buildSurvivorBodyHtml: buildSurvivorBodyHtml5e } = r
 const { computeHitPoints, proficiencyBonusForLevel, spellSlotsForLevel } = require("../lib/rulesets/5e/survivorFormulas");
 const { buildHomebrewSurvivorSystemPrompt } = require("../prompts/rulesets/5e/survivorContentPrompt");
 
+// PF2e Player Characters (Homebrew tier) -- see
+// prompts/rulesets/pf2e/survivorContentPrompt.js and
+// lib/rulesets/pf2e/survivorFormulas.js's header comments.
+const { savePf2eSurvivorEntry } = require("../lib/rulesets/pf2e/survivorRepo");
+const { slugify: slugifyPf2e, buildSurvivorBodyHtml: buildSurvivorBodyHtmlPf2e } = require("../lib/rulesets/pf2e/survivorTemplate");
+const { computePcProfile } = require("../lib/rulesets/pf2e/survivorFormulas");
+const { buildHomebrewSurvivorSystemPrompt: buildHomebrewPf2eSurvivorSystemPrompt } = require("../prompts/rulesets/pf2e/survivorContentPrompt");
+
 const router = express.Router();
 
 router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("survivors"), async (req, res) => {
@@ -36,6 +44,9 @@ router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforc
     const ruleset = await getRuleset(req.worldId);
     if (ruleset === "5e") {
       return await handle5eSurvivorGenerate(req, res);
+    }
+    if (ruleset === "pf2e") {
+      return await handlePf2eSurvivorGenerate(req, res);
     }
     return await handleEchoesSurvivorGenerate(req, res);
   } catch (err) {
@@ -196,6 +207,79 @@ async function handle5eSurvivorGenerate(req, res) {
   }
 
   await save5eSurvivorEntry(worldId, pc, null);
+  res.json({ preview: false, id: pc.id, name: pc.name, className: pc.className, faction: pc.faction, summary: pc.designNotes });
+}
+
+// ============================================================
+// PF2e path -- Homebrew tier only. classId must reference a real PF2e
+// Class entry this world already generated (Phase 9's Classes work); HP/
+// Class DC/Perception/saves are computed from THAT class's real
+// hpTier/classDcSchedule/goodSaves, never model-stated.
+// ============================================================
+async function handlePf2eSurvivorGenerate(req, res) {
+  const worldId = req.worldId;
+  const { name, faction, fillExistingId, classLevel } = req.body || {};
+
+  let existingEntry = null;
+  let isRegenerate = false;
+  if (fillExistingId) {
+    const manifest = await listEntries(worldId, "survivors");
+    const manifestEntry = manifest.find((m) => m.id === fillExistingId);
+    if (!manifestEntry) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No existing PC entry found with id '${fillExistingId}'` });
+    }
+    const full = await getEntry(worldId, "survivors", fillExistingId);
+    existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
+    isRegenerate = true; // PCs have no locked placeholders, same as 5e/Echoes
+  }
+
+  const classEntries = await listEntries(worldId, "classes", { locked: false });
+  if (!classEntries.length) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "This world has no Classes yet -- generate at least one Class before creating a Player Character." });
+  }
+  const availableClassesText = classEntries.map((c) => `- id: ${c.id} | ${c.name}`).join("\n");
+
+  const settingContext = await getSettingContext(worldId);
+  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const loreContext = await getLoreContext(worldId, { category: "survivors", faction });
+  const rosterEntries = await listEntries(worldId, "survivors", { locked: false });
+  const rosterContext = rosterEntries.length
+    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}: ${e.subtitle || ""}`).join("\n")
+    : "No Player Characters archived yet -- any concept is available.";
+
+  const systemPrompt = buildHomebrewPf2eSurvivorSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, availableClassesText, name, faction, classLevel });
+  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Create the Player Character now.", maxTokens: 1800 });
+
+  const chosenClass = classEntries.find((c) => c.id === proposed.classId) || classEntries[0];
+  const chosenClassFull = await getEntry(worldId, "classes", chosenClass.id);
+  const classContent = chosenClassFull && chosenClassFull.raw ? chosenClassFull.raw : {};
+
+  const level = Math.max(1, Math.min(20, Math.round(Number(proposed.classLevel) || 1)));
+  const profile = computePcProfile({ classContent, level, abilities: proposed.abilities });
+
+  const pc = {
+    ...proposed,
+    id: fillExistingId || slugifyPf2e(proposed.name),
+    faction: faction || null,
+    classId: chosenClass.id,
+    className: chosenClass.name,
+    classLevel: level,
+    hitPoints: profile.hitPoints,
+    classDC: profile.classDC,
+    perception: profile.perception,
+    savingThrows: profile.savingThrows,
+    sourceMode: "homebrew"
+  };
+  if (existingEntry) pc.id = existingEntry.manifestEntry.id;
+
+  if (isRegenerate) {
+    const newBodyHtmlPreview = buildSurvivorBodyHtmlPf2e(pc, null);
+    return res.json({ preview: true, mode: "regenerate", category: "survivors", id: pc.id, name: pc.name, entry: pc, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+  }
+
+  await savePf2eSurvivorEntry(worldId, pc, null);
   res.json({ preview: false, id: pc.id, name: pc.name, className: pc.className, faction: pc.faction, summary: pc.designNotes });
 }
 

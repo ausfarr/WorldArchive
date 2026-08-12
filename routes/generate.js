@@ -14,6 +14,7 @@ const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, get
 const { getStyleGuide, getRuleset } = require("../lib/worldConfigRepo");
 const { createNewNpc } = require("../lib/campaignEntryGenerators");
 const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
+const { DEFAULT_NPC_COMBAT_PROFILE: DEFAULT_NPC_COMBAT_PROFILE_PF2E } = require("../lib/rulesets/pf2e/npcCombatDefaults");
 
 const router = express.Router();
 
@@ -45,13 +46,15 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       });
       npc.id = npc.id || slugify(npc.name);
       if (faction) npc.faction = faction;
-      // Phase 7 (multi-ruleset genericization): see
+      // Phase 7 (multi-ruleset genericization) + PF2e expansion: see
       // lib/campaignEntryGenerators.js's createNewNpc for the full
       // reasoning -- this import path bypasses that helper (needs
       // importSourceText threaded through), so the same attachment is
       // duplicated here rather than left out.
-      if ((await getRuleset(worldId)) === "5e") {
-        npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE;
+      {
+        const importRuleset = await getRuleset(worldId);
+        if (importRuleset === "5e") npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE;
+        else if (importRuleset === "pf2e") npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE_PF2E;
       }
       await saveNpcEntry(worldId, npc, null);
       return res.json({
@@ -132,10 +135,14 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     // GM had already upgraded to a bespoke Combatant stat block via
     // routes/npcCombatant.js. "fill" (a locked placeholder becoming a
     // real NPC for the first time) gets the same default new NPCs get.
-    if ((await getRuleset(worldId)) === "5e") {
-      npc.combatProfile = (mode === "regenerate" && priorRaw && priorRaw.combatProfile)
-        ? priorRaw.combatProfile
-        : DEFAULT_NPC_COMBAT_PROFILE;
+    {
+      const fillRuleset = await getRuleset(worldId);
+      const defaultProfile = fillRuleset === "5e" ? DEFAULT_NPC_COMBAT_PROFILE : fillRuleset === "pf2e" ? DEFAULT_NPC_COMBAT_PROFILE_PF2E : null;
+      if (defaultProfile) {
+        npc.combatProfile = (mode === "regenerate" && priorRaw && priorRaw.combatProfile)
+          ? priorRaw.combatProfile
+          : defaultProfile;
+      }
     }
 
     if (mode === "regenerate") {

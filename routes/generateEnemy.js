@@ -30,9 +30,8 @@ const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGen
 // prompts/rulesets/pf2e/enemyContentPrompt.js for why Import/Reflavor
 // aren't available yet).
 const { savePf2eEnemyEntry } = require("../lib/rulesets/pf2e/enemyRepo");
-const { slugify: slugifyPf2e, buildEnemyBodyHtml: buildEnemyBodyHtmlPf2e } = require("../lib/rulesets/pf2e/enemyTemplate");
-const { buildCreatureBudget, ROLE_TEMPLATES } = require("../lib/rulesets/pf2e/statFormulas");
-const { buildHomebrewPf2eEnemySystemPrompt } = require("../prompts/rulesets/pf2e/enemyContentPrompt");
+const { buildEnemyBodyHtml: buildEnemyBodyHtmlPf2e } = require("../lib/rulesets/pf2e/enemyTemplate");
+const { generateHomebrewPf2eEnemy } = require("../lib/rulesets/pf2e/homebrewEnemyGenerator");
 
 // Multi-ruleset genericization, Phase 10 (Generic ruleset).
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
@@ -360,43 +359,12 @@ async function handlePf2eEnemyGenerate(req, res) {
 
   const targetLevel = level != null ? level : (existingEntry && existingEntry.raw && existingEntry.raw.level) || 1;
   const targetRole = role || (existingEntry && existingEntry.raw && existingEntry.raw.role) || null;
-  const roleTemplate = (targetRole && ROLE_TEMPLATES[targetRole]) || {};
-  const budget = buildCreatureBudget(targetLevel, roleTemplate);
 
-  const settingContext = await getSettingContext(worldId);
-  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
-  const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
-  const rosterEntries = await listEntries(worldId, "enemies", { locked: false });
-  const rosterContext = rosterEntries.length
-    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}: Level ${(e.level != null ? e.level : "?")}`).join("\n")
-    : "No enemies archived yet -- any concept is available.";
-
-  const systemPrompt = buildHomebrewPf2eEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, faction, level: targetLevel, role: targetRole, budget });
-  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the creature now.", maxTokens: 2000 });
-
-  // Strike "bonus" is code-authoritative (from the pre-computed budget),
-  // never model-proposed -- same "model writes narrative, code writes
-  // math" split as every other ruleset here. The model only supplies
-  // name/traits/damage flavor text per Strike (see the prompt's schema).
-  const attachBonus = (strikes) => (strikes || []).map((s) => ({ ...s, bonus: budget.strikeBonus, description: s.damageDescription || s.description }));
-
-  const enemy = {
-    ...proposed,
-    id: fillExistingId || slugifyPf2e(proposed.name),
-    faction: faction || null,
-    level: budget.level,
-    rarity: proposed.rarity || "Common",
-    abilities: budget.abilities,
-    armorClass: budget.armorClass,
-    hitPoints: budget.hitPoints,
-    perception: budget.perception,
-    savingThrows: budget.savingThrows,
-    melee: attachBonus(proposed.melee),
-    ranged: attachBonus(proposed.ranged),
-    role: targetRole,
-    sourceMode: "homebrew"
-  };
-
+  // Shared with the NPC "Combatant" upgrade
+  // (lib/rulesets/pf2e/homebrewEnemyGenerator.js) -- same "reuse it,
+  // don't fork it" pattern Phase 7 established for 5e.
+  const enemy = await generateHomebrewPf2eEnemy(worldId, { name, faction, level: targetLevel, role: targetRole });
+  if (fillExistingId) enemy.id = fillExistingId;
   if (existingEntry) enemy.id = existingEntry.manifestEntry.id;
 
   if (isRegenerate) {
