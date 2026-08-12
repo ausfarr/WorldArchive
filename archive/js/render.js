@@ -2670,6 +2670,13 @@ async function renderNpcCombatantAction(entry) {
 
   const hasBespokeProfile = entry.combatProfile && entry.combatProfile.isDefaultProfile === false;
   const wrap = document.createElement("div");
+  // ai-action: this whole row (target-CR input + button + status) is a
+  // real AI call (routes/npcCombatant.js), so it's hidden entirely for
+  // AI-off accounts -- same convention as campaign-arcs/builder.html's
+  // "Plan with AI" section -- rather than leaving an orphaned input
+  // behind a hidden button. requireAiEnabled already blocks this
+  // server-side; this is purely so a disabled feature doesn't invite a click.
+  wrap.className = "ai-action";
   wrap.style.cssText = "margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-line-soft); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;";
 
   const extraFieldsHtml = `<input id="combatant-target-cr" type="text" placeholder="Target CR (optional)" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 160px;">`;
