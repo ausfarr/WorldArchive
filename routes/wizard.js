@@ -37,7 +37,7 @@ router.get("/wizard/ruleset-options", async (req, res) => {
 
 // Sets world_config.ruleset directly (NOT via draft_json/save-draft --
 // this is a real, permanent commit from the moment it's first saved, not
-// scratch state). isValidRuleset() rejects anything outside the 4 known
+// scratch state). isValidRuleset() rejects anything outside the 3 known
 // values; the Echoes admin-only gate is re-checked here server-side too
 // (never trust the frontend picker having filtered it out) so a crafted
 // request can't set a non-admin world to 'echoes'. worldConfigRepo's
@@ -47,7 +47,7 @@ router.post("/wizard/set-ruleset", async (req, res) => {
   try {
     const { ruleset } = req.body || {};
     if (!isValidRuleset(ruleset)) {
-      return res.status(400).json({ error: `Invalid ruleset '${ruleset}'. Must be one of: echoes, 5e, pf2e, generic.` });
+      return res.status(400).json({ error: `Invalid ruleset '${ruleset}'. Must be one of: echoes, 5e, generic.` });
     }
     if (ruleset === "echoes" && !isAdminEmail(req.userEmail)) {
       return res.status(403).json({ error: "The Echoes of the Neon ruleset is admin-only." });

@@ -3,7 +3,7 @@
 // keeps working when opened directly from disk (file://), where fetch()
 // of local files is blocked by browser CORS rules.
 
-// Multi-ruleset genericization: "spells" (5e/pf2e only, no Echoes/
+// Multi-ruleset genericization: "spells" (5e only, no Echoes/
 // generic equivalent) now has a real index page (archive/spells/) and
 // nav link on every archive page -- the nav-spells link is hidden by
 // default (see each page's <nav>) and only shown by
@@ -26,7 +26,7 @@ const CATEGORY_LABELS = {
 };
 
 // Shows the nav-spells link only for rulesets that actually have a
-// spells category (5e, pf2e) -- fails CLOSED (stays hidden) on any
+// spells category (5e) -- fails CLOSED (stays hidden) on any
 // error, since a visible link to a category that would just 501 on
 // generate is worse UX than a temporarily-missing one. Call from every
 // archive page's init block, same as applyCategoryConfig()/applySiteTheme().
@@ -36,7 +36,7 @@ async function applySpellsNavVisibility() {
   try {
     const res = await authFetch("/api/wizard/ruleset-options");
     const data = await res.json();
-    if (data.current === "5e" || data.current === "pf2e") {
+    if (data.current === "5e") {
       navLink.style.display = "";
     }
   } catch (err) {
@@ -2646,11 +2646,12 @@ function renderDossier(entry, factionLookup) {
 // scope). entry.combatProfile is directly present on the dossier's
 // entry object when set (rowToFullEntry() spreads raw_json's top-level
 // keys onto it, and combatProfile is one of them -- see
-// lib/campaignEntryGenerators.js). Only shown for 5e/pf2e worlds (the
-// only rulesets with a Combatant pipeline, see routes/npcCombatant.js)
-// -- fetches the ruleset fresh rather than trusting entry.combatProfile's
-// presence alone, since a legacy 5e NPC that predates Phase 7 has no
-// combatProfile at all yet but should still get the upgrade option.
+// lib/campaignEntryGenerators.js). Only shown for 5e worlds (the
+// only ruleset with a Combatant pipeline wired up in this UI, see
+// routes/npcCombatant.js) -- fetches the ruleset fresh rather than
+// trusting entry.combatProfile's presence alone, since a legacy 5e NPC
+// that predates Phase 7 has no combatProfile at all yet but should
+// still get the upgrade option.
 async function renderNpcCombatantAction(entry) {
   const host = document.getElementById("npc-combatant-action");
   if (!host) return;
@@ -2665,24 +2666,13 @@ async function renderNpcCombatantAction(entry) {
     console.error("Could not load ruleset for NPC Combatant action:", err);
     return;
   }
-  if (ruleset !== "5e" && ruleset !== "pf2e") return;
+  if (ruleset !== "5e") return;
 
   const hasBespokeProfile = entry.combatProfile && entry.combatProfile.isDefaultProfile === false;
   const wrap = document.createElement("div");
   wrap.style.cssText = "margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-line-soft); display: flex; align-items: center; gap: 12px; flex-wrap: wrap;";
 
-  const extraFieldsHtml = ruleset === "5e"
-    ? `<input id="combatant-target-cr" type="text" placeholder="Target CR (optional)" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 160px;">`
-    : `<input id="combatant-level" type="number" min="-1" max="24" placeholder="Level (optional)" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 140px;">
-       <select id="combatant-role" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-         <option value="">Generalist (no lean)</option>
-         <option value="brute">Brute</option>
-         <option value="magicalStriker">Magical Striker</option>
-         <option value="skirmisher">Skirmisher</option>
-         <option value="sniper">Sniper</option>
-         <option value="soldier">Soldier</option>
-         <option value="spellcaster">Spellcaster</option>
-       </select>`;
+  const extraFieldsHtml = `<input id="combatant-target-cr" type="text" placeholder="Target CR (optional)" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 160px;">`;
 
   wrap.innerHTML = `
     ${extraFieldsHtml}
@@ -2699,15 +2689,8 @@ async function renderNpcCombatantAction(entry) {
     showGenerationOverlay(["Designing Strikes/Actions…", "Balancing against the world…", "Almost there…"]);
     try {
       const body = { npcId: entry.id };
-      if (ruleset === "5e") {
-        const cr = document.getElementById("combatant-target-cr").value;
-        if (cr) body.targetCr = cr;
-      } else {
-        const level = document.getElementById("combatant-level").value;
-        if (level) body.level = Number(level);
-        const role = document.getElementById("combatant-role").value;
-        if (role) body.role = role;
-      }
+      const cr = document.getElementById("combatant-target-cr").value;
+      if (cr) body.targetCr = cr;
       const res = await authFetch("/api/npc-combatant-upgrade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -53,6 +53,17 @@ entry from here forward gets both a real date and a version at write time.
   risky), and the subscription/credit billing path (verified safe by
   code reading only, not exercised against a live project). See:
   `session_addendum_ruleset_genericization.md`
+- **Pathfinder 2e removed (multi-ruleset recovery, Phase R1)** — PF2e had
+  Homebrew-tier support across every category but no path to Import/
+  Reflavor (blocked on an unresolved ORC-vs-CUP licensing question) and
+  no real users on it; removed cleanly rather than deprecated, since no
+  real world ever used it. Ruleset lineup is now `echoes` (admin-only) |
+  `5e` | `generic`. Deleted `lib/rulesets/pf2e/`, `prompts/rulesets/pf2e/`,
+  `scripts/ingestSrdPf2e.js`, and the five `scripts/testPf2e*.js` files;
+  removed pf2e branches from every shared generation route, the wizard's
+  ruleset picker, and every ruleset-aware frontend form. New migration
+  `022_remove_pf2e.sql` tightens the `world_config` ruleset CHECK
+  constraint. See: `session_addendum_pf2e_removal_shipped.md`
 - **Beta feedback fixes (batch 3)** — six independent bugs from beta
   tester feedback: Quest generation can no longer select/reference a
   category the world has disabled in Wizard Step 7; faction banner

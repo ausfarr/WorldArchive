@@ -1,7 +1,7 @@
 // routes/npcCombatant.js
 //
-// Multi-ruleset genericization, Phase 7 (+ PF2e expansion): the
-// "Combatant" upgrade -- takes a specific NPC and gives it a full,
+// Multi-ruleset genericization, Phase 7: the "Combatant" upgrade --
+// takes a specific NPC and gives it a full,
 // bespoke stat block by invoking the EXACT SAME Homebrew monster-
 // generation pipeline Bestiary uses
 // (lib/rulesets/<ruleset>/homebrewEnemyGenerator.js), per the project's
@@ -18,7 +18,6 @@ const { getRuleset } = require("../lib/worldConfigRepo");
 const { getEntry } = require("../lib/entriesRepo");
 const { saveNpcEntry, getPortraitUrl } = require("../lib/fileWriter");
 const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
-const { generateHomebrewPf2eEnemy } = require("../lib/rulesets/pf2e/homebrewEnemyGenerator");
 const { generateHomebrewGenericEnemy } = require("../lib/rulesets/generic/homebrewEnemyGenerator");
 const { denormalizeEnemyIntoCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
@@ -35,14 +34,14 @@ const router = express.Router();
 router.post("/npc-combatant-upgrade", requireAiEnabled, enforceGenerationCap, async (req, res) => {
   try {
     const worldId = req.worldId;
-    const { npcId, targetCr, level, role } = req.body || {};
+    const { npcId, targetCr } = req.body || {};
     if (!npcId) {
       if (req.refundGeneration) await req.refundGeneration();
       return res.status(400).json({ error: "npcId is required." });
     }
 
     const ruleset = await getRuleset(worldId);
-    if (ruleset !== "5e" && ruleset !== "pf2e" && ruleset !== "generic") {
+    if (ruleset !== "5e" && ruleset !== "generic") {
       if (req.refundGeneration) await req.refundGeneration();
       return res.status(501).json({ error: `The Combatant upgrade isn't available for the '${ruleset}' ruleset yet.` });
     }
@@ -77,11 +76,6 @@ router.post("/npc-combatant-upgrade", requireAiEnabled, enforceGenerationCap, as
       // The homebrew generator names/IDs this as if it were a standalone
       // monster -- irrelevant here, this profile is embedded inside the
       // NPC's own entry, not saved as its own `enemies` row.
-      delete combatProfile.id;
-      delete combatProfile.name;
-      combatProfile.isDefaultProfile = false;
-    } else if (ruleset === "pf2e") {
-      combatProfile = await generateHomebrewPf2eEnemy(worldId, { name: `${existing.name}'s combat profile`, faction: existing.faction, level, role, campaignContext });
       delete combatProfile.id;
       delete combatProfile.name;
       combatProfile.isDefaultProfile = false;

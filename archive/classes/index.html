@@ -94,10 +94,9 @@
 // ============================================================
 // Multi-ruleset genericization. Same fail-open dispatch pattern
 // archive/enemies/index.html's Phase 11 update established -- Echoes
-// keeps its own Level 1-99 form untouched; 5e/pf2e get a real name+
-// faction form wired to their own /api/generate-class contract (both
-// rulesets take the identical {name, faction} body shape, see
-// routes/generateClass.js's handle5eClassGenerate/handlePf2eClassGenerate).
+// keeps its own Level 1-99 form untouched; 5e gets a real name+
+// faction form wired to its own /api/generate-class contract (see
+// routes/generateClass.js's handle5eClassGenerate).
 // ============================================================
 
 function wireEchoesClassForm() {
@@ -183,11 +182,11 @@ async function initClassGenerateForm() {
   } catch (err) {
     console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
   }
-  if (ruleset === '5e' || ruleset === 'pf2e' || ruleset === 'generic') {
+  if (ruleset === '5e' || ruleset === 'generic') {
     // Generic Classes take the identical {name, faction} body shape as
-    // 5e/pf2e (see routes/generateClass.js's handleGenericClassGenerate)
-    // -- narrative-first, no leveling math to expose as a form field --
-    // so the same form/handler covers all three rulesets.
+    // 5e's (see routes/generateClass.js's handleGenericClassGenerate) --
+    // narrative-first, no leveling math to expose as a form field -- so
+    // the same form/handler covers both rulesets.
     wireRealRulesetClassForm();
   } else {
     wireEchoesClassForm();

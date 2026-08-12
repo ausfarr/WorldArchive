@@ -106,12 +106,9 @@
 <script>
 // ============================================================
 // Multi-ruleset genericization. Same fail-open dispatch pattern as
-// Bestiary/Classes/Items. Unlike those, 5e and pf2e Player Characters
-// take the IDENTICAL request body shape ({name, faction, classLevel} --
-// the model itself picks classId from this world's own real Class
-// roster server-side, see routes/generateSurvivor.js's
-// handle5eSurvivorGenerate/handlePf2eSurvivorGenerate), so one shared
-// form/handler covers both rather than duplicating it per ruleset.
+// Bestiary/Classes/Items. The model itself picks classId from this
+// world's own real Class roster server-side (see
+// routes/generateSurvivor.js's handle5eSurvivorGenerate).
 // ============================================================
 
 function wireEchoesSurvivorForm() {
@@ -255,7 +252,7 @@ async function initSurvivorGenerateForm() {
   } catch (err) {
     console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
   }
-  if (ruleset === '5e' || ruleset === 'pf2e') {
+  if (ruleset === '5e') {
     wireClassBasedSurvivorForm();
   } else if (ruleset === 'generic') {
     wireGenericSurvivorForm();

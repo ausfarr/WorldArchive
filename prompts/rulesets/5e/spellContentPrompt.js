@@ -1,7 +1,6 @@
 // prompts/rulesets/5e/spellContentPrompt.js
 //
-// 5e Spell generation -- HOMEBREW TIER ONLY, same reasoning as PF2e's
-// Bestiary (see that file's header comment): no verified CC-BY-4.0
+// 5e Spell generation -- HOMEBREW TIER ONLY: no verified CC-BY-4.0
 // STRUCTURED spell dataset exists to import from (Tabyltop/CC-SRD only
 // ships monsters as structured JSON -- see scripts/ingestSrd5e.js's
 // header). If one turns up later, Import/Reflavor can be added the same

@@ -1,7 +1,7 @@
 // prompts/rulesets/generic/classContentPrompt.js
 //
 // Generic-ruleset Class generation -- Homebrew only, by definition.
-// Unlike 5e/pf2e Classes (real leveling math to hook into), a Generic
+// Unlike 5e Classes (real leveling math to hook into), a Generic
 // world has no leveling concept at all -- see
 // lib/rulesets/generic/classTemplate.js's header for why this stays
 // narrative-first (a themed package of features, not a level table).
