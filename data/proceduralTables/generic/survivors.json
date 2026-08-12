@@ -1,0 +1,35 @@
+{
+  "firstNames": [
+    { "value": "Rowan", "weight": 2 }, { "value": "Sable", "weight": 2 }, { "value": "Teagan", "weight": 2 },
+    { "value": "Marlow", "weight": 2 }, { "value": "Iset", "weight": 2 }, { "value": "Corvid", "weight": 2 },
+    { "value": "Wren", "weight": 2 }, { "value": "Ashford", "weight": 2 }, { "value": "Vesna", "weight": 2 },
+    { "value": "Orin", "weight": 2 }, { "value": "Talon", "weight": 2 }, { "value": "Briar", "weight": 2 }
+  ],
+  "lastNames": [
+    { "value": "Voss", "weight": 2 }, { "value": "Kade", "weight": 2 }, { "value": "Marrow", "weight": 2 },
+    { "value": "Solane", "weight": 2 }, { "value": "Thorne", "weight": 2 }, { "value": "Vale", "weight": 2 },
+    { "value": "Rask", "weight": 2 }, { "value": "Hollis", "weight": 2 }, { "value": "Winters", "weight": 2 }
+  ],
+  "equipmentTemplates": [
+    { "value": "Practical traveling gear, a weapon suited to their background, and one thing they won't sell no matter how bad things get.", "weight": 1 },
+    { "value": "Whatever they could carry when they left, plus whatever they've picked up since.", "weight": 1 }
+  ],
+  "backgroundTemplates": [
+    "{name} didn't set out to end up here, but here they are.",
+    "{name} has a past they don't talk about much, and a present they're still figuring out.",
+    "{name} came up the hard way, and it shows in how they handle themselves."
+  ],
+  "backstoryTemplates": [
+    "{name} became a {className} after a decision that still doesn't feel fully settled, even now.",
+    "{name}'s path to being a {className} wasn't a straight line, and they'd be the first to admit it.",
+    "Whatever {name} expected out of life, being a {className} wasn't quite it -- but it fits, mostly."
+  ],
+  "flavorStatsTemplates": [
+    "Capable in a fight when they need to be, better at avoiding one when they can.",
+    "Not the strongest in a room, but rarely the least prepared.",
+    "Leans on instinct and improvisation more than training."
+  ],
+  "designNotes": [
+    { "value": "Procedurally rolled -- attributes/background are table-generated, derived stats (if this world uses a formula) are code-computed.", "weight": 1 }
+  ]
+}

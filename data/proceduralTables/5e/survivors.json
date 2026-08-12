@@ -1,0 +1,68 @@
+{
+  "firstNames": [
+    { "value": "Aldric", "weight": 2 }, { "value": "Branwen", "weight": 2 }, { "value": "Corin", "weight": 2 },
+    { "value": "Dessa", "weight": 2 }, { "value": "Edrin", "weight": 2 }, { "value": "Fira", "weight": 2 },
+    { "value": "Gareth", "weight": 2 }, { "value": "Halina", "weight": 2 }, { "value": "Ivor", "weight": 2 },
+    { "value": "Junia", "weight": 2 }, { "value": "Kellan", "weight": 2 }, { "value": "Liora", "weight": 2 },
+    { "value": "Merric", "weight": 2 }, { "value": "Nessa", "weight": 2 }, { "value": "Osric", "weight": 2 },
+    { "value": "Petra", "weight": 2 }, { "value": "Quinlan", "weight": 2 }, { "value": "Rosalind", "weight": 2 }
+  ],
+  "lastNames": [
+    { "value": "Ashgrove", "weight": 2 }, { "value": "Blackwell", "weight": 2 }, { "value": "Corvin", "weight": 2 },
+    { "value": "Duskwalker", "weight": 2 }, { "value": "Emberly", "weight": 2 }, { "value": "Fenwick", "weight": 2 },
+    { "value": "Graymoor", "weight": 2 }, { "value": "Hollowell", "weight": 2 }, { "value": "Ironvale", "weight": 2 },
+    { "value": "Justenne", "weight": 2 }, { "value": "Kesslar", "weight": 2 }, { "value": "Larkspur", "weight": 2 }
+  ],
+  "abilityScorePatterns": [
+    { "value": { "str": 15, "dex": 13, "con": 14, "int": 10, "wis": 12, "cha": 8 }, "weight": 3 },
+    { "value": { "str": 8, "dex": 16, "con": 13, "int": 12, "wis": 10, "cha": 14 }, "weight": 3 },
+    { "value": { "str": 10, "dex": 12, "con": 13, "int": 15, "wis": 14, "cha": 8 }, "weight": 3 },
+    { "value": { "str": 14, "dex": 10, "con": 15, "int": 8, "wis": 13, "cha": 12 }, "weight": 3 },
+    { "value": { "str": 8, "dex": 14, "con": 12, "int": 10, "wis": 13, "cha": 16 }, "weight": 3 }
+  ],
+  "armorNotes": [
+    { "value": "unarmored, relies on reflexes", "acBonus": 0, "weight": 2 },
+    { "value": "padded leathers", "acBonus": 1, "weight": 3 },
+    { "value": "studded leather", "acBonus": 2, "weight": 3 },
+    { "value": "chain shirt over a traveler's coat", "acBonus": 3, "weight": 2 },
+    { "value": "a patchwork of scavenged plate", "acBonus": 4, "weight": 1 }
+  ],
+  "equipmentTemplates": [
+    { "value": "A weapon suited to their training, a bedroll, rations for a week, and a keepsake they won't explain.", "weight": 1 },
+    { "value": "Well-worn traveling gear, a small coin purse, and a journal with more crossed-out entries than finished ones.", "weight": 1 },
+    { "value": "A weapon, a healer's kit half-used, and a letter they haven't opened yet.", "weight": 1 }
+  ],
+  "backgroundTemplates": [
+    "{name} left home before anyone could talk them out of it.",
+    "{name} used to have a much quieter life, before circumstances intervened.",
+    "{name} trained for this longer than most people would guess, and still feels unready.",
+    "{name} fell into this line of work by accident and never quite fell back out."
+  ],
+  "backstoryTemplates": [
+    "{name} took up the {className}'s path after losing something they still haven't replaced. The road since has been more about momentum than direction.",
+    "Nobody in {name}'s hometown expected them to become a {className} -- least of all {name}. It stuck anyway.",
+    "{name} trained under someone who's no longer around to see how it turned out. Being a {className} is, in part, still an argument with that absence."
+  ],
+  "ideals": [
+    { "value": "\"Nobody gets left behind, full stop.\"", "weight": 1 },
+    { "value": "\"Debts get paid, one way or another.\"", "weight": 1 },
+    { "value": "\"The job comes first -- feelings can wait.\"", "weight": 1 },
+    { "value": "\"Everyone deserves one honest chance.\"", "weight": 1 },
+    { "value": "\"Freedom is worth more than safety.\"", "weight": 1 }
+  ],
+  "bonds": [
+    { "value": "A family back home that doesn't know what's become of them.", "weight": 1 },
+    { "value": "A mentor whose approval still matters more than it should.", "weight": 1 },
+    { "value": "A promise made to someone who didn't survive to see it kept.", "weight": 1 },
+    { "value": "A hometown they swore they'd come back and fix.", "weight": 1 }
+  ],
+  "flaws": [
+    { "value": "Trusts too easily, and has the scars to prove it.", "weight": 1 },
+    { "value": "Can't let a slight go unanswered, even a small one.", "weight": 1 },
+    { "value": "Underestimates how much their own reputation precedes them.", "weight": 1 },
+    { "value": "Would rather act first and explain later, often to their own cost.", "weight": 1 }
+  ],
+  "designNotes": [
+    { "value": "Procedurally rolled -- attributes/background are template-generated, HP/proficiency/spell slots are computed from the real linked Class.", "weight": 1 }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "itemTypeWeights": [
+    { "value": "weapon", "weight": 4 },
+    { "value": "armor", "weight": 2 },
+    { "value": "wondrous", "weight": 3 },
+    { "value": "potion", "weight": 2 },
+    { "value": "scroll", "weight": 1 }
+  ],
+  "weaponFlavors": [
+    { "value": { "baseItem": "longsword", "flavorName": "Sunsteel Longsword" }, "weight": 3 },
+    { "value": { "baseItem": "dagger", "flavorName": "Whisperfang Dagger" }, "weight": 3 },
+    { "value": { "baseItem": "greatsword", "flavorName": "Oathkeeper Greatsword" }, "weight": 2 },
+    { "value": { "baseItem": "shortbow", "flavorName": "Wintersong Shortbow" }, "weight": 3 },
+    { "value": { "baseItem": "warhammer", "flavorName": "Stormfall Warhammer" }, "weight": 2 },
+    { "value": { "baseItem": "rapier", "flavorName": "Duskblade Rapier" }, "weight": 3 },
+    { "value": { "baseItem": "handaxe", "flavorName": "Cinderedge Handaxe" }, "weight": 2 },
+    { "value": { "baseItem": "quarterstaff", "flavorName": "Wanderer's Quarterstaff" }, "weight": 2 },
+    { "value": { "baseItem": "battleaxe", "flavorName": "Gravebreaker Battleaxe" }, "weight": 2 },
+    { "value": { "baseItem": "longbow", "flavorName": "Farsight Longbow" }, "weight": 2 },
+    { "value": { "baseItem": "mace", "flavorName": "Hallowed Mace" }, "weight": 2 },
+    { "value": { "baseItem": "scimitar", "flavorName": "Sandglass Scimitar" }, "weight": 2 }
+  ],
+  "armorFlavors": [
+    { "value": { "baseItem": "leather", "flavorName": "Wildstep Leather Armor" }, "weight": 3 },
+    { "value": { "baseItem": "chain shirt", "flavorName": "Riverguard Chain Shirt" }, "weight": 2 },
+    { "value": { "baseItem": "breastplate", "flavorName": "Sentinel's Breastplate" }, "weight": 2 },
+    { "value": { "baseItem": "studded leather", "flavorName": "Nightwalker Studded Leather" }, "weight": 2 },
+    { "value": { "baseItem": "chain mail", "flavorName": "Ironvow Chain Mail" }, "weight": 1 },
+    { "value": { "baseItem": "shield", "flavorName": "Wardbearer Shield" }, "weight": 3 },
+    { "value": { "baseItem": "half plate", "flavorName": "Bastion Half Plate" }, "weight": 1 }
+  ],
+  "wondrousItems": [
+    { "value": { "name": "Amulet of Quiet Steps" }, "weight": 2 },
+    { "value": { "name": "Cloak of the Long Road" }, "weight": 2 },
+    { "value": { "name": "Ring of Steady Hands" }, "weight": 2 },
+    { "value": { "name": "Lantern of the Faithful Flame" }, "weight": 2 },
+    { "value": { "name": "Boots of the Patient Hunter" }, "weight": 2 },
+    { "value": { "name": "Charm of the Second Wind" }, "weight": 2 },
+    { "value": { "name": "Bracers of the Unbroken Line" }, "weight": 2 },
+    { "value": { "name": "Circlet of Clear Thought" }, "weight": 1 },
+    { "value": { "name": "Sash of the Wandering Sage" }, "weight": 1 },
+    { "value": { "name": "Pendant of the Still Water" }, "weight": 1 }
+  ],
+  "flavorTemplates": [
+    "{name} has changed hands more times than anyone still alive remembers.",
+    "Whoever made {name} clearly cared more about it working than it looking pretty.",
+    "There's a maker's mark on {name}, but nobody local recognizes the guild.",
+    "{name} has seen a fight or two, and it shows in the worn places.",
+    "{name} was clearly built to last, not to impress."
+  ],
+  "descriptionTemplates": [
+    "A well-made piece, clearly built by someone who understood both form and function.",
+    "Shows real wear from use, but nothing about it has failed yet.",
+    "Simple in construction, effective in practice -- no wasted craftsmanship.",
+    "Marked with small, deliberate details that suggest a maker with real pride in the work.",
+    "Plain at a glance, but closer inspection turns up careful, unshowy craftsmanship."
+  ],
+  "magicalPropertiesByRarity": {
+    "Uncommon": [
+      { "value": "Grants advantage on one saving throw of the wielder's choice once per short rest.", "weight": 1 },
+      { "value": "The wearer/wielder can sense the general direction of danger within 30 feet once per long rest.", "weight": 1 },
+      { "value": "Grants resistance to one damage type while worn, chosen when the item is first attuned.", "weight": 1 }
+    ],
+    "Rare": [
+      { "value": "Once per long rest, the wielder can reroll a failed attack roll or saving throw.", "weight": 1 },
+      { "value": "The item grants a +1 bonus to all saving throws.", "weight": 1 },
+      { "value": "Once per day, the wielder can cast a common utility spell without expending a spell slot.", "weight": 1 }
+    ],
+    "Very Rare": [
+      { "value": "The wielder gains resistance to two damage types of their choice, reassigned on a long rest.", "weight": 1 },
+      { "value": "Once per long rest, the item can negate one instance of damage entirely.", "weight": 1 }
+    ]
+  },
+  "designNotes": [
+    { "value": "Procedurally rolled from real 5e SRD weapon/armor base stats -- rarity, bonus, and flavor are template-generated, worth a manual polish pass.", "weight": 1 }
+  ]
+}

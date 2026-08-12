@@ -1,0 +1,45 @@
+{
+  "nameEpithets": [
+    { "value": "Wretched", "weight": 2 }, { "value": "Hollow", "weight": 2 }, { "value": "Feral", "weight": 2 },
+    { "value": "Rimewalker", "weight": 2 }, { "value": "Ashborn", "weight": 2 }, { "value": "Gravebound", "weight": 2 },
+    { "value": "Nameless", "weight": 2 }, { "value": "Withered", "weight": 2 }, { "value": "Sundered", "weight": 2 },
+    { "value": "Marked", "weight": 2 }, { "value": "Restless", "weight": 2 }, { "value": "Silent", "weight": 2 }
+  ],
+  "nameNouns": [
+    { "value": "Stalker", "weight": 2 }, { "value": "Beast", "weight": 2 }, { "value": "Wraith", "weight": 2 },
+    { "value": "Warden", "weight": 2 }, { "value": "Prowler", "weight": 2 }, { "value": "Husk", "weight": 2 },
+    { "value": "Sentinel", "weight": 2 }, { "value": "Marauder", "weight": 2 }, { "value": "Thing", "weight": 2 },
+    { "value": "Shade", "weight": 2 }, { "value": "Brute", "weight": 2 }, { "value": "Watcher", "weight": 2 }
+  ],
+  "traitsPool": [
+    { "value": { "name": "Relentless", "description": "Doesn't slow down once it's committed to a fight, no matter how badly it's hurt." }, "weight": 2 },
+    { "value": { "name": "Camouflaged", "description": "Blends into its surroundings well enough that most people walk right past it." }, "weight": 2 },
+    { "value": { "name": "Regenerative", "description": "Wounds that would drop most things just slow it down." }, "weight": 2 },
+    { "value": { "name": "Pack-Minded", "description": "Fights noticeably smarter when others of its kind are nearby." }, "weight": 2 },
+    { "value": { "name": "Territorial", "description": "Rarely leaves its claimed ground, but is vicious about defending it." }, "weight": 2 },
+    { "value": { "name": "Unnerving", "description": "Something about it makes people hesitate before engaging, even when they shouldn't." }, "weight": 2 }
+  ],
+  "actionsPool": [
+    { "value": { "name": "Savage Strike", "description": "A brutal, close-range attack meant to end a fight fast." }, "weight": 2 },
+    { "value": { "name": "Grapple", "description": "Tries to pin a target in place before the real damage starts." }, "weight": 2 },
+    { "value": { "name": "Charge", "description": "Closes distance fast and hits hard on the way in." }, "weight": 2 },
+    { "value": { "name": "Harrying Bite", "description": "A quick, repeated attack meant to wear a target down rather than end things in one blow." }, "weight": 2 },
+    { "value": { "name": "Piercing Cry", "description": "A sound or signal that rattles anyone nearby, making them easier to hit." }, "weight": 2 }
+  ],
+  "flavorTemplates": [
+    "{name} doesn't announce itself before it's already too late.",
+    "Whatever {name} used to be, it isn't anymore.",
+    "Locals have their own name for {name}, and it isn't a kind one.",
+    "{name} keeps to the places nobody else wants to go.",
+    "{name} has a reputation, and it's earned every bit of it."
+  ],
+  "flavorStatsTemplates": [
+    "Tough and aggressive up close, but not built for a drawn-out fight.",
+    "Fast and unpredictable -- hard to pin down, easy to underestimate.",
+    "Slow but devastating if it actually connects.",
+    "Wears an opponent down over time rather than overwhelming them outright."
+  ],
+  "designNotes": [
+    { "value": "Procedurally rolled -- attributes/traits are table-generated, worth a manual pass before running it at the table.", "weight": 1 }
+  ]
+}

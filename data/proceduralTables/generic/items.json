@@ -1,0 +1,32 @@
+{
+  "names": [
+    { "value": "Weathered Traveler's Blade", "weight": 2 },
+    { "value": "Cracked Signal Lantern", "weight": 2 },
+    { "value": "Bound Journal, Half-Written", "weight": 2 },
+    { "value": "Salvaged Field Kit", "weight": 2 },
+    { "value": "Etched Keepsake Ring", "weight": 2 },
+    { "value": "Reinforced Traveling Pack", "weight": 2 },
+    { "value": "Worn Compass, Direction Uncertain", "weight": 2 },
+    { "value": "Patchwork Cloak", "weight": 2 },
+    { "value": "Small Carved Totem", "weight": 2 },
+    { "value": "Sealed Letter, Never Delivered", "weight": 1 },
+    { "value": "Chipped Ceremonial Blade", "weight": 1 },
+    { "value": "Hand-Wound Timepiece", "weight": 1 }
+  ],
+  "descriptionTemplates": [
+    "A practical, well-used piece -- shows its age but still does the job.",
+    "Simple in make, but clearly built by someone who knew what they were doing.",
+    "Has a story behind it that isn't written down anywhere.",
+    "Not much to look at, but reliable in a way that matters more than looks.",
+    "Carries small marks of wear that suggest real use, not display."
+  ],
+  "flavorTemplates": [
+    "{name} has passed through more hands than its current owner probably knows.",
+    "Nobody's quite sure where {name} originally came from.",
+    "{name} isn't valuable in the usual sense, but somebody clearly thought it was worth keeping.",
+    "There's a small detail on {name} that suggests it meant something to someone, once."
+  ],
+  "designNotes": [
+    { "value": "Procedurally rolled, narrative-first (this world has no rarity/pricing system) -- worth a manual polish pass.", "weight": 1 }
+  ]
+}

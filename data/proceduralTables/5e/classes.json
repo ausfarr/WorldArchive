@@ -1,0 +1,253 @@
+{
+  "archetypes": [
+    {
+      "weight": 1,
+      "value": {
+        "name": "Vanguard",
+        "hitDie": "d10",
+        "primaryAbility": "str",
+        "savingThrowProficiencies": ["str", "con"],
+        "casterType": "none",
+        "spellcastingAbility": null,
+        "subclassName": "Martial Calling",
+        "flavor": "{name} holds the line so everyone standing behind it doesn't have to.",
+        "features": [
+          { "name": "Shield Wall", "description": "As a bonus action, the {name} can raise its guard, gaining +2 AC until the start of its next turn." },
+          { "name": "Bulwark Stance", "description": "While the {name} isn't incapacitated, any ally within 5 feet of it gains +1 to AC." },
+          { "name": "Unshaken", "description": "The {name} has advantage on saving throws against being frightened." },
+          { "name": "Retaliation", "description": "When a creature within 5 feet hits the {name} with a melee attack, the {name} can use its reaction to make one melee weapon attack against that creature." },
+          { "name": "Immovable Object", "description": "The {name} can't be moved against its will by any effect, and its speed can't be reduced below half." },
+          { "name": "Last Line", "description": "Once per long rest, when reduced to 0 hit points, the {name} instead drops to 1 hit point." }
+        ],
+        "subclasses": [
+          {
+            "name": "Oath of the Wall",
+            "flavor": "A vow to be the last thing standing between danger and everyone else.",
+            "features": [
+              { "name": "Taunting Strike", "description": "On a hit, the {name} can force the target to have disadvantage on attacks against anyone but it until the {name}'s next turn." },
+              { "name": "Rooted Defense", "description": "The {name} can't be knocked prone while conscious." },
+              { "name": "Guardian's Reflex", "description": "The {name} can use its reaction to impose disadvantage on an attack roll against an ally within 5 feet." }
+            ]
+          },
+          {
+            "name": "Path of the Breaker",
+            "flavor": "Offense as the best defense -- hit first, hit hardest.",
+            "features": [
+              { "name": "Momentum", "description": "After the {name} reduces a creature to 0 hit points, it can move up to half its speed without provoking opportunity attacks." },
+              { "name": "Sundering Blow", "description": "Once per turn, on a hit, the {name} can force a Strength saving throw or knock the target prone." },
+              { "name": "Unrelenting", "description": "The {name} can't be reduced to 0 hit points by any means that would leave it exactly at 0 without also destroying the body." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "Duskblade",
+        "hitDie": "d8",
+        "primaryAbility": "dex",
+        "savingThrowProficiencies": ["dex", "int"],
+        "casterType": "third",
+        "spellcastingAbility": "int",
+        "subclassName": "Blade Tradition",
+        "flavor": "{name} learned just enough of the old arts to sharpen a sword's edge and a mind alike.",
+        "features": [
+          { "name": "Bladecraft", "description": "The {name} can channel a small measure of arcane force through its weapon, adding minor magical effects to a melee attack a limited number of times per rest." },
+          { "name": "Warded Strike", "description": "As a bonus action, the {name} can grant itself resistance to one damage type until the end of its next turn." },
+          { "name": "Blink Step", "description": "As a bonus action, the {name} can teleport up to 15 feet to an unoccupied space it can see." },
+          { "name": "Spell Parry", "description": "The {name} can use its reaction to add its proficiency bonus to a saving throw against a spell it can see being cast." },
+          { "name": "Twinned Focus", "description": "Once per turn, the {name}'s weapon attack that hits can also force the target to make a saving throw against a minor debuff." },
+          { "name": "Arcane Edge", "description": "The {name}'s weapon attacks count as magical for the purpose of overcoming resistance." }
+        ],
+        "subclasses": [
+          {
+            "name": "Way of the Silent Cut",
+            "flavor": "Magic as a whisper, not a shout -- the enemy notices only after it's over.",
+            "features": [
+              { "name": "Unseen Approach", "description": "The {name} has advantage on the first attack roll it makes against a creature that hasn't acted yet in combat." },
+              { "name": "Muted Casting", "description": "The {name}'s minor spell-like effects produce no visible or audible sign of their source." },
+              { "name": "Vanishing Step", "description": "Once per short rest, the {name} can become invisible until the end of its next turn after making a weapon attack." }
+            ]
+          },
+          {
+            "name": "Way of the Bound Flame",
+            "flavor": "The blade carries fire that never quite goes out.",
+            "features": [
+              { "name": "Ember Edge", "description": "The {name}'s weapon attacks deal an extra 1d4 fire damage." },
+              { "name": "Flare Guard", "description": "The {name} gains resistance to fire damage." },
+              { "name": "Detonating Strike", "description": "Once per long rest, the {name} can make an attack that deals extra fire damage to every creature within 5 feet of the target." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "Stormcaller",
+        "hitDie": "d6",
+        "primaryAbility": "int",
+        "savingThrowProficiencies": ["int", "wis"],
+        "casterType": "full",
+        "spellcastingAbility": "int",
+        "subclassName": "Arcane Current",
+        "flavor": "{name} treats the world's raw forces less like danger and more like an unfinished argument.",
+        "features": [
+          { "name": "Arcane Recovery", "description": "Once per long rest, during a short rest, the {name} can recover a number of expended spell slots." },
+          { "name": "Ritual Casting", "description": "The {name} can cast certain known spells as rituals without expending a spell slot." },
+          { "name": "Focused Mind", "description": "The {name} has advantage on saving throws to maintain concentration on a spell when it takes damage." },
+          { "name": "Empowered Casting", "description": "Once per short rest, the {name} can reroll one damage die when casting a spell." },
+          { "name": "Warded Mind", "description": "The {name} gains resistance to psychic damage and advantage on saves against being charmed." },
+          { "name": "Overchannel", "description": "Once per long rest, the {name} can cast a spell of 5th level or lower without expending a spell slot, taking necrotic damage equal to twice the spell's level." }
+        ],
+        "subclasses": [
+          {
+            "name": "Current of Storms",
+            "flavor": "Lightning and thunder answer first, questions come later.",
+            "features": [
+              { "name": "Storm's Favor", "description": "The {name}'s lightning and thunder spells deal extra damage equal to its spellcasting ability modifier." },
+              { "name": "Gale Step", "description": "As a bonus action, the {name} can move up to 10 feet without provoking opportunity attacks." },
+              { "name": "Eye of the Storm", "description": "The {name} gains resistance to lightning and thunder damage." }
+            ]
+          },
+          {
+            "name": "Current of Embers",
+            "flavor": "A slow, patient burn -- the kind of fire that outlasts the fight.",
+            "features": [
+              { "name": "Smoldering Mark", "description": "A creature damaged by the {name}'s fire spells takes an extra 1d4 fire damage at the start of its next turn." },
+              { "name": "Cinder Ward", "description": "The {name} gains resistance to fire damage." },
+              { "name": "Wildfire", "description": "Once per long rest, the {name} can cause one of its fire spells to spread to every creature within 10 feet of its original target." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "Warden",
+        "hitDie": "d10",
+        "primaryAbility": "str",
+        "savingThrowProficiencies": ["wis", "cha"],
+        "casterType": "half",
+        "spellcastingAbility": "cha",
+        "subclassName": "Sacred Charge",
+        "flavor": "{name} swore an oath to something worth protecting, and hasn't found a reason to stop yet.",
+        "features": [
+          { "name": "Guarded Vow", "description": "As a bonus action, the {name} can mark a creature within 30 feet; while marked, the {name} has advantage on attacks against any creature that damages that ally." },
+          { "name": "Steady Hand", "description": "The {name} can touch a creature to remove one disease or neutralize one poison affecting it, once per long rest." },
+          { "name": "Radiant Smite", "description": "Once per turn on a hit, the {name} can expend a spell slot to deal extra radiant damage." },
+          { "name": "Aura of Resolve", "description": "The {name} and allies within 10 feet have advantage on saves against being frightened." },
+          { "name": "Unbreakable Vow", "description": "The {name} has advantage on death saving throws." },
+          { "name": "Sanctified Ground", "description": "Once per long rest, the {name} can create a 15-foot radius where allies gain resistance to necrotic and radiant damage for 1 minute." }
+        ],
+        "subclasses": [
+          {
+            "name": "Charge of Mercy",
+            "flavor": "The oath is to heal what the world keeps breaking.",
+            "features": [
+              { "name": "Healing Hands", "description": "The {name} can use a bonus action to restore a small amount of hit points to a creature within 5 feet, a number of times per long rest." },
+              { "name": "Ease Suffering", "description": "The {name}'s healing spells restore additional hit points." },
+              { "name": "Ward Against Death", "description": "Once per long rest, the {name} can prevent a creature within 30 feet from dropping below 1 hit point." }
+            ]
+          },
+          {
+            "name": "Charge of Ruin",
+            "flavor": "The oath is to end what shouldn't have started.",
+            "features": [
+              { "name": "Zealous Strike", "description": "Once per turn on a hit against a creature that has damaged an ally this round, the {name} deals extra damage." },
+              { "name": "Grim Resolve", "description": "The {name} gains temporary hit points whenever it reduces a creature to 0 hit points." },
+              { "name": "Executioner's Vow", "description": "Once per long rest, the {name} can declare a target; attacks against that target score a critical hit on a roll of 19 or 20 until the target dies or the {name} finishes a rest." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "Pactbound",
+        "hitDie": "d8",
+        "primaryAbility": "cha",
+        "savingThrowProficiencies": ["wis", "cha"],
+        "casterType": "warlock",
+        "spellcastingAbility": "cha",
+        "subclassName": "Pact",
+        "flavor": "{name} made a deal that seemed reasonable at the time, and hasn't fully read the fine print since.",
+        "features": [
+          { "name": "Pact Magic", "description": "The {name} regains its spent spell slots on a short rest, unlike most other casters." },
+          { "name": "Patron's Gift", "description": "The {name} gains a minor supernatural benefit tied to its patron, usable a limited number of times per rest." },
+          { "name": "Beguiling Word", "description": "The {name} can expend a spell slot as a bonus action to impose disadvantage on a creature's next attack roll." },
+          { "name": "Dark Bargain", "description": "The {name} can take on a temporary debuff to regain one expended spell slot, once per long rest." },
+          { "name": "Warded Pact", "description": "The {name} gains resistance to one damage type tied to its patron's nature." },
+          { "name": "Patron's Voice", "description": "Once per long rest, the {name} can call on its patron for a moment of insight, learning whether a course of action would violate its pact." }
+        ],
+        "subclasses": [
+          {
+            "name": "Pact of the Silent Deep",
+            "flavor": "The patron speaks in pressure and pauses, not words.",
+            "features": [
+              { "name": "Undertow", "description": "Once per turn, the {name} can force a creature it damages with a spell to make a Strength save or be pulled 10 feet toward it." },
+              { "name": "Pressure Ward", "description": "The {name} gains resistance to cold damage." },
+              { "name": "Depths Beckon", "description": "Once per long rest, the {name} can create a zone of crushing pressure that restrains creatures failing a Strength save." }
+            ]
+          },
+          {
+            "name": "Pact of the Hollow Crown",
+            "flavor": "The patron speaks like it's already won, and might be right.",
+            "features": [
+              { "name": "Commanding Presence", "description": "The {name} can use a bonus action to force a creature to make a Wisdom save or be unable to target the {name} until the {name}'s next turn." },
+              { "name": "Regal Ward", "description": "The {name} gains resistance to psychic damage." },
+              { "name": "Court of One", "description": "Once per long rest, the {name} can summon a spectral echo of its patron's court to distract enemies within 20 feet, imposing disadvantage on their next attack rolls." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "Skald",
+        "hitDie": "d8",
+        "primaryAbility": "cha",
+        "savingThrowProficiencies": ["dex", "cha"],
+        "casterType": "full",
+        "spellcastingAbility": "cha",
+        "subclassName": "Performance Tradition",
+        "flavor": "{name} figured out early that the right words, said the right way, do most of the work.",
+        "features": [
+          { "name": "Inspiring Verse", "description": "As a bonus action, the {name} can grant an ally within 30 feet a bonus die to add to one ability check, attack roll, or saving throw." },
+          { "name": "Jack of All Trades", "description": "The {name} adds half its proficiency bonus to any ability check that doesn't already include it." },
+          { "name": "Cutting Words", "description": "The {name} can use its reaction to subtract a bonus die from an enemy's failed roll, potentially worsening the result." },
+          { "name": "Countercharm", "description": "As an action, the {name} can grant itself and allies within 30 feet advantage on saves against being frightened or charmed." },
+          { "name": "Song of Rest", "description": "Allies who rest near the {name} recover extra hit points during a short rest." },
+          { "name": "Magical Secrets", "description": "The {name} can learn one spell from any spell list, regardless of class restrictions." }
+        ],
+        "subclasses": [
+          {
+            "name": "Tradition of the Battle Chant",
+            "flavor": "Music meant to be heard over the sound of a fight, not a fireside.",
+            "features": [
+              { "name": "Battle Rhythm", "description": "Allies who can hear the {name} gain a bonus to initiative." },
+              { "name": "Defensive Verse", "description": "As a reaction, the {name} can grant an ally within 30 feet a bonus to AC against one attack." },
+              { "name": "Rallying Chorus", "description": "Once per long rest, the {name} can grant every ally who can hear it temporary hit points." }
+            ]
+          },
+          {
+            "name": "Tradition of the Quiet Word",
+            "flavor": "Fewer notes, more precision -- the kind of performer who only needs one line to land.",
+            "features": [
+              { "name": "Sharpened Wit", "description": "The {name}'s spells that force a saving throw are harder to resist against creatures the {name} has observed for at least a minute." },
+              { "name": "Unassuming", "description": "The {name} has advantage on Charisma (Deception) and (Persuasion) checks against creatures unaware of its true capability." },
+              { "name": "Perfect Line", "description": "Once per long rest, the {name} can guarantee one Charisma-based check succeeds without needing to roll." }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "designNotes": [
+    { "value": "Procedurally rolled from a fixed archetype pool -- worth a manual pass to sand down feature wording before running it at the table.", "weight": 1 }
+  ]
+}

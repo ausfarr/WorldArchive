@@ -1,0 +1,99 @@
+{
+  "crWeights": [
+    { "value": "1/8", "weight": 3 },
+    { "value": "1/4", "weight": 5 },
+    { "value": "1/2", "weight": 6 },
+    { "value": "1", "weight": 6 },
+    { "value": "2", "weight": 4 },
+    { "value": "3", "weight": 3 },
+    { "value": "5", "weight": 2 },
+    { "value": "8", "weight": 1 }
+  ],
+  "sizeTypeAlignment": [
+    { "value": { "size": "Small", "type": "beast", "alignment": "unaligned" }, "weight": 4 },
+    { "value": { "size": "Medium", "type": "beast", "alignment": "unaligned" }, "weight": 4 },
+    { "value": { "size": "Medium", "type": "humanoid", "alignment": "neutral evil" }, "weight": 5 },
+    { "value": { "size": "Medium", "type": "humanoid", "alignment": "chaotic evil" }, "weight": 4 },
+    { "value": { "size": "Small", "type": "humanoid", "alignment": "chaotic neutral" }, "weight": 3 },
+    { "value": { "size": "Large", "type": "monstrosity", "alignment": "unaligned" }, "weight": 4 },
+    { "value": { "size": "Medium", "type": "monstrosity", "alignment": "unaligned" }, "weight": 3 },
+    { "value": { "size": "Medium", "type": "undead", "alignment": "lawful evil" }, "weight": 3 },
+    { "value": { "size": "Large", "type": "undead", "alignment": "neutral evil" }, "weight": 2 },
+    { "value": { "size": "Tiny", "type": "fey", "alignment": "chaotic neutral" }, "weight": 2 },
+    { "value": { "size": "Medium", "type": "fey", "alignment": "neutral" }, "weight": 2 },
+    { "value": { "size": "Medium", "type": "fiend", "alignment": "chaotic evil" }, "weight": 2 },
+    { "value": { "size": "Large", "type": "elemental", "alignment": "neutral" }, "weight": 2 },
+    { "value": { "size": "Medium", "type": "plant", "alignment": "unaligned" }, "weight": 2 },
+    { "value": { "size": "Medium", "type": "ooze", "alignment": "unaligned" }, "weight": 2 },
+    { "value": { "size": "Large", "type": "giant", "alignment": "chaotic evil" }, "weight": 2 },
+    { "value": { "size": "Medium", "type": "dragon", "alignment": "chaotic evil" }, "weight": 1 },
+    { "value": { "size": "Medium", "type": "construct", "alignment": "unaligned" }, "weight": 2 }
+  ],
+  "nameEpithets": [
+    { "value": "Blightfang", "weight": 2 }, { "value": "Cinder", "weight": 2 }, { "value": "Hollow", "weight": 2 },
+    { "value": "Ashen", "weight": 2 }, { "value": "Gravemoss", "weight": 2 }, { "value": "Thornback", "weight": 2 },
+    { "value": "Deepwater", "weight": 2 }, { "value": "Ironjaw", "weight": 2 }, { "value": "Nightshade", "weight": 2 },
+    { "value": "Pale", "weight": 2 }, { "value": "Rustling", "weight": 2 }, { "value": "Sable", "weight": 2 },
+    { "value": "Frostbitten", "weight": 2 }, { "value": "Wailing", "weight": 2 }, { "value": "Bramblewood", "weight": 2 },
+    { "value": "Rot-Touched", "weight": 2 }, { "value": "Cragspine", "weight": 2 }, { "value": "Sunken", "weight": 2 }
+  ],
+  "nameNouns": [
+    { "value": "Stalker", "weight": 2 }, { "value": "Warg", "weight": 2 }, { "value": "Revenant", "weight": 2 },
+    { "value": "Marauder", "weight": 2 }, { "value": "Skulker", "weight": 2 }, { "value": "Brute", "weight": 2 },
+    { "value": "Wretch", "weight": 2 }, { "value": "Sentinel", "weight": 2 }, { "value": "Hound", "weight": 2 },
+    { "value": "Reaver", "weight": 2 }, { "value": "Husk", "weight": 2 }, { "value": "Fiend", "weight": 2 },
+    { "value": "Warden", "weight": 2 }, { "value": "Shrike", "weight": 2 }, { "value": "Ghoul", "weight": 2 },
+    { "value": "Prowler", "weight": 2 }, { "value": "Blight", "weight": 2 }, { "value": "Wight", "weight": 2 }
+  ],
+  "abilityScorePatterns": [
+    { "archetype": "brute", "value": { "str": 17, "dex": 10, "con": 15, "int": 6, "wis": 10, "cha": 7 }, "weight": 4 },
+    { "archetype": "brute", "value": { "str": 19, "dex": 8, "con": 17, "int": 4, "wis": 9, "cha": 6 }, "weight": 3 },
+    { "archetype": "skirmisher", "value": { "str": 12, "dex": 16, "con": 12, "int": 8, "wis": 12, "cha": 9 }, "weight": 4 },
+    { "archetype": "skirmisher", "value": { "str": 10, "dex": 18, "con": 11, "int": 7, "wis": 13, "cha": 8 }, "weight": 3 },
+    { "archetype": "guardian", "value": { "str": 15, "dex": 9, "con": 16, "int": 9, "wis": 14, "cha": 10 }, "weight": 3 },
+    { "archetype": "skulker", "value": { "str": 9, "dex": 15, "con": 10, "int": 12, "wis": 12, "cha": 11 }, "weight": 3 },
+    { "archetype": "arcane", "value": { "str": 8, "dex": 12, "con": 11, "int": 16, "wis": 13, "cha": 14 }, "weight": 2 },
+    { "archetype": "feral", "value": { "str": 14, "dex": 14, "con": 13, "int": 3, "wis": 12, "cha": 6 }, "weight": 3 }
+  ],
+  "damageTypesByArchetype": {
+    "brute": ["bludgeoning", "slashing"],
+    "skirmisher": ["piercing", "slashing"],
+    "guardian": ["bludgeoning", "piercing"],
+    "skulker": ["piercing", "poison"],
+    "arcane": ["necrotic", "psychic", "fire"],
+    "feral": ["piercing", "slashing"]
+  },
+  "attackVerbsByArchetype": {
+    "brute": ["Slam", "Warclub", "Greataxe", "Maul"],
+    "skirmisher": ["Shortsword", "Dagger", "Rapier", "Quick Strike"],
+    "guardian": ["Shield Bash", "Spear", "Warhammer"],
+    "skulker": ["Bite", "Sneak Strike", "Poisoned Stinger"],
+    "arcane": ["Eldritch Bolt", "Withering Touch", "Baleful Gaze"],
+    "feral": ["Claw", "Bite", "Gore"]
+  },
+  "traitsPool": [
+    { "value": { "name": "Keen Senses", "description": "The creature has advantage on Wisdom (Perception) checks that rely on sight, hearing, or smell." }, "archetypes": ["feral", "skulker", "skirmisher"], "weight": 3 },
+    { "value": { "name": "Pack Tactics", "description": "The creature has advantage on an attack roll against a creature if at least one of the creature's allies is within 5 feet of the target and the ally isn't incapacitated." }, "archetypes": ["feral", "skulker"], "weight": 3 },
+    { "value": { "name": "Amphibious", "description": "The creature can breathe air and water." }, "archetypes": ["brute", "feral"], "weight": 1 },
+    { "value": { "name": "Magic Resistance", "description": "The creature has advantage on saving throws against spells and other magical effects." }, "archetypes": ["arcane", "guardian"], "weight": 1 },
+    { "value": { "name": "Regeneration", "description": "The creature regains 5 hit points at the start of its turn if it has at least 1 hit point." }, "archetypes": ["brute", "guardian"], "weight": 1 },
+    { "value": { "name": "Sunlight Sensitivity", "description": "While in sunlight, the creature has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight." }, "archetypes": ["skulker", "arcane"], "weight": 2 },
+    { "value": { "name": "Undead Fortitude", "description": "If damage reduces the creature to 0 hit points, it must make a Constitution saving throw with a DC of 5 + the damage taken, unless the damage is radiant or from a critical hit. On a success, it drops to 1 hit point instead." }, "archetypes": ["brute", "guardian"], "weight": 1 },
+    { "value": { "name": "Charge", "description": "If the creature moves at least 20 feet straight toward a target and then hits it with an attack on the same turn, the target takes an extra 5 damage." }, "archetypes": ["brute", "feral"], "weight": 2 },
+    { "value": { "name": "Spider Climb", "description": "The creature can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check." }, "archetypes": ["skulker"], "weight": 1 },
+    { "value": { "name": "Innate Spellcasting", "description": "The creature's innate spellcasting ability is Charisma. It can innately cast a handful of minor spells, requiring no material components." }, "archetypes": ["arcane"], "weight": 2 },
+    { "value": { "name": "False Appearance", "description": "While motionless, the creature is indistinguishable from an ordinary object of its surroundings." }, "archetypes": ["skulker", "arcane"], "weight": 1 }
+  ],
+  "flavorTemplates": [
+    "{name} moves like something that hasn't fully decided it's alive.",
+    "Locals give {name} a wide berth, and the ones who don't rarely explain why not twice.",
+    "{name} was ordinary once, before whatever this world did to it.",
+    "There's a rhythm to how {name} hunts -- patient, then all at once.",
+    "{name} keeps to the margins of the map, where nobody bothers to draw the lines carefully.",
+    "Something about {name} suggests it remembers being something else.",
+    "{name} doesn't so much attack as arrive at a conclusion."
+  ],
+  "designNotes": [
+    { "value": "Procedurally rolled -- a solid stat block, worth a manual pass on its traits/flavor before running it in a real session.", "weight": 1 }
+  ]
+}
