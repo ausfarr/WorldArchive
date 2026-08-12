@@ -264,7 +264,11 @@ async function initItemGenerateForm() {
   }
   if (ruleset === '5e') {
     wire5eItemForm();
-  } else if (ruleset === 'pf2e') {
+  } else if (ruleset === 'pf2e' || ruleset === 'generic') {
+    // Generic Items take the identical {name, faction} body shape as
+    // pf2e's (see routes/generateItem.js's handleGenericItemGenerate) --
+    // narrative-first, no rarity/rune fields to expose -- so the same
+    // form/handler covers both.
     wirePf2eItemForm();
   } else {
     wireEchoesItemForm();

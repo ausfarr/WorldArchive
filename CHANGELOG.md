@@ -36,16 +36,19 @@ entry from here forward gets both a real date and a version at write time.
   pf2e: real rune tiers + Bulk system, price guidance explicitly labeled
   an estimate), NPCs (default combat profile + "Combatant" upgrade for
   both rulesets), Player Characters (a PC is a real Class instance for
-  both rulesets), a Generic ruleset with a real wizard UI for its
-  world-configurable attribute/formula system, and differential billing
-  (Import free, Reflavor discounted, Homebrew full price; entry-cap
-  bypass for imports). Ruleset-aware frontend forms now cover every
-  category with a non-Echoes implementation (Bestiary/Classes/Items/
-  Spells/Survivors/NPC-Combatant, across 5e/pf2e/generic as applicable),
-  including a brand-new Spells index page. Still deferred: Import/
-  Reflavor for every PF2e category and for 5e Spells/Classes/Items (no
-  verified licensed dataset for either — actively re-investigated, see
-  the addendum), Generic ruleset support beyond Bestiary, the
+  both rulesets), a Generic ruleset with a real wizard UI plus real
+  Classes/Items/NPCs/Player Characters (deliberately narrative-first —
+  no leveling or rarity system, since a Generic world defines neither),
+  and differential billing (Import free, Reflavor discounted, Homebrew
+  full price; entry-cap bypass for imports). Ruleset-aware frontend forms
+  now cover every category with a non-Echoes implementation (Bestiary/
+  Classes/Items/Spells/Survivors/NPC-Combatant, across all four
+  rulesets as applicable), including a brand-new Spells index page.
+  Still deferred: Import/Reflavor for every PF2e category and for 5e
+  Spells/Classes/Items (no verified licensed dataset for either —
+  actively re-investigated, see the addendum), a Generic Spells category
+  (real design work, not just wiring — no obvious narrative-first
+  answer for what a homebrew "spell" even is), the
   Survivors→"Player Characters" slug rename (cosmetic, scoped out as
   risky), and the subscription/credit billing path (verified safe by
   code reading only, not exercised against a live project). See:

@@ -379,6 +379,38 @@ matching section; summarized here:
 See `world_forge_scope.md`'s phase table for the fully updated per-phase
 status and the registry's now much larger filled-in shape.
 
+## Continuation session #2 — "make all last changes possible"
+
+A final follow-up request after the previous continuation's last commit,
+to finish anything still genuinely actionable in this sandbox before
+wrapping up. Full narrative detail in `SESSION_LOG.md`'s matching
+section; summarized here:
+
+- **Generic ruleset extended to NPCs, Classes, Player Characters, and
+  Items** (previously Bestiary-only). Classes/Items are deliberately
+  narrative-first with no numeric system at all — a Generic world has no
+  leveling or rarity/pricing concept defined anywhere, so inventing
+  either would fabricate a mechanic no world configured. Player
+  Characters and NPCs both reuse the real `computeDerivedStats` formula
+  engine directly rather than duplicating it.
+- One real architectural deviation worth knowing about: NPC combat
+  profiles for Generic worlds denormalize their attribute/derived-stat
+  LABELS onto the profile object itself, instead of looking them up from
+  `generic_system_json` at render time the way Bestiary entries do —
+  necessary because the shared NPC template renders synchronously from
+  several existing call sites with no async DB access. Fully explained
+  in `lib/rulesets/generic/npcCombatDefaults.js`'s header.
+- Frontend forms for all three new categories, reusing the pf2e-shaped
+  Classes/Items forms (identical body contract) and a small dedicated
+  Generic form for Survivors (no LEVEL field, since Generic has none).
+- `scripts/testNpcCombatProfile.js` grew from 20 to 26 assertions.
+
+What's still genuinely missing after this round: a Generic Spells
+category (real, un-attempted design work, not just wiring — see the
+updated bullet in "What's deferred" below) and everything else already
+listed there (Import/Reflavor licensing gaps, the untested subscription
+billing path, the Survivors rename).
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules
@@ -459,12 +491,15 @@ Generic ruleset has a real wizard UI. What genuinely remains:
   item JSON is a planned-but-unshipped future release, not something
   this project failed to find). For PF2e, the open ORC-vs-CUP question
   below still blocks it for every category equally, not just Bestiary.
-- **Generic ruleset beyond Bestiary** — Classes/Items/Spells/NPCs/Player
-  Characters have no Generic registry entry at all. Each would need its
-  own "what does a world-configurable version of this even mean" design
-  question answered (Bestiary's attribute+optional-formula shape doesn't
-  obviously generalize to, say, a homebrew leveling/class system) — real
-  design work, not just more wiring.
+- **Generic Spells** — Classes/Items/NPCs/Player Characters all shipped
+  for Generic in the final continuation round (see that section below);
+  Spells is the one category that didn't, because "what does a
+  world-configurable spell even mean" doesn't have an obvious
+  narrative-first answer the way Classes ("a themed feature list") and
+  Items ("flavor + an optional attribute bonus") did — a spell implies
+  some kind of trigger/targeting/effect system, which is real design
+  work this project would be inventing from scratch, not just more
+  wiring against an existing pattern.
 - **Differential billing for the subscription/credit path** —
   `BILLING_ENABLED=true` behavior verified safe by code reading only (see
   the Phase 12 update above), not exercised against a real Supabase
@@ -516,3 +551,8 @@ Generic ruleset has a real wizard UI. What genuinely remains:
    Tabyltop (their README says it's planned), revisit 5e Import/Reflavor
    for those three categories — the pattern from Bestiary's
    `srdMonsterMapper.js` is the template to follow.
+7. If a Generic Spells category is ever wanted, it needs real design
+   work first (not just more wiring) — decide what a "spell" even means
+   for an arbitrary homebrew system (a trigger condition? a targeting
+   shape? just flavor text with no mechanical trigger at all, like
+   Classes' features?) before writing any code.

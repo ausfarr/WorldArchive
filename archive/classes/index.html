@@ -183,7 +183,11 @@ async function initClassGenerateForm() {
   } catch (err) {
     console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
   }
-  if (ruleset === '5e' || ruleset === 'pf2e') {
+  if (ruleset === '5e' || ruleset === 'pf2e' || ruleset === 'generic') {
+    // Generic Classes take the identical {name, faction} body shape as
+    // 5e/pf2e (see routes/generateClass.js's handleGenericClassGenerate)
+    // -- narrative-first, no leveling math to expose as a form field --
+    // so the same form/handler covers all three rulesets.
     wireRealRulesetClassForm();
   } else {
     wireEchoesClassForm();

@@ -856,3 +856,89 @@ change. Six commits pushed as checkpoints rather than batched at the
 end, matching this project's "checkpoint after every phase" discipline
 even though the phase boundaries this round were somewhat more fluid
 than the original 14-phase plan.
+
+## "Make all last changes possible before finishing up"
+
+One more explicit continuation request after the previous session's
+final commit. Surveyed what remained genuinely actionable in this
+sandbox (no real Supabase/Anthropic credentials, network-restricted,
+can't contact Paizo) versus what was still blocked by external factors
+(PF2e/5e Import-Reflavor licensing and data gaps, subscription billing
+needing a live project, the Survivors rename's real production risk to
+existing worlds' stored category data). The one substantial, genuinely
+tractable item left: the Generic ruleset only had a Bestiary category --
+extended it to NPCs, Classes, Player Characters, and Items.
+
+**Design decisions this round:**
+
+- **Classes and Items are deliberately narrative-first, with NO numeric
+  system at all** -- a Generic world's `generic_system_json` only ever
+  defines attributes and an optional derived-stat formula layer, with no
+  leveling concept and no rarity/pricing concept. Inventing either here
+  would fabricate a mechanic no world configured, the same reasoning
+  that's kept every ruleset in this project from inventing numbers no
+  verified source (or, for Generic, no world-owner input) backs. A class
+  is a themed feature list that optionally leans on one of the world's
+  own attributes; an item is flavor plus an optional single
+  attribute-tied bonus.
+- **Player Characters and NPCs both reuse the real formula engine
+  directly** (`lib/rulesets/generic/statFormulas.js`'s
+  `computeDerivedStats`) rather than duplicating it -- a PC's derived
+  stats and a Bestiary creature's derived stats are computed by the
+  exact same function.
+- **The one real architectural wrinkle: NPC combat profiles denormalize
+  their attribute/derived-stat LABELS onto themselves**, instead of
+  looking them up from `generic_system_json` at render time the way
+  Bestiary's `buildEnemyBodyHtml(enemy, genericSystem, imageUrl)`
+  already does. Reason: `lib/entryTemplate.js`'s `buildBodyHtml(npc)` /
+  `combatProfileBlock()` is called SYNCHRONOUSLY from several existing
+  call sites (`lib/fileWriter.js`'s `saveNpcEntry`, the static
+  entry-file builder, a regenerate preview) with no async DB access
+  available to fetch this world's `generic_system_json` at render time.
+  Baking the labels in once, at generation time (when an async DB call
+  is trivially available), keeps every one of those existing call sites
+  working with zero changes, at the cost of one genuine design deviation
+  from the Bestiary pattern -- documented at length in
+  `lib/rulesets/generic/npcCombatDefaults.js`'s header so a future
+  reader doesn't mistake it for an inconsistency.
+- Extracted `lib/rulesets/generic/homebrewEnemyGenerator.js` (mirroring
+  the existing 5e/pf2e extractions) so Bestiary and the NPC "Combatant"
+  upgrade share one generation pipeline rather than forking it --
+  `routes/generateEnemy.js`'s Generic branch was refactored to call it
+  instead of the inline logic it used to have.
+- Caught the same "explicit ruleset branch must exist before the Echoes
+  fallback" shape one more time while wiring `routes/generateClass.js`,
+  `generateItem.js`, and `generateSurvivor.js` for Generic -- each of
+  these routes' dispatch previously fell through to
+  `handleEchoesXGenerate` for any ruleset that wasn't explicitly
+  5e/pf2e, which would have silently run Echoes' BODY/REFLEX-attribute
+  logic for a Generic world the moment its `classes`/`items`/`survivors`
+  registry entries existed and `requireCategoryAvailable` started
+  letting Generic requests through. Added the explicit `if (ruleset ===
+  "generic")` branch to each before this could ever fire in practice.
+
+Frontend: Classes and Items reuse their existing pf2e-shaped forms for
+Generic too (identical `{name, faction}` body contract), verified via
+headless Chromium with a stubbed ruleset lookup. Survivors got its own
+small Generic-specific form (name + faction only, deliberately omitting
+the LEVEL field 5e/pf2e's shared form shows, since Generic has no
+leveling concept to attach it to).
+
+`scripts/testNpcCombatProfile.js` grew Generic default/upgraded-profile
+cases (now 26 assertions total, up from 20) including a check that the
+default profile's zeroed attributes render under this world's own
+labels. Full 13-script regression, repo-wide syntax sweep, server boot
+test, template smoke tests with real-shaped data, and headless-browser
+dispatch verification all pass.
+
+**What remains genuinely blocked, not just deferred:** Import/Reflavor
+for PF2e (any category) and 5e Spells/Classes/Items (licensing/data
+gaps, both actively re-investigated this session already); the
+subscription/credit billing path (needs a live Supabase project this
+sandbox doesn't have); the Survivors→"Player Characters" slug rename
+(real production risk to existing worlds' stored category data, not
+something to attempt without Austin's own migration plan); and a
+Generic Spells category (no obvious "make this narrative-first" answer
+the way Classes/Items had -- a spell implies some kind of
+trigger/effect/targeting system this project would have to invent from
+scratch, a genuine design question rather than more wiring).
