@@ -235,6 +235,7 @@ async function wire5eEnemyForm() {
     });
   });
   updateModeVisibility();
+  promoteImportToStage1();
 
   document.getElementById('gen-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -267,6 +268,66 @@ async function wire5eEnemyForm() {
     } finally {
       hideGenerationOverlay();
       btn.disabled = false; btn.textContent = modeSubmitLabels[mode] || 'Generate';
+    }
+  });
+}
+
+// wireCreateEntryCollapse() (js/render.js, shared by all 8 category
+// pages) already wraps this whole panel in a "+ Create Entry" -> Stage
+// 1 ("Generate with AI" / "Enter Manually" / "Roll Randomly") -> Stage 2
+// (reveals #gen-form-fields) accordion. Without this, Import -- a free
+// action, not an AI generation -- would still be reachable only by
+// clicking a button literally labeled "Generate with AI" first (finding
+// #6): the SOURCE row above gets it out of a hidden <select>, but not
+// out from behind that misleading label. Polls for Stage 1's row rather
+// than hooking into wireCreateEntryCollapse() directly -- that function
+// runs from a separate init() chain (requireAuth().then(...)) with no
+// ordering guarantee relative to this DOMContentLoaded-triggered flow,
+// and it's shared by every category page, so this stays a page-local
+// addition instead of a shared-code change.
+function whenReady(selector, cb, tries) {
+  tries = tries == null ? 40 : tries;
+  const el = document.querySelector(selector);
+  if (el) return cb(el);
+  if (tries <= 0) return;
+  requestAnimationFrame(() => whenReady(selector, cb, tries - 1));
+}
+
+function promoteImportToStage1() {
+  whenReady('#create-entry-stage1-row', (stage1Row) => {
+    if (document.getElementById('create-entry-import-btn')) return; // already injected
+    const aiBtn = document.getElementById('create-entry-ai-btn');
+
+    const importBtn = document.createElement('button');
+    importBtn.type = 'button';
+    importBtn.id = 'create-entry-import-btn';
+    importBtn.textContent = 'Import (free)';
+    importBtn.title = 'Copy an official 5e SRD monster straight in -- zero AI cost.';
+    importBtn.style.cssText = "background: var(--bg-panel-raised); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
+    importBtn.addEventListener('click', () => {
+      // Mirrors wireCreateEntryCollapse()'s own showStage2() reveal
+      // (stage1Row hidden, fields/submit/eyebrow shown) rather than
+      // calling it directly -- it's a closure-local function, not
+      // exposed globally.
+      stage1Row.style.display = 'none';
+      const eyebrow = document.querySelector('.sheet-eyebrow');
+      const fieldsWrap = document.getElementById('gen-form-fields');
+      const submitBtn = document.getElementById('gen-submit');
+      if (eyebrow) eyebrow.style.display = '';
+      if (fieldsWrap) fieldsWrap.style.display = '';
+      if (submitBtn) submitBtn.style.display = '';
+      whenReady('.mode-btn[data-mode="import"]', (btn) => btn.click());
+    });
+    stage1Row.insertBefore(importBtn, aiBtn || stage1Row.firstChild);
+
+    // "Generate with AI" now sits next to its own dedicated free
+    // alternative -- default it into an actual AI tier (Homebrew)
+    // instead of silently landing on Import, which would make the two
+    // Stage 1 buttons functionally overlap.
+    if (aiBtn) {
+      aiBtn.addEventListener('click', () => {
+        whenReady('.mode-btn[data-mode="homebrew"]', (btn) => btn.click());
+      });
     }
   });
 }
