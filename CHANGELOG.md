@@ -21,17 +21,27 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
-- **Multi-ruleset genericization (Phases 1–3 of 14 shipped)** — worlds can
-  now pick a `ruleset` at creation time (`echoes` | `5e` | `pf2e` |
-  `generic`), permanent once setup completes; Echoes stays fully intact
-  and admin-only. Shipped: schema + `lib/rulesets/index.js` registry, a
-  canonical 5e SRD content library (201 real monsters, verified
-  CC-BY-4.0), `archive/licenses.html` attribution, and a full 5e Bestiary
-  proof-of-concept — real DMG Challenge Rating math, three-tier
-  generation (Import / Reflavor / Homebrew). Pathfinder 2e is blocked on
-  an open licensing question (see addendum); Spells/Classes/Items/NPCs/
-  Player Characters/Generic ruleset/ruleset-aware UI/differential billing
-  are scoped but explicitly deferred, not built. See:
+- **Multi-ruleset genericization** — worlds can now pick a `ruleset` at
+  creation time (`echoes` | `5e` | `pf2e` | `generic`), permanent once
+  setup completes; Echoes stays fully intact and admin-only. Shipped:
+  schema + `lib/rulesets/index.js` registry, a canonical 5e SRD content
+  library (201 real monsters, verified CC-BY-4.0), `archive/licenses.html`
+  attribution, and real generation backends across most categories —
+  Bestiary (5e: Import/Reflavor/Homebrew with real DMG CR math; PF2e:
+  Homebrew with real Building Creatures budget tables; Generic:
+  world-configurable attributes + optional formula layer), Spells,
+  Classes (real 1–20 leveling/proficiency/ASI/spell-slot tables), Items
+  (real SRD weapon/armor/rarity tables), NPCs (default combat profile +
+  "Combatant" upgrade), Player Characters (Survivors rework — a PC is a
+  real Class instance), and differential billing (Import free, Reflavor
+  discounted, Homebrew full price; entry-cap bypass for imports). One
+  full ruleset-aware frontend (5e Bestiary generate form) shipped as
+  proof the UI pattern works end-to-end. Still deferred: PF2e beyond
+  Bestiary (blocked on an open Paizo licensing question), 5e Import/
+  Reflavor for Spells/Classes/Items (no structured CC-BY-4.0 dataset
+  found), Generic ruleset wizard UI, frontend for every other category,
+  and the subscription/credit billing path (verified safe by code
+  reading only, not exercised against a live project). See:
   `session_addendum_ruleset_genericization.md`
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`

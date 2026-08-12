@@ -596,3 +596,94 @@ all real, tested backends with zero UI, same as noted in each of their
 own phase entries above. This phase proves the ruleset-aware-UI pattern
 works end-to-end for one category rather than spreading thin across all
 of them.
+
+## Phase 12 — Differential Billing
+
+Scope per the original session prompt: Import should cost nothing (already
+true since Phase 3 — `req.refundGeneration()` fires immediately in the
+Import branch), Reflavor should cost something between "free" and "full
+generation" since the model still does real work (rewriting narrative),
+and Homebrew keeps paying the full generation cost since the model invents
+everything. A second, independent piece: entries created via Import
+shouldn't burn a free world's entry cap the way an authored entry does.
+
+`BILLING_ENABLED` is off by default in production today (confirmed via
+CLAUDE.md and both middleware files' own header comments), so none of this
+has any live financial effect yet — it's built and tested against the
+legacy flat-cap path (the only path currently reachable) plus verified
+by direct code reading that the subscription/credit path's underlying
+refund functions (`refundSubscriptionGeneration`, `refundGenerationCount`)
+already accept an arbitrary partial `amount` argument, so the same
+mechanism will work correctly the moment `BILLING_ENABLED=true` is flipped
+— but that path has NOT been exercised against a real Supabase project
+here, consistent with this session's "test before you trust" rule being
+applied conservatively to financial code with no live DB to verify against.
+
+**Partial refunds**: `middleware/enforceGenerationCap.js`'s `makeRefundOnce`
+originally only supported one shape — "refund the entire amount this
+request spent, once." Refactored to accept an optional `partialAmount`
+argument while keeping every existing no-arg call site (7 generate routes'
+catch blocks, plus Import's immediate full refund) working identically —
+verified via a new dedicated test, `scripts/testRefundLogic.js`, using a
+fake `doRefund` callback (no DB/network needed) covering: full no-arg
+refund + idempotency, a partial refund followed by a no-arg call only
+taking what's left (never double-refunding), over-requesting a refund
+being clamped to the real outstanding balance rather than erroring, zero/
+negative amounts being safe no-ops, and — the trickiest case — a failed
+`doRefund()` call correctly restoring the attempted amount to `remaining`
+so a later retry attempts the full outstanding balance, not a
+short-changed one (verified by making the fake throw on every call and
+checking the *amounts requested* on two successive attempts: 4, then 5,
+proving the first failed attempt's 4 was restored rather than silently
+lost).
+
+Wired the new capability into the one real call site that needed it:
+`routes/generateEnemy.js`'s 5e Reflavor branch (`handle5eEnemyGenerate`,
+`effectiveMode === "reflavor"`) now calls
+`req.refundGeneration(POINTS_PER_GENERATION - POINTS_PER_FIELD_ASSIST)`
+right after the reflavored entry is successfully built — refunding the
+4-point gap between what `enforceGenerationCap` already spent up front (a
+full 5-point generation, since `mode` isn't known until inside the
+handler) and the 1-point field-assist rate Reflavor should actually cost,
+net. Placed *after* the model call and object construction succeed, not
+before — if `callClaudeExpectingJson` throws, the outer route's top-level
+`catch` block still calls `req.refundGeneration()` with no argument,
+which (correctly) refunds the *full* remaining 5 points, since the
+partial refund never got a chance to run. Only Reflavor gets this
+treatment — Import already fully refunds (unchanged from Phase 3),
+Homebrew intentionally still pays full price (model invents everything,
+same as Echoes always has).
+
+**Entry-cap import bypass**: `middleware/enforceEntryCap.js`'s
+`enforceEntryCapOnGenerate` already skipped the cap check when
+`fillExistingId` was present (an edit, not a creation). Added a second,
+equally explicit skip: `if (req.body && req.body.mode === "import")
+return next();` — matching the session prompt's instruction verbatim
+("Implement this as an explicit bypass for the import code path, not a
+bolt-on exception buried in the cap-check function"). Deliberately placed
+at the same level as the existing `fillExistingId` bypass, not inside
+`checkEntryCap()` — that function has no concept of "mode" and shouldn't
+need one; deciding when the cap question even applies is this middleware's
+job, not the pure cap-arithmetic function's.
+
+**What's still deferred for Phase 12**: the subscription/credit billing
+path (`BILLING_ENABLED=true`) has the same partial-refund mechanism
+available to it (verified by code reading, not by a live test against
+real Supabase — no reachable project here) but hasn't been exercised
+end-to-end; PF2e and Generic rulesets have no Import/Reflavor tiers at
+all yet (Bestiary is Homebrew-only for both, per their own phase entries
+above), so there's nothing differential to bill there yet — only 5e's
+existing Import/Reflavor/Homebrew split needed this work today.
+
+Full regression sweep after this phase: all 9 `scripts/test*.js` scripts
+pass (`test5eStatFormulas`, `testPf2eStatFormulas`, `test5eSpellFormulas`,
+`test5eClassFormulas`, `test5eItemFormulas`, `testNpcCombatProfile`,
+`test5eSurvivorFormulas`, `testGenericStatFormulas`, and the new
+`testRefundLogic`), `node -c` syntax-checks clean on every touched file,
+and the server boots cleanly with dummy env vars (Stripe dummy keys now
+needed too, since `routes/stripeWebhook.js` requires `lib/stripeClient.js`
+which throws without a real-shaped `STRIPE_SECRET_KEY` at require time —
+`sk_test_dummy`/`whsec_dummy` satisfy that without needing a real Stripe
+account). Pre-auth smoke test confirms `/api/generate-enemy` and the new
+`/api/srd-library` both correctly 401 without a token, same as every
+other route.

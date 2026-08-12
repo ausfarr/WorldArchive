@@ -12,6 +12,7 @@ const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getStatLabels, formatStatLabelsForPrompt } = require("../lib/worldFlavor");
 const { createNewEnemy } = require("../lib/campaignEntryGenerators");
 const { getRuleset } = require("../lib/worldConfigRepo");
+const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 const { listEntries, getEntry } = require("../lib/entriesRepo");
 
 // Multi-ruleset genericization, Phase 3 (Bestiary proof of concept) --
@@ -296,6 +297,19 @@ async function handle5eEnemyGenerate(req, res) {
       traits: reflavored.traits || mechanics.traits,
       actions: reflavored.actions && reflavored.actions.length === mechanics.actions.length ? reflavored.actions : mechanics.actions
     };
+
+    // Phase 12 (Differential Billing): Reflavor only asks the model to
+    // rewrite wording -- every mechanically-relevant number is carried
+    // through untouched from the SRD source (see the comment on
+    // `mechanics` above). That's much closer to a field-assist ("help me
+    // reword this") than a full from-scratch generation, so once the
+    // reflavor has actually succeeded, refund the gap between what
+    // enforceGenerationCap already spent up front (a full generation's
+    // points, since mode isn't known until this handler runs) and the
+    // field-assist rate this tier should really cost. Only the
+    // difference is refunded -- not the whole spend, unlike Import above
+    // -- so Reflavor still costs something, just less than Homebrew.
+    if (req.refundGeneration) await req.refundGeneration(POINTS_PER_GENERATION - POINTS_PER_FIELD_ASSIST);
   } else {
     // Homebrew -- shared with Phase 7's NPC "Combatant" upgrade, see
     // lib/rulesets/5e/homebrewEnemyGenerator.js's header comment for why

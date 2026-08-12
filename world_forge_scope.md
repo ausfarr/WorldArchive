@@ -190,9 +190,9 @@ guideline?** If it's a guideline, the UI must say "estimated," the way
 | 9 | Pathfinder 2e | **Partially shipped** — Bestiary Homebrew tier only (real Building Creatures level/tier math, verified MIT-licensed table source). Import/Reflavor still blocked on the ORC licensing question. |
 | 10 | Generic/Homebrew ruleset | **Partially shipped** — Bestiary proof of concept: `world_config.generic_system_json` stores a world-defined attribute list + formula toggle; a real single-attribute linear formula evaluator computes derived stats only when requested. No wizard UI yet to configure it (must be set by hand today) — Phase 11 scope. |
 | 11 | Ruleset-aware edit forms (frontend) | **Partially shipped** — 5e Bestiary generate form (`archive/enemies/index.html`) is real and tested in a headless browser: Mode picker, live SRD dropdown (`GET /api/srd-library`), Target CR field. Every other ruleset/category still falls back to (or has no) UI. |
-| 12 | Differential billing | Partially shipped (Import refund) — reduced Reflavor cost + entry-cap bypass deferred |
-| 13 | Regression pass | Done incrementally per-phase; full DB-backed pass needs real credentials, not run here |
-| 14 | Documentation | This file + session addendum |
+| 12 | Differential billing | **Shipped** (legacy flat-cap path) — Import fully refunds (Phase 3), Reflavor now refunds down to field-assist-tier cost via `makeRefundOnce`'s new partial-amount support (tested, `scripts/testRefundLogic.js`), Homebrew still pays full price. `enforceEntryCap.js` has an explicit `mode === "import"` bypass so imports don't burn the entry cap. Subscription/credit path (`BILLING_ENABLED=true`) verified safe by code reading only — not exercised against a real project. |
+| 13 | Regression pass | Done incrementally per-phase (9 `scripts/test*.js` scripts, syntax sweep, server boot test after every phase); full DB-backed pass needs real credentials, not run here |
+| 14 | Documentation | This file + session addendum + `SESSION_LOG.md` |
 
 See `session_addendum_ruleset_genericization.md` for full detail, the
 licensing research trail, bugs caught and fixed, and a recommended

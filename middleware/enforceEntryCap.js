@@ -50,9 +50,23 @@ async function checkEntryCap(worldId, userId) {
 // enforceGenerationCap (order doesn't matter for correctness here, but
 // matching declaration order in each route keeps both caps visible
 // together at a glance).
+//
+// Multi-ruleset genericization, Phase 12 (Differential Billing): also
+// skips entirely when mode === "import" (currently only 5e Bestiary's
+// Import tier, routes/generateEnemy.js) -- an imported entry is a
+// straight copy of a real srd_library row at zero AI cost, and
+// world_forge_scope.md's data model calls out world_srd_imports as the
+// record of "this got imported" precisely so importing doesn't eat into
+// a free world's entry budget the way an authored entry does. This is
+// an explicit, named bypass here at the route-gate level rather than a
+// special case buried inside checkEntryCap() -- checkEntryCap() has no
+// idea what a "mode" is and shouldn't need to; it just answers "is this
+// world under its cap," and it's this middleware's job to decide when
+// that question even applies.
 async function enforceEntryCapOnGenerate(req, res, next) {
   try {
     if (req.body && req.body.fillExistingId) return next();
+    if (req.body && req.body.mode === "import") return next();
     const result = await checkEntryCap(req.worldId, req.userId);
     if (!result.allowed) {
       return res.status(403).json({

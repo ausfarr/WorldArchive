@@ -309,6 +309,45 @@ PF2e/Generic Bestiary UI and any UI at all for Spells/Classes/Items/
 Player Characters/NPC Combatant upgrades remain deferred — real, tested
 backends with zero frontend, same as noted per-category above.
 
+## Phase 12 update — Differential Billing
+
+Scoped per the original prompt: Import = free, Reflavor = cheaper than a
+full generation (the model still does real work rewriting narrative,
+just not inventing mechanics), Homebrew = full price. `BILLING_ENABLED`
+is off by default in production, so this has zero live effect until
+Austin flips it — built and tested against the only currently-reachable
+path (legacy flat cap), with the subscription/credit path verified safe
+by reading `lib/billingRepo.js`'s refund functions (both already accept
+an arbitrary partial amount) rather than by a live test, since no real
+Supabase project was reachable here.
+
+`middleware/enforceGenerationCap.js`'s `makeRefundOnce` now accepts an
+optional partial amount (`req.refundGeneration(4)` refunds 4 of the 5
+points a request spent, instead of only ever refunding "everything" or
+"nothing") while every existing no-arg call site keeps working exactly
+as before — new test, `scripts/testRefundLogic.js`, covers the full/
+partial/idempotent/clamped/failed-and-restored cases with a fake
+`doRefund` callback (no DB needed). Wired into
+`routes/generateEnemy.js`'s 5e Reflavor branch only: right after a
+reflavored entry is successfully built, it refunds
+`POINTS_PER_GENERATION - POINTS_PER_FIELD_ASSIST` (4 of the 5 points
+already spent), netting Reflavor down to field-assist-tier cost. Placed
+after the model call succeeds, not before — if the Claude call itself
+throws, the route's existing top-level catch still does a full no-arg
+refund, since the partial refund never got a chance to run.
+
+`middleware/enforceEntryCap.js` got the explicit import bypass the spec
+asked for by name: `if (req.body && req.body.mode === "import") return
+next();`, sitting right next to the existing `fillExistingId` bypass —
+not buried inside `checkEntryCap()`, which has no concept of "mode" and
+shouldn't need one.
+
+**Deferred within Phase 12**: the subscription/credit path
+(`BILLING_ENABLED=true`) hasn't been exercised end-to-end against a real
+project — only verified safe by code reading. PF2e/Generic have no
+Import/Reflavor tiers yet (Bestiary is Homebrew-only for both), so there's
+nothing differential to bill there until those tiers exist.
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules
@@ -371,73 +410,80 @@ unmodified printed CR with no such badge.
 
 ## What's deferred (explicitly, not silently)
 
-Every phase below is scoped in the original session prompt but not
-built. Each one is a substantial standalone subsystem in its own right —
-attempting shallow, unverified versions of all of them in the time
-remaining would have meant skipping the verification rigor Phases 1–3
-demonstrated is actually necessary (real licensing checks, real formula
-verification, real tests against real data). Better to ship 3 phases
-solid than 13 phases unverified.
+This section originally described Phases 4–14 as unbuilt, written right
+after the Phase 3 checkpoint. The session continued well past that point
+at the user's explicit request ("go ahead and start building out the
+rest... i want each phase just as detailed, not rushed") — Phases 4–8,
+10, and 12 all shipped real, tested backend work; Phase 9 (PF2e) shipped
+its Bestiary slice; Phase 11 shipped one full frontend slice. What
+actually remains, as of the end of this build:
 
-- **Phase 4 (Spells)** — new category end-to-end; blocked in part on the
-  same "no structured CC-BY-4.0 spell dataset" gap noted above.
-- **Phase 5 (Classes)** — the spec's own words: "biggest single rework."
-  Needs real 1–20 leveling tables, correct per-class subclass-unlock
-  levels, and real spell-slot progression tables for 5e, PLUS the
-  Generic ruleset's world-configurable leveling system.
-- **Phase 6 (Items)** — rarity bands + real mundane weapon/armor lookup
-  tables.
-- **Phase 7 (NPCs)** — default lightweight combat profile + "Combatant"
-  upgrade path reusing Phase 3's monster pipeline (this one should be
-  comparatively fast once Phase 5's class system exists, since NPCs
-  mostly reuse other phases' work).
-- **Phase 8 (Player Characters / Survivors rework)** — depends on Phase 5
-  (a Player Character is "a Class instance with a name/background" per
-  the spec).
-- **Phase 9 (Pathfinder 2e)** — blocked on the open licensing question
-  above for anything beyond Homebrew-only.
-- **Phase 10 (Generic/Homebrew ruleset)** — world-configurable attributes
-  and an optional derived-stat formula layer; needs Phase 5's leveling
-  system as a dependency for the class side.
-- **Phase 11 (Ruleset-Aware Edit Forms)** — `archive/js/render.js`'s edit
-  forms are still Echoes-shaped. The 5e Bestiary's backend API contract
-  (`mode`, `srdLibraryId`, `targetCr` on `POST /api/generate-enemy`) is
-  real and tested at the function level, but no frontend UI exists yet
-  for the three-tier picker (mode selection, SRD browse/import). This is
-  the most immediately actionable next slice of work — the backend for
-  one full category already exists and just needs a UI.
-- **Phase 12 (Differential Billing)** — Import already refunds its
-  generation-cap spend immediately (implemented ad hoc in
-  `routes/generateEnemy.js` rather than waiting for this phase, since a
-  free import shouldn't cost points even before the full billing rework
-  lands), but Reflavor's reduced cost and the entry-cap import-bypass are
-  not built. Zero practical impact today since `BILLING_ENABLED` is off
-  by default.
-- **Phase 13 (Regression Pass)** — done incrementally after every phase
-  in this build (server boot smoke tests, route dispatch checks, `node
-  -c` syntax checks on every touched file, `scripts/test5eStatFormulas.js`
-  passing) rather than as one final pass, since that's effectively what
-  "checkpoint after every phase" already required. Full DB-backed
-  regression (a real Echoes generation cycle end-to-end,
-  `scripts/testTenantIsolation.js` against the real project) could not
-  be run in this sandboxed environment — no real Supabase/Anthropic/
-  Gemini credentials were available. **Austin should run the real
-  Phase 1 checkpoint and `scripts/testTenantIsolation.js` against the
-  actual Supabase project before trusting this further.**
+- **PF2e beyond Bestiary** (remaining Phase 9 scope) — Classes, Items,
+  Spells, NPCs, and Player Characters for Pathfinder 2e. Each would need
+  its own "is this game-balance math or licensed content" analysis the
+  way Bestiary's Building Creatures tables got — not a given that every
+  category has an equally clean non-copyrightable-math answer. Blocked
+  on the same open Paizo licensing question below for Import/Reflavor
+  regardless of category.
+- **5e Import/Reflavor for Spells, Classes, Items** — all three shipped
+  Homebrew tier only; no structured CC-BY-4.0 dataset was found for
+  spells/classes/items the way Tabyltop's monster JSON existed for
+  Bestiary (the rest of the SRD 5.1 CC-BY-4.0 conversion is full-text
+  prose, not structured per-field data — would need to be parsed by hand
+  or found as structured data elsewhere before Import/Reflavor are
+  possible for these categories).
+- **Generic ruleset wizard UI** — `world_config.generic_system_json`
+  (attribute list + optional formula toggle) has to be set by hand today
+  (script or direct DB edit); no wizard step exists yet for a world owner
+  to actually configure it themselves. Backend (`lib/rulesets/generic/`)
+  is real and tested; this is pure frontend work.
+- **Frontend for every non-5e-Bestiary category** — Spells, Classes,
+  Items, Player Characters (Survivors), the NPC Combatant upgrade, and
+  PF2e/Generic Bestiary all have real, tested backend contracts and zero
+  UI. Phase 11 deliberately proved the ruleset-aware-UI pattern on one
+  category rather than spreading thin across all of them — the
+  `initEnemyGenerateForm()` / mode-dispatch pattern in
+  `archive/enemies/index.html` is the template to replicate for the rest.
+- **Differential billing for the subscription/credit path** —
+  `BILLING_ENABLED=true` behavior verified safe by code reading only (see
+  Phase 12 update above), not exercised against a real Supabase project.
+- **Survivors → "Player Characters" rename** — category DB/route slug
+  stays `survivors` by deliberate scoping decision (Phase 8); a full
+  rename sweep (routes, entries table category value, frontend nav/
+  labels, existing worlds' stored data) is cosmetic but genuinely
+  risky, and was out of scope for this build.
+- **Full DB-backed regression** — done incrementally after every phase
+  (server boot smoke tests, route dispatch checks, `node -c` syntax
+  checks on every touched file, the growing `scripts/test*.js` suite —
+  9 scripts as of Phase 12, all passing) rather than as one dedicated
+  final pass, since that's effectively what "checkpoint after every
+  phase" already required. A real Echoes generation cycle end-to-end and
+  `scripts/testTenantIsolation.js` against the actual Supabase project
+  could not be run in this sandboxed environment — no real Supabase/
+  Anthropic/Gemini credentials were available. **Austin should run the
+  real Phase 1 checkpoint and `scripts/testTenantIsolation.js` against
+  the actual Supabase project before trusting this further.**
 
 ## Recommended next session's starting point
 
-1. Apply `migrations/020_ruleset_foundation.sql` by hand against Supabase
-   (per this repo's usual migration process), then run
+1. Apply `migrations/020_ruleset_foundation.sql` and
+   `migrations/021_generic_ruleset_system.sql` by hand against Supabase
+   (per this repo's usual migration process — no runner), then run
    `node scripts/ingestSrd5e.js` for real.
 2. Verify the real Phase 1 checkpoint (non-admin ruleset picker options,
    admin sees all 4, pre-migration worlds read `ruleset='echoes'`) and
    `scripts/testTenantIsolation.js` against production data.
-3. Build Phase 11's frontend for the 5e Bestiary specifically (mode
-   picker, SRD browse/import UI) — the backend contract already exists
-   and is tested; this is the fastest path to something Austin can
-   actually click through.
+3. Flip `BILLING_ENABLED=true` in a staging environment (if one exists)
+   and exercise the subscription/credit refund path for real before
+   trusting Phase 12's differential billing beyond the legacy flat-cap
+   path it was actually tested against.
 4. Resolve the PF2e ORC-vs-CUP licensing question directly with Paizo
-   before writing `scripts/ingestSrdPf2e.js` for real.
-5. Phase 5 (Classes) is the correct next backend phase — Phases 7 and 8
-   both depend on it.
+   before writing `scripts/ingestSrdPf2e.js` for real, or before
+   attempting Import/Reflavor for any PF2e category.
+5. Build a Generic ruleset wizard step (attribute list + formula toggle
+   UI) — this is the one category where the backend has existed since
+   Phase 10 with literally no way for a world owner to reach it.
+6. Replicate Phase 11's UI pattern for Spells/Classes/Items next — their
+   backends are the most mature of the remaining un-UI'd categories and
+   don't depend on the PF2e licensing question the way PF2e Bestiary UI
+   or Player Character UI (needs Classes UI first, conceptually) would.
