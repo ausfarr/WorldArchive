@@ -186,7 +186,7 @@ guideline?** If it's a guideline, the UI must say "estimated," the way
 | 5 | Classes (biggest single rework) | **Partially shipped** — 5e Homebrew tier: real 1-20 leveling, proficiency bonus, ASI levels, per-class subclass-unlock level, full/half/third/warlock spell slot tables, all cross-referenced and tested. PF2e Classes and the Generic ruleset's configurable leveling deferred. |
 | 6 | Items | **Partially shipped** — 5e Homebrew tier: real SRD weapon/armor lookup tables + DMG rarity value-range sanity check, all tested. PF2e Items and Generic ruleset deferred. |
 | 7 | NPCs | **Shipped** — every 5e-world NPC gets a lightweight default combat profile (Commoner-equivalent) at creation; a "Combatant" upgrade (`POST /api/npc-combatant-upgrade`) reuses the exact Phase 3 Homebrew pipeline to give a specific NPC a full bespoke stat block. Additive-only change to the shared NPC template, regression-tested. |
-| 8 | Player Characters (Survivors rework) | Deferred — depends on Phase 5 |
+| 8 | Player Characters (Survivors rework) | **Shipped** — 5e Homebrew tier: a PC is a real Class instance (`classId` referencing a Phase 5 Class entry), with HP/proficiency bonus/spell slots computed from that class's actual hitDie/casterType. Category slug stays `survivors` (rename deferred as cosmetic/risky). |
 | 9 | Pathfinder 2e | **Partially shipped** — Bestiary Homebrew tier only (real Building Creatures level/tier math, verified MIT-licensed table source). Import/Reflavor still blocked on the ORC licensing question. |
 | 10 | Generic/Homebrew ruleset | Deferred — depends on Phase 5 |
 | 11 | Ruleset-aware edit forms (frontend) | Deferred — most actionable next slice, backend contract already exists for 5e enemies |

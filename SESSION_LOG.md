@@ -476,3 +476,35 @@ guarantee explicitly, plus correct rendering for both the default and an
 upgraded profile (including the "(default -- not yet a bespoke
 Combatant)" label disappearing once a real Combatant stat block replaces
 it).
+
+## Phase 8 — Player Characters (5e Homebrew tier, Survivors rework)
+
+**Scoping decision, stated up front**: the category's underlying DB/
+route slug stays `survivors` -- renaming it to `playerCharacters` (or
+similar) across every route, the entries table, and every frontend
+reference would be a large, purely cosmetic, real-risk sweep that adds
+no mechanical capability, so it's deferred rather than attempted in this
+pass. What Phase 8 actually delivers is the CONCEPT shift the scope doc
+asked for: a 5e "survivor" entry is now a real Class instance, not a
+separate mechanical model.
+
+`lib/rulesets/5e/survivorFormulas.js` computes hit points using the
+PHB's official fixed/no-rolling method (max hit die at 1st level, then a
+fixed per-level average -- d6->4, d8->5, d10->6, d12->7, verified via
+search cross-reference -- plus CON modifier at every level), and
+re-exports `proficiencyBonusForLevel`/`spellSlotsForLevel` straight from
+Phase 5's `classFormulas.js` rather than reimplementing them --
+literally "reuse the Phase 5 Class system's leveling data," per the
+scope doc's own instruction. `scripts/test5eSurvivorFormulas.js`
+hard-asserts hand-computed HP values (Level 1 Fighter d10/CON14 = 12
+exactly max-die-plus-mod; Level 5 = 44) and a floor-at-1 safety check.
+
+Homebrew generation grounds every PC in a REAL class entry this world
+already generated: the model picks a `classId` from an explicit list of
+this world's actual Classes (rejected with a clear 400 if the world has
+none yet -- "generate at least one Class first"), and the linked class's
+real `hitDie`/`casterType` (not anything the model states) feeds the HP/
+spell-slot computation. The model itself only proposes narrative
+(background/ideals/bonds/flaws/backstory/equipment) and ability scores --
+mirroring the exact "model writes narrative, code writes math" split
+used everywhere else in this project.

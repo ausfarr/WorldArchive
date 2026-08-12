@@ -251,6 +251,25 @@ so existing output is byte-for-byte unchanged for them.
 `scripts/testNpcCombatProfile.js` hard-asserts that regression guarantee
 explicitly, not just by inspection.
 
+## Phase 8 update — Player Characters (5e Homebrew tier, Survivors rework)
+
+**Scoping decision**: the category's DB/route slug stays `survivors` --
+a full rename across every route, the entries table, and every frontend
+reference would be a large, purely cosmetic, real-risk sweep for a
+proof-of-concept phase, so it was deferred. What shipped is the concept
+shift the scope doc actually asked for: a 5e "survivor" is now a real
+Class instance, not a separate mechanical model.
+
+`lib/rulesets/5e/survivorFormulas.js` computes HP via the PHB's official
+fixed/no-rolling method (verified via search) and re-exports
+`proficiencyBonusForLevel`/`spellSlotsForLevel` directly from Phase 5's
+`classFormulas.js` — literally reusing the Class system's leveling data
+rather than reimplementing it, per the scope doc's own instruction.
+Homebrew generation requires the model to pick a `classId` from this
+world's own real generated Classes (clear 400 if none exist yet); HP/
+spell slots are computed from that class's actual hitDie/casterType, the
+model only writes narrative and picks ability scores.
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules
