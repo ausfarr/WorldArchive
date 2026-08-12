@@ -7,6 +7,20 @@ of this file existed in the repo. Update it as future phases ship;
 decision history for what's described here, `SESSION_LOG.md` has the raw
 build-time trail.
 
+**Status update (see `session_addendum_ruleset_recovery_plan.md`):** real
+testing surfaced that several load-bearing pieces below were never
+actually applied/run in production (migrations `020`/`021`, the SRD
+ingestion script), and that two systems predating this project
+(procedural generation, manual entry) were never made ruleset-aware at
+all despite the phase table below reading as if the ruleset system is
+broadly finished. **Pathfinder 2e is being removed** (Homebrew-only
+everywhere, no path to real content without an unresolved licensing
+question, zero real users on it) — every `pf2e` row/reference below is
+historical record of what was built, not a live target anymore. Treat
+the recovery addendum as the current source of truth for what's actually
+working and what's next; this file's phase table stays as an accurate
+record of what shipped in the original project.
+
 ## Why this exists
 
 Chronicled originally hardcoded one mechanical system: Austin's own
