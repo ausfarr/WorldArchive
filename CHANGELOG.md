@@ -26,22 +26,29 @@ entry from here forward gets both a real date and a version at write time.
   setup completes; Echoes stays fully intact and admin-only. Shipped:
   schema + `lib/rulesets/index.js` registry, a canonical 5e SRD content
   library (201 real monsters, verified CC-BY-4.0), `archive/licenses.html`
-  attribution, and real generation backends across most categories —
-  Bestiary (5e: Import/Reflavor/Homebrew with real DMG CR math; PF2e:
-  Homebrew with real Building Creatures budget tables; Generic:
-  world-configurable attributes + optional formula layer), Spells,
-  Classes (real 1–20 leveling/proficiency/ASI/spell-slot tables), Items
-  (real SRD weapon/armor/rarity tables), NPCs (default combat profile +
-  "Combatant" upgrade), Player Characters (Survivors rework — a PC is a
-  real Class instance), and differential billing (Import free, Reflavor
-  discounted, Homebrew full price; entry-cap bypass for imports). One
-  full ruleset-aware frontend (5e Bestiary generate form) shipped as
-  proof the UI pattern works end-to-end. Still deferred: PF2e beyond
-  Bestiary (blocked on an open Paizo licensing question), 5e Import/
-  Reflavor for Spells/Classes/Items (no structured CC-BY-4.0 dataset
-  found), Generic ruleset wizard UI, frontend for every other category,
-  and the subscription/credit billing path (verified safe by code
-  reading only, not exercised against a live project). See:
+  attribution, and real Homebrew-tier generation across essentially
+  every category for both 5e AND pf2e — Bestiary (5e also has real
+  Import/Reflavor with real DMG CR math; PF2e/Generic Bestiary use real
+  verified level-budget math), Spells (5e cantrip scaling, pf2e
+  rank-by-level + Heightened(+N) scaling), Classes (5e: real 1–20
+  leveling/proficiency/ASI/spell-slot tables; pf2e: real proficiency/
+  Class DC/HP formulas), Items (5e: real SRD weapon/armor/rarity tables;
+  pf2e: real rune tiers + Bulk system, price guidance explicitly labeled
+  an estimate), NPCs (default combat profile + "Combatant" upgrade for
+  both rulesets), Player Characters (a PC is a real Class instance for
+  both rulesets), a Generic ruleset with a real wizard UI for its
+  world-configurable attribute/formula system, and differential billing
+  (Import free, Reflavor discounted, Homebrew full price; entry-cap
+  bypass for imports). Ruleset-aware frontend forms now cover every
+  category with a non-Echoes implementation (Bestiary/Classes/Items/
+  Spells/Survivors/NPC-Combatant, across 5e/pf2e/generic as applicable),
+  including a brand-new Spells index page. Still deferred: Import/
+  Reflavor for every PF2e category and for 5e Spells/Classes/Items (no
+  verified licensed dataset for either — actively re-investigated, see
+  the addendum), Generic ruleset support beyond Bestiary, the
+  Survivors→"Player Characters" slug rename (cosmetic, scoped out as
+  risky), and the subscription/credit billing path (verified safe by
+  code reading only, not exercised against a live project). See:
   `session_addendum_ruleset_genericization.md`
 - **Archive search + category page grouping/ordering** — scoped, decisions
   confirmed, not yet built. See: `session_addendum_search_and_grouping.md`

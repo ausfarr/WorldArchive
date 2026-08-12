@@ -96,14 +96,20 @@ Every generation route dispatches through this. Filled-in shape so far:
 ```
 echoes: { factions, npcs, enemies, classes, items, logs, survivors, locations }
         -- every category, pointing at the pre-existing files, unchanged.
-5e:     { enemies: { formulas, template } }
-        -- prompt is NOT in the registry for 5e enemies: it has THREE
-        -- prompt-shaped tiers (reflavor/homebrew; import needs none),
-        -- which doesn't fit the registry's one-slot-per-category shape.
-        -- routes/generateEnemy.js requires
-        -- prompts/rulesets/5e/enemyContentPrompt.js directly instead.
-pf2e:   {}   -- no categories built yet
-generic:{}   -- no categories built yet
+5e:     { enemies, classes, items, spells, survivors: { formulas, template } }
+        -- prompt is NOT in the registry for any of these -- 5e enemies
+        -- has THREE prompt-shaped tiers (import/reflavor/homebrew) and
+        -- every other 5e category is Homebrew-only but still keeps its
+        -- prompt required directly in its route rather than added to
+        -- the registry's one-slot-per-category shape, for consistency.
+pf2e:   { enemies, classes, items, spells, survivors: { formulas, template } }
+        -- same shape as 5e, Homebrew-only across the board (no
+        -- Import/Reflavor tier exists for pf2e in any category yet --
+        -- see the "Re-investigated" note below Phase 9's table row).
+generic:{ enemies: { formulas, template } }
+        -- Bestiary only; no Classes/Items/Spells/NPCs/PCs category
+        -- exists for Generic (no fixed system to hang more formula
+        -- layers off of beyond what Bestiary already proved).
 ```
 
 Explicit `require()` per entry, not directory auto-discovery — a
@@ -182,17 +188,19 @@ guideline?** If it's a guideline, the UI must say "estimated," the way
 | 1 | Ruleset foundation (schema, registry, wizard picker) | **Shipped** |
 | 2 | SRD data ingestion (5e monsters; PF2e blocked) | **Shipped** (5e monsters only) |
 | 3 | Bestiary / Monsters (5e proof of concept) | **Shipped** |
-| 4 | Spells | **Partially shipped** — 5e Homebrew tier (backend + cantrip-scaling formula, tested). No canonical import data found (same CC-BY-4.0 structured-data gap as Classes/Items). Frontend nav/index page deferred to Phase 11. |
-| 5 | Classes (biggest single rework) | **Partially shipped** — 5e Homebrew tier: real 1-20 leveling, proficiency bonus, ASI levels, per-class subclass-unlock level, full/half/third/warlock spell slot tables, all cross-referenced and tested. PF2e Classes and the Generic ruleset's configurable leveling deferred. |
-| 6 | Items | **Partially shipped** — 5e Homebrew tier: real SRD weapon/armor lookup tables + DMG rarity value-range sanity check, all tested. PF2e Items and Generic ruleset deferred. |
-| 7 | NPCs | **Shipped** — every 5e-world NPC gets a lightweight default combat profile (Commoner-equivalent) at creation; a "Combatant" upgrade (`POST /api/npc-combatant-upgrade`) reuses the exact Phase 3 Homebrew pipeline to give a specific NPC a full bespoke stat block. Additive-only change to the shared NPC template, regression-tested. |
-| 8 | Player Characters (Survivors rework) | **Shipped** — 5e Homebrew tier: a PC is a real Class instance (`classId` referencing a Phase 5 Class entry), with HP/proficiency bonus/spell slots computed from that class's actual hitDie/casterType. Category slug stays `survivors` (rename deferred as cosmetic/risky). |
-| 9 | Pathfinder 2e | **Partially shipped** — Bestiary Homebrew tier only (real Building Creatures level/tier math, verified MIT-licensed table source). Import/Reflavor still blocked on the ORC licensing question. |
-| 10 | Generic/Homebrew ruleset | **Partially shipped** — Bestiary proof of concept: `world_config.generic_system_json` stores a world-defined attribute list + formula toggle; a real single-attribute linear formula evaluator computes derived stats only when requested. No wizard UI yet to configure it (must be set by hand today) — Phase 11 scope. |
-| 11 | Ruleset-aware edit forms (frontend) | **Partially shipped** — 5e Bestiary generate form (`archive/enemies/index.html`) is real and tested in a headless browser: Mode picker, live SRD dropdown (`GET /api/srd-library`), Target CR field. Every other ruleset/category still falls back to (or has no) UI. |
+| 4 | Spells | **Shipped** for 5e + pf2e — both Homebrew tier: 5e's cantrip-scaling formula, pf2e's verified rank=ceil(level/2) + Heightened(+N) formula, both tested. Real frontend index page (`archive/spells/`). No canonical import data for either ruleset (see the "Re-investigated" note below for 5e; pf2e blocked on the same ORC question as everything else pf2e). |
+| 5 | Classes (biggest single rework) | **Shipped** for 5e + pf2e — 5e: real 1-20 leveling, proficiency bonus, ASI levels, per-class subclass-unlock level, full/half/third/warlock spell slot tables. pf2e: verified proficiency-bonus formula, Class DC formula, HP formula, ability-boost/skill-increase levels; a homebrew class designs its own Class DC rank-up schedule and picks 2 of 3 "good" saves (a genuine per-class PF2e design choice), Perception/saves otherwise follow one fixed project-documented default curve. Both tested, both have real ruleset-aware frontend forms. Generic ruleset's configurable leveling still not built (no Classes category in the Generic registry at all). |
+| 6 | Items | **Shipped** for 5e + pf2e — 5e: real SRD weapon/armor lookup tables + DMG rarity value-range sanity check. pf2e: verified fundamental rune tiers (potency/striking/resilient) and Bulk system; price-by-level is an explicitly-labeled ESTIMATE (see itemFormulas.js's header — no official price table could be independently verified, only two anchor points). Both tested, both have real frontend forms. Generic ruleset has no Items category. |
+| 7 | NPCs | **Shipped** for 5e + pf2e — every NPC in a 5e or pf2e world gets a lightweight default combat profile at creation (5e: cross-checked against the real SRD Commoner; pf2e: computed via the verified Building Creatures math at level 0/low-tier, since no ORC-licensed reference exists to check against). The "Combatant" upgrade (`POST /api/npc-combatant-upgrade`) reuses each ruleset's own Homebrew Bestiary pipeline and now has a real dossier-page UI (button + ruleset-specific fields). Shared NPC template dispatches its embedded renderer by a `ruleset` field on combatProfile, defaulting to 5e for every profile that predates the field. |
+| 8 | Player Characters (Survivors rework) | **Shipped** for 5e + pf2e — a PC is a real Class instance (`classId` referencing a Classes entry from Phase 5/9), with HP/proficiency (5e) or HP/Class DC/Perception/saves (pf2e) computed from that class's actual data. Real ruleset-aware frontend form (identical body shape for both rulesets, one shared form). Category slug stays `survivors` (rename deferred as cosmetic/risky). |
+| 9 | Pathfinder 2e | **Shipped for Homebrew tier across every category** (Bestiary, Classes, Items, Spells, NPCs, Player Characters) — see Phases 3-8 rows above, each now has a pf2e column alongside 5e's. Import/Reflavor still blocked on the open ORC-vs-CUP licensing question for ALL categories (no verified ORC-licensed dataset exists for monsters, classes, items, or spells) — this is the one genuinely remaining PF2e gap, not a phase-by-phase one. |
+| 10 | Generic/Homebrew ruleset | **Shipped** — Bestiary (proof of concept, unchanged) plus a real wizard UI (`archive/wizard-stats.html` now branches by ruleset: Generic worlds get a live attribute + optional derived-stat-formula builder wired to new `GET`/`POST /api/wizard/generic-system` routes, with an AI "generate for me" assist). Still only has an Enemies category — Classes/Items/Spells/NPCs/PCs were not extended to Generic (no fixed system to build formulas against beyond what Bestiary already proved). |
+| 11 | Ruleset-aware edit forms (frontend) | **Shipped for every category with a non-Echoes ruleset implementation** — Bestiary (5e Mode picker + SRD browse, pf2e level/role form, Generic name/faction form), Classes/Items/Survivors (5e + pf2e forms), Spells (real new index page, 5e + pf2e forms, hidden nav link shown only for supporting rulesets), NPC Combatant upgrade (dossier-page button). All verified via headless Chromium with a stubbed ruleset lookup (real Supabase unreachable in this sandbox, same caveat as the original Phase 11 slice). |
 | 12 | Differential billing | **Shipped** (legacy flat-cap path) — Import fully refunds (Phase 3), Reflavor now refunds down to field-assist-tier cost via `makeRefundOnce`'s new partial-amount support (tested, `scripts/testRefundLogic.js`), Homebrew still pays full price. `enforceEntryCap.js` has an explicit `mode === "import"` bypass so imports don't burn the entry cap. Subscription/credit path (`BILLING_ENABLED=true`) verified safe by code reading only — not exercised against a real project. |
-| 13 | Regression pass | Done incrementally per-phase (9 `scripts/test*.js` scripts, syntax sweep, server boot test after every phase); full DB-backed pass needs real credentials, not run here |
+| 13 | Regression pass | Done incrementally per-phase (13 `scripts/test*.js` scripts, repo-wide syntax sweep, server boot test, headless-browser dispatch checks after every phase); full DB-backed pass needs real credentials, not run here |
 | 14 | Documentation | This file + session addendum + `SESSION_LOG.md` |
+
+**Re-investigated (per Austin's explicit request to keep looking before accepting a blocker): does a structured CC-BY-4.0 dataset exist for 5e Spells/Classes/Items the way Tabyltop's monster JSON exists for Bestiary?** Re-cloned and inspected `Tabyltop/CC-SRD` directly — it ships a second JSON file (`SRD5.1-CCBY4.0License-TT.json`, 13,353 entries) that looks structured at a glance but is actually a raw PDF-text-extraction dump (`type: "paragraph"|"h1"..."h4"|"table"`, each with page/x/y coordinates, no field distinguishing a spell name from a class feature name or a monster trait name — all headers are flatly typed `"h4"`). The repo's own README settles it directly: *"The team at Tabyltop plans to release additional machine-readable extractions from the SRD in the near future including JSON lists of monsters, spells, and items"* — as of this snapshot, only the monsters extraction had actually been done; spells/items/classes structured JSON is explicitly a planned-but-not-yet-shipped release. Parsing the raw text dump into reliable structured spell/item records is theoretically possible (spell stat blocks follow a fairly consistent "Casting Time:/Range:/Components:/Duration:" text pattern) but would be a real data-engineering project with real accuracy risk — mis-attributing a paragraph to the wrong header at a page break, mis-parsing a range/duration string — and no independently-reachable source to verify the ~319 parsed spells against (aonprd/dndbeyond/wikidot all network-blocked here). Consistent with this project's own rule ("if unsure, flag rather than guess"), staying Homebrew-only for these three categories remains the right call rather than shipping unverified parsed content that LOOKS as authoritative as the real monster Import tier.
 
 See `session_addendum_ruleset_genericization.md` for full detail, the
 licensing research trail, bugs caught and fixed, and a recommended

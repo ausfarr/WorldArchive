@@ -348,6 +348,37 @@ project — only verified safe by code reading. PF2e/Generic have no
 Import/Reflavor tiers yet (Bestiary is Homebrew-only for both), so there's
 nothing differential to bill there until those tiers exist.
 
+## Continuation session — "build everything else still missing"
+
+A follow-up session picked this project back up after the Phase 12
+commit and worked through essentially the entire remaining backlog in
+one continuous pass, at explicit user request for the same rigor as
+every earlier phase. Full narrative detail lives in `SESSION_LOG.md`'s
+matching section; summarized here:
+
+- **Generic ruleset wizard UI** shipped — `archive/wizard-stats.html`
+  now branches by ruleset (this was also a real latent bug fix: 5e/pf2e
+  worlds were being walked through Echoes' irrelevant stat-relabeling
+  step, since nobody had revisited that page since rulesets were added).
+- **PF2e Homebrew tier shipped for Classes, Items, Spells, NPCs, and
+  Player Characters** — closing out essentially all of Phase 9's
+  remaining scope. Each category's real formulas were independently
+  verified (see `SESSION_LOG.md` for the exact worked examples cross-
+  checked), tested with hard assertions, and wired into the same
+  ruleset-dispatch pattern every other category uses.
+- **Frontend (Phase 11) extended to every category with a non-Echoes
+  ruleset implementation** — Classes/Items/Survivors gained 5e+pf2e
+  forms, Spells got a real index page for the first time (previously
+  backend-only since Phase 4), Bestiary gained pf2e/generic forms, and
+  the NPC "Combatant" upgrade got a real dossier-page UI.
+- **Re-investigated (not just re-asserted) the 5e Import/Reflavor data
+  gap** — found a concrete, citable answer (Tabyltop's own README states
+  structured spell/item JSON is a planned future release, not yet
+  shipped) rather than repeating the earlier session's inference.
+
+See `world_forge_scope.md`'s phase table for the fully updated per-phase
+status and the registry's now much larger filled-in shape.
+
 ## Open question for Austin
 
 **Has Paizo released actual Player Core / GM Core / Monster Core rules
@@ -410,80 +441,78 @@ unmodified printed CR with no such badge.
 
 ## What's deferred (explicitly, not silently)
 
-This section originally described Phases 4–14 as unbuilt, written right
-after the Phase 3 checkpoint. The session continued well past that point
-at the user's explicit request ("go ahead and start building out the
-rest... i want each phase just as detailed, not rushed") — Phases 4–8,
-10, and 12 all shipped real, tested backend work; Phase 9 (PF2e) shipped
-its Bestiary slice; Phase 11 shipped one full frontend slice. What
-actually remains, as of the end of this build:
+This section has been rewritten twice now as the session kept continuing
+past its own checkpoints, each time at explicit user request ("go ahead
+and start building out the rest," then later "build everything else
+still missing"). As of the actual end of this build: PF2e now has
+Homebrew-tier support across every category (Bestiary, Classes, Items,
+Spells, NPCs, Player Characters); every category with a non-Echoes
+ruleset implementation has a real ruleset-aware frontend form; the
+Generic ruleset has a real wizard UI. What genuinely remains:
 
-- **PF2e beyond Bestiary** (remaining Phase 9 scope) — Classes, Items,
-  Spells, NPCs, and Player Characters for Pathfinder 2e. Each would need
-  its own "is this game-balance math or licensed content" analysis the
-  way Bestiary's Building Creatures tables got — not a given that every
-  category has an equally clean non-copyrightable-math answer. Blocked
-  on the same open Paizo licensing question below for Import/Reflavor
-  regardless of category.
-- **5e Import/Reflavor for Spells, Classes, Items** — all three shipped
-  Homebrew tier only; no structured CC-BY-4.0 dataset was found for
-  spells/classes/items the way Tabyltop's monster JSON existed for
-  Bestiary (the rest of the SRD 5.1 CC-BY-4.0 conversion is full-text
-  prose, not structured per-field data — would need to be parsed by hand
-  or found as structured data elsewhere before Import/Reflavor are
-  possible for these categories).
-- **Generic ruleset wizard UI** — `world_config.generic_system_json`
-  (attribute list + optional formula toggle) has to be set by hand today
-  (script or direct DB edit); no wizard step exists yet for a world owner
-  to actually configure it themselves. Backend (`lib/rulesets/generic/`)
-  is real and tested; this is pure frontend work.
-- **Frontend for every non-5e-Bestiary category** — Spells, Classes,
-  Items, Player Characters (Survivors), the NPC Combatant upgrade, and
-  PF2e/Generic Bestiary all have real, tested backend contracts and zero
-  UI. Phase 11 deliberately proved the ruleset-aware-UI pattern on one
-  category rather than spreading thin across all of them — the
-  `initEnemyGenerateForm()` / mode-dispatch pattern in
-  `archive/enemies/index.html` is the template to replicate for the rest.
+- **Import/Reflavor for every non-5e-Bestiary category, in both
+  rulesets** — 5e Spells/Classes/Items and every PF2e category
+  (including Bestiary) are Homebrew-only. For 5e, this was actively
+  re-investigated this round (not just re-asserted) — see the
+  "Re-investigated" note under Phase 9 in `world_forge_scope.md` for the
+  concrete finding (Tabyltop's own README confirms structured spell/
+  item JSON is a planned-but-unshipped future release, not something
+  this project failed to find). For PF2e, the open ORC-vs-CUP question
+  below still blocks it for every category equally, not just Bestiary.
+- **Generic ruleset beyond Bestiary** — Classes/Items/Spells/NPCs/Player
+  Characters have no Generic registry entry at all. Each would need its
+  own "what does a world-configurable version of this even mean" design
+  question answered (Bestiary's attribute+optional-formula shape doesn't
+  obviously generalize to, say, a homebrew leveling/class system) — real
+  design work, not just more wiring.
 - **Differential billing for the subscription/credit path** —
   `BILLING_ENABLED=true` behavior verified safe by code reading only (see
-  Phase 12 update above), not exercised against a real Supabase project.
+  the Phase 12 update above), not exercised against a real Supabase
+  project.
 - **Survivors → "Player Characters" rename** — category DB/route slug
   stays `survivors` by deliberate scoping decision (Phase 8); a full
   rename sweep (routes, entries table category value, frontend nav/
   labels, existing worlds' stored data) is cosmetic but genuinely
   risky, and was out of scope for this build.
-- **Full DB-backed regression** — done incrementally after every phase
+- **Full DB-backed regression** — done incrementally after every commit
   (server boot smoke tests, route dispatch checks, `node -c` syntax
-  checks on every touched file, the growing `scripts/test*.js` suite —
-  9 scripts as of Phase 12, all passing) rather than as one dedicated
-  final pass, since that's effectively what "checkpoint after every
-  phase" already required. A real Echoes generation cycle end-to-end and
+  checks on every touched file, headless-browser dispatch verification
+  for every frontend change, and a growing `scripts/test*.js` suite — 13
+  scripts as of the end of this build, all passing) rather than as one
+  dedicated final pass. A real Echoes generation cycle end-to-end and
   `scripts/testTenantIsolation.js` against the actual Supabase project
   could not be run in this sandboxed environment — no real Supabase/
-  Anthropic/Gemini credentials were available. **Austin should run the
-  real Phase 1 checkpoint and `scripts/testTenantIsolation.js` against
-  the actual Supabase project before trusting this further.**
+  Anthropic/Gemini credentials were available, and Playwright's headless
+  Chromium here has no route to a real Supabase-backed session either
+  (every frontend verification in this build had to stub `authFetch`).
+  **Austin should run the real Phase 1 checkpoint and
+  `scripts/testTenantIsolation.js` against the actual Supabase project,
+  and click through a real PF2e/Generic world in a real browser, before
+  trusting this further.**
 
 ## Recommended next session's starting point
 
-1. Apply `migrations/020_ruleset_foundation.sql` and
-   `migrations/021_generic_ruleset_system.sql` by hand against Supabase
-   (per this repo's usual migration process — no runner), then run
-   `node scripts/ingestSrd5e.js` for real.
+1. Apply every migration in `migrations/020_ruleset_foundation.sql`
+   through `migrations/021_generic_ruleset_system.sql` by hand against
+   Supabase (per this repo's usual migration process — no runner), then
+   run `node scripts/ingestSrd5e.js` for real.
 2. Verify the real Phase 1 checkpoint (non-admin ruleset picker options,
    admin sees all 4, pre-migration worlds read `ruleset='echoes'`) and
    `scripts/testTenantIsolation.js` against production data.
-3. Flip `BILLING_ENABLED=true` in a staging environment (if one exists)
+3. Click through a real 5e world AND a real pf2e world end-to-end in an
+   actual browser against the real deployed app — generate one entry in
+   every category for each, confirm the frontend forms actually work
+   against a live backend (everything in this build was verified with a
+   stubbed `authFetch` in a sandboxed headless browser, never a real
+   session).
+4. Flip `BILLING_ENABLED=true` in a staging environment (if one exists)
    and exercise the subscription/credit refund path for real before
    trusting Phase 12's differential billing beyond the legacy flat-cap
    path it was actually tested against.
-4. Resolve the PF2e ORC-vs-CUP licensing question directly with Paizo
+5. Resolve the PF2e ORC-vs-CUP licensing question directly with Paizo
    before writing `scripts/ingestSrdPf2e.js` for real, or before
    attempting Import/Reflavor for any PF2e category.
-5. Build a Generic ruleset wizard step (attribute list + formula toggle
-   UI) — this is the one category where the backend has existed since
-   Phase 10 with literally no way for a world owner to reach it.
-6. Replicate Phase 11's UI pattern for Spells/Classes/Items next — their
-   backends are the most mature of the remaining un-UI'd categories and
-   don't depend on the PF2e licensing question the way PF2e Bestiary UI
-   or Player Character UI (needs Classes UI first, conceptually) would.
+6. If a real structured 5e spell/class/item dataset ever ships from
+   Tabyltop (their README says it's planned), revisit 5e Import/Reflavor
+   for those three categories — the pattern from Bestiary's
+   `srdMonsterMapper.js` is the template to follow.

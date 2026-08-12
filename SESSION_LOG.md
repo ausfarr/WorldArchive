@@ -687,3 +687,172 @@ which throws without a real-shaped `STRIPE_SECRET_KEY` at require time —
 account). Pre-auth smoke test confirms `/api/generate-enemy` and the new
 `/api/srd-library` both correctly 401 without a token, same as every
 other route.
+
+## "Build everything else still missing" — continuation session
+
+A new session picked up after the Phase 12 commit landed, with a single
+explicit instruction: build out everything still listed as deferred, at
+the same rigor as every phase before it. Worked through the remaining
+scope roughly in dependency order: Generic wizard UI → PF2e Classes →
+PF2e Items → PF2e Spells → PF2e NPCs/PCs → 5e frontend (Classes/Items/
+Survivors/Spells) → PF2e/Generic Bestiary frontend + NPC Combatant UI →
+re-investigate the 5e Import/Reflavor data gap. Six commits, pushed
+incrementally as checkpoints rather than one giant commit at the end.
+
+### Generic ruleset wizard UI
+
+`archive/wizard-stats.html` (previously 100% Echoes-shaped, unconditional
+for every world regardless of ruleset — a real pre-existing bug this
+project itself introduced by adding rulesets without ever revisiting this
+step) now branches three ways: Echoes keeps its original Stat System +
+Skills form untouched; Generic gets a brand-new attribute + optional
+derived-stat-formula builder (add/remove attribute rows with
+auto-slugged keys, a "compute derived stats" checkbox, add/remove
+derived-stat rows with an attribute dropdown/coefficient/base, an AI
+"generate for me" assist); 5e/pf2e get a short explanatory note and skip
+the step entirely (neither ruleset has a user-configurable stat system —
+their formulas are fixed ability arrays). New backend:
+`routes/wizardGenericSystem.js` (GET/POST current + POST generate,
+validated both on save and on the AI response before it ever reaches the
+frontend) and `prompts/wizardGenericSystemPrompt.js`.
+
+### PF2e expansion: Classes, Items, Spells, NPCs, Player Characters
+
+Followed the exact "verify real formulas via independent cross-checked
+search, write tests with hard-traced worked examples, wire into the
+route dispatch, verify via boot test" discipline established for PF2e
+Bestiary. Key verified facts this round (all cross-checked against
+multiple independent, mutually-consistent sources since paizo.com/
+aonprd.com stayed network-blocked):
+
+- Proficiency bonus = level + a fixed value per rank (untrained always
+  +0, trained +2, expert +4, master +6, legendary +8) — cross-verified
+  against a real worked example ("a Class DC's proficiency bonus is
+  typically +3 for most 1st-level characters": level(1)+trained(2)=3,
+  matches).
+- Class DC = 10 + proficiency bonus + key ability modifier.
+- HP = ancestryHp + classHp + conMod at level 1; classHp + conMod per
+  level after.
+- Ability boosts at levels 5/10/15/20 (four each, +2 or +1 if already
+  ≥18); skill increases at levels 3,5,7,9,11,13,15,17,19, with the real
+  master-at-7/legendary-at-15 unlock gates.
+- Bulk: 10 Light items = 1 Bulk (round down the total, not per item);
+  encumbered above 5+Str mod; max carry 10+Str mod.
+- Fundamental weapon runes: Potency tier 1/2/3 = +1/+2/+3 attack + 1/2/3
+  property rune slots; Striking tier 1/2/3 = +1/+2/+3 extra damage dice.
+  Armor runes mirror this structure (Potency = AC bonus, Resilient =
+  save bonus) by the source's own stated structural symmetry, not
+  independently re-verified number-by-number.
+- Max spell rank by character level = ceil(level/2), capped at 10 —
+  verified against the real "rank 10 at level 19" fact. Cantrips
+  auto-heighten to the same rank (independently confirmed, not assumed
+  from the spell-rank formula alone).
+- Heightened (+N) cumulative scaling — verified against the real cited
+  Fireball example (6d6 at rank 3, +2d6/rank → 8d6 at rank 4, 10d6 at
+  rank 5).
+
+What's explicitly NOT claimed as verified fact: the exact item level at
+which Potency/Striking rune tiers 2 and 3 unlock (only "+1 Potency is
+level 2" could be independently confirmed), and any specific item's
+exact gp price at any level (only two anchor points — ~15gp at level 1,
+~70,000gp at level 20 — could be confirmed; everything between is this
+project's own labeled interpolation, not an asserted official table).
+Where real data ran out, the design either used the model's own creative
+judgment validated by code (Classes' Class DC schedule — a genuine
+per-class PF2e design choice, same category as subclass features) or
+labeled the result an estimate (Items' price guidance, matching 5e's own
+CR-estimate precedent).
+
+A genuinely new architectural piece: `lib/rulesets/pf2e/
+homebrewEnemyGenerator.js` — extracted from the inline Homebrew logic
+that had been living in `routes/generateEnemy.js`'s pf2e branch, so the
+NPC "Combatant" upgrade could reuse it (mirroring the exact `lib/
+rulesets/5e/homebrewEnemyGenerator.js` extraction Phase 7 did). The NPC
+default combat profile
+(`lib/rulesets/pf2e/npcCombatDefaults.js`) is computed via the verified
+Building Creatures math at level 0/low-tier rather than cross-checked
+against a real "Commoner"-equivalent statblock, since no ORC-licensed
+reference exists to check one against — documented honestly as a
+computed default, not a claimed reproduction.
+
+`lib/entryTemplate.js`'s shared NPC template (used by every world
+regardless of ruleset) needed one real fix here: `combatProfileBlock()`
+previously hardcoded `require("./rulesets/5e/enemyTemplate")`
+unconditionally — correct only because PF2e NPCs didn't exist yet. Now
+dispatches by a new `ruleset` field stamped onto every combatProfile
+object (both defaults and Combatant-upgraded ones), defaulting to `'5e'`
+when the field is absent — covers every profile saved before this field
+existed without needing a backfill migration. Verified with a dedicated
+regression case in `scripts/testNpcCombatProfile.js` (`testRulesetFallbackDefaultsTo5e`).
+
+PF2e Player Characters reuse `classFormulas.js` almost entirely (a new
+`lib/rulesets/pf2e/survivorFormulas.js` is mostly composition — resolving
+a PC's Class DC/HP/Perception/saves from their chosen class's own
+hpTier/classDcSchedule/goodSaves plus their own ability scores) — same
+"reuse it, don't fork it" discipline 5e's own survivorFormulas.js
+already established relative to classFormulas.js.
+
+### Frontend: the rest of Phase 11
+
+Extended the ruleset-dispatch pattern (fail-open to Echoes on a lookup
+error, same as the original 5e Bestiary slice) to Classes/Items/
+Survivors, and built a brand-new Spells index page from scratch
+(`archive/spells/`) — Spells has no Echoes/generic form to fall back to
+at all, so an unsupported ruleset instead sees a plain explanatory
+message with no broken form. A `nav-spells` link was added to all 17
+category-bearing archive pages, hidden by default and shown only for
+5e/pf2e worlds via a new `applySpellsNavVisibility()` in
+`archive/js/render.js` (fails CLOSED — stays hidden — on error, the
+opposite default of the Echoes-fallback pattern, since a visible link to
+a category that would just 501 is worse than a temporarily missing one).
+`"spells"` was finally added to `CATEGORY_LABELS`, which Phase 4
+deliberately withheld pending exactly this frontend work.
+
+Bestiary's dispatch grew a real PF2e form (name/level/role/faction, role
+options matching `ROLE_TEMPLATES` exactly) and Generic form (name/
+faction only). A new NPC "Combatant" upgrade UI landed on the dossier
+page — a button (relabeled "Regenerate" once a bespoke profile already
+exists) with ruleset-specific optional fields (5e: Target CR; pf2e:
+Level + Role), wired to the existing `POST /api/npc-combatant-upgrade`.
+
+Every new/changed page verified via headless Chromium (`/opt/pw-browsers/
+chromium` + a local `playwright-core` install from earlier in this
+project) with a stubbed `authFetch` standing in for the real
+Supabase-backed session unavailable in this sandbox — confirmed each
+page's natural fail-open/fail-closed behavior on a real ruleset-lookup
+failure, and confirmed the correct field set renders when the ruleset
+lookup is stubbed to return each of echoes/5e/pf2e/generic.
+
+### Re-investigating the 5e Import/Reflavor gap
+
+Per this project's own "if unsure, look harder before accepting a
+blocker" precedent (the same instinct that unblocked PF2e Bestiary
+earlier), re-cloned `Tabyltop/CC-SRD` and inspected its second JSON file
+(`SRD5.1-CCBY4.0License-TT.json`, 13,353 entries) directly rather than
+trusting the earlier session's "full-text prose" characterization at
+face value. Confirmed it's a raw PDF-text-extraction dump (paragraph/
+heading/table blocks with page/x/y coordinates, no field distinguishing
+a spell name from a class feature name — both are flatly typed `"h4"`).
+The repository's own README settles the question directly: *"The team at
+Tabyltop plans to release additional machine-readable extractions from
+the SRD in the near future including JSON lists of monsters, spells, and
+items"* — as of this snapshot, only the monsters extraction actually
+shipped. Parsing the raw dump into structured spell/item records is
+theoretically possible (spell blocks follow a fairly consistent
+Casting-Time/Range/Components/Duration text pattern) but a real
+data-engineering project with real accuracy risk and no independently-
+reachable source to verify ~319 parsed spells against — staying
+Homebrew-only remains the right call, now backed by a concrete citation
+rather than an inference.
+
+### Regression discipline this round
+
+13 `scripts/test*.js` scripts (4 new this session: `testPf2eClassFormulas`,
+`testPf2eItemFormulas`, `testPf2eSpellFormulas`, `testPf2eSurvivorFormulas`
+— 65 new hard assertions total, all passing), a repo-wide `node -c`
+syntax sweep after every commit, a server boot test with dummy env vars
+after every commit, and headless-browser verification for every frontend
+change. Six commits pushed as checkpoints rather than batched at the
+end, matching this project's "checkpoint after every phase" discipline
+even though the phase boundaries this round were somewhat more fluid
+than the original 14-phase plan.
