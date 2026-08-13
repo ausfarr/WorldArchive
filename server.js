@@ -28,6 +28,7 @@ const wizardLoreRoute = require("./routes/wizardLore");
 const wizardFactionsRoute = require("./routes/wizardFactions");
 const wizardStatSystemRoute = require("./routes/wizardStatSystem");
 const wizardSkillSystemRoute = require("./routes/wizardSkillSystem");
+const wizardRaceSystemRoute = require("./routes/wizardRaceSystem"); // R4 Phase 3 -- Race/Species reference system, 5e-only, Skills-pattern
 const wizardGenericSystemRoute = require("./routes/wizardGenericSystem");
 const wizardStyleGuideRoute = require("./routes/wizardStyleGuide");
 const wizardCategoryConfigRoute = require("./routes/wizardCategoryConfig");
@@ -136,6 +137,7 @@ app.use("/api", wizardLoreRoute);
 app.use("/api", wizardFactionsRoute);
 app.use("/api", wizardStatSystemRoute);
 app.use("/api", wizardSkillSystemRoute);
+app.use("/api", wizardRaceSystemRoute);
 app.use("/api", wizardGenericSystemRoute);
 app.use("/api", wizardStyleGuideRoute);
 app.use("/api", wizardCategoryConfigRoute);

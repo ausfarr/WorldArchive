@@ -26,11 +26,25 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 // Multi-ruleset genericization, Phase 8.
 const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
 const { slugify: slugify5e, buildSurvivorBodyHtml: buildSurvivorBodyHtml5e } = require("../lib/rulesets/5e/survivorTemplate");
-const { computeHitPoints, proficiencyBonusForLevel, spellSlotsForLevel, passivePerception, initiativeBonus } = require("../lib/rulesets/5e/survivorFormulas");
+const { computeHitPoints, proficiencyBonusForLevel, spellSlotsForLevel, passivePerception, initiativeBonus, applyAbilityScoreIncrease } = require("../lib/rulesets/5e/survivorFormulas");
 const { matchCoreClassName, savingThrowProficienciesForClass, SKILLS } = require("../lib/rulesets/5e/classFormulas");
 const { buildHomebrewSurvivorSystemPrompt } = require("../prompts/rulesets/5e/survivorContentPrompt");
+const { getRaceSystem } = require("../lib/worldConfigRepo");
+const { STARTER_5E_RACES } = require("../lib/rulesets/5e/starterRaces");
 
 const VALID_SKILL_KEYS = new Set(SKILLS.map((s) => s.key));
+
+// R4 Phase 3: resolves an optional raceKey against this world's own
+// saved race list, falling back to the hand-authored starter list for a
+// world that hasn't explicitly saved one yet -- same fallback
+// GET /api/wizard/race-system already returns to the frontend, so a
+// raceKey submitted from that dropdown always resolves here too.
+async function resolveRace(worldId, raceKey) {
+  if (!raceKey) return null;
+  const saved = await getRaceSystem(worldId);
+  const pool = saved && saved.length ? saved : STARTER_5E_RACES;
+  return pool.find((r) => r.key === raceKey) || null;
+}
 
 // Generic Player Characters (Homebrew only) -- see
 // prompts/rulesets/generic/survivorContentPrompt.js and
@@ -148,7 +162,7 @@ async function handleEchoesSurvivorGenerate(req, res) {
 // ============================================================
 async function handle5eSurvivorGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId, classLevel } = req.body || {};
+  const { name, faction, fillExistingId, classLevel, raceKey } = req.body || {};
 
   let existingEntry = null;
   let isRegenerate = false;
@@ -187,7 +201,12 @@ async function handle5eSurvivorGenerate(req, res) {
   const classContent = chosenClassFull && chosenClassFull.raw ? chosenClassFull.raw : {};
 
   const level = Math.max(1, Math.min(20, Math.round(Number(proposed.classLevel) || 1)));
-  const abilities = proposed.abilities || {};
+  const race = await resolveRace(worldId, raceKey);
+  // Race's ability score increase is applied to the model's proposed base
+  // scores here, code-side, so it always shows up in the final numbers
+  // (HP/passive Perception/initiative all derive from these) rather than
+  // depending on the model to remember to add it in.
+  const abilities = applyAbilityScoreIncrease(proposed.abilities || {}, race && race.abilityScoreIncrease);
   const hitPoints = computeHitPoints(classContent.hitDie || "d8", level, abilities.con || 10);
   const proficiencyBonus = proficiencyBonusForLevel(level);
   const spellSlots = classContent.casterType && classContent.casterType !== "none" ? spellSlotsForLevel(classContent.casterType, level) : null;
@@ -216,6 +235,9 @@ async function handle5eSurvivorGenerate(req, res) {
     classId: chosenClass.id,
     className: chosenClass.name,
     classLevel: level,
+    abilities,
+    raceKey: race ? race.key : null,
+    raceName: race ? race.name : null,
     hitPoints,
     proficiencyBonus,
     spellSlots,

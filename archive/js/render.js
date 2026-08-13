@@ -676,6 +676,29 @@ async function populateFactionSelect(selectId, { includeUnaligned = false } = {}
   }
 }
 
+// R4 Phase 3: optional Race dropdown for 5e PC/NPC generation forms --
+// populated from this world's own race_system_json (or the hand-authored
+// starter list before anything's been saved yet, same fallback
+// GET /api/wizard/race-system already returns). Never required -- a
+// generation call with no raceKey leaves race unspecified, same as every
+// other optional field on these forms.
+async function populate5eRaceSelect(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  try {
+    const res = await authFetch("/api/wizard/race-system");
+    const data = await res.json();
+    const races = (data && data.raceSystem) || [];
+    const options = ['<option value="">Not specified</option>'];
+    races.forEach((r) => {
+      options.push(`<option value="${r.key}">${r.name}</option>`);
+    });
+    select.innerHTML = options.join("\n");
+  } catch (err) {
+    console.error("Failed to load races for dropdown:", err);
+  }
+}
+
 const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
 // factionLookup is {factionKey: {name, accentColor}} -- see

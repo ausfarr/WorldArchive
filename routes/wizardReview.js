@@ -24,6 +24,7 @@ router.get("/wizard/review", async (req, res) => {
       factions: config.factions_json || [],
       statSystem: config.stat_system_json || null,
       skillSystem: config.skill_system_json || null,
+      raceSystem: config.race_system_json || null,
       styleGuide: config.style_guide_json || null,
       categoryConfig: config.category_config_json || null,
       setupCompletedAt: config.setup_completed_at || null

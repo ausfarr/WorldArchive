@@ -795,6 +795,17 @@ function show5eSpellEditForm(entry) {
 // this world's archive, per Phase 8's "a PC is a Class instance" rule.
 // ============================================================
 
+async function fetch5eRaceOptions() {
+  try {
+    const res = await authFetch("/api/wizard/race-system");
+    const data = await res.json();
+    return (data && data.raceSystem) || [];
+  } catch (err) {
+    console.error("Could not load races:", err);
+    return [];
+  }
+}
+
 async function show5eSurvivorEditForm(entry) {
   const raw = entry.raw || {};
   const classOptions = await fetchCategoryOptions("classes");
@@ -802,6 +813,7 @@ async function show5eSurvivorEditForm(entry) {
     alert("This world has no Classes yet -- generate or roll at least one Class before creating a Player Character.");
     return null;
   }
+  const raceOptions = await fetch5eRaceOptions();
   const abilities = raw.abilities || {};
 
   const bodyHtml = `
@@ -809,6 +821,7 @@ async function show5eSurvivorEditForm(entry) {
     <div id="ef-faction-wrap"></div>
     ${efSelect("Class", "ef-classId", idSelectOptionsHtml(classOptions, raw.classId))}
     ${efField("Class Level (1-20)", "ef-classLevel", raw.classLevel || 1, { type: "number" })}
+    ${efSelect("Race (optional)", "ef-raceKey", ['<option value="">Not specified</option>'].concat(raceOptions.map((r) => `<option value="${r.key}" ${r.key === raw.raceKey ? "selected" : ""}>${r.name}</option>`)).join(""))}
     ${rowHeader("Ability Scores")}
     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px;">
       ${FIVEE_ABILITY_KEYS.map((k) => efField(k.toUpperCase(), `ef-ability-${k}`, abilities[k] != null ? abilities[k] : 10, { type: "number" })).join("")}
@@ -841,6 +854,12 @@ async function show5eSurvivorEditForm(entry) {
     const wis = Number(val("ef-ability-wis")) || 10;
     const dex = Number(val("ef-ability-dex")) || 10;
     const skillProficiencies = Array.from(document.querySelectorAll(".ef-skill-check:checked")).map((el) => el.value);
+    // Race is recorded for reference/display only in manual mode -- unlike
+    // AI generation (which applies the ability score increase to a
+    // model-PROPOSED base score), a manually typed ability score is
+    // already whatever final number the author wants, so auto-adding the
+    // race bonus on top here would double-count it if they already did.
+    const chosenRace = raceOptions.find((r) => r.key === val("ef-raceKey")) || null;
     const matchedCoreClass = cmfMatchCoreClassName(chosenClass.name);
     const savingThrowProficiencies = cmfSavingThrowProficienciesForClass(matchedCoreClass, classContent.savingThrowProficiencies);
     const proficiencyBonus = cmfProficiencyBonusForLevel(level);
@@ -853,6 +872,8 @@ async function show5eSurvivorEditForm(entry) {
       classId: chosenClass.id,
       className: chosenClass.name,
       classLevel: level,
+      raceKey: chosenRace ? chosenRace.key : null,
+      raceName: chosenRace ? chosenRace.name : null,
       abilities: Object.fromEntries(FIVEE_ABILITY_KEYS.map((k) => [k, Number(val(`ef-ability-${k}`)) || 10])),
       skillProficiencies,
       armorClass: Number(val("ef-armorClass")) || 10,

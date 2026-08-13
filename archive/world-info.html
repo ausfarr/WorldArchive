@@ -209,6 +209,31 @@ function renderContent(data) {
   }
   html += section("Skills", skillsHtml || '<div class="info-empty">Not configured yet.</div>');
 
+  // Races/Species (R4 Phase 3, 5e only) -- live-pulled every load, same
+  // pattern as Attributes/Skills above. Absent entirely (not even an
+  // empty section) for a non-5e world, since raceSystem is null there --
+  // this is a 5e-specific mechanical concept, not a universal one.
+  const raceSystem = data.raceSystem;
+  if (Array.isArray(raceSystem) && raceSystem.length) {
+    const raceCards = raceSystem.map((r) => {
+      const asiText = Object.entries(r.abilityScoreIncrease || {})
+        .filter(([, v]) => v)
+        .map(([k, v]) => `${k.toUpperCase()} +${v}`)
+        .join(", ") || "—";
+      const traitsHtml = (r.traits || []).map((t) => `<div class="desc"><strong>${escapeHtmlWI(t.name)}:</strong> ${escapeHtmlWI(t.description)}</div>`).join("");
+      return `
+        <div class="stat-card">
+          <div class="name">${escapeHtmlWI(r.name)}</div>
+          <div class="canon">${escapeHtmlWI(r.size || "Medium")} · Speed ${r.speed || 30} ft. · ${asiText}</div>
+          ${r.choiceNote ? `<div class="desc" style="font-style:italic;">${escapeHtmlWI(r.choiceNote)}</div>` : ""}
+          ${traitsHtml}
+          ${r.flavor ? `<div class="desc">${escapeHtmlWI(r.flavor)}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+    html += section("Races &amp; Species", `<div class="stat-grid">${raceCards}</div>`);
+  }
+
   document.getElementById("content").innerHTML = html;
   document.getElementById("loading").style.display = "none";
   document.getElementById("content").style.display = "block";
