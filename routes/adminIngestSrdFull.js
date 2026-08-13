@@ -38,8 +38,7 @@ router.get("/admin/ingest-srd-5e-full", async (req, res) => {
     return res.json({
       ok: true,
       message: "SRD ingestion complete.",
-      counts: results,
-      note: "Classes (classes.md) are not ingested by this script -- deferred, see scripts/ingestSrd5eFull.js's header comment."
+      counts: results
     });
   } catch (err) {
     console.error("Admin full SRD ingestion failed:", err);

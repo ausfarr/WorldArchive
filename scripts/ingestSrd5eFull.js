@@ -38,15 +38,15 @@
 //   converter, they're written against this specific source's exact
 //   conventions.
 //
-//   Classes (classes.md) is NOT ingested by this script -- at 11,546
-//   lines with deeply nested subclass features, it needs more careful,
-//   dedicated parsing work than the other four categories got here.
-//   Flagged as a deferred follow-up, not built now, per this project's
-//   "if unsure, flag rather than guess" standard. This codebase's
-//   `lib/rulesets/5e/classFormulas.js` already code-determines hit
-//   dice/saving throws/spell slots for the 12 core classes independent
-//   of any SRD import, so this gap is lower-priority than
-//   Spells/Items/Feats/Magic Items were.
+//   Classes (classes.md) -- the Core Traits block for all 12 core
+//   classes (Primary Ability, Hit Die, Saving Throws, Skill/Weapon
+//   Proficiencies, Armor Training, Starting Equipment) plus the name +
+//   tagline of the SRD's one example subclass per class. Hit dice and
+//   saving throws cross-checked against this codebase's own
+//   `lib/rulesets/5e/classFormulas.js` table -- exact match on all 12.
+//   Full level-by-level class/subclass feature progressions are NOT
+//   ingested -- same "flag rather than guess" call as everything else
+//   this script deferred, see parseClasses()'s own comment for why.
 //
 // Run with: node scripts/ingestSrd5eFull.js
 // (Or, in production with no shell access: trigger via
@@ -327,6 +327,75 @@ function parseAdventuringGear(text) {
 }
 
 // ============================================================
+// Classes (classes.md) -- one "## ClassName" header per core class (12
+// total: Barbarian through Wizard), each opening with a "**Core
+// <ClassName> Traits**" plain <table> of consistent label/value row
+// pairs (Primary Ability, Hit Point Die, Saving Throw Proficiencies,
+// Skill Proficiencies, Weapon Proficiencies, Armor Training, Starting
+// Equipment). Confirmed identical structure across all 12 classes by
+// direct inspection, and every hit die/saving-throw pair cross-checked
+// against this codebase's own hand-verified
+// lib/rulesets/5e/classFormulas.js table -- exact match on all 12.
+//
+// Deliberately NOT parsed: the full level-by-level Class Features
+// table and the full nested subclass feature list (each subclass has
+// its own multi-level feature progression, same depth-of-nesting risk
+// that kept full Classes ingestion out of the first pass). What IS
+// captured: the Core Traits block (fully mechanical, safe to trust
+// verbatim) plus the name + one-line tagline of the SRD's single
+// example subclass per class (flavor only, not its feature list) --
+// enough for a real Import/Reflavor/Homebrew grounding reference
+// without the unverified-parse risk of the deeper content.
+// ============================================================
+function parseClasses(text) {
+  const classHeaders = [...text.matchAll(/^## (.+)$/gm)].map((m) => ({ name: m[1].trim(), index: m.index }));
+  const classes = [];
+
+  for (let i = 0; i < classHeaders.length; i++) {
+    const { name, index } = classHeaders[i];
+    const end = i + 1 < classHeaders.length ? classHeaders[i + 1].index : text.length;
+    const block = text.slice(index, end);
+
+    const coreTableMatch = block.match(/\*\*Core .+? Traits\*\*\s*\n\s*<table>[\s\S]*?<\/table>/);
+    const fields = {};
+    if (coreTableMatch) {
+      const rowMatches = [...coreTableMatch[0].matchAll(/<tr>\s*<td>(.+?)<\/td>\s*<td>(.+?)<\/td>\s*<\/tr>/gs)];
+      for (const [, label, value] of rowMatches) {
+        fields[label.replace(/<[^>]+>/g, "").trim()] = value.replace(/<[^>]+>/g, "").trim();
+      }
+    }
+    if (!coreTableMatch || !fields["Hit Point Die"]) continue; // not a real class block, stay defensive
+
+    const subclassMatch = block.match(/^### .+? Subclass: (.+)$/m);
+    let exampleSubclass = null;
+    if (subclassMatch) {
+      const subclassName = subclassMatch[1].trim();
+      const afterHeader = block.slice(block.indexOf(subclassMatch[0]) + subclassMatch[0].length);
+      const taglineMatch = afterHeader.match(/^\s*\n_(.+?)_/);
+      exampleSubclass = { name: subclassName, tagline: taglineMatch ? taglineMatch[1].trim() : null };
+    }
+
+    classes.push({
+      srd_id: slugify(name),
+      name,
+      data_json: {
+        name,
+        primaryAbility: fields["Primary Ability"] || null,
+        hitDie: fields["Hit Point Die"] || null,
+        savingThrowProficiencies: fields["Saving Throw Proficiencies"] || null,
+        skillProficiencies: fields["Skill Proficiencies"] || null,
+        weaponProficiencies: fields["Weapon Proficiencies"] || null,
+        armorTraining: fields["Armor Training"] || null,
+        startingEquipment: fields["Starting Equipment"] || null,
+        exampleSubclass
+      },
+      class_name: name
+    });
+  }
+  return classes;
+}
+
+// ============================================================
 // Upsert helper -- same idempotency contract as ingestSrd5e.js
 // (upsert on ruleset+category+srd_id, so re-running after a source
 // update overwrites rather than duplicates).
@@ -365,10 +434,13 @@ async function ingestAll() {
   const magicItemsText = await fetchText("magic-items.md");
   results["magic-items"] = await upsertRows("magic-items", parseMagicItems(magicItemsText), (r) => ({ rarity: r.rarity }));
 
+  const classesText = await fetchText("classes.md");
+  results.classes = await upsertRows("classes", parseClasses(classesText), (r) => ({ class_name: r.class_name }));
+
   return results;
 }
 
-module.exports = { ingestAll, parseSpells, parseFeats, parseMagicItems, parseWeaponsAndArmor, parseAdventuringGear };
+module.exports = { ingestAll, parseSpells, parseFeats, parseMagicItems, parseWeaponsAndArmor, parseAdventuringGear, parseClasses };
 
 if (require.main === module) {
   ingestAll()
