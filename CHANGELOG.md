@@ -21,6 +21,30 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fixed the two broken generation-pipeline test scripts** —
+  `scripts/testPipeline.js` and `scripts/testEnemyPipeline.js` had been
+  silently dead since the Supabase/multi-tenant migration: they asserted
+  against the old flat `archive/<category>/data/<id>.js` +
+  `manifest.js` files the app hasn't written since (content lives in the
+  `entries` table now — see CLAUDE.md's "Data model" section), and never
+  accounted for the
+  `requireAiEnabled`/`enforceGenerationCap`/`enforceEntryCapOnGenerate`
+  middleware chain added afterward, which made every request 500 trying
+  to reach a real Supabase project no sandbox has network access to. Both
+  now run against a new in-memory Supabase fake
+  (`scripts/lib/fakeSupabase.js`, the one shared helper in `scripts/` —
+  factored out of the pattern `testProceduralRulesetGenerators.js`
+  already used, since an HTTP-route pipeline test needs the same
+  query-builder fake plus `user_settings` and the generation-count RPCs)
+  and assert against `entriesRepo.getEntry()` instead of dead file paths.
+  Deleted `testPipelineGemini.js`/`testPipelineHybrid.js` outright rather
+  than fixing them the same way — both mocked a "generate NPC content via
+  Gemini" pathway that was never real: `/api/generate-npc` has only ever
+  called Claude — Gemini-as-text-model exists solely in the
+  `/api/debug/compare-text-models` tooling — keeping them around
+  un-fixable would have implied Gemini-for-content is a tested,
+  supported path when it never has been. CLAUDE.md's Commands section
+  updated to match.
 - **Ruleset recovery, Phase R4 (5e character-sheet completeness)** — the
   5e ruleset's working parts (CR math, leveling, SRD monster import) were
   solid, but a Player Character sheet was missing pieces a real table

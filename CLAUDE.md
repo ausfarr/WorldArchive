@@ -21,7 +21,7 @@ There is no lint script, no test script, and no bundler/build step — the front
 
 **"Tests"** are standalone Node scripts in `scripts/`, run directly and read individually to see what they check — there's no test runner or `npm test`:
 - `node scripts/testTenantIsolation.js` — exercises real Supabase (needs `SUPABASE_URL`/`SUPABASE_SECRET_KEY`); creates and cleans up its own throwaway users; safe to run against the real project.
-- `node scripts/testPipeline.js` / `testPipelineGemini.js` / `testPipelineHybrid.js` / `testEnemyPipeline.js` — mock `global.fetch` for the Anthropic/Gemini calls, so they run without real API keys or a DB; check generation logic end-to-end offline.
+- `node scripts/testPipeline.js` / `testEnemyPipeline.js` — mock `global.fetch` for the Anthropic/Gemini calls and `lib/supabaseClient.js` (via `scripts/lib/fakeSupabase.js`, an in-memory query-builder fake), so they exercise the real `/api/generate-npc` / `/api/generate-enemy` routes end-to-end — middleware chain, prompt building, save path — without real API keys or a live DB.
 - `node scripts/compareTextModels.js` — real API calls comparing content models (backs the `/api/debug/compare-text-models` route and the `CONTENT_MODEL` default decision noted in `lib/claude.js`).
 
 **Version bump when shipping a UI-affecting change:** `node scripts/bump-cache-version.js vX.Y` bumps `lib/version.js`'s `APP_VERSION` *and* the `?v=...` cache-busting query params on `render.js`/`mapLayout.js`/`portraitActions.js` `<script>` tags across every `archive/*.html` page in one shot (there's no build step to do this automatically). `marketing/version.js` is a separate static-site version stamp kept in sync by hand when cutting a release.
