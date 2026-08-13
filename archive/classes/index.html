@@ -5,6 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Classes — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
+<style>
+  /* Import/Reflavor/Homebrew source picker (5e only). Import is its own
+     Stage-1 action showing ONLY the SRD picker; "Generate with AI" shows
+     ONLY the Reflavor/Homebrew toggle -- built this way from the start
+     (R5 Phase 5), same pattern as archive/items/index.html (see that
+     file's own comments for the full reasoning). */
+  .mode-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    color: var(--ink-dim); padding: 8px 14px; cursor: pointer;
+    font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.82rem;
+  }
+  .mode-btn-tag {
+    font-family: var(--font-mono); text-transform: none; letter-spacing: 0; font-size: 0.65rem; color: var(--ink-faint);
+  }
+  .mode-btn-active {
+    border-color: var(--neon-primary); color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--neon-primary);
+  }
+</style>
 <script>
 (function() {
   try {
@@ -128,7 +148,12 @@ function wireEchoesClassForm() {
   });
 }
 
-function wireRealRulesetClassForm() {
+// Generic Classes stay Homebrew-only, narrative-first (no leveling math,
+// no SRD data to import against -- see
+// routes/generateClass.js's handleGenericClassGenerate) -- same simple
+// {name, faction} form this page always had for any non-Echoes ruleset,
+// before 5e grew its own real three-tier form below.
+function wireGenericClassForm() {
   const fieldsHost = document.getElementById('gen-form-fields');
   fieldsHost.innerHTML = `
     <div style="flex: 1; min-width: 220px;">
@@ -173,6 +198,185 @@ function wireRealRulesetClassForm() {
   });
 }
 
+// Real backend contract, mirrors routes/generateEnemy.js's 5e branch --
+// see that file's own comment for the mode/srdLibraryId request shape.
+// Built with the corrected Import/Generate split from the start (R5
+// Phase 5): #gen-import-view (SRD picker only) and #gen-ai-view
+// (Reflavor/Homebrew toggle only) are two separate sub-views, switched
+// between by promoteImportToStage1()'s two Stage-1 buttons below --
+// never shown together. See archive/items/index.html for the identical
+// pattern this was built from.
+async function wire5eClassForm() {
+  const fieldsHost = document.getElementById('gen-form-fields');
+  fieldsHost.innerHTML = `
+    <div id="gen-import-view" style="display:none; gap:12px; flex-wrap:wrap; align-items:flex-end; width:100%;">
+      <div style="flex: 1; min-width: 220px;">
+        <label for="gen-import-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD CLASS</label>
+        <select id="gen-import-srd-picker" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;"></select>
+      </div>
+      <div style="flex: 1; min-width: 160px;">
+        <label for="gen-import-faction" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+        <select id="gen-import-faction" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+          <option value="">Let it choose</option>
+        </select>
+      </div>
+    </div>
+    <div id="gen-ai-view" style="display:none; gap:12px; flex-wrap:wrap; align-items:flex-end; width:100%;">
+      <div style="flex: 1; min-width: 220px;">
+        <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">CONCEPT / NAME (optional)</label>
+        <input id="gen-name" type="text" placeholder="leave blank to invent one" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      </div>
+      <div style="flex-basis: 100%; min-width: 260px;">
+        <label style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 6px;">SOURCE</label>
+        <div id="gen-mode-buttons" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="mode-btn" data-mode="reflavor">Reflavor<span class="mode-btn-tag">AI · SRD class, new narrative</span></button>
+          <button type="button" class="mode-btn" data-mode="homebrew">Homebrew AI<span class="mode-btn-tag">AI · fully new design</span></button>
+        </div>
+        <input type="hidden" id="gen-mode" value="homebrew">
+      </div>
+      <div id="gen-reflavor-srd-wrap" style="flex: 1; min-width: 200px; display: none;">
+        <label for="gen-reflavor-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD CLASS</label>
+        <select id="gen-reflavor-srd-picker" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;"></select>
+      </div>
+      <div style="flex: 1; min-width: 160px;">
+        <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+        <select id="gen-field-2" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+          <option value="">Let it choose</option>
+        </select>
+      </div>
+    </div>
+  `;
+  populateFactionSelect('gen-import-faction', { includeUnaligned: true });
+  populateFactionSelect('gen-field-2', { includeUnaligned: true });
+
+  let srdClasses = [];
+  try {
+    const res = await authFetch('/api/srd-library?ruleset=5e&category=classes');
+    const data = await res.json();
+    srdClasses = data.entries || [];
+  } catch (err) {
+    console.error('Could not load SRD class list:', err);
+  }
+  const srdOptionsHtml = srdClasses.map((c) => `<option value="${c.id}">${c.name}</option>`).join('') || '<option value="">No SRD classes available</option>';
+  document.getElementById('gen-import-srd-picker').innerHTML = srdOptionsHtml;
+  document.getElementById('gen-reflavor-srd-picker').innerHTML = srdOptionsHtml;
+
+  const modeSubmitLabels = { reflavor: 'Generate', homebrew: 'Generate' };
+
+  function updateAiModeVisibility() {
+    const mode = document.getElementById('gen-mode').value;
+    document.getElementById('gen-reflavor-srd-wrap').style.display = mode === 'reflavor' ? 'block' : 'none';
+    document.querySelectorAll('#gen-mode-buttons .mode-btn').forEach((b) => {
+      b.classList.toggle('mode-btn-active', b.dataset.mode === mode);
+    });
+    document.getElementById('gen-submit').textContent = modeSubmitLabels[mode] || 'Generate';
+  }
+  document.querySelectorAll('#gen-mode-buttons .mode-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.getElementById('gen-mode').value = b.dataset.mode;
+      updateAiModeVisibility();
+    });
+  });
+  updateAiModeVisibility();
+  promoteImportToStage1('gen-import-view', 'gen-ai-view', 'Copy an official 5e SRD class straight in -- zero AI cost.');
+
+  document.getElementById('gen-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('gen-submit');
+    const status = document.getElementById('gen-status');
+    const mode = document.getElementById('gen-mode').value;
+    btn.disabled = true; btn.textContent = mode === 'import' ? 'Importing…' : 'Generating…';
+    showGenerationOverlay(mode === 'import' ? ['Copying the SRD class…'] : ['Designing the class’s leveling math…', 'Writing milestone features…', 'Almost there…']);
+    status.style.display = 'block'; status.textContent = 'Calling the generator…';
+    try {
+      const body = { mode };
+      if (mode === 'import') {
+        body.srdLibraryId = document.getElementById('gen-import-srd-picker').value;
+        body.faction = document.getElementById('gen-import-faction').value;
+      } else {
+        body.name = document.getElementById('gen-name').value;
+        body.faction = document.getElementById('gen-field-2').value;
+        if (mode === 'reflavor') body.srdLibraryId = document.getElementById('gen-reflavor-srd-picker').value;
+      }
+
+      const res = await authFetch('/api/generate-class', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(formatGenerationError(data));
+      status.textContent = `Generated: ${data.name}${data.summary ? ' — ' + data.summary : ''}`;
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      status.innerHTML = err.message;
+    } finally {
+      hideGenerationOverlay();
+      btn.disabled = false; btn.textContent = modeSubmitLabels[mode] || 'Generate';
+    }
+  });
+}
+
+// wireCreateEntryCollapse() (js/render.js, shared by all category pages)
+// already wraps this whole panel in a "+ Create Entry" -> Stage 1
+// ("Generate with AI" / "Enter Manually" / "Roll Randomly") -> Stage 2
+// accordion. This promotes Import to its own Stage-1 button next to
+// "Generate with AI" -- clicking Import reveals ONLY #gen-import-view;
+// clicking "Generate with AI" reveals ONLY #gen-ai-view (defaulted to
+// Homebrew). Page-local, matching archive/items/index.html's identical
+// helper -- see that file's comment for why (Phase 6 revisits sharing
+// this across all three pages once Enemies is updated too).
+function whenReady(selector, cb, tries) {
+  tries = tries == null ? 40 : tries;
+  const el = document.querySelector(selector);
+  if (el) return cb(el);
+  if (tries <= 0) return;
+  requestAnimationFrame(() => whenReady(selector, cb, tries - 1));
+}
+
+function promoteImportToStage1(importViewId, aiViewId, importTitle) {
+  whenReady('#create-entry-stage1-row', (stage1Row) => {
+    if (document.getElementById('create-entry-import-btn')) return; // already injected
+    const aiBtn = document.getElementById('create-entry-ai-btn');
+
+    function showStage2() {
+      stage1Row.style.display = 'none';
+      const eyebrow = document.querySelector('.sheet-eyebrow');
+      const fieldsWrap = document.getElementById('gen-form-fields');
+      const submitBtn = document.getElementById('gen-submit');
+      if (eyebrow) eyebrow.style.display = '';
+      if (fieldsWrap) fieldsWrap.style.display = '';
+      if (submitBtn) submitBtn.style.display = '';
+    }
+
+    const importBtn = document.createElement('button');
+    importBtn.type = 'button';
+    importBtn.id = 'create-entry-import-btn';
+    importBtn.textContent = 'Import (free)';
+    importBtn.title = importTitle || 'Copy official SRD content straight in -- zero AI cost.';
+    importBtn.style.cssText = "background: var(--bg-panel-raised); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
+    importBtn.addEventListener('click', () => {
+      document.getElementById(importViewId).style.display = 'flex';
+      document.getElementById(aiViewId).style.display = 'none';
+      document.getElementById('gen-mode').value = 'import';
+      document.getElementById('gen-submit').textContent = 'Import';
+      showStage2();
+    });
+    stage1Row.insertBefore(importBtn, aiBtn || stage1Row.firstChild);
+
+    if (aiBtn) {
+      aiBtn.addEventListener('click', () => {
+        document.getElementById(importViewId).style.display = 'none';
+        document.getElementById(aiViewId).style.display = 'flex';
+        document.getElementById('gen-mode').value = 'homebrew';
+        document.getElementById('gen-submit').textContent = 'Generate';
+        const homebrewBtn = document.querySelector('#gen-mode-buttons .mode-btn[data-mode="homebrew"]');
+        if (homebrewBtn) homebrewBtn.click();
+      });
+    }
+  });
+}
+
 async function initClassGenerateForm() {
   let ruleset = 'echoes';
   try {
@@ -182,12 +386,10 @@ async function initClassGenerateForm() {
   } catch (err) {
     console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
   }
-  if (ruleset === '5e' || ruleset === 'generic') {
-    // Generic Classes take the identical {name, faction} body shape as
-    // 5e's (see routes/generateClass.js's handleGenericClassGenerate) --
-    // narrative-first, no leveling math to expose as a form field -- so
-    // the same form/handler covers both rulesets.
-    wireRealRulesetClassForm();
+  if (ruleset === '5e') {
+    await wire5eClassForm();
+  } else if (ruleset === 'generic') {
+    wireGenericClassForm();
   } else {
     wireEchoesClassForm();
   }

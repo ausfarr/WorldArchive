@@ -1,17 +1,31 @@
 // prompts/rulesets/5e/classContentPrompt.js
 //
-// 5e Class generation -- HOMEBREW TIER ONLY (no canonical class data
-// exists to import -- same gap as Spells/Items, see SESSION_LOG.md).
+// 5e Class generation -- three tiers as of R5 Phase 5 (previously
+// Homebrew only; Import/Reflavor were blocked on real SRD class data,
+// which scripts/ingestSrd5eFull.js now provides via
+// srd_library.category = 'classes'):
 //
-// "Model writes narrative, code writes math" applied here: the model
-// proposes feature NAMES/DESCRIPTIONS at meaningful milestone levels
-// (not a mechanical line for all 20 levels -- real published subclasses
-// don't have a unique feature every single level either) and picks the
-// class's caster type. Code then builds the FULL 1-20 table
-// (proficiency bonus, spell slots, the subclass-unlock level, ASI
-// levels) deterministically from classFormulas.js -- the model never
-// invents the subclass-unlock level or spell slot counts, both of which
-// are real, fixed 5e rules, not creative-design choices.
+//   - Import: no prompt at all, no Claude call -- routes/generateClass.js
+//     copies a srd_library row straight into entries.raw_json via
+//     lib/rulesets/5e/srdClassMapper.js. Nothing in this file handles
+//     Import; it's listed here only so this file's exports read as the
+//     complete three-tier menu.
+//   - Reflavor: the model rewrites the class's flavor and its features'
+//     names/descriptions, but the mechanical shape (hit die, primary
+//     ability, saving throws, caster type, subclass-unlock level, and
+//     how many features exist at which levels) is carried through
+//     UNCHANGED from the SRD source.
+//   - Homebrew: the model invents a full new class (unchanged from
+//     before this phase). "Model writes narrative, code writes math"
+//     applied here: the model proposes feature NAMES/DESCRIPTIONS at
+//     meaningful milestone levels (not a mechanical line for all 20
+//     levels -- real published subclasses don't have a unique feature
+//     every single level either) and picks the class's caster type. Code
+//     then builds the FULL 1-20 table (proficiency bonus, spell slots,
+//     the subclass-unlock level, ASI levels) deterministically from
+//     classFormulas.js -- the model never invents the subclass-unlock
+//     level or spell slot counts, both of which are real, fixed 5e
+//     rules, not creative-design choices.
 
 const { buildCacheableSystemPrompt } = require("../../../lib/claude");
 
@@ -67,4 +81,36 @@ Name: ${name || "generate one fitting the setting"}${campaignContext ? `\nCampai
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
-module.exports = { buildHomebrewClassSystemPrompt };
+const REFLAVOR_SCHEMA = `{
+  "flavor": "2-4 sentences of NEW lore, grounded in this world's tone/factions",
+  "features": [
+    { "level": 1, "name": "New Feature Name (may rename, keep the SAME mechanical effect worded in the description)", "description": "..." }
+  ],
+  "subclassFlavor": "1-2 sentences of NEW lore for the class's single subclass option",
+  "designNotes": "1-2 sentences on how this reflavor fits this world"
+}`;
+
+const REFLAVOR_STATIC_INSTRUCTIONS = `You are reflavoring an official 5th Edition class's NARRATIVE presentation for a specific tabletop game world, while its mechanics stay exactly as printed. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
+
+HARD RULE: you may rename features and rewrite their flavor text, and rewrite the class's overall flavor -- but every feature's MECHANICAL EFFECT (any numeric value, die roll, or rules effect) must stay IDENTICAL to the source class provided below, and you must return exactly the same number of features at exactly the same levels as the source (do not add, remove, or move any). Do not touch hit die, primary ability, saving throws, caster type, or the subclass-unlock level -- those are not part of your output.
+
+Return JSON matching this exact schema (the "features" array must be the same length, same levels, same order, as the source class's features):
+${REFLAVOR_SCHEMA}`;
+
+function buildReflavorClassSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceClass, campaignContext }) {
+  const dynamicContext = `SETTING (stay consistent with this):
+${settingContext}
+
+FACTIONS IN THIS WORLD:
+${factionOptionsText}
+
+WORLD LORE — GROUND TRUTH:
+${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}
+
+SOURCE CLASS (official 5e class -- reflavor its narrative, do not change its mechanics):
+${JSON.stringify(sourceClass, null, 2)}${campaignContext ? `\n\nCampaign context: ${campaignContext}` : ""}`;
+
+  return buildCacheableSystemPrompt(REFLAVOR_STATIC_INSTRUCTIONS, dynamicContext);
+}
+
+module.exports = { buildHomebrewClassSystemPrompt, buildReflavorClassSystemPrompt };
