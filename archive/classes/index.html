@@ -78,7 +78,7 @@
   
 <div class="sheet" style="margin: 0 0 40px; padding: 24px 32px;">
   <p class="sheet-eyebrow" style="margin: 0 0 8px;">Generate New Entry</p>
-  <p style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint); margin: 0 0 12px;">Generates a full Level 1–99 progression tree — this one takes noticeably longer than other categories.</p>
+  <p id="gen-echoes-hint" style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint); margin: 0 0 12px; display: none;">Generates a full Level 1–99 progression tree — this one takes noticeably longer than other categories.</p>
   <form id="gen-form" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
     <div id="gen-form-fields" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
     <div style="flex: 1; min-width: 220px;">
@@ -100,6 +100,14 @@
 // ============================================================
 
 function wireEchoesClassForm() {
+  // Echoes-only hint (Level 1-99 progression tree) -- was previously
+  // static markup outside #gen-form-fields, so it showed for every
+  // ruleset regardless of which form actually rendered; now shown only
+  // here, same "absent, not just empty" gating every other ruleset-
+  // specific bit of UI on this page already gets.
+  const echoesHint = document.getElementById('gen-echoes-hint');
+  if (echoesHint) echoesHint.style.display = 'block';
+
   document.getElementById('gen-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('gen-submit');
