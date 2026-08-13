@@ -22,7 +22,7 @@ const { slugify: slugify5e, buildEnemyBodyHtml: buildEnemyBodyHtml5e } = require
 const { XP_BY_CR } = require("../lib/rulesets/5e/statFormulas");
 const { mapSrdMonsterMechanics } = require("../lib/rulesets/5e/srdMonsterMapper");
 const { buildReflavorEnemySystemPrompt } = require("../prompts/rulesets/5e/enemyContentPrompt");
-const { getSrdEntry, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
+const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
 
 // Multi-ruleset genericization, Phase 10 (Generic ruleset).
@@ -205,14 +205,26 @@ async function handle5eEnemyGenerate(req, res) {
     return res.status(400).json({ error: "5e enemy generation requires a 'mode' of 'import', 'reflavor', or 'homebrew'." });
   }
 
+  // The generic card "Regenerate" button (archive/js/render.js's
+  // regenerateEntry()) only ever posts { fillExistingId } -- it has no
+  // way to resupply srdLibraryId for an import/reflavor entry, so recover
+  // it from what's already saved (srdSourceId, the human slug) rather
+  // than erroring on every regenerate of an imported/reflavored entry.
+  // See lib/srdLibraryRepo.js's getSrdEntryBySlug() for why this is safe.
+  let resolvedSrdLibraryId = srdLibraryId;
+  if (!resolvedSrdLibraryId && (effectiveMode === "import" || effectiveMode === "reflavor") && existingEntry && existingEntry.raw && existingEntry.raw.srdSourceId) {
+    const recovered = await getSrdEntryBySlug("5e", "monsters", existingEntry.raw.srdSourceId);
+    if (recovered) resolvedSrdLibraryId = recovered.id;
+  }
+
   // ---- Import: zero AI cost, direct copy from srd_library ----
   if (effectiveMode === "import") {
     if (req.refundGeneration) await req.refundGeneration(); // Phase 12 scope is a full 0-point billing path; refunding here gets the same result today without a bigger enforceGenerationCap rework.
-    if (!srdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
-    const srdRow = await getSrdEntry(srdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(resolvedSrdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
 
-    const alreadyImportedAs = await isAlreadyImported(worldId, srdLibraryId);
+    const alreadyImportedAs = await isAlreadyImported(worldId, resolvedSrdLibraryId);
     if (alreadyImportedAs && alreadyImportedAs !== fillExistingId) {
       return res.status(409).json({ error: `This SRD monster was already imported into this world as '${alreadyImportedAs}'.` });
     }
@@ -237,7 +249,7 @@ async function handle5eEnemyGenerate(req, res) {
     }
 
     await save5eEnemyEntry(worldId, enemy, null);
-    await recordImport(worldId, srdLibraryId, enemy.id);
+    await recordImport(worldId, resolvedSrdLibraryId, enemy.id);
     return res.json({ preview: false, id: enemy.id, name: enemy.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
   }
 
@@ -249,18 +261,12 @@ async function handle5eEnemyGenerate(req, res) {
   let enemy;
 
   if (effectiveMode === "reflavor") {
-    // srdLibraryId (the srd_library row's UUID primary key) must be
-    // passed explicitly on every call, including a regenerate -- an
-    // existing reflavored entry only stores srdSourceId (the human
-    // slug, e.g. "goblin", kept for display) on its raw_json, not the
-    // UUID getSrdEntry() needs, and re-resolving slug -> UUID isn't
-    // worth a second lookup helper for this proof-of-concept phase. The
-    // frontend already has srdLibraryId on hand for a regenerate (it's
-    // how the reflavor was requested the first time), so this is a
-    // reasonable contract, not a real limitation.
-    if (!srdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
-    const srdRow = await getSrdEntry(srdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+    // srdLibraryId is recovered above (resolvedSrdLibraryId) from either
+    // the request body (first-time reflavor) or the existing entry's
+    // saved srdSourceId (a regenerate).
+    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(resolvedSrdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
 
     const systemPrompt = buildReflavorEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, sourceMonster: srdRow.data_json, faction });
     const reflavored = await callClaudeExpectingJson({ systemPrompt, userMessage: "Reflavor the monster now.", maxTokens: 2000 });

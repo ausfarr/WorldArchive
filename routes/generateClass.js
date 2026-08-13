@@ -20,7 +20,7 @@ const { slugify: slugify5e, buildClassBodyHtml: buildClassBodyHtml5e } = require
 const { subclassUnlockLevel, matchCoreClassName, savingThrowProficienciesForClass } = require("../lib/rulesets/5e/classFormulas");
 const { buildHomebrewClassSystemPrompt, buildReflavorClassSystemPrompt } = require("../prompts/rulesets/5e/classContentPrompt");
 const { mapSrdClassMechanics } = require("../lib/rulesets/5e/srdClassMapper");
-const { getSrdEntry, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
+const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 
 // Generic Classes (Homebrew only, narrative-first -- no leveling concept
@@ -171,14 +171,23 @@ async function handle5eClassGenerate(req, res) {
     return res.status(400).json({ error: "5e class generation requires a 'mode' of 'import', 'reflavor', or 'homebrew'." });
   }
 
+  // The generic card "Regenerate" button only ever posts { fillExistingId
+  // } -- recover srdLibraryId from the existing entry's saved srdSourceId
+  // when it's missing, same fallback as routes/generateEnemy.js.
+  let resolvedSrdLibraryId = srdLibraryId;
+  if (!resolvedSrdLibraryId && (effectiveMode === "import" || effectiveMode === "reflavor") && existingEntry && existingEntry.raw && existingEntry.raw.srdSourceId) {
+    const recovered = await getSrdEntryBySlug("5e", "classes", existingEntry.raw.srdSourceId);
+    if (recovered) resolvedSrdLibraryId = recovered.id;
+  }
+
   // ---- Import: zero AI cost, direct copy from srd_library ----
   if (effectiveMode === "import") {
     if (req.refundGeneration) await req.refundGeneration();
-    if (!srdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
-    const srdRow = await getSrdEntry(srdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(resolvedSrdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
 
-    const alreadyImportedAs = await isAlreadyImported(worldId, srdLibraryId);
+    const alreadyImportedAs = await isAlreadyImported(worldId, resolvedSrdLibraryId);
     if (alreadyImportedAs && alreadyImportedAs !== fillExistingId) {
       return res.status(409).json({ error: `This SRD class was already imported into this world as '${alreadyImportedAs}'.` });
     }
@@ -202,7 +211,7 @@ async function handle5eClassGenerate(req, res) {
     }
 
     await save5eClassEntry(worldId, cls, null);
-    await recordImport(worldId, srdLibraryId, cls.id);
+    await recordImport(worldId, resolvedSrdLibraryId, cls.id);
     return res.json({ preview: false, id: cls.id, name: cls.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
   }
 
@@ -214,11 +223,12 @@ async function handle5eClassGenerate(req, res) {
   let cls;
 
   if (effectiveMode === "reflavor") {
-    // srdLibraryId must be passed explicitly on every call, including a
-    // regenerate -- same contract as Enemies' Reflavor tier.
-    if (!srdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
-    const srdRow = await getSrdEntry(srdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+    // srdLibraryId is recovered above (resolvedSrdLibraryId) from either
+    // the request body (first-time reflavor) or the existing entry's
+    // saved srdSourceId (a regenerate).
+    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(resolvedSrdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
 
     const mechanics = mapSrdClassMechanics(srdRow.data_json);
     const systemPrompt = buildReflavorClassSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceClass: srdRow.data_json });

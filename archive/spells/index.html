@@ -96,50 +96,126 @@
 // gate would return if the form were submitted anyway.
 // ============================================================
 
-function wire5eSpellForm() {
+// Real backend contract, mirrors routes/generateEnemy.js's 5e branch --
+// see that file's own comment for the mode/srdLibraryId request shape.
+// Built with the corrected Import/Generate split from the start (same
+// pattern archive/items/index.html and archive/classes/index.html use):
+// #gen-import-view (SRD picker only) and #gen-ai-view (Reflavor/Homebrew
+// toggle only) are two separate sub-views, switched between by the
+// shared promoteImportToStage1() (archive/js/render.js) -- never shown
+// together. No FACTION field, matching this category's existing Homebrew
+// form, which never exposed one either -- spells don't carry a faction
+// concept in this app's UI the way NPCs/Items/Locations do.
+async function wire5eSpellForm() {
   const fieldsHost = document.getElementById('gen-form-fields');
   fieldsHost.innerHTML = `
-    <div style="flex: 1; min-width: 200px;">
-      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
-      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    <div id="gen-import-view" style="display:none; gap:12px; flex-wrap:wrap; align-items:flex-end; width:100%;">
+      <div style="flex: 1; min-width: 220px;">
+        <label for="gen-import-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD SPELL</label>
+        <select id="gen-import-srd-picker" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;"></select>
+      </div>
     </div>
-    <div style="flex: 1; min-width: 120px;">
-      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">LEVEL (optional)</label>
-      <input id="gen-field-2" type="number" min="0" max="9" placeholder="0-9" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
-    </div>
-    <div style="flex: 1; min-width: 160px;">
-      <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SCHOOL (optional)</label>
-      <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-        <option value="">Let it choose</option>
-        <option value="Abjuration">Abjuration</option>
-        <option value="Conjuration">Conjuration</option>
-        <option value="Divination">Divination</option>
-        <option value="Enchantment">Enchantment</option>
-        <option value="Evocation">Evocation</option>
-        <option value="Illusion">Illusion</option>
-        <option value="Necromancy">Necromancy</option>
-        <option value="Transmutation">Transmutation</option>
-      </select>
+    <div id="gen-ai-view" style="display:none; gap:12px; flex-wrap:wrap; align-items:flex-end; width:100%;">
+      <div style="flex: 1; min-width: 200px;">
+        <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+        <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      </div>
+      <div style="flex-basis: 100%; min-width: 260px;">
+        <label style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 6px;">SOURCE</label>
+        <div id="gen-mode-buttons" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="mode-btn" data-mode="reflavor">Reflavor<span class="mode-btn-tag">AI · SRD spell, new narrative</span></button>
+          <button type="button" class="mode-btn" data-mode="homebrew">Homebrew AI<span class="mode-btn-tag">AI · fully new design</span></button>
+        </div>
+        <input type="hidden" id="gen-mode" value="homebrew">
+      </div>
+      <div id="gen-reflavor-srd-wrap" style="flex: 1; min-width: 200px; display: none;">
+        <label for="gen-reflavor-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD SPELL</label>
+        <select id="gen-reflavor-srd-picker" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;"></select>
+      </div>
+      <div id="gen-homebrew-fields-wrap" style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="flex: 1; min-width: 120px;">
+          <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">LEVEL (optional)</label>
+          <input id="gen-field-2" type="number" min="0" max="9" placeholder="0-9" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+        </div>
+        <div style="flex: 1; min-width: 160px;">
+          <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SCHOOL (optional)</label>
+          <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+            <option value="">Let it choose</option>
+            <option value="Abjuration">Abjuration</option>
+            <option value="Conjuration">Conjuration</option>
+            <option value="Divination">Divination</option>
+            <option value="Enchantment">Enchantment</option>
+            <option value="Evocation">Evocation</option>
+            <option value="Illusion">Illusion</option>
+            <option value="Necromancy">Necromancy</option>
+            <option value="Transmutation">Transmutation</option>
+          </select>
+        </div>
+      </div>
     </div>
   `;
+
+  let srdSpells = [];
+  try {
+    const res = await authFetch('/api/srd-library?ruleset=5e&category=spells');
+    const data = await res.json();
+    srdSpells = data.entries || [];
+  } catch (err) {
+    console.error('Could not load SRD spell list:', err);
+  }
+  const srdOptionsHtml = srdSpells
+    .map((s) => `<option value="${s.id}">${s.name}${s.level != null ? ` (Level ${s.level})` : ''}</option>`)
+    .join('') || '<option value="">No SRD spells available</option>';
+  document.getElementById('gen-import-srd-picker').innerHTML = srdOptionsHtml;
+  document.getElementById('gen-reflavor-srd-picker').innerHTML = srdOptionsHtml;
+
+  const modeSubmitLabels = { reflavor: 'Generate', homebrew: 'Generate' };
+
+  function updateAiModeVisibility() {
+    const mode = document.getElementById('gen-mode').value;
+    document.getElementById('gen-reflavor-srd-wrap').style.display = mode === 'reflavor' ? 'block' : 'none';
+    document.getElementById('gen-homebrew-fields-wrap').style.display = mode === 'homebrew' ? 'flex' : 'none';
+    document.querySelectorAll('#gen-mode-buttons .mode-btn').forEach((b) => {
+      b.classList.toggle('mode-btn-active', b.dataset.mode === mode);
+    });
+    document.getElementById('gen-submit').textContent = modeSubmitLabels[mode] || 'Generate';
+  }
+  document.querySelectorAll('#gen-mode-buttons .mode-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.getElementById('gen-mode').value = b.dataset.mode;
+      updateAiModeVisibility();
+    });
+  });
+  updateAiModeVisibility();
+  promoteImportToStage1('gen-import-view', 'gen-ai-view', 'Copy an official 5e SRD spell straight in -- zero AI cost.');
 
   document.getElementById('gen-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('gen-submit');
     const status = document.getElementById('gen-status');
-    btn.disabled = true; btn.textContent = 'Generating…';
-    showGenerationOverlay(['Writing the incantation…', 'Working out the scaling…', 'Balancing against the spellbook…', 'Almost there…']);
+    const mode = document.getElementById('gen-mode').value;
+    btn.disabled = true; btn.textContent = mode === 'import' ? 'Importing…' : 'Generating…';
+    showGenerationOverlay(mode === 'import' ? ['Copying the SRD spell…'] : ['Writing the incantation…', 'Working out the scaling…', 'Almost there…']);
     status.style.display = 'block'; status.textContent = 'Calling the generator…';
     try {
-      const level = document.getElementById('gen-field-2').value;
+      const body = { mode };
+      if (mode === 'import') {
+        body.srdLibraryId = document.getElementById('gen-import-srd-picker').value;
+      } else {
+        body.name = document.getElementById('gen-name').value;
+        if (mode === 'reflavor') {
+          body.srdLibraryId = document.getElementById('gen-reflavor-srd-picker').value;
+        } else {
+          const level = document.getElementById('gen-field-2').value;
+          body.level = level ? Number(level) : undefined;
+          body.school = document.getElementById('gen-field-3').value;
+        }
+      }
+
       const res = await authFetch('/api/generate-spell', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: document.getElementById('gen-name').value,
-          level: level ? Number(level) : undefined,
-          school: document.getElementById('gen-field-3').value
-        })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(formatGenerationError(data));
@@ -149,7 +225,7 @@ function wire5eSpellForm() {
       status.innerHTML = err.message;
     } finally {
       hideGenerationOverlay();
-      btn.disabled = false; btn.textContent = 'Generate';
+      btn.disabled = false; btn.textContent = modeSubmitLabels[mode] || 'Generate';
     }
   });
 }
@@ -173,7 +249,7 @@ async function initSpellGenerateForm() {
     console.error('Could not load this world\'s ruleset:', err);
   }
   if (ruleset === '5e') {
-    wire5eSpellForm();
+    await wire5eSpellForm();
   } else {
     showSpellsUnavailable(ruleset);
   }

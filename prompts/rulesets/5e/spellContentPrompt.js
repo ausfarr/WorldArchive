@@ -1,10 +1,21 @@
 // prompts/rulesets/5e/spellContentPrompt.js
 //
-// 5e Spell generation -- HOMEBREW TIER ONLY: no verified CC-BY-4.0
-// STRUCTURED spell dataset exists to import from (Tabyltop/CC-SRD only
-// ships monsters as structured JSON -- see scripts/ingestSrd5e.js's
-// header). If one turns up later, Import/Reflavor can be added the same
-// shape Phase 3 used for Bestiary.
+// 5e Spell generation -- three tiers as of the R5 follow-up session
+// (originally Homebrew tier only: no verified CC-BY-4.0 STRUCTURED spell
+// dataset existed to import from -- Tabyltop/CC-SRD only ships monsters
+// as structured JSON, see scripts/ingestSrd5e.js's header. That gap
+// closed once scripts/ingestSrd5eFull.js ingested real SRD spell prose
+// via downfallx/dnd-5e-srd-markdown, R5 Phase 4):
+//
+//   - Import: no prompt at all, no Claude call -- routes/generateSpell.js
+//     copies a srd_library row straight into entries.raw_json via
+//     lib/rulesets/5e/srdSpellMapper.js.
+//   - Reflavor: the model rewrites name/flavor/description text only.
+//     Every mechanically-relevant field (level, school, casting time,
+//     range, components, duration, classes, atHigherLevels) is carried
+//     through UNCHANGED from the SRD source.
+//   - Homebrew: the model invents a full new spell (unchanged from
+//     before this work).
 //
 // Unlike Bestiary's Homebrew tier, there's no "code computes the real
 // answer from proposed numbers" step here for spell level -- 5e spell
@@ -69,4 +80,34 @@ School (if requested): ${school || "choose one that fits the concept"}${campaign
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
-module.exports = { buildHomebrewSpellSystemPrompt };
+const REFLAVOR_SCHEMA = `{
+  "name": "New Full Name",
+  "flavor": "1-2 sentences of NEW world-flavor for this spell's origin/style, grounded in this world's tone/factions",
+  "description": "2-5 sentences of NEW rules text -- keep the same mechanical effect described (same damage/save/condition), just reworded/reflavored",
+  "designNotes": "1-2 sentences on how this reflavor fits this world"
+}`;
+
+const REFLAVOR_STATIC_INSTRUCTIONS = `You are reflavoring an official 5th Edition spell's NARRATIVE presentation for a specific tabletop game world, while its mechanics stay exactly as printed. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
+
+HARD RULE: you may rename the spell and rewrite its flavor/description text -- but do not invent new damage dice, save DCs, ranges, durations, or other mechanical numbers. The spell's real mechanics (level, school, casting time, range, components, duration, scaling) are resolved by code from the source spell, not from anything you write.
+
+Return JSON matching this exact schema:
+${REFLAVOR_SCHEMA}`;
+
+function buildReflavorSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceSpell, campaignContext }) {
+  const dynamicContext = `SETTING (stay consistent with this):
+${settingContext}
+
+FACTIONS IN THIS WORLD:
+${factionOptionsText}
+
+WORLD LORE — GROUND TRUTH:
+${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}
+
+SOURCE SPELL (official 5e spell -- reflavor its narrative, do not change its mechanics):
+${JSON.stringify(sourceSpell, null, 2)}${campaignContext ? `\n\nCampaign context: ${campaignContext}` : ""}`;
+
+  return buildCacheableSystemPrompt(REFLAVOR_STATIC_INSTRUCTIONS, dynamicContext);
+}
+
+module.exports = { buildHomebrewSpellSystemPrompt, buildReflavorSpellSystemPrompt };

@@ -156,7 +156,10 @@ function wireEchoesItemForm() {
 // Phase 5): #gen-import-view (SRD picker only) and #gen-ai-view
 // (Reflavor/Homebrew toggle only) are two separate sub-views, switched
 // between by promoteImportToStage1()'s two Stage-1 buttons below --
-// never shown together.
+// never shown together. No FACTION field on any of the three tiers
+// (Austin's call, post-launch feedback) -- mundane SRD equipment doesn't
+// fit "assign this to a faction" the way real content does elsewhere,
+// and it's cleaner to drop it everywhere than keep it selectively.
 async function wire5eItemForm() {
   const fieldsHost = document.getElementById('gen-form-fields');
   fieldsHost.innerHTML = `
@@ -164,12 +167,6 @@ async function wire5eItemForm() {
       <div style="flex: 1; min-width: 220px;">
         <label for="gen-import-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD ITEM</label>
         <select id="gen-import-srd-picker" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;"></select>
-      </div>
-      <div style="flex: 1; min-width: 160px;">
-        <label for="gen-import-faction" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
-        <select id="gen-import-faction" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-          <option value="">Let it choose</option>
-        </select>
       </div>
     </div>
     <div id="gen-ai-view" style="display:none; gap:12px; flex-wrap:wrap; align-items:flex-end; width:100%;">
@@ -219,16 +216,8 @@ async function wire5eItemForm() {
           </select>
         </div>
       </div>
-      <div style="flex: 1; min-width: 160px;">
-        <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
-        <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-          <option value="">Let it choose</option>
-        </select>
-      </div>
     </div>
   `;
-  populateFactionSelect('gen-import-faction', { includeUnaligned: true });
-  populateFactionSelect('gen-field-3', { includeUnaligned: true });
 
   let srdItems = [];
   try {
@@ -274,10 +263,8 @@ async function wire5eItemForm() {
       const body = { mode };
       if (mode === 'import') {
         body.srdLibraryId = document.getElementById('gen-import-srd-picker').value;
-        body.faction = document.getElementById('gen-import-faction').value;
       } else {
         body.name = document.getElementById('gen-name').value;
-        body.faction = document.getElementById('gen-field-3').value;
         if (mode === 'reflavor') {
           body.srdLibraryId = document.getElementById('gen-reflavor-srd-picker').value;
         } else {

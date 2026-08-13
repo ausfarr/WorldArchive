@@ -22,7 +22,7 @@ const { slugify: slugify5e, buildItemBodyHtml: buildItemBodyHtml5e } = require("
 const { lookupWeapon, lookupArmor, rarityValueWarning } = require("../lib/rulesets/5e/itemFormulas");
 const { buildHomebrewItemSystemPrompt, buildReflavorItemSystemPrompt } = require("../prompts/rulesets/5e/itemContentPrompt");
 const { mapSrdItemMechanics } = require("../lib/rulesets/5e/srdItemMapper");
-const { getSrdEntry, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
+const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 
 // Generic Items (Homebrew only, narrative-first) -- see
@@ -188,7 +188,13 @@ function resolveItemStats(item) {
 
 async function handle5eItemGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId, rarity, itemType, srdLibraryId } = req.body || {};
+  // No faction field for 5e Items -- Austin's call: mundane SRD equipment
+  // (a plain Longsword) doesn't fit "assign this to a faction" the way
+  // Import does for real content elsewhere, and it's cleaner to drop it
+  // from all three tiers than keep it selectively. factionOptionsText
+  // below is still passed to Reflavor/Homebrew as grounding CONTEXT for
+  // the model's flavor text -- a different thing from a user-set field.
+  const { name, fillExistingId, rarity, itemType, srdLibraryId } = req.body || {};
   const mode = req.body && req.body.mode;
 
   let existingEntry = null;
@@ -211,14 +217,23 @@ async function handle5eItemGenerate(req, res) {
     return res.status(400).json({ error: "5e item generation requires a 'mode' of 'import', 'reflavor', or 'homebrew'." });
   }
 
+  // The generic card "Regenerate" button only ever posts { fillExistingId
+  // } -- recover srdLibraryId from the existing entry's saved srdSourceId
+  // when it's missing, same fallback as routes/generateEnemy.js.
+  let resolvedSrdLibraryId = srdLibraryId;
+  if (!resolvedSrdLibraryId && (effectiveMode === "import" || effectiveMode === "reflavor") && existingEntry && existingEntry.raw && existingEntry.raw.srdSourceId) {
+    const recovered = await getSrdEntryBySlug("5e", "items", existingEntry.raw.srdSourceId);
+    if (recovered) resolvedSrdLibraryId = recovered.id;
+  }
+
   // ---- Import: zero AI cost, direct copy from srd_library ----
   if (effectiveMode === "import") {
     if (req.refundGeneration) await req.refundGeneration();
-    if (!srdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
-    const srdRow = await getSrdEntry(srdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(resolvedSrdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
 
-    const alreadyImportedAs = await isAlreadyImported(worldId, srdLibraryId);
+    const alreadyImportedAs = await isAlreadyImported(worldId, resolvedSrdLibraryId);
     if (alreadyImportedAs && alreadyImportedAs !== fillExistingId) {
       return res.status(409).json({ error: `This SRD item was already imported into this world as '${alreadyImportedAs}'.` });
     }
@@ -227,7 +242,6 @@ async function handle5eItemGenerate(req, res) {
     const item = {
       id: fillExistingId || slugify5e(srdRow.name),
       name: srdRow.name,
-      faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null,
       rarity: null, // mundane equipment -- srd_library's 'items' category is weapons/armor/gear/tools, not magic items
       requiresAttunement: false,
       attunementRequirement: null,
@@ -248,7 +262,7 @@ async function handle5eItemGenerate(req, res) {
     }
 
     await save5eItemEntry(worldId, item, null);
-    await recordImport(worldId, srdLibraryId, item.id);
+    await recordImport(worldId, resolvedSrdLibraryId, item.id);
     return res.json({ preview: false, id: item.id, name: item.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
   }
 
@@ -260,12 +274,12 @@ async function handle5eItemGenerate(req, res) {
   let item;
 
   if (effectiveMode === "reflavor") {
-    // srdLibraryId must be passed explicitly on every call, including a
-    // regenerate -- same contract as Enemies' Reflavor tier (see
-    // routes/generateEnemy.js's handle5eEnemyGenerate comment on this).
-    if (!srdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
-    const srdRow = await getSrdEntry(srdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+    // srdLibraryId is recovered above (resolvedSrdLibraryId) from either
+    // the request body (first-time reflavor) or the existing entry's
+    // saved srdSourceId (a regenerate).
+    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(resolvedSrdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
 
     const systemPrompt = buildReflavorItemSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceItem: srdRow.data_json });
     const reflavored = await callClaudeExpectingJson({ systemPrompt, userMessage: "Reflavor the item now.", maxTokens: 1200 });
@@ -274,7 +288,6 @@ async function handle5eItemGenerate(req, res) {
     item = {
       id: fillExistingId || slugify5e(reflavored.name),
       name: reflavored.name,
-      faction: faction || null,
       rarity: null,
       requiresAttunement: false,
       attunementRequirement: null,
@@ -309,7 +322,6 @@ async function handle5eItemGenerate(req, res) {
     item = {
       ...proposed,
       id: fillExistingId || slugify5e(proposed.name),
-      faction: faction || null,
       resolvedStats: resolveItemStats(proposed),
       rarityValueWarning: rarityValueWarning(proposed.rarity, proposed.valueGp),
       sourceMode: "homebrew"
