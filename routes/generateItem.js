@@ -188,7 +188,13 @@ function resolveItemStats(item) {
 
 async function handle5eItemGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId, rarity, itemType, srdLibraryId } = req.body || {};
+  // No faction field for 5e Items -- Austin's call: mundane SRD equipment
+  // (a plain Longsword) doesn't fit "assign this to a faction" the way
+  // Import does for real content elsewhere, and it's cleaner to drop it
+  // from all three tiers than keep it selectively. factionOptionsText
+  // below is still passed to Reflavor/Homebrew as grounding CONTEXT for
+  // the model's flavor text -- a different thing from a user-set field.
+  const { name, fillExistingId, rarity, itemType, srdLibraryId } = req.body || {};
   const mode = req.body && req.body.mode;
 
   let existingEntry = null;
@@ -236,7 +242,6 @@ async function handle5eItemGenerate(req, res) {
     const item = {
       id: fillExistingId || slugify5e(srdRow.name),
       name: srdRow.name,
-      faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null,
       rarity: null, // mundane equipment -- srd_library's 'items' category is weapons/armor/gear/tools, not magic items
       requiresAttunement: false,
       attunementRequirement: null,
@@ -283,7 +288,6 @@ async function handle5eItemGenerate(req, res) {
     item = {
       id: fillExistingId || slugify5e(reflavored.name),
       name: reflavored.name,
-      faction: faction || null,
       rarity: null,
       requiresAttunement: false,
       attunementRequirement: null,
@@ -318,7 +322,6 @@ async function handle5eItemGenerate(req, res) {
     item = {
       ...proposed,
       id: fillExistingId || slugify5e(proposed.name),
-      faction: faction || null,
       resolvedStats: resolveItemStats(proposed),
       rarityValueWarning: rarityValueWarning(proposed.rarity, proposed.valueGp),
       sourceMode: "homebrew"
