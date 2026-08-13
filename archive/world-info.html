@@ -172,42 +172,61 @@ function renderContent(data) {
     : '<div class="info-empty">No lore generated/imported yet.</div>';
   html += section("World Lore", loreHtml);
 
-  // Stat System
-  const stats = data.statSystem;
-  const statCards = CANONICAL_STATS.map(({ key, mechanic }) => {
-    const s = (stats && stats[key]) || {};
-    return `
-      <div class="stat-card">
-        <div class="name">${s.label || key}</div>
-        <div class="canon">${key} — ${mechanic}</div>
-        ${s.description ? `<div class="desc">${s.description}</div>` : ""}
-      </div>
-    `;
-  }).join("");
-  html += section("Attributes", stats ? `<div class="stat-grid">${statCards}</div>` : '<div class="info-empty">Not configured yet.</div>');
+  // Stat System / Skills (Echoes only) -- CANONICAL_STATS and the
+  // weapon/field-skill display below are Echoes' own stat_system_json/
+  // skill_system_json shape; a 5e or Generic world never populates those
+  // columns in the first place (5e has its own ability scores, Generic
+  // has its own generic_system_json), so these sections were always
+  // going to render "Not configured yet." on any non-Echoes world
+  // regardless of real setup state. Gate absent entirely -- same "absent,
+  // not just empty" treatment Races/Species (below) already gets for
+  // non-5e worlds -- rather than showing a permanently-empty section.
+  // Fails open (renders) for a missing/undefined ruleset, since a
+  // pre-ruleset-project world's data predates this field and was always
+  // Echoes-shaped.
+  // TODO: Generic worlds have their own generic_system_json attribute
+  // system and arguably deserve their own World Info section reading
+  // from it instead of just disappearing here -- real future
+  // enhancement, not built this session (R5 Phase 2 scope).
+  const isEchoesRuleset = !data.ruleset || data.ruleset === "echoes";
+  if (isEchoesRuleset) {
+    // Stat System
+    const stats = data.statSystem;
+    const statCards = CANONICAL_STATS.map(({ key, mechanic }) => {
+      const s = (stats && stats[key]) || {};
+      return `
+        <div class="stat-card">
+          <div class="name">${s.label || key}</div>
+          <div class="canon">${key} — ${mechanic}</div>
+          ${s.description ? `<div class="desc">${s.description}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+    html += section("Attributes", stats ? `<div class="stat-grid">${statCards}</div>` : '<div class="info-empty">Not configured yet.</div>');
 
-  // Skills
-  const skillSystem = data.skillSystem;
-  let skillsHtml = "";
-  if (skillSystem && skillSystem.weaponSkills) {
-    const weaponCards = Object.entries(skillSystem.weaponSkills).map(([canon, label]) => `
-      <div class="skill-card">
-        <div class="name">${label}</div>
-        <div class="canon">${canon}</div>
-      </div>
-    `).join("");
-    skillsHtml += `<div class="info-row" style="margin-bottom:10px;"><strong>Weapon Skills</strong></div><div class="skill-grid" style="margin-bottom:20px;">${weaponCards}</div>`;
+    // Skills
+    const skillSystem = data.skillSystem;
+    let skillsHtml = "";
+    if (skillSystem && skillSystem.weaponSkills) {
+      const weaponCards = Object.entries(skillSystem.weaponSkills).map(([canon, label]) => `
+        <div class="skill-card">
+          <div class="name">${label}</div>
+          <div class="canon">${canon}</div>
+        </div>
+      `).join("");
+      skillsHtml += `<div class="info-row" style="margin-bottom:10px;"><strong>Weapon Skills</strong></div><div class="skill-grid" style="margin-bottom:20px;">${weaponCards}</div>`;
+    }
+    if (skillSystem && Array.isArray(skillSystem.fieldSkills) && skillSystem.fieldSkills.length) {
+      const fieldCards = skillSystem.fieldSkills.map((s) => `
+        <div class="skill-card">
+          <div class="name">${s.name}</div>
+          ${s.description ? `<div class="desc">${s.description}</div>` : ""}
+        </div>
+      `).join("");
+      skillsHtml += `<div class="info-row" style="margin-bottom:10px;"><strong>Field Skills</strong> — ranked 0-100 for any character</div><div class="skill-grid">${fieldCards}</div>`;
+    }
+    html += section("Skills", skillsHtml || '<div class="info-empty">Not configured yet.</div>');
   }
-  if (skillSystem && Array.isArray(skillSystem.fieldSkills) && skillSystem.fieldSkills.length) {
-    const fieldCards = skillSystem.fieldSkills.map((s) => `
-      <div class="skill-card">
-        <div class="name">${s.name}</div>
-        ${s.description ? `<div class="desc">${s.description}</div>` : ""}
-      </div>
-    `).join("");
-    skillsHtml += `<div class="info-row" style="margin-bottom:10px;"><strong>Field Skills</strong> — ranked 0-100 for any character</div><div class="skill-grid">${fieldCards}</div>`;
-  }
-  html += section("Skills", skillsHtml || '<div class="info-empty">Not configured yet.</div>');
 
   // Races/Species (R4 Phase 3, 5e only) -- live-pulled every load, same
   // pattern as Attributes/Skills above. Absent entirely (not even an
