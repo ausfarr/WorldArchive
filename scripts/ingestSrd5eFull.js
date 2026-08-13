@@ -1,134 +1,66 @@
 // scripts/ingestSrd5eFull.js
 //
-// R5 Phase 4: real ingestion of Spells/Equipment/Classes/Feats/Magic
-// Items into srd_library (migrations/020_ruleset_foundation.sql),
-// picking up exactly where scripts/ingestSrd5e.js's own header comment
-// left off ("Classes/Spells/Items are NOT ingested by this script yet").
-// Deliberately a SEPARATE file, not an extension of ingestSrd5e.js --
-// that script owns Monsters from a different source (Tabyltop/CC-SRD)
-// and stays untouched, matching this project's "each source gets its
-// own ingestion script" convention.
+// Ingests Spells, Items (Weapons/Armor/Adventuring Gear), Feats, and
+// Magic Items into srd_library from a SECOND, separately-verified
+// CC-BY-4.0 source -- does NOT touch scripts/ingestSrd5e.js (monsters,
+// different source, left untouched).
 //
 // SOURCE & LICENSE -- read before touching this file:
 //
 //   downfallx/dnd-5e-srd-markdown
-//   (https://github.com/downfallx/dnd-5e-srd-markdown) -- the complete
-//   D&D 5e (2024) SRD 5.2.1 converted to Markdown. Verified directly
-//   (fresh clone, this session) against both its README.md and its
-//   separate LICENSE file: both state plainly "licensed under the
-//   Creative Commons Attribution 4.0 International License", ship the
-//   WotC-mandated attribution text (reproduced verbatim below in
-//   LICENSE_NOTE, same as ingestSrd5e.js does for its own source), and
-//   list no other/conflicting license anywhere in the repo. This is
-//   genuinely, unambiguously CC-BY-4.0 -- distinct in character from
-//   5e-bits/5e-database, which R4's own addendum
-//   (session_addendum_r4_5e_completeness_shipped.md) already rejected
-//   for a blanket MIT+OGL 1.0a statement covering its entire repo with
-//   no CC-BY-4.0 language anywhere, and for having no Spells data at all
-//   in its CC-BY-4.0-claimed directory.
+//   (https://github.com/downfallx/dnd-5e-srd-markdown), a clean
+//   markdown conversion of Wizards of the Coast's official System
+//   Reference Document 5.2.1. Verified directly against that repo's own
+//   README.md: "This work includes material taken from the System
+//   Reference Document 5.2.1 ('SRD 5.2.1') by Wizards of the Coast LLC
+//   and is licensed under the Creative Commons Attribution 4.0
+//   International License" -- genuine, unambiguous CC-BY-4.0 attributed
+//   to this specific content, not a blanket-repo license statement.
 //
-//   Spot-check verification performed before trusting the parsers below
-//   (hand-compared against real, well-known SRD/PHB stats):
-//     Spells (5): Fireball (L3 Evocation, 150 ft, V/S/M, 8d6 Fire),
-//       Fire Bolt (Evocation cantrip, 120 ft, 1d10 Fire), Cure Wounds
-//       (L1 Abjuration -- 2024 SRD reclassifies it from Evocation --
-//       touch, 2d8 + spellcasting mod), Magic Missile (L1 Evocation,
-//       120 ft, three darts at 1d4+1 Force each), Shield (L1 Abjuration,
-//       Reaction, +5 AC) -- all 5 matched exactly.
-//     Classes (3, hit die + primary ability): Fighter (d10, Str or Dex),
-//       Wizard (d6, Int), Sorcerer (d6, Cha) -- all matched exactly, and
-//       consistent with R4's own independent verification of Fighter/
-//       Wizard against a different mirror.
-//     Items (3): Chain Mail (AC 16, Str 13, Disadvantage stealth, 55 lb,
-//       75 GP), Studded Leather Armor (AC 12 + Dex, no Str/Stealth
-//       penalty, 13 lb, 45 GP), Longsword (1d8 Slashing, Versatile
-//       1d10, Sap mastery, 3 lb, 15 GP) -- all matched exactly, and
-//       consistent with R4's Phase 4 cross-check of the same 3 items
-//       against a different mirror.
-//     Magic items (3, rarity + attunement): Bag of Holding (Uncommon, no
-//       attunement), Cloak of Protection (Uncommon, Requires
-//       Attunement), Ring of Protection (Rare, Requires Attunement) --
-//       all matched exactly.
-//   See scripts/verifySrd5eFullIngest.js for these checks as a runnable
-//   script (re-run any time the source data changes).
+//   This is a DIFFERENT repo from `5e-bits/5e-database`, which this
+//   project already checked and rejected (see ingestSrd5e.js's own
+//   header comment) -- that repo licenses its data under OGL 1.0a, not
+//   CC-BY-4.0, and has no Spells file at all in its CC-BY-labeled
+//   directory. downfallx/dnd-5e-srd-markdown is also distinct from
+//   `your5e/5e-srd-markdown` (a prior lead, also genuinely CC-BY-4.0 but
+//   split across PDF/Obsidian-vault formats) -- this source ships plain
+//   single-file-per-category markdown, which is what this script parses.
 //
-//   Parsing approach: this source is real markdown/HTML-table prose, not
-//   structured per-item JSON, so each category gets its own real parser
-//   below rather than a naive line-by-line ingest of every heading as if
-//   it were an entry (confirmed by sampling: spells.md opens with ~260
-//   lines of rules prose and reference tables -- Spell Preparation by
-//   Class, Schools of Magic -- before the actual "## Spell Descriptions"
-//   section where individual `#### SpellName` entries begin; the same
-//   "rules prose first, entries after" shape holds for feats.md and
-//   magic-items.md). All five target categories turned out to have
-//   real, consistent internal structure once isolated from their
-//   surrounding rules text -- none needed to be deferred:
-//     - Spells/Feats/Magic Items: `#### EntryName` headers, each
-//       immediately followed by an italic meta line (`_Level 3
-//       Evocation (Sorcerer, Wizard)_`, `_Origin Feat_`, `_Wondrous
-//       Item, Rare (Requires Attunement)_`) and then body prose. A
-//       handful of spells/magic items have nested `## `/`### `
-//       companion-stat-block appendices inside their own entry (e.g.
-//       Find Steed's `## Otherworldly Steed` stat block, a sentient
-//       item's `### Traits`/`### Actions`) -- these are swept into
-//       that entry's own body text (correct, since they're part of its
-//       description) rather than mistaken for new top-level entries,
-//       since only `#### ` starts a real entry boundary here.
-//     - Classes: each of the 12 core classes is a `## ClassName`
-//       section containing a 2-column "Core ClassName Traits" table
-//       (Primary Ability/Hit Point Die/Saving Throw Proficiencies/
-//       Skill Proficiencies/Weapon Proficiencies/Armor Training/
-//       Starting Equipment), a `### ClassName Class Features` region of
-//       `#### LevelN: FeatureName` entries, and -- confirmed real, not
-//       the feared irregular case -- exactly ONE `### ClassName
-//       Subclass: SubclassName` per class (the SRD's free sample
-//       subclass; the rest of each class's subclasses are full-PHB-only
-//       and correctly absent here), itself a further list of `####
-//       LevelN: FeatureName` entries.
-//     - Equipment: genuinely the most heterogeneous file (weapons/armor
-//       are clean `<table>` HTML with category-divider rows via
-//       `<th colspan>`; Adventuring Gear is a flat item/weight/cost
-//       `<table>` cross-referenced against `#### ItemName (Cost)` prose
-//       entries for the items that have rules text; Tools is a third
-//       shape again -- `**ToolName (Cost)**` bold-line entries with
-//       `**Ability:**`/`**Weight:**`/`**Utilize:**`/`**Craft:**`/
-//       `**Variants:**` field lines, no heading markup at all) -- but
-//       each of those three shapes is internally consistent, so each
-//       gets its own small parser rather than forcing one shared shape
-//       across all of them.
+// PARSING NOTES (read before extending):
 //
-//   srd_library.category is a plain text column with no CHECK
-//   constraint (see migrations/020_ruleset_foundation.sql -- only a
-//   descriptive comment: 'monsters' | 'classes' | 'subclasses' |
-//   'spells' | 'items'), so no migration is needed to add the two new
-//   category strings this script introduces: 'feats' and 'magic-items'.
-//   Full current category list after this script: 'monsters' (existing,
-//   ingestSrd5e.js), 'spells', 'classes', 'items' (weapons/armor/gear/
-//   tools -- matches the 'items' category convention already used
-//   elsewhere in this schema, per this file's own instructions), 'feats',
-//   'magic-items'. srd_id is namespaced by subtype for the 'items'
-//   category specifically (`weapon-`/`armor-`/`gear-`/`tool-` prefixes)
-//   since weapons/armor/gear/tools are four different source lists
-//   sharing one category value and a name collision across them is
-//   possible in principle (none observed in the actual data, but the
-//   prefix costs nothing and removes the risk).
+//   This is real markdown/HTML-table parsing against prose files, not a
+//   structured JSON feed -- unlike ingestSrd5e.js's monster source.
+//   Each source file mixes rules prose with the actual per-entry data;
+//   the parsers below key off the exact structural patterns confirmed
+//   by direct inspection of the real files (see comments per parser).
+//   If the source repo's formatting ever changes, these parsers will
+//   likely need adjustting -- they are NOT a generic markdown-to-JSON
+//   converter, they're written against this specific source's exact
+//   conventions.
+//
+//   Classes (classes.md) is NOT ingested by this script -- at 11,546
+//   lines with deeply nested subclass features, it needs more careful,
+//   dedicated parsing work than the other four categories got here.
+//   Flagged as a deferred follow-up, not built now, per this project's
+//   "if unsure, flag rather than guess" standard. This codebase's
+//   `lib/rulesets/5e/classFormulas.js` already code-determines hit
+//   dice/saving throws/spell slots for the 12 core classes independent
+//   of any SRD import, so this gap is lower-priority than
+//   Spells/Items/Feats/Magic Items were.
 //
 // Run with: node scripts/ingestSrd5eFull.js
-// Requires SUPABASE_URL / SUPABASE_SECRET_KEY env vars (service-role
-// client -- srd_library only accepts writes from the service-role
-// client; see migrations/020_ruleset_foundation.sql's RLS policy).
-// Idempotent -- safe to re-run; upserts on (ruleset, category, srd_id).
+// (Or, in production with no shell access: trigger via
+// GET /api/admin/ingest-srd-5e-full while signed in as the admin
+// account -- see routes/adminIngestSrdFull.js.)
+// Requires SUPABASE_URL / SUPABASE_SECRET_KEY env vars.
 
 const { supabase } = require("../lib/supabaseClient");
 
-const RAW_BASE = "https://raw.githubusercontent.com/downfallx/dnd-5e-srd-markdown/master";
+const BASE_URL = "https://raw.githubusercontent.com/downfallx/dnd-5e-srd-markdown/master/";
 const SOURCE_EDITION = "5e SRD 5.2.1";
 
-// Exact attribution text from downfallx/dnd-5e-srd-markdown's own
-// LICENSE file -- copied verbatim, not paraphrased, same treatment
-// ingestSrd5e.js gives its own source's mandated attribution text.
 const LICENSE_NOTE =
-  "This work includes material taken from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC and is licensed under the Creative Commons Attribution 4.0 International License. Dungeons & Dragons, D&D, Wizards of the Coast, and their logos are trademarks of Wizards of the Coast LLC in the United States and other countries. The official SRD 5.2.1 can be found at: https://www.dndbeyond.com/. The markdown conversion and repository organization are provided by the community (downfallx/dnd-5e-srd-markdown) and are not affiliated with, endorsed by, or sponsored by Wizards of the Coast.";
+  "This work includes material taken from the System Reference Document 5.2.1 (\u201cSRD 5.2.1\u201d) by Wizards of the Coast LLC and is licensed under the Creative Commons Attribution 4.0 International License. To view a copy of this license, visit https://creativecommons.org/licenses/by/4.0/. The official SRD 5.2.1 can be found at https://www.dndbeyond.com/srd. Markdown conversion by the downfallx/dnd-5e-srd-markdown project (https://github.com/downfallx/dnd-5e-srd-markdown), used under the same license.";
 
 function slugify(name) {
   return String(name)
@@ -139,533 +71,298 @@ function slugify(name) {
 }
 
 async function fetchText(filename) {
-  const url = `${RAW_BASE}/${filename}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Fetching ${filename} failed: ${res.status} ${res.statusText}`);
+  const res = await fetch(BASE_URL + filename);
+  if (!res.ok) throw new Error(`Failed to fetch ${filename}: ${res.status}`);
   return res.text();
 }
 
 // ============================================================
-// Shared parsing helpers
+// Spells (spells.md) -- entries live under "## Spell Descriptions",
+// one per "#### Name" header, immediately followed by an italic line
+// "_Level N School (Class, Class)_" or "_School Cantrip (Class, Class)_",
+// then **Casting Time:**/**Range:**/**Components:**/**Duration:** lines,
+// then description prose, optionally ending in an italic
+// "_Using a Higher-Level Spell Slot._" or "_Cantrip Upgrade._" paragraph.
+// Confirmed via direct sampling of Acid Arrow, Acid Splash, Aid, Alarm,
+// Alter Self, Animal Friendship -- format is consistent throughout all
+// 352 "#### " headers in the Spell Descriptions section.
 // ============================================================
-
-// Splits a markdown region into `#### EntryName` entries as
-// {name, block}. Each block runs until the next #### header, or until an
-// earlier ## header if one falls inside first (a handful of spells/magic
-// items have a nested "## companion stat block" appendix within their own
-// entry -- e.g. Find Steed's "## Otherworldly Steed" -- which belongs to
-// that entry's body, not a new top-level entry, since only #### starts a
-// real entry here).
-function parseHashEntries(text, { stopAtH2 = true } = {}) {
-  const entries = [];
-  const headerRe = /^#### (.+)$/gm;
-  const matches = [...text.matchAll(headerRe)];
-  for (let i = 0; i < matches.length; i++) {
-    const start = matches[i].index + matches[i][0].length;
-    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
-    let block = text.slice(start, end);
-    if (stopAtH2) {
-      const nextH2 = block.search(/^## /m);
-      if (nextH2 !== -1) block = block.slice(0, nextH2);
-    }
-    entries.push({ name: matches[i][1].trim(), block: block.trim() });
-  }
-  return entries;
-}
-
-// Parses one <table>...</table> block into {headers, rows}. Category
-// divider rows (<th colspan="N"><em>Category</em></th>, used by the
-// Weapons/Armor tables to group rows under a subheading) are tracked as
-// row.__category on every following row rather than emitted as their own
-// row.
-function parseHtmlTable(tableHtml) {
-  if (!tableHtml) return { headers: [], rows: [] };
-  const headMatch = tableHtml.match(/<thead>([\s\S]*?)<\/thead>/);
-  const bodyMatch = tableHtml.match(/<tbody>([\s\S]*?)<\/tbody>/);
-  if (!bodyMatch) return { headers: [], rows: [] };
-  function cellsOf(rowHtml) {
-    return [...rowHtml.matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/g)].map((m) =>
-      m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()
-    );
-  }
-  const headers = headMatch ? cellsOf(headMatch[1]) : [];
-  const rowHtmls = [...bodyMatch[1].matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((m) => m[1]);
-  const rows = [];
-  let currentCategory = null;
-  for (const rowHtml of rowHtmls) {
-    const isCategoryRow = /<th[^>]*colspan/.test(rowHtml);
-    const cells = cellsOf(rowHtml);
-    if (isCategoryRow) {
-      currentCategory = cells[0] || null;
-      continue;
-    }
-    const row = {};
-    headers.forEach((h, i) => { row[h] = cells[i] || ""; });
-    if (currentCategory) row.__category = currentCategory;
-    rows.push(row);
-  }
-  return { headers, rows };
-}
-
-// Finds "**Label**\n\n<table>...</table>" (the "**Weapons**"/"**Armor**"/
-// "**Adventuring Gear**" bold caption immediately preceding its table)
-// and returns the raw <table>...</table> substring.
-function findNamedTable(text, label, fromIndex = 0) {
-  const idx = text.indexOf(`**${label}**`, fromIndex);
-  if (idx === -1) return null;
-  const tableStart = text.indexOf("<table>", idx);
-  const tableEnd = text.indexOf("</table>", tableStart);
-  if (tableStart === -1 || tableEnd === -1) return null;
-  return text.slice(tableStart, tableEnd + "</table>".length);
-}
-
-// Splits on top-level commas only, ignoring commas nested inside parens --
-// magic item type descriptors like "Armor (Any Medium or Heavy, Except
-// Hide Armor), Uncommon" have a comma inside the parenthetical that isn't
-// a real field separator.
-function splitTopLevelCommas(str) {
-  const parts = [];
-  let depth = 0;
-  let current = "";
-  for (const ch of str) {
-    if (ch === "(") depth++;
-    if (ch === ")") depth--;
-    if (ch === "," && depth === 0) {
-      parts.push(current.trim());
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  if (current.trim()) parts.push(current.trim());
-  return parts;
-}
-
-// ============================================================
-// Spells
-// ============================================================
-
 function parseSpells(text) {
   const startIdx = text.indexOf("## Spell Descriptions");
-  const region = startIdx !== -1 ? text.slice(startIdx) : text;
-  return parseHashEntries(region).map(({ name, block }) => {
-    const metaMatch = block.match(/^_(.+?)_/);
-    const meta = metaMatch ? metaMatch[1] : "";
+  if (startIdx === -1) throw new Error("Could not find '## Spell Descriptions' section in spells.md");
+  const body = text.slice(startIdx);
+
+  const blocks = body.split(/\n(?=#### )/).slice(1); // first split chunk is the section intro, skip it
+  const spells = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n");
+    const nameLine = lines[0];
+    const nameMatch = nameLine.match(/^#### (.+)$/);
+    if (!nameMatch) continue;
+    const name = nameMatch[1].trim();
+
+    const rest = block.slice(nameLine.length).trim();
+    const typeMatch = rest.match(/^_(.+?)_/);
+    if (!typeMatch) continue; // not a real spell entry (shouldn't happen given the split, but stay defensive)
+    const typeLine = typeMatch[1].trim();
 
     let level = 0;
     let school = null;
-    const levelMatch = meta.match(/^Level (\d+) (\w+)/);
-    const cantripMatch = meta.match(/^(\w+) Cantrip/);
-    if (levelMatch) {
-      level = Number(levelMatch[1]);
-      school = levelMatch[2];
-    } else if (cantripMatch) {
+    let classes = [];
+    const cantripMatch = typeLine.match(/^(\w+) Cantrip(?:\s*\(([^)]*)\))?$/i);
+    const leveledMatch = typeLine.match(/^Level (\d+) (\w+)(?:\s*\(([^)]*)\))?$/i);
+    if (cantripMatch) {
+      level = 0;
       school = cantripMatch[1];
+      classes = cantripMatch[2] ? cantripMatch[2].split(",").map((c) => c.trim()) : [];
+    } else if (leveledMatch) {
+      level = Number(leveledMatch[1]);
+      school = leveledMatch[2];
+      classes = leveledMatch[3] ? leveledMatch[3].split(",").map((c) => c.trim()) : [];
     }
-    const classesMatch = meta.match(/\(([^)]+)\)/);
-    const classes = classesMatch ? classesMatch[1].split(",").map((s) => s.trim()) : [];
 
-    const castingTime = (block.match(/\*\*Casting Time:\*\*\s*(.+)/) || [])[1] || null;
-    const range = (block.match(/\*\*Range:\*\*\s*(.+)/) || [])[1] || null;
-    const components = (block.match(/\*\*Components?:\*\*\s*(.+)/) || [])[1] || null;
-    const duration = (block.match(/\*\*Duration:\*\*\s*(.+)/) || [])[1] || null;
+    const castingTime = (rest.match(/\*\*Casting Time:\*\*\s*(.+)/) || [])[1] || null;
+    const range = (rest.match(/\*\*Range:\*\*\s*(.+)/) || [])[1] || null;
+    const components = (rest.match(/\*\*Components:\*\*\s*(.+)/) || [])[1] || null;
+    const duration = (rest.match(/\*\*Duration:\*\*\s*(.+)/) || [])[1] || null;
 
-    const afterFields = block.split(/\*\*Duration:\*\*.*\n/)[1] || "";
-    const higherMatch =
-      afterFields.match(/_Using a Higher-Level Spell Slot\._\s*(.+)/) ||
-      afterFields.match(/_Cantrip Upgrade\._\s*(.+)/);
-    const atHigherLevels = higherMatch ? higherMatch[1].trim() : null;
+    // Description: everything after the Duration line up to (but not
+    // including) a trailing "_Using a Higher-Level Spell Slot._" /
+    // "_Cantrip Upgrade._" paragraph, which is stored separately.
+    const afterDuration = rest.split(/\*\*Duration:\*\*\s*.+\n\n/)[1] || "";
+    const higherLevelMatch = afterDuration.match(/\n\n_(Using a Higher-Level Spell Slot|Cantrip Upgrade)\._\s*(.+)$/s);
+    const description = (higherLevelMatch ? afterDuration.slice(0, higherLevelMatch.index) : afterDuration).trim();
+    const atHigherLevels = higherLevelMatch ? higherLevelMatch[2].trim() : null;
 
-    const description = afterFields
-      .replace(/_Using a Higher-Level Spell Slot\._[\s\S]*$/, "")
-      .replace(/_Cantrip Upgrade\._[\s\S]*$/, "")
-      .trim();
-
-    return { name, level, school, classes, castingTime, range, components, duration, description, atHigherLevels };
-  });
-}
-
-// ============================================================
-// Feats
-// ============================================================
-
-function parseFeats(text) {
-  const startIdx = text.indexOf("## Feat Descriptions");
-  const region = startIdx !== -1 ? text.slice(startIdx) : text;
-  return parseHashEntries(region)
-    .filter(({ name }) => name !== "Parts of a Feat") // rules-text header, not a real feat
-    .map(({ name, block }) => {
-      const metaMatch = block.match(/^_(.+?)_/);
-      const meta = metaMatch ? metaMatch[1] : "";
-      const categoryMatch = meta.match(/^([\w\s]*?) Feat/);
-      const category = categoryMatch ? categoryMatch[1].trim() : null;
-      const prereqMatch = meta.match(/Prerequisite:\s*([^)]+)/);
-      const prerequisite = prereqMatch ? prereqMatch[1].trim() : null;
-      const benefit = block.replace(/^_.+?_\n*/, "").trim();
-      const repeatable = /_Repeatable\._/.test(benefit);
-      return { name, category, prerequisite, benefit, repeatable };
+    spells.push({
+      srd_id: slugify(name),
+      name,
+      data_json: { name, level, school, classes, castingTime, range, components, duration, description, atHigherLevels },
+      level,
+      class_name: classes.length ? classes.join(", ") : null
     });
-}
-
-// ============================================================
-// Magic Items
-// ============================================================
-
-function parseMagicItems(text) {
-  const startIdx = text.indexOf("## Magic Items A");
-  const region = startIdx !== -1 ? text.slice(startIdx) : text;
-  return parseHashEntries(region).map(({ name, block }) => {
-    const metaMatch = block.match(/^_(.+?)_/);
-    const meta = metaMatch ? metaMatch[1] : "";
-    const parts = splitTopLevelCommas(meta);
-    const type = parts[0] || null;
-    const rarityPart = parts.slice(1).join(", ") || "";
-    const rarityMatch = rarityPart.match(/^(Common|Uncommon|Rare|Very Rare|Legendary|Artifact|Varies)/i);
-    const rarity = rarityMatch ? rarityMatch[1] : rarityPart || null;
-    const attunementMatch = rarityPart.match(/Requires Attunement([^)]*)/i);
-    const attunement = attunementMatch
-      ? (attunementMatch[1].trim() ? `Requires Attunement${attunementMatch[1]}` : "Requires Attunement")
-      : null;
-    const description = block.replace(/^_.+?_\n*/, "").trim();
-    return { name, type, rarity, attunement, description };
-  });
-}
-
-// ============================================================
-// Classes
-// ============================================================
-
-// Parses "#### LevelN: FeatureName" blocks within a region into
-// [{level, name, description}], each stopping at the next #### / ### / ##.
-function parseLeveledFeatures(regionText) {
-  const headerRe = /^#### Level (\d+):\s*(.+)$/gm;
-  const matches = [...regionText.matchAll(headerRe)];
-  const features = [];
-  for (let i = 0; i < matches.length; i++) {
-    const start = matches[i].index + matches[i][0].length;
-    const end = i + 1 < matches.length ? matches[i + 1].index : regionText.length;
-    let block = regionText.slice(start, end);
-    const nextHeading = block.search(/^#{2,3} /m);
-    if (nextHeading !== -1) block = block.slice(0, nextHeading);
-    features.push({ level: Number(matches[i][1]), name: matches[i][2].trim(), description: block.trim() });
   }
-  return features;
+  return spells;
 }
 
-function parseClasses(text) {
-  const classHeaderRe = /^## (\w[\w\s]*?)$/gm;
-  const matches = [...text.matchAll(classHeaderRe)].filter((m) => m[1].trim() !== "Classes");
-  const classes = [];
-  for (let i = 0; i < matches.length; i++) {
-    const name = matches[i][1].trim();
-    const start = matches[i].index;
-    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
-    const region = text.slice(start, end);
+// ============================================================
+// Feats (feats.md) -- every "#### Name" header in the file is a real
+// feat (confirmed: the only non-entry headers, "## Feat Descriptions"
+// and "### Parts of a Feat" / "### Origin Feats" etc., are "##"/"###",
+// not "####"). Each is immediately followed by an italic category/
+// prerequisite line, e.g. "_Origin Feat_" or
+// "_Epic Boon Feat (Prerequisite: Level 19+)_".
+// ============================================================
+function parseFeats(text) {
+  const blocks = text.split(/\n(?=#### )/).slice(1);
+  const feats = [];
+  for (const block of blocks) {
+    const nameMatch = block.match(/^#### (.+)$/m);
+    if (!nameMatch) continue;
+    const name = nameMatch[1].trim();
+    // Trim a trailing "### Section Name" divider (e.g. "### General
+    // Feats") that belongs to the NEXT section, not this feat -- the
+    // block split only breaks on "#### " boundaries, so a "###" divider
+    // sitting between two feats otherwise bleeds into the first one's
+    // description. Confirmed this happens at every category boundary
+    // (Origin -> General -> Fighting Style -> Epic Boon).
+    const rest = block.slice(nameMatch[0].length).replace(/\n### .+$/s, "").trim();
+    const categoryMatch = rest.match(/^_(.+?)_/);
+    const category = categoryMatch ? categoryMatch[1].trim() : null;
+    const description = categoryMatch ? rest.slice(categoryMatch[0].length).trim() : rest;
+    feats.push({
+      srd_id: slugify(name),
+      name,
+      data_json: { name, category, description }
+    });
+  }
+  return feats;
+}
 
-    const coreTable = findNamedTable(region, `Core ${name} Traits`);
-    const coreFields = {};
-    if (coreTable) {
-      const rowHtmls = [...coreTable.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((m) => m[1]);
-      rowHtmls.forEach((rowHtml) => {
-        const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) =>
-          m[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim()
-        );
-        if (cells.length === 2) coreFields[cells[0]] = cells[1];
+// ============================================================
+// Magic Items (magic-items.md) -- "#### Name" headers, but the file
+// opens with several non-item "####" subsection headers ("Spells Cast
+// from Items", "Charges", "Spells", "Conflict") before the real,
+// alphabetized item list begins at "Adamantine Armor". Real items are
+// distinguished by their very next line being an italic
+// "_Type (details), Rarity_" line -- confirmed against Adamantine
+// Armor, Ammunition +1/+2/+3, Ammunition of Slaying. The meta headers
+// above don't have this immediate italic type/rarity line, so this
+// heuristic filters them out without needing a hardcoded line number.
+// ============================================================
+function parseMagicItems(text) {
+  const blocks = text.split(/\n(?=#### )/).slice(1);
+  const items = [];
+  const RARITY_RE = /(Common|Uncommon|Rare|Very Rare|Legendary|Artifact|Varies)/i;
+  for (const block of blocks) {
+    const nameMatch = block.match(/^#### (.+)$/m);
+    if (!nameMatch) continue;
+    const name = nameMatch[1].trim();
+    const rest = block.slice(nameMatch.index + nameMatch[0].length).trim();
+    const typeMatch = rest.match(/^_(.+?)_/);
+    if (!typeMatch || !RARITY_RE.test(typeMatch[1])) continue; // not a real item entry
+    const typeLine = typeMatch[1].trim();
+    const rarityMatch = typeLine.match(RARITY_RE);
+    const rarity = rarityMatch ? rarityMatch[1] : null;
+    const itemType = typeLine.split(",")[0].trim();
+    const description = rest.slice(typeMatch[0].length).trim();
+    items.push({
+      srd_id: slugify(name),
+      name,
+      data_json: { name, itemType, rarity, typeLine, description },
+      rarity
+    });
+  }
+  return items;
+}
+
+// ============================================================
+// Equipment: Weapons + Armor (HTML <table> in equipment.md) and
+// Adventuring Gear (#### Name (Cost) prose entries). All three folded
+// into srd_library.category = 'items' to match this app's existing
+// Items category. Confirmed table structure by direct inspection: a
+// <thead> header row, then <tbody> rows -- some rows are actual items
+// (<td> cells), some are category-divider rows
+// (<th colspan="N"><em>Section Name</em></th>) which this parser skips.
+// ============================================================
+function parseHtmlTable(tableHtml) {
+  const rows = [];
+  const rowMatches = tableHtml.match(/<tr>[\s\S]*?<\/tr>/g) || [];
+  let currentGroup = null;
+  for (const rowHtml of rowMatches) {
+    if (/<th colspan/.test(rowHtml)) {
+      const groupMatch = rowHtml.match(/<em>(.+?)<\/em>/);
+      currentGroup = groupMatch ? groupMatch[1].trim() : null;
+      continue;
+    }
+    const cells = [...rowHtml.matchAll(/<t[dh]>(.*?)<\/t[dh]>/gs)].map((m) => m[1].replace(/<[^>]+>/g, "").trim());
+    if (!cells.length || cells[0] === "Name" || cells[0] === "Armor" || cells[0] === "Item") continue; // header row
+    rows.push({ group: currentGroup, cells });
+  }
+  return rows;
+}
+
+function parseWeaponsAndArmor(text) {
+  const items = [];
+
+  const weaponsSection = text.slice(text.indexOf("## Weapons"), text.indexOf("## Armor"));
+  const weaponsTable = weaponsSection.match(/<table>[\s\S]*?<\/table>/);
+  if (weaponsTable) {
+    for (const row of parseHtmlTable(weaponsTable[0])) {
+      const [name, damage, properties, mastery, weight, cost] = row.cells;
+      if (!name) continue;
+      items.push({
+        srd_id: slugify(name),
+        name,
+        data_json: { name, itemType: "Weapon", category: row.group, damage, properties, mastery, weight, cost },
+        rarity: null
       });
     }
-    const hitDieMatch = (coreFields["Hit Point Die"] || "").match(/D(\d+)/i);
-    const hitDie = hitDieMatch ? Number(hitDieMatch[1]) : null;
+  }
 
-    const classFeaturesIdx = region.indexOf(`### ${name} Class Features`);
-    const subclassHeaderMatch = region.match(/^### .+Subclass:\s*(.+)$/m);
-    const subclassIdx = subclassHeaderMatch ? subclassHeaderMatch.index : region.length;
-
-    const featuresRegion = classFeaturesIdx !== -1 ? region.slice(classFeaturesIdx, subclassIdx) : "";
-    const features = parseLeveledFeatures(featuresRegion);
-
-    let subclass = null;
-    if (subclassHeaderMatch) {
-      const subclassRegion = region.slice(subclassIdx);
-      subclass = { name: subclassHeaderMatch[1].trim(), features: parseLeveledFeatures(subclassRegion) };
+  const armorSection = text.slice(text.indexOf("## Armor"), text.indexOf("## Tools"));
+  const armorTable = armorSection.match(/<table>[\s\S]*?<\/table>/);
+  if (armorTable) {
+    for (const row of parseHtmlTable(armorTable[0])) {
+      const [name, ac, str, stealth, weight, cost] = row.cells;
+      if (!name) continue;
+      items.push({
+        srd_id: slugify(name),
+        name,
+        data_json: { name, itemType: "Armor", category: row.group, armorClass: ac, strength: str, stealth, weight, cost },
+        rarity: null
+      });
     }
-
-    classes.push({
-      name,
-      hitDie,
-      primaryAbility: coreFields["Primary Ability"] || null,
-      savingThrowProficiencies: coreFields["Saving Throw Proficiencies"] || null,
-      skillProficiencies: coreFields["Skill Proficiencies"] || null,
-      weaponProficiencies: coreFields["Weapon Proficiencies"] || null,
-      armorTraining: coreFields["Armor Training"] || null,
-      startingEquipment: coreFields["Starting Equipment"] || null,
-      features,
-      subclass
-    });
   }
-  return classes;
+
+  return items;
 }
 
-// ============================================================
-// Equipment: weapons, armor, adventuring gear, tools
-// ============================================================
-
-function parseWeapons(text) {
-  const table = findNamedTable(text, "Weapons");
-  const { rows } = parseHtmlTable(table);
-  return rows.map((r) => ({
-    name: r.Name,
-    damage: r.Damage,
-    properties: r.Properties,
-    mastery: r.Mastery,
-    weight: r.Weight,
-    cost: r.Cost,
-    category: r.__category || null
-  }));
-}
-
-function parseArmor(text) {
-  const table = findNamedTable(text, "Armor");
-  const { rows } = parseHtmlTable(table);
-  return rows.map((r) => ({
-    name: r.Armor,
-    armorClass: r["Armor Class (AC)"],
-    strength: r.Strength,
-    stealth: r.Stealth,
-    weight: r.Weight,
-    cost: r.Cost,
-    category: r.__category || null
-  }));
-}
-
-// Merges the flat Item/Weight/Cost table (every gear item) with the
-// #### ItemName (Cost) prose entries (only items with real rules text --
-// plain gear like "Backpack" has a table row but no prose entry).
+// Adventuring Gear -- "#### Name (Cost)" headers under "## Adventuring
+// Gear", ending at the next "## " section. Confirmed: Acid, Alchemist's
+// Fire, Ammunition, Antitoxin, Arcane Focus, Backpack, etc.
 function parseAdventuringGear(text) {
-  const sectionStart = text.indexOf("## Adventuring Gear");
-  const sectionEnd = text.indexOf("## Mounts and Vehicles");
-  const region = text.slice(sectionStart, sectionEnd === -1 ? undefined : sectionEnd);
+  const startIdx = text.indexOf("## Adventuring Gear");
+  if (startIdx === -1) return [];
+  const nextSectionIdx = text.indexOf("\n## ", startIdx + 1);
+  const body = text.slice(startIdx, nextSectionIdx === -1 ? undefined : nextSectionIdx);
 
-  const table = findNamedTable(region, "Adventuring Gear");
-  const { rows } = parseHtmlTable(table);
-
-  const proseByName = new Map();
-  parseHashEntries(region).forEach(({ name, block }) => {
-    const cleanName = name.replace(/\s*\([^)]*\)\s*$/, "").trim();
-    proseByName.set(cleanName.toLowerCase(), block);
-  });
-
-  return rows.map((row) => ({
-    name: row.Item,
-    weight: row.Weight,
-    cost: row.Cost,
-    description: proseByName.get((row.Item || "").toLowerCase()) || null
-  }));
-}
-
-// Tools have no heading markup at all -- each entry is a bold-only line
-// "**ToolName (Cost)**" followed by **Ability:**/**Weight:**/
-// **Utilize:**/**Craft:**/**Variants:** field lines.
-function parseTools(text) {
-  const sectionStart = text.indexOf("## Tools");
-  const sectionEnd = text.indexOf("## Adventuring Gear");
-  const region = text.slice(sectionStart, sectionEnd);
-
-  const entryRe = /^\*\*([^*\n]+?)\s*\(([^()\n]+)\)\*\*\s*$/gm;
-  const matches = [...region.matchAll(entryRe)];
-  const tools = [];
-  for (let i = 0; i < matches.length; i++) {
-    const name = matches[i][1].trim();
-    const cost = matches[i][2].trim();
-    const start = matches[i].index + matches[i][0].length;
-    const end = i + 1 < matches.length ? matches[i + 1].index : region.length;
-    const block = region.slice(start, end);
-
-    const ability = (block.match(/\*\*Ability:\*\*\s*([^*\n]+)/) || [])[1];
-    const weight = (block.match(/\*\*Weight:\*\*\s*([^*\n]+)/) || [])[1];
-    const utilize = (block.match(/\*\*Utilize:\*\*\s*([^\n]+)/) || [])[1];
-    const craft = (block.match(/\*\*Craft:\*\*\s*([^\n]+)/) || [])[1];
-    const variants = (block.match(/\*\*Variants:\*\*\s*([^\n]+)/) || [])[1];
-
-    tools.push({
+  const blocks = body.split(/\n(?=#### )/).slice(1);
+  const items = [];
+  for (const block of blocks) {
+    const nameMatch = block.match(/^#### (.+?)\s*\(([^)]+)\)\s*$/m);
+    if (!nameMatch) continue;
+    const name = nameMatch[1].trim();
+    const cost = nameMatch[2].trim();
+    // Stop description at the first embedded <table> (e.g. Ammunition's
+    // sub-table) or the next "#### " header, whichever comes first --
+    // both already handled by the block split; a stray <table> inside
+    // one block just gets included in description text, harmless.
+    const description = block.slice(nameMatch[0].length).replace(/<table>[\s\S]*?<\/table>/, "").trim();
+    items.push({
+      srd_id: slugify(name),
       name,
-      cost,
-      ability: ability ? ability.trim() : null,
-      weight: weight ? weight.trim() : null,
-      utilize: utilize ? utilize.trim() : null,
-      craft: craft ? craft.trim() : null,
-      variants: variants ? variants.trim() : null
+      data_json: { name, itemType: "Adventuring Gear", cost, description },
+      rarity: null
     });
   }
-  return tools;
+  return items;
 }
 
 // ============================================================
-// Ingestion (upsert into srd_library)
+// Upsert helper -- same idempotency contract as ingestSrd5e.js
+// (upsert on ruleset+category+srd_id, so re-running after a source
+// update overwrites rather than duplicates).
 // ============================================================
-
-async function upsertRows(rows) {
+async function upsertRows(category, rows, extraColumns = () => ({})) {
   if (!rows.length) return 0;
-  const { data, error } = await supabase
-    .from("srd_library")
-    .upsert(rows, { onConflict: "ruleset,category,srd_id" })
-    .select("id");
-  if (error) throw new Error(`Upserting srd_library rows failed: ${error.message}`);
-  return data.length;
-}
-
-async function ingestSpells() {
-  const text = await fetchText("spells.md");
-  const spells = parseSpells(text);
-  const rows = spells.map((s) => ({
+  const payload = rows.map((r) => ({
     ruleset: "5e",
-    category: "spells",
-    srd_id: slugify(s.name),
-    name: s.name,
-    data_json: s,
+    category,
+    srd_id: r.srd_id,
+    name: r.name,
+    data_json: r.data_json,
     source_edition: SOURCE_EDITION,
     license_note: LICENSE_NOTE,
-    level: s.level
+    ...extraColumns(r)
   }));
-  return { count: await upsertRows(rows), parsed: spells.length };
+  const { error } = await supabase.from("srd_library").upsert(payload, { onConflict: "ruleset,category,srd_id" });
+  if (error) throw new Error(`Upsert failed for category '${category}': ${error.message}`);
+  return payload.length;
 }
 
-async function ingestFeats() {
-  const text = await fetchText("feats.md");
-  const feats = parseFeats(text);
-  const rows = feats.map((f) => ({
-    ruleset: "5e",
-    category: "feats",
-    srd_id: slugify(f.name),
-    name: f.name,
-    data_json: f,
-    source_edition: SOURCE_EDITION,
-    license_note: LICENSE_NOTE
-  }));
-  return { count: await upsertRows(rows), parsed: feats.length };
+async function ingestAll() {
+  const results = {};
+
+  const spellsText = await fetchText("spells.md");
+  results.spells = await upsertRows("spells", parseSpells(spellsText), (r) => ({ level: r.level, class_name: r.class_name }));
+
+  const equipmentText = await fetchText("equipment.md");
+  const weaponsArmor = parseWeaponsAndArmor(equipmentText);
+  const gear = parseAdventuringGear(equipmentText);
+  results.items = await upsertRows("items", [...weaponsArmor, ...gear]);
+
+  const featsText = await fetchText("feats.md");
+  results.feats = await upsertRows("feats", parseFeats(featsText));
+
+  const magicItemsText = await fetchText("magic-items.md");
+  results["magic-items"] = await upsertRows("magic-items", parseMagicItems(magicItemsText), (r) => ({ rarity: r.rarity }));
+
+  return results;
 }
 
-async function ingestMagicItems() {
-  const text = await fetchText("magic-items.md");
-  const items = parseMagicItems(text);
-  const rows = items.map((it) => ({
-    ruleset: "5e",
-    category: "magic-items",
-    srd_id: slugify(it.name),
-    name: it.name,
-    data_json: it,
-    source_edition: SOURCE_EDITION,
-    license_note: LICENSE_NOTE,
-    rarity: it.rarity
-  }));
-  return { count: await upsertRows(rows), parsed: items.length };
-}
-
-async function ingestClasses() {
-  const text = await fetchText("classes.md");
-  const classes = parseClasses(text);
-  const rows = classes.map((c) => ({
-    ruleset: "5e",
-    category: "classes",
-    srd_id: slugify(c.name),
-    name: c.name,
-    data_json: c,
-    source_edition: SOURCE_EDITION,
-    license_note: LICENSE_NOTE,
-    class_name: c.name
-  }));
-  return { count: await upsertRows(rows), parsed: classes.length };
-}
-
-async function ingestEquipment() {
-  const text = await fetchText("equipment.md");
-  const weapons = parseWeapons(text);
-  const armor = parseArmor(text);
-  const gear = parseAdventuringGear(text);
-  const tools = parseTools(text);
-
-  const rows = [
-    ...weapons.map((w) => ({
-      ruleset: "5e",
-      category: "items",
-      srd_id: `weapon-${slugify(w.name)}`,
-      name: w.name,
-      data_json: { itemType: "weapon", ...w },
-      source_edition: SOURCE_EDITION,
-      license_note: LICENSE_NOTE
-    })),
-    ...armor.map((a) => ({
-      ruleset: "5e",
-      category: "items",
-      srd_id: `armor-${slugify(a.name)}`,
-      name: a.name,
-      data_json: { itemType: "armor", ...a },
-      source_edition: SOURCE_EDITION,
-      license_note: LICENSE_NOTE
-    })),
-    ...gear.map((g) => ({
-      ruleset: "5e",
-      category: "items",
-      srd_id: `gear-${slugify(g.name)}`,
-      name: g.name,
-      data_json: { itemType: "gear", ...g },
-      source_edition: SOURCE_EDITION,
-      license_note: LICENSE_NOTE
-    })),
-    ...tools.map((t) => ({
-      ruleset: "5e",
-      category: "items",
-      srd_id: `tool-${slugify(t.name)}`,
-      name: t.name,
-      data_json: { itemType: "tool", ...t },
-      source_edition: SOURCE_EDITION,
-      license_note: LICENSE_NOTE
-    }))
-  ];
-  return {
-    count: await upsertRows(rows),
-    parsed: rows.length,
-    breakdown: { weapons: weapons.length, armor: armor.length, gear: gear.length, tools: tools.length }
-  };
-}
-
-async function main() {
-  console.log("Fetching & ingesting 5e SRD 5.2.1 (downfallx/dnd-5e-srd-markdown, CC-BY-4.0)...\n");
-
-  const spells = await ingestSpells();
-  console.log(`Spells: parsed ${spells.parsed}, upserted ${spells.count}`);
-
-  const equipment = await ingestEquipment();
-  console.log(`Equipment (items): parsed ${equipment.parsed} (${JSON.stringify(equipment.breakdown)}), upserted ${equipment.count}`);
-
-  const classes = await ingestClasses();
-  console.log(`Classes: parsed ${classes.parsed}, upserted ${classes.count}`);
-
-  const feats = await ingestFeats();
-  console.log(`Feats: parsed ${feats.parsed}, upserted ${feats.count}`);
-
-  const magicItems = await ingestMagicItems();
-  console.log(`Magic Items: parsed ${magicItems.parsed}, upserted ${magicItems.count}`);
-
-  console.log("\nDone. Run scripts/verifySrd5eFullIngest.js against a real Supabase project to spot-check the ingested rows.");
-}
+module.exports = { ingestAll, parseSpells, parseFeats, parseMagicItems, parseWeaponsAndArmor, parseAdventuringGear };
 
 if (require.main === module) {
-  main().catch((err) => {
-    console.error("SRD 5e full ingestion failed:", err);
-    process.exit(1);
-  });
+  ingestAll()
+    .then((results) => {
+      console.log("SRD ingestion complete:");
+      Object.entries(results).forEach(([cat, count]) => console.log(`  ${cat}: ${count} rows upserted`));
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("SRD ingestion failed:", err);
+      process.exit(1);
+    });
 }
-
-module.exports = {
-  slugify,
-  parseSpells,
-  parseFeats,
-  parseMagicItems,
-  parseClasses,
-  parseWeapons,
-  parseArmor,
-  parseAdventuringGear,
-  parseTools,
-  LICENSE_NOTE,
-  SOURCE_EDITION
-};

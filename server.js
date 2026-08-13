@@ -41,6 +41,7 @@ const deleteWorldRoute = require("./routes/deleteWorld");
 const adminCostRoute = require("./routes/adminCost");
 const adminWorldsRoute = require("./routes/adminWorlds");
 const adminIngestSrdRoute = require("./routes/adminIngestSrd");
+const adminIngestSrdFullRoute = require("./routes/adminIngestSrdFull");
 const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
 const stripeWebhookRoute = require("./routes/stripeWebhook");
@@ -152,6 +153,7 @@ app.use("/api", billingRoute);
 app.use("/api", adminCostRoute);
 app.use("/api", adminWorldsRoute);
 app.use("/api", adminIngestSrdRoute);
+app.use("/api", adminIngestSrdFullRoute);
 app.use("/api", debugCompareTextModelsRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 
