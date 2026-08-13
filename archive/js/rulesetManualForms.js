@@ -806,6 +806,21 @@ async function fetch5eRaceOptions() {
   }
 }
 
+// R4 Phase 5: static reference lists, not per-world -- see
+// routes/reference5e.js's header for why this doesn't just duplicate the
+// data client-side like the other CMF_* tables above.
+async function fetch5eBackgroundsAndFeats() {
+  try {
+    const res = await authFetch("/api/reference/5e/backgrounds-and-feats");
+    const data = await res.json();
+    return { backgrounds: (data && data.backgrounds) || [], feats: (data && data.feats) || [] };
+  } catch (err) {
+    console.error("Could not load backgrounds/feats:", err);
+    return { backgrounds: [], feats: [] };
+  }
+}
+const CMF_FIRST_ASI_LEVEL = 4; // lib/rulesets/5e/classFormulas.js's ABILITY_SCORE_IMPROVEMENT_LEVELS[0]
+
 async function show5eSurvivorEditForm(entry) {
   const raw = entry.raw || {};
   const classOptions = await fetchCategoryOptions("classes");
@@ -814,6 +829,7 @@ async function show5eSurvivorEditForm(entry) {
     return null;
   }
   const raceOptions = await fetch5eRaceOptions();
+  const { backgrounds: backgroundOptions, feats: featOptions } = await fetch5eBackgroundsAndFeats();
   const abilities = raw.abilities || {};
 
   const bodyHtml = `
@@ -822,6 +838,8 @@ async function show5eSurvivorEditForm(entry) {
     ${efSelect("Class", "ef-classId", idSelectOptionsHtml(classOptions, raw.classId))}
     ${efField("Class Level (1-20)", "ef-classLevel", raw.classLevel || 1, { type: "number" })}
     ${efSelect("Race (optional)", "ef-raceKey", ['<option value="">Not specified</option>'].concat(raceOptions.map((r) => `<option value="${r.key}" ${r.key === raw.raceKey ? "selected" : ""}>${r.name}</option>`)).join(""))}
+    ${efSelect("Background (optional)", "ef-backgroundKey", ['<option value="">Not specified</option>'].concat(backgroundOptions.map((b) => `<option value="${b.key}" ${b.key === raw.backgroundKey ? "selected" : ""}>${b.name}</option>`)).join(""))}
+    ${efSelect("Feat (only applies at level 4+, instead of an Ability Score Improvement)", "ef-featKey", ['<option value="">Take the ASI instead</option>'].concat(featOptions.map((f) => `<option value="${f.key}" ${f.key === raw.featKey ? "selected" : ""}>${f.name}</option>`)).join(""))}
     ${rowHeader("Ability Scores")}
     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px;">
       ${FIVEE_ABILITY_KEYS.map((k) => efField(k.toUpperCase(), `ef-ability-${k}`, abilities[k] != null ? abilities[k] : 10, { type: "number" })).join("")}
@@ -860,6 +878,8 @@ async function show5eSurvivorEditForm(entry) {
     // already whatever final number the author wants, so auto-adding the
     // race bonus on top here would double-count it if they already did.
     const chosenRace = raceOptions.find((r) => r.key === val("ef-raceKey")) || null;
+    const chosenBackground = backgroundOptions.find((b) => b.key === val("ef-backgroundKey")) || null;
+    const chosenFeat = level >= CMF_FIRST_ASI_LEVEL ? (featOptions.find((f) => f.key === val("ef-featKey")) || null) : null;
     const matchedCoreClass = cmfMatchCoreClassName(chosenClass.name);
     const savingThrowProficiencies = cmfSavingThrowProficienciesForClass(matchedCoreClass, classContent.savingThrowProficiencies);
     const proficiencyBonus = cmfProficiencyBonusForLevel(level);
@@ -874,6 +894,10 @@ async function show5eSurvivorEditForm(entry) {
       classLevel: level,
       raceKey: chosenRace ? chosenRace.key : null,
       raceName: chosenRace ? chosenRace.name : null,
+      backgroundKey: chosenBackground ? chosenBackground.key : null,
+      backgroundDetail: chosenBackground,
+      featKey: chosenFeat ? chosenFeat.key : null,
+      featDetail: chosenFeat,
       abilities: Object.fromEntries(FIVEE_ABILITY_KEYS.map((k) => [k, Number(val(`ef-ability-${k}`)) || 10])),
       skillProficiencies,
       armorClass: Number(val("ef-armorClass")) || 10,

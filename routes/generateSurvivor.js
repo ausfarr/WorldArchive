@@ -27,12 +27,14 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
 const { slugify: slugify5e, buildSurvivorBodyHtml: buildSurvivorBodyHtml5e } = require("../lib/rulesets/5e/survivorTemplate");
 const { computeHitPoints, proficiencyBonusForLevel, spellSlotsForLevel, passivePerception, initiativeBonus, applyAbilityScoreIncrease } = require("../lib/rulesets/5e/survivorFormulas");
-const { matchCoreClassName, savingThrowProficienciesForClass, SKILLS } = require("../lib/rulesets/5e/classFormulas");
+const { matchCoreClassName, savingThrowProficienciesForClass, SKILLS, ABILITY_SCORE_IMPROVEMENT_LEVELS } = require("../lib/rulesets/5e/classFormulas");
 const { buildHomebrewSurvivorSystemPrompt } = require("../prompts/rulesets/5e/survivorContentPrompt");
 const { getRaceSystem } = require("../lib/worldConfigRepo");
 const { STARTER_5E_RACES } = require("../lib/rulesets/5e/starterRaces");
+const { CORE_BACKGROUNDS, CORE_FEATS } = require("../lib/rulesets/5e/backgroundsAndFeats");
 
 const VALID_SKILL_KEYS = new Set(SKILLS.map((s) => s.key));
+const FIRST_ASI_LEVEL = Math.min(...ABILITY_SCORE_IMPROVEMENT_LEVELS);
 
 // R4 Phase 3: resolves an optional raceKey against this world's own
 // saved race list, falling back to the hand-authored starter list for a
@@ -228,6 +230,15 @@ async function handle5eSurvivorGenerate(req, res) {
   const savingThrowProficiencies = savingThrowProficienciesForClass(matchedCoreClass, classContent.savingThrowProficiencies);
   const isPerceptionProficient = skillProficiencies.includes("perception");
 
+  // R4 Phase 5: Background is validated against the real 13-entry core
+  // list (hand-authored fallback -- see backgroundsAndFeats.js's header
+  // for why) rather than trusted verbatim from the model; a Feat only
+  // applies once the character has reached its first real ASI level,
+  // same "took the ASI instead" default as real play when left blank.
+  const background = CORE_BACKGROUNDS.find((b) => b.key === proposed.backgroundKey) || null;
+  const eligibleForFeat = level >= FIRST_ASI_LEVEL;
+  const feat = eligibleForFeat ? CORE_FEATS.find((f) => f.key === proposed.featKey) || null : null;
+
   const pc = {
     ...proposed,
     id: fillExistingId || slugify5e(proposed.name),
@@ -245,6 +256,10 @@ async function handle5eSurvivorGenerate(req, res) {
     savingThrowProficiencies,
     passivePerception: passivePerception(abilities.wis || 10, proficiencyBonus, isPerceptionProficient),
     initiativeBonus: initiativeBonus(abilities.dex || 10, 0),
+    backgroundKey: background ? background.key : null,
+    backgroundDetail: background,
+    featKey: feat ? feat.key : null,
+    featDetail: feat,
     sourceMode: "homebrew"
   };
   if (existingEntry) pc.id = existingEntry.manifestEntry.id;
