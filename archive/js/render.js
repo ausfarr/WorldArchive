@@ -547,18 +547,27 @@ const IMPORT_CHARACTER_CONFIG = {
   }
 };
 
+// Lands the button inside Stage 1 of the "+ Create Entry" staged reveal
+// (wireCreateEntryCollapse(), above) instead of appending it directly to
+// #gen-form -- matches Enemies' own Import button, which lives in Stage 1
+// next to Generate with AI/Enter Manually/Roll Randomly rather than as a
+// second always-visible top-level button. wireCreateEntryCollapse() runs
+// synchronously before this on both pages that use it (npcs/index.html,
+// survivors/index.html), so #create-entry-stage1-row already exists in
+// the DOM here -- no polling/whenReady needed.
 function wireImportCharacterButton() {
-  const genForm = document.getElementById("gen-form");
+  const stage1Row = document.getElementById("create-entry-stage1-row");
   const category = document.body.dataset.category;
   const config = IMPORT_CHARACTER_CONFIG[category];
-  if (!genForm || !config) return;
+  if (!stage1Row || !config) return;
 
   const btn = document.createElement("button");
   btn.type = "button";
   btn.id = "import-character-btn";
   btn.textContent = "Import Character";
   btn.style.cssText = "background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
-  genForm.appendChild(btn);
+  const cancelBtn = document.getElementById("create-entry-cancel-btn");
+  stage1Row.insertBefore(btn, cancelBtn);
 
   btn.addEventListener("click", () => openImportCharacterModal(config));
 }
