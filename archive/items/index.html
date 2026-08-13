@@ -5,6 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Items — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
+<style>
+  /* Import/Reflavor/Homebrew source picker (5e only). Import is its own
+     Stage-1 action (see promoteImportToStage1() below) showing ONLY the
+     SRD picker; "Generate with AI" shows ONLY the Reflavor/Homebrew
+     toggle -- built this way from the start (R5 Phase 5), not the
+     nested "all three tiers behind one button" version Enemies shipped
+     first and R5 Phase 6 corrects. See archive/enemies/index.html for
+     the pattern this was built from. */
+  .mode-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    color: var(--ink-dim); padding: 8px 14px; cursor: pointer;
+    font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.82rem;
+  }
+  .mode-btn-tag {
+    font-family: var(--font-mono); text-transform: none; letter-spacing: 0; font-size: 0.65rem; color: var(--ink-faint);
+  }
+  .mode-btn-active {
+    border-color: var(--neon-primary); color: var(--ink);
+    box-shadow: inset 0 0 0 1px var(--neon-primary);
+  }
+</style>
 <script>
 (function() {
   try {
@@ -150,77 +172,222 @@ function wireEchoesItemForm() {
   });
 }
 
-function wire5eItemForm() {
+// Real backend contract, mirrors routes/generateEnemy.js's 5e branch --
+// see that file's own comment for the mode/srdLibraryId request shape.
+// Built with the corrected Import/Generate split from the start (R5
+// Phase 5): #gen-import-view (SRD picker only) and #gen-ai-view
+// (Reflavor/Homebrew toggle only) are two separate sub-views, switched
+// between by promoteImportToStage1()'s two Stage-1 buttons below --
+// never shown together.
+async function wire5eItemForm() {
   const fieldsHost = document.getElementById('gen-form-fields');
   fieldsHost.innerHTML = `
-    <div style="flex: 1; min-width: 160px;">
-      <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
-      <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+    <div id="gen-import-view" style="display:none; gap:12px; flex-wrap:wrap; align-items:flex-end; width:100%;">
+      <div style="flex: 1; min-width: 220px;">
+        <label for="gen-import-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD ITEM</label>
+        <select id="gen-import-srd-picker" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;"></select>
+      </div>
+      <div style="flex: 1; min-width: 160px;">
+        <label for="gen-import-faction" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+        <select id="gen-import-faction" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+          <option value="">Let it choose</option>
+        </select>
+      </div>
     </div>
-    <div style="flex: 1; min-width: 160px;">
-      <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">RARITY</label>
-      <select id="gen-field-2" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-        <option value="">Let it choose (may be mundane)</option>
-        <option value="Common">Common</option>
-        <option value="Uncommon">Uncommon</option>
-        <option value="Rare">Rare</option>
-        <option value="Very Rare">Very Rare</option>
-        <option value="Legendary">Legendary</option>
-        <option value="Artifact">Artifact</option>
-      </select>
-    </div>
-    <div style="flex: 1; min-width: 160px;">
-      <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
-      <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-        <option value="">Let it choose</option>
-      </select>
-    </div>
-    <div style="flex: 1; min-width: 160px;">
-      <label for="gen-field-4" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">TYPE</label>
-      <select id="gen-field-4" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
-        <option value="">Let it choose</option>
-        <option value="weapon">Weapon</option>
-        <option value="armor">Armor</option>
-        <option value="wondrous">Wondrous Item</option>
-        <option value="potion">Potion</option>
-        <option value="scroll">Scroll</option>
-        <option value="ring">Ring</option>
-        <option value="rod">Rod</option>
-        <option value="staff">Staff</option>
-        <option value="wand">Wand</option>
-        <option value="other">Other</option>
-      </select>
+    <div id="gen-ai-view" style="display:none; gap:12px; flex-wrap:wrap; align-items:flex-end; width:100%;">
+      <div style="flex: 1; min-width: 160px;">
+        <label for="gen-name" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">NAME (optional)</label>
+        <input id="gen-name" type="text" placeholder="leave blank to generate" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);">
+      </div>
+      <div style="flex-basis: 100%; min-width: 260px;">
+        <label style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 6px;">SOURCE</label>
+        <div id="gen-mode-buttons" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="mode-btn" data-mode="reflavor">Reflavor<span class="mode-btn-tag">AI · SRD stats, new narrative</span></button>
+          <button type="button" class="mode-btn" data-mode="homebrew">Homebrew AI<span class="mode-btn-tag">AI · fully new design</span></button>
+        </div>
+        <input type="hidden" id="gen-mode" value="homebrew">
+      </div>
+      <div id="gen-reflavor-srd-wrap" style="flex: 1; min-width: 200px; display: none;">
+        <label for="gen-reflavor-srd-picker" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">SRD ITEM</label>
+        <select id="gen-reflavor-srd-picker" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;"></select>
+      </div>
+      <div id="gen-homebrew-fields-wrap" style="display:flex; gap:12px; flex-wrap:wrap;">
+        <div style="flex: 1; min-width: 160px;">
+          <label for="gen-field-2" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">RARITY</label>
+          <select id="gen-field-2" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+            <option value="">Let it choose (may be mundane)</option>
+            <option value="Common">Common</option>
+            <option value="Uncommon">Uncommon</option>
+            <option value="Rare">Rare</option>
+            <option value="Very Rare">Very Rare</option>
+            <option value="Legendary">Legendary</option>
+            <option value="Artifact">Artifact</option>
+          </select>
+        </div>
+        <div style="flex: 1; min-width: 160px;">
+          <label for="gen-field-4" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">TYPE</label>
+          <select id="gen-field-4" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+            <option value="">Let it choose</option>
+            <option value="weapon">Weapon</option>
+            <option value="armor">Armor</option>
+            <option value="wondrous">Wondrous Item</option>
+            <option value="potion">Potion</option>
+            <option value="scroll">Scroll</option>
+            <option value="ring">Ring</option>
+            <option value="rod">Rod</option>
+            <option value="staff">Staff</option>
+            <option value="wand">Wand</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div style="flex: 1; min-width: 160px;">
+        <label for="gen-field-3" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">FACTION</label>
+        <select id="gen-field-3" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+          <option value="">Let it choose</option>
+        </select>
+      </div>
     </div>
   `;
+  populateFactionSelect('gen-import-faction', { includeUnaligned: true });
   populateFactionSelect('gen-field-3', { includeUnaligned: true });
+
+  let srdItems = [];
+  try {
+    const res = await authFetch('/api/srd-library?ruleset=5e&category=items');
+    const data = await res.json();
+    srdItems = data.entries || [];
+  } catch (err) {
+    console.error('Could not load SRD item list:', err);
+  }
+  const srdOptionsHtml = srdItems.map((it) => `<option value="${it.id}">${it.name}</option>`).join('') || '<option value="">No SRD items available</option>';
+  document.getElementById('gen-import-srd-picker').innerHTML = srdOptionsHtml;
+  document.getElementById('gen-reflavor-srd-picker').innerHTML = srdOptionsHtml;
+
+  const modeSubmitLabels = { reflavor: 'Generate', homebrew: 'Generate' };
+
+  function updateAiModeVisibility() {
+    const mode = document.getElementById('gen-mode').value;
+    document.getElementById('gen-reflavor-srd-wrap').style.display = mode === 'reflavor' ? 'block' : 'none';
+    document.getElementById('gen-homebrew-fields-wrap').style.display = mode === 'homebrew' ? 'flex' : 'none';
+    document.querySelectorAll('#gen-mode-buttons .mode-btn').forEach((b) => {
+      b.classList.toggle('mode-btn-active', b.dataset.mode === mode);
+    });
+    document.getElementById('gen-submit').textContent = modeSubmitLabels[mode] || 'Generate';
+  }
+  document.querySelectorAll('#gen-mode-buttons .mode-btn').forEach((b) => {
+    b.addEventListener('click', () => {
+      document.getElementById('gen-mode').value = b.dataset.mode;
+      updateAiModeVisibility();
+    });
+  });
+  updateAiModeVisibility();
+  promoteImportToStage1('gen-import-view', 'gen-ai-view');
 
   document.getElementById('gen-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('gen-submit');
     const status = document.getElementById('gen-status');
-    btn.disabled = true; btn.textContent = 'Generating…';
-    showGenerationOverlay(['Forging something worth finding…', 'Resolving base weapon/armor stats…', 'Checking the rarity value range…', 'Almost there…']);
+    const mode = document.getElementById('gen-mode').value;
+    btn.disabled = true; btn.textContent = mode === 'import' ? 'Importing…' : 'Generating…';
+    showGenerationOverlay(mode === 'import' ? ['Copying the SRD item…'] : ['Forging something worth finding…', 'Resolving base weapon/armor stats…', 'Almost there…']);
     status.style.display = 'block'; status.textContent = 'Calling the generator…';
     try {
+      const body = { mode };
+      if (mode === 'import') {
+        body.srdLibraryId = document.getElementById('gen-import-srd-picker').value;
+        body.faction = document.getElementById('gen-import-faction').value;
+      } else {
+        body.name = document.getElementById('gen-name').value;
+        body.faction = document.getElementById('gen-field-3').value;
+        if (mode === 'reflavor') {
+          body.srdLibraryId = document.getElementById('gen-reflavor-srd-picker').value;
+        } else {
+          body.rarity = document.getElementById('gen-field-2').value;
+          body.itemType = document.getElementById('gen-field-4').value;
+        }
+      }
+
       const res = await authFetch('/api/generate-item', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: document.getElementById('gen-name').value,
-          rarity: document.getElementById('gen-field-2').value,
-          faction: document.getElementById('gen-field-3').value,
-          itemType: document.getElementById('gen-field-4').value
-        })
+        body: JSON.stringify(body)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(formatGenerationError(data));
-      status.textContent = `Generated: ${data.name}${data.rarity ? ' — ' + data.rarity : ''}`;
+      status.textContent = `Generated: ${data.name}${data.rarity ? ' — ' + data.rarity : ''}${data.summary ? ' — ' + data.summary : ''}`;
       setTimeout(() => window.location.reload(), 1200);
     } catch (err) {
       status.innerHTML = err.message;
     } finally {
       hideGenerationOverlay();
-      btn.disabled = false; btn.textContent = 'Generate';
+      btn.disabled = false; btn.textContent = modeSubmitLabels[mode] || 'Generate';
+    }
+  });
+}
+
+// wireCreateEntryCollapse() (js/render.js, shared by all category pages)
+// already wraps this whole panel in a "+ Create Entry" -> Stage 1
+// ("Generate with AI" / "Enter Manually" / "Roll Randomly") -> Stage 2
+// accordion. This promotes Import to its own Stage-1 button next to
+// "Generate with AI" -- clicking Import reveals ONLY #gen-import-view;
+// clicking "Generate with AI" reveals ONLY #gen-ai-view (defaulted to
+// Homebrew, since Import is reachable from its own button now, not a
+// hidden default inside the AI panel). Page-local rather than shared
+// with archive/js/render.js, matching Enemies' current pattern (see
+// archive/enemies/index.html's own promoteImportToStage1(), which this
+// was built from) -- R5 Phase 6 revisits whether this is worth
+// extracting once Enemies is updated to the same two-view split.
+function whenReady(selector, cb, tries) {
+  tries = tries == null ? 40 : tries;
+  const el = document.querySelector(selector);
+  if (el) return cb(el);
+  if (tries <= 0) return;
+  requestAnimationFrame(() => whenReady(selector, cb, tries - 1));
+}
+
+function promoteImportToStage1(importViewId, aiViewId) {
+  whenReady('#create-entry-stage1-row', (stage1Row) => {
+    if (document.getElementById('create-entry-import-btn')) return; // already injected
+    const aiBtn = document.getElementById('create-entry-ai-btn');
+
+    function showStage2() {
+      stage1Row.style.display = 'none';
+      const eyebrow = document.querySelector('.sheet-eyebrow');
+      const fieldsWrap = document.getElementById('gen-form-fields');
+      const submitBtn = document.getElementById('gen-submit');
+      if (eyebrow) eyebrow.style.display = '';
+      if (fieldsWrap) fieldsWrap.style.display = '';
+      if (submitBtn) submitBtn.style.display = '';
+    }
+
+    const importBtn = document.createElement('button');
+    importBtn.type = 'button';
+    importBtn.id = 'create-entry-import-btn';
+    importBtn.textContent = 'Import (free)';
+    importBtn.title = 'Copy an official 5e SRD item straight in -- zero AI cost.';
+    importBtn.style.cssText = "background: var(--bg-panel-raised); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
+    importBtn.addEventListener('click', () => {
+      document.getElementById(importViewId).style.display = 'flex';
+      document.getElementById(aiViewId).style.display = 'none';
+      document.getElementById('gen-mode').value = 'import';
+      document.getElementById('gen-submit').textContent = 'Import';
+      showStage2();
+    });
+    stage1Row.insertBefore(importBtn, aiBtn || stage1Row.firstChild);
+
+    // "Generate with AI" shows ONLY the Reflavor/Homebrew view -- Import
+    // is not reachable from this button at all, unlike Enemies' current
+    // (pre-Phase-6) behavior.
+    if (aiBtn) {
+      aiBtn.addEventListener('click', () => {
+        document.getElementById(importViewId).style.display = 'none';
+        document.getElementById(aiViewId).style.display = 'flex';
+        document.getElementById('gen-mode').value = 'homebrew';
+        document.getElementById('gen-submit').textContent = 'Generate';
+        const homebrewBtn = document.querySelector('#gen-mode-buttons .mode-btn[data-mode="homebrew"]');
+        if (homebrewBtn) homebrewBtn.click();
+      });
     }
   });
 }
@@ -280,7 +447,7 @@ async function initItemGenerateForm() {
     console.error('Could not load this world\'s ruleset, defaulting to Echoes form:', err);
   }
   if (ruleset === '5e') {
-    wire5eItemForm();
+    await wire5eItemForm();
   } else if (ruleset === 'generic') {
     wireGenericItemForm();
   } else {

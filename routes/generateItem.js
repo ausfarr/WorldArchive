@@ -20,7 +20,10 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
 const { slugify: slugify5e, buildItemBodyHtml: buildItemBodyHtml5e } = require("../lib/rulesets/5e/itemTemplate");
 const { lookupWeapon, lookupArmor, rarityValueWarning } = require("../lib/rulesets/5e/itemFormulas");
-const { buildHomebrewItemSystemPrompt } = require("../prompts/rulesets/5e/itemContentPrompt");
+const { buildHomebrewItemSystemPrompt, buildReflavorItemSystemPrompt } = require("../prompts/rulesets/5e/itemContentPrompt");
+const { mapSrdItemMechanics } = require("../lib/rulesets/5e/srdItemMapper");
+const { getSrdEntry, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
+const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 
 // Generic Items (Homebrew only, narrative-first) -- see
 // prompts/rulesets/generic/itemContentPrompt.js and
@@ -163,10 +166,13 @@ async function handleEchoesItemGenerate(req, res) {
 }
 
 // ============================================================
-// 5e path -- Homebrew tier only (no canonical magic item data to
-// import). Weapon/armor mechanical stats are resolved from the real
-// lookup tables in lib/rulesets/5e/itemFormulas.js, never trusted from
-// the model directly.
+// 5e path -- three tiers as of R5 Phase 5, dispatched by req.body.mode:
+// 'import' (no AI, direct copy from srd_library), 'reflavor' (AI rewrites
+// narrative only, mechanics untouched), 'homebrew' (AI invents fresh
+// item, weapon/armor mechanical stats resolved from the real lookup
+// tables in lib/rulesets/5e/itemFormulas.js, never trusted from the
+// model directly). Same three-tier shape as routes/generateEnemy.js's
+// handle5eEnemyGenerate.
 // ============================================================
 function resolveItemStats(item) {
   if (item.itemType === "weapon" && item.baseItem) {
@@ -182,7 +188,8 @@ function resolveItemStats(item) {
 
 async function handle5eItemGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId, rarity, itemType } = req.body || {};
+  const { name, faction, fillExistingId, rarity, itemType, srdLibraryId } = req.body || {};
+  const mode = req.body && req.body.mode;
 
   let existingEntry = null;
   let isRegenerate = false;
@@ -198,25 +205,117 @@ async function handle5eItemGenerate(req, res) {
     isRegenerate = !manifestEntry.locked;
   }
 
+  const effectiveMode = mode || (existingEntry && existingEntry.raw && existingEntry.raw.sourceMode) || "homebrew";
+  if (!["import", "reflavor", "homebrew"].includes(effectiveMode)) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "5e item generation requires a 'mode' of 'import', 'reflavor', or 'homebrew'." });
+  }
+
+  // ---- Import: zero AI cost, direct copy from srd_library ----
+  if (effectiveMode === "import") {
+    if (req.refundGeneration) await req.refundGeneration();
+    if (!srdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(srdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+
+    const alreadyImportedAs = await isAlreadyImported(worldId, srdLibraryId);
+    if (alreadyImportedAs && alreadyImportedAs !== fillExistingId) {
+      return res.status(409).json({ error: `This SRD item was already imported into this world as '${alreadyImportedAs}'.` });
+    }
+
+    const mechanics = mapSrdItemMechanics(srdRow.data_json);
+    const item = {
+      id: fillExistingId || slugify5e(srdRow.name),
+      name: srdRow.name,
+      faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null,
+      rarity: null, // mundane equipment -- srd_library's 'items' category is weapons/armor/gear/tools, not magic items
+      requiresAttunement: false,
+      attunementRequirement: null,
+      baseItem: null,
+      magicBonus: null,
+      magicalProperties: [],
+      flavor: null,
+      designNotes: null,
+      sourceMode: "import",
+      srdSourceId: srdRow.srd_id,
+      srdLicenseNote: srdRow.license_note,
+      ...mechanics
+    };
+
+    if (isRegenerate) {
+      const newBodyHtmlPreview = buildItemBodyHtml5e(item, null);
+      return res.json({ preview: true, mode: "regenerate", category: "items", id: item.id, name: item.name, entry: item, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+    }
+
+    await save5eItemEntry(worldId, item, null);
+    await recordImport(worldId, srdLibraryId, item.id);
+    return res.json({ preview: false, id: item.id, name: item.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
+  }
+
+  // ---- Reflavor / Homebrew both call Claude ----
   const settingContext = await getSettingContext(worldId);
   const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
   const loreContext = await getLoreContext(worldId, { category: "items" });
-  const rosterEntries = await listEntries(worldId, "items", { locked: false });
-  const rosterContext = rosterEntries.length
-    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
-    : "No items archived yet -- any concept is available.";
 
-  const systemPrompt = buildHomebrewItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, rarity, itemType });
-  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the item now.", maxTokens: 1500 });
+  let item;
 
-  const item = {
-    ...proposed,
-    id: fillExistingId || slugify5e(proposed.name),
-    faction: faction || null,
-    resolvedStats: resolveItemStats(proposed),
-    rarityValueWarning: rarityValueWarning(proposed.rarity, proposed.valueGp),
-    sourceMode: "homebrew"
-  };
+  if (effectiveMode === "reflavor") {
+    // srdLibraryId must be passed explicitly on every call, including a
+    // regenerate -- same contract as Enemies' Reflavor tier (see
+    // routes/generateEnemy.js's handle5eEnemyGenerate comment on this).
+    if (!srdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(srdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+
+    const systemPrompt = buildReflavorItemSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceItem: srdRow.data_json });
+    const reflavored = await callClaudeExpectingJson({ systemPrompt, userMessage: "Reflavor the item now.", maxTokens: 1200 });
+
+    const mechanics = mapSrdItemMechanics(srdRow.data_json);
+    item = {
+      id: fillExistingId || slugify5e(reflavored.name),
+      name: reflavored.name,
+      faction: faction || null,
+      rarity: null,
+      requiresAttunement: false,
+      attunementRequirement: null,
+      baseItem: null,
+      magicBonus: null,
+      magicalProperties: [],
+      flavor: reflavored.flavor,
+      designNotes: reflavored.designNotes,
+      sourceMode: "reflavor",
+      srdSourceId: srdRow.srd_id,
+      srdLicenseNote: srdRow.license_note,
+      ...mechanics,
+      // Model's rewritten description overrides the mapper's raw-source
+      // description text -- the mapper's mechanics (resolvedStats/
+      // valueGp/weightLb) above are NOT touched by the model at all.
+      description: reflavored.description || mechanics.description
+    };
+
+    // Same Differential Billing treatment as Enemies' Reflavor tier --
+    // only the gap between a full generation's points and a field-assist's
+    // points is refunded, not the whole spend.
+    if (req.refundGeneration) await req.refundGeneration(POINTS_PER_GENERATION - POINTS_PER_FIELD_ASSIST);
+  } else {
+    const rosterEntries = await listEntries(worldId, "items", { locked: false });
+    const rosterContext = rosterEntries.length
+      ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
+      : "No items archived yet -- any concept is available.";
+
+    const systemPrompt = buildHomebrewItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, rarity, itemType });
+    const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the item now.", maxTokens: 1500 });
+
+    item = {
+      ...proposed,
+      id: fillExistingId || slugify5e(proposed.name),
+      faction: faction || null,
+      resolvedStats: resolveItemStats(proposed),
+      rarityValueWarning: rarityValueWarning(proposed.rarity, proposed.valueGp),
+      sourceMode: "homebrew"
+    };
+  }
+
   if (existingEntry) item.id = existingEntry.manifestEntry.id;
 
   if (isRegenerate) {

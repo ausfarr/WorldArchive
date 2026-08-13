@@ -18,7 +18,10 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
 const { slugify: slugify5e, buildClassBodyHtml: buildClassBodyHtml5e } = require("../lib/rulesets/5e/classTemplate");
 const { subclassUnlockLevel, matchCoreClassName, savingThrowProficienciesForClass } = require("../lib/rulesets/5e/classFormulas");
-const { buildHomebrewClassSystemPrompt } = require("../prompts/rulesets/5e/classContentPrompt");
+const { buildHomebrewClassSystemPrompt, buildReflavorClassSystemPrompt } = require("../prompts/rulesets/5e/classContentPrompt");
+const { mapSrdClassMechanics } = require("../lib/rulesets/5e/srdClassMapper");
+const { getSrdEntry, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
+const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 
 // Generic Classes (Homebrew only, narrative-first -- no leveling concept
 // exists for a Generic world) -- see
@@ -132,17 +135,21 @@ async function handleEchoesClassGenerate(req, res) {
 }
 
 // ============================================================
-// 5e path -- Homebrew tier only (no canonical class data to import --
-// see prompts/rulesets/5e/classContentPrompt.js's header). Code
-// determines the subclass-unlock level from the class's OWN name
-// against the real 5e table where it matches a core class, falling back
-// to the shared default (level 3, the most common) for anything else --
-// never trusts the model's proposed subclass features' levels as
-// authoritative for the unlock point itself.
+// 5e path -- three tiers as of R5 Phase 5, dispatched by req.body.mode:
+// 'import' (no AI, direct copy from srd_library), 'reflavor' (AI
+// rewrites narrative only, mechanics untouched), 'homebrew' (AI invents
+// fresh class -- unchanged from before this phase). Same three-tier
+// shape as routes/generateEnemy.js's handle5eEnemyGenerate. Code
+// determines the subclass-unlock level and saving throw proficiencies
+// from the real 5e table where a class name matches a core class (see
+// classFormulas.js's savingThrowProficienciesForClass()) -- for Import/
+// Reflavor this always matches, since the source class name IS one of
+// the 12 core classes exactly (see lib/rulesets/5e/srdClassMapper.js).
 // ============================================================
 async function handle5eClassGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId } = req.body || {};
+  const { name, faction, fillExistingId, srdLibraryId } = req.body || {};
+  const mode = req.body && req.body.mode;
 
   let existingEntry = null;
   let isRegenerate = false;
@@ -158,38 +165,124 @@ async function handle5eClassGenerate(req, res) {
     isRegenerate = !manifestEntry.locked;
   }
 
+  const effectiveMode = mode || (existingEntry && existingEntry.raw && existingEntry.raw.sourceMode) || "homebrew";
+  if (!["import", "reflavor", "homebrew"].includes(effectiveMode)) {
+    if (req.refundGeneration) await req.refundGeneration();
+    return res.status(400).json({ error: "5e class generation requires a 'mode' of 'import', 'reflavor', or 'homebrew'." });
+  }
+
+  // ---- Import: zero AI cost, direct copy from srd_library ----
+  if (effectiveMode === "import") {
+    if (req.refundGeneration) await req.refundGeneration();
+    if (!srdLibraryId) return res.status(400).json({ error: "Import mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(srdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
+
+    const alreadyImportedAs = await isAlreadyImported(worldId, srdLibraryId);
+    if (alreadyImportedAs && alreadyImportedAs !== fillExistingId) {
+      return res.status(409).json({ error: `This SRD class was already imported into this world as '${alreadyImportedAs}'.` });
+    }
+
+    const mechanics = mapSrdClassMechanics(srdRow.data_json);
+    const cls = {
+      id: fillExistingId || slugify5e(srdRow.name),
+      name: srdRow.name,
+      faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null,
+      flavor: null,
+      designNotes: null,
+      sourceMode: "import",
+      srdSourceId: srdRow.srd_id,
+      srdLicenseNote: srdRow.license_note,
+      ...mechanics
+    };
+
+    if (isRegenerate) {
+      const newBodyHtmlPreview = buildClassBodyHtml5e(cls, null);
+      return res.json({ preview: true, mode: "regenerate", category: "classes", id: cls.id, name: cls.name, entry: cls, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
+    }
+
+    await save5eClassEntry(worldId, cls, null);
+    await recordImport(worldId, srdLibraryId, cls.id);
+    return res.json({ preview: false, id: cls.id, name: cls.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
+  }
+
+  // ---- Reflavor / Homebrew both call Claude ----
   const settingContext = await getSettingContext(worldId);
   const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
   const loreContext = await getLoreContext(worldId, { category: "classes" });
-  const rosterEntries = await listEntries(worldId, "classes", { locked: false });
-  const rosterContext = rosterEntries.length
-    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
-    : "No classes archived yet -- any concept is available.";
 
-  const systemPrompt = buildHomebrewClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name });
-  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the class now.", maxTokens: 3500 });
+  let cls;
 
-  // Subclass-unlock level AND saving throw proficiencies are REAL 5e
-  // rules, not model choices -- both resolved by matching this class's
-  // name against the 12 core classes' known values (a homebrew class
-  // inspired by "Wizard" or "Warlock" in its name gets that class's real
-  // level/saves); anything else falls back to level 3 (the shared
-  // default among 7 of the 12 core classes) for the unlock level, and
-  // keeps the model's own proposed save pair for a genuinely original
-  // homebrew concept with no rules-book answer to look up (see
-  // classFormulas.js's savingThrowProficienciesForClass()).
-  const matchedCoreClass = matchCoreClassName(proposed.name);
-  const unlockLevel = subclassUnlockLevel(matchedCoreClass || "");
-  const savingThrowProficiencies = savingThrowProficienciesForClass(matchedCoreClass, proposed.savingThrowProficiencies);
+  if (effectiveMode === "reflavor") {
+    // srdLibraryId must be passed explicitly on every call, including a
+    // regenerate -- same contract as Enemies' Reflavor tier.
+    if (!srdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    const srdRow = await getSrdEntry(srdLibraryId);
+    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${srdLibraryId}'.` });
 
-  const cls = {
-    ...proposed,
-    id: fillExistingId || slugify5e(proposed.name),
-    faction: faction || null,
-    subclassUnlockLevel: unlockLevel,
-    savingThrowProficiencies,
-    sourceMode: "homebrew"
-  };
+    const mechanics = mapSrdClassMechanics(srdRow.data_json);
+    const systemPrompt = buildReflavorClassSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceClass: srdRow.data_json });
+    const reflavored = await callClaudeExpectingJson({ systemPrompt, userMessage: "Reflavor the class now.", maxTokens: 3000 });
+
+    // Model's rewritten features override the mapper's raw-source
+    // features only if it returned the same count -- same defensive
+    // "length must match" guard Enemies' Reflavor uses for traits/actions,
+    // since a mismatched count would silently break the level table.
+    const features = Array.isArray(reflavored.features) && reflavored.features.length === mechanics.features.length
+      ? reflavored.features
+      : mechanics.features;
+    const subclasses = mechanics.subclasses.length
+      ? [{ ...mechanics.subclasses[0], flavor: reflavored.subclassFlavor || mechanics.subclasses[0].flavor }]
+      : mechanics.subclasses;
+
+    cls = {
+      id: fillExistingId || slugify5e(srdRow.name),
+      name: srdRow.name,
+      faction: faction || null,
+      flavor: reflavored.flavor,
+      designNotes: reflavored.designNotes,
+      sourceMode: "reflavor",
+      srdSourceId: srdRow.srd_id,
+      srdLicenseNote: srdRow.license_note,
+      ...mechanics,
+      features,
+      subclasses
+    };
+
+    // Same Differential Billing treatment as Enemies' Reflavor tier.
+    if (req.refundGeneration) await req.refundGeneration(POINTS_PER_GENERATION - POINTS_PER_FIELD_ASSIST);
+  } else {
+    const rosterEntries = await listEntries(worldId, "classes", { locked: false });
+    const rosterContext = rosterEntries.length
+      ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
+      : "No classes archived yet -- any concept is available.";
+
+    const systemPrompt = buildHomebrewClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name });
+    const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the class now.", maxTokens: 3500 });
+
+    // Subclass-unlock level AND saving throw proficiencies are REAL 5e
+    // rules, not model choices -- both resolved by matching this class's
+    // name against the 12 core classes' known values (a homebrew class
+    // inspired by "Wizard" or "Warlock" in its name gets that class's real
+    // level/saves); anything else falls back to level 3 (the shared
+    // default among 7 of the 12 core classes) for the unlock level, and
+    // keeps the model's own proposed save pair for a genuinely original
+    // homebrew concept with no rules-book answer to look up (see
+    // classFormulas.js's savingThrowProficienciesForClass()).
+    const matchedCoreClass = matchCoreClassName(proposed.name);
+    const unlockLevel = subclassUnlockLevel(matchedCoreClass || "");
+    const savingThrowProficiencies = savingThrowProficienciesForClass(matchedCoreClass, proposed.savingThrowProficiencies);
+
+    cls = {
+      ...proposed,
+      id: fillExistingId || slugify5e(proposed.name),
+      faction: faction || null,
+      subclassUnlockLevel: unlockLevel,
+      savingThrowProficiencies,
+      sourceMode: "homebrew"
+    };
+  }
+
   if (existingEntry) cls.id = existingEntry.manifestEntry.id;
 
   if (isRegenerate) {
