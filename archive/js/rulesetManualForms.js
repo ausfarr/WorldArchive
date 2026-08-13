@@ -72,6 +72,35 @@ function cmfComputeHitPoints(hitDie, level, conScore) {
   for (let l = 2; l <= lvl; l++) hp += perLevelAvg + conMod;
   return Math.max(1, hp);
 }
+function cmfPassivePerception(wisScore, proficiencyBonus, isPerceptionProficient) {
+  return 10 + cmfAbilityModifier(wisScore) + (isPerceptionProficient ? Number(proficiencyBonus) || 0 : 0);
+}
+function cmfInitiativeBonus(dexScore, featBonus) { return cmfAbilityModifier(dexScore) + (Number(featBonus) || 0); }
+// R4 Phase 2 additions -- from lib/rulesets/5e/classFormulas.js
+const CMF_SAVING_THROW_PROFICIENCIES = {
+  barbarian: ["str", "con"], bard: ["dex", "cha"], cleric: ["wis", "cha"], druid: ["int", "wis"],
+  fighter: ["str", "con"], monk: ["str", "dex"], paladin: ["wis", "cha"], ranger: ["str", "dex"],
+  rogue: ["dex", "int"], sorcerer: ["con", "cha"], warlock: ["wis", "cha"], wizard: ["int", "wis"]
+};
+function cmfMatchCoreClassName(name) {
+  const nameLower = String(name || "").toLowerCase();
+  return Object.keys(CMF_SAVING_THROW_PROFICIENCIES).find((c) => nameLower.includes(c)) || null;
+}
+function cmfSavingThrowProficienciesForClass(matchedCoreClass, modelOrClassProposed) {
+  if (matchedCoreClass && CMF_SAVING_THROW_PROFICIENCIES[matchedCoreClass]) return [...CMF_SAVING_THROW_PROFICIENCIES[matchedCoreClass]];
+  return Array.isArray(modelOrClassProposed) ? modelOrClassProposed.slice(0, 2) : [];
+}
+const CMF_SKILLS = [
+  { key: "acrobatics", name: "Acrobatics" }, { key: "animal_handling", name: "Animal Handling" },
+  { key: "arcana", name: "Arcana" }, { key: "athletics", name: "Athletics" },
+  { key: "deception", name: "Deception" }, { key: "history", name: "History" },
+  { key: "insight", name: "Insight" }, { key: "intimidation", name: "Intimidation" },
+  { key: "investigation", name: "Investigation" }, { key: "medicine", name: "Medicine" },
+  { key: "nature", name: "Nature" }, { key: "perception", name: "Perception" },
+  { key: "performance", name: "Performance" }, { key: "persuasion", name: "Persuasion" },
+  { key: "religion", name: "Religion" }, { key: "sleight_of_hand", name: "Sleight of Hand" },
+  { key: "stealth", name: "Stealth" }, { key: "survival", name: "Survival" }
+];
 // From lib/rulesets/5e/itemFormulas.js -- real SRD weapon/armor stats,
 // trimmed to the subset offered in the baseItem dropdown below (the full
 // canonical table is the server-side source of truth; if this dropdown
@@ -434,6 +463,13 @@ function show5eClassEditForm(entry) {
     const name = val("ef-name");
     const unlockLevel = cmfSubclassUnlockLevel(name.toLowerCase());
     const subclassLevels = [Math.max(3, unlockLevel), unlockLevel + 3, unlockLevel + 7];
+    // R4 Phase 2: saving throw proficiencies are code-determined for a
+    // name that matches one of the 12 core classes (a real 5e rule, same
+    // as the AI-generation and procedural paths) -- the typed field is
+    // kept only as the fallback for a genuinely original homebrew name.
+    const matchedCoreClass = cmfMatchCoreClassName(name);
+    const typedSaves = val("ef-saves").split(",").map((s) => s.trim()).filter(Boolean);
+    const savingThrowProficiencies = cmfSavingThrowProficienciesForClass(matchedCoreClass, typedSaves);
     const updated = {
       ...raw,
       id: raw.id,
@@ -441,7 +477,7 @@ function show5eClassEditForm(entry) {
       faction: val("ef-faction") || null,
       hitDie: val("ef-hitDie"),
       primaryAbility: val("ef-primaryAbility"),
-      savingThrowProficiencies: val("ef-saves").split(",").map((s) => s.trim()).filter(Boolean),
+      savingThrowProficiencies,
       casterType: val("ef-casterType"),
       spellcastingAbility: val("ef-casterType") === "none" ? null : (val("ef-spellAbility") || null),
       features: featureState.filter((f) => f.name).map((f) => ({ level: Number(f.level) || 1, name: f.name, description: f.description })),
@@ -777,7 +813,11 @@ async function show5eSurvivorEditForm(entry) {
     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px;">
       ${FIVEE_ABILITY_KEYS.map((k) => efField(k.toUpperCase(), `ef-ability-${k}`, abilities[k] != null ? abilities[k] : 10, { type: "number" })).join("")}
     </div>
-    <p style="color:var(--ink-faint); font-size:0.78rem; margin:-6px 0 14px;">Hit Points, Proficiency Bonus, and Spell Slots recompute automatically from the chosen Class + level on save -- not editable directly.</p>
+    <p style="color:var(--ink-faint); font-size:0.78rem; margin:-6px 0 14px;">Hit Points, Proficiency Bonus, Saving Throw Proficiencies, Passive Perception, and Initiative recompute automatically from the chosen Class + level + ability scores + skills on save -- not editable directly.</p>
+    ${rowHeader("Skill Proficiencies")}
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 4px 12px; margin-bottom: 14px;">
+      ${CMF_SKILLS.map((s) => `<label style="display:flex; align-items:center; gap:6px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);"><input type="checkbox" class="ef-skill-check" value="${s.key}" ${(raw.skillProficiencies || []).includes(s.key) ? "checked" : ""}> ${s.name}</label>`).join("")}
+    </div>
     <div style="display:flex; gap:12px;">
       ${efField("Armor Class", "ef-armorClass", raw.armorClass || 10, { type: "number" })}
       ${efField("Armor Note (optional)", "ef-armorNote", raw.armorNote)}
@@ -798,6 +838,12 @@ async function show5eSurvivorEditForm(entry) {
     const classContent = (chosenClassFull.entry && chosenClassFull.entry.raw) || {};
     const level = Math.max(1, Math.min(20, Math.round(Number(val("ef-classLevel")) || 1)));
     const con = Number(val("ef-ability-con")) || 10;
+    const wis = Number(val("ef-ability-wis")) || 10;
+    const dex = Number(val("ef-ability-dex")) || 10;
+    const skillProficiencies = Array.from(document.querySelectorAll(".ef-skill-check:checked")).map((el) => el.value);
+    const matchedCoreClass = cmfMatchCoreClassName(chosenClass.name);
+    const savingThrowProficiencies = cmfSavingThrowProficienciesForClass(matchedCoreClass, classContent.savingThrowProficiencies);
+    const proficiencyBonus = cmfProficiencyBonusForLevel(level);
 
     const updated = {
       ...raw,
@@ -808,6 +854,7 @@ async function show5eSurvivorEditForm(entry) {
       className: chosenClass.name,
       classLevel: level,
       abilities: Object.fromEntries(FIVEE_ABILITY_KEYS.map((k) => [k, Number(val(`ef-ability-${k}`)) || 10])),
+      skillProficiencies,
       armorClass: Number(val("ef-armorClass")) || 10,
       armorNote: val("ef-armorNote") || null,
       equipment: val("ef-equipment"),
@@ -818,7 +865,10 @@ async function show5eSurvivorEditForm(entry) {
       backstory: val("ef-backstory"),
       designNotes: val("ef-designNotes"),
       hitPoints: cmfComputeHitPoints(classContent.hitDie || "d8", level, con),
-      proficiencyBonus: cmfProficiencyBonusForLevel(level),
+      proficiencyBonus,
+      savingThrowProficiencies,
+      passivePerception: cmfPassivePerception(wis, proficiencyBonus, skillProficiencies.includes("perception")),
+      initiativeBonus: cmfInitiativeBonus(dex, 0),
       spellSlots: classContent.casterType && classContent.casterType !== "none" ? cmfSpellSlotsForLevel(classContent.casterType, level) : null,
       sourceMode: raw.sourceMode || "homebrew"
     };

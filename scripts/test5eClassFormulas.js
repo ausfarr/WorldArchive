@@ -12,7 +12,10 @@ const {
   proficiencyBonusForLevel,
   subclassUnlockLevel,
   spellSlotsForLevel,
-  ABILITY_SCORE_IMPROVEMENT_LEVELS
+  ABILITY_SCORE_IMPROVEMENT_LEVELS,
+  matchCoreClassName,
+  savingThrowProficienciesForClass,
+  SKILLS
 } = require("../lib/rulesets/5e/classFormulas");
 
 const failures = [];
@@ -96,6 +99,46 @@ function testThirdCaster() {
   check("level 9 third-caster matches full-caster level 3", JSON.stringify(level9Third) === JSON.stringify([4, 2, 0, 0, 0, 0, 0, 0, 0]), JSON.stringify(level9Third));
 }
 
+// R4 Phase 2: real PHB saving throw proficiencies, two per class -- hand
+// cross-checked against the published table for all 12 core classes.
+function testSavingThrowProficiencies() {
+  console.log("\nSaving throw proficiencies (real PHB pairs, all 12 core classes):");
+  const expected = {
+    barbarian: ["str", "con"], bard: ["dex", "cha"], cleric: ["wis", "cha"], druid: ["int", "wis"],
+    fighter: ["str", "con"], monk: ["str", "dex"], paladin: ["wis", "cha"], ranger: ["str", "dex"],
+    rogue: ["dex", "int"], sorcerer: ["con", "cha"], warlock: ["wis", "cha"], wizard: ["int", "wis"]
+  };
+  Object.entries(expected).forEach(([cls, saves]) => {
+    const result = savingThrowProficienciesForClass(cls, null);
+    check(`${cls} -> ${saves.join("/")}`, JSON.stringify(result) === JSON.stringify(saves), JSON.stringify(result));
+  });
+}
+
+function testMatchCoreClassName() {
+  console.log("\nCore class name matching:");
+  check('"Frost Warden Ranger" matches ranger', matchCoreClassName("Frost Warden Ranger") === "ranger");
+  check('"The Bulwark" matches nothing', matchCoreClassName("The Bulwark") === null);
+}
+
+function testSavingThrowFallback() {
+  console.log("\nSaving throw fallback for unmatched (genuinely homebrew) class name:");
+  const proposed = ["int", "cha"];
+  const result = savingThrowProficienciesForClass(null, proposed);
+  check("keeps model-proposed pair when no core-class match", JSON.stringify(result) === JSON.stringify(proposed), JSON.stringify(result));
+  check("falls back to empty array when no proposal given either", JSON.stringify(savingThrowProficienciesForClass(null, null)) === "[]");
+}
+
+function testSkillsList() {
+  console.log("\nSkills reference list:");
+  check("exactly 18 skills", SKILLS.length === 18, SKILLS.length);
+  const keys = SKILLS.map((s) => s.key);
+  check("all keys unique", new Set(keys).size === 18);
+  const validAbilities = new Set(["str", "dex", "con", "int", "wis", "cha"]);
+  check("every skill has a valid governing ability", SKILLS.every((s) => validAbilities.has(s.ability)));
+  const perception = SKILLS.find((s) => s.key === "perception");
+  check("Perception is Wisdom-governed", perception && perception.ability === "wis");
+}
+
 function main() {
   testProficiencyBonus();
   testSubclassUnlockLevels();
@@ -104,6 +147,10 @@ function main() {
   testHalfCasterSlots();
   testWarlockPactMagic();
   testThirdCaster();
+  testSavingThrowProficiencies();
+  testMatchCoreClassName();
+  testSavingThrowFallback();
+  testSkillsList();
 
   console.log("\n" + "=".repeat(50));
   if (failures.length) {

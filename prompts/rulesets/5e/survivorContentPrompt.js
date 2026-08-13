@@ -11,12 +11,16 @@
 // real hitDie/casterType -- never invented by the model.
 
 const { buildCacheableSystemPrompt } = require("../../../lib/claude");
+const { SKILLS } = require("../../../lib/rulesets/5e/classFormulas");
+
+const SKILL_KEYS_TEXT = SKILLS.map((s) => s.key).join(", ");
 
 const SCHEMA_DESCRIPTION = `{
   "name": "Full Character Name",
   "classId": "the EXACT id of one class from the AVAILABLE CLASSES list below",
   "classLevel": 3,
   "abilities": { "str": 10, "dex": 14, "con": 12, "int": 8, "wis": 10, "cha": 8 },
+  "skillProficiencies": ["stealth", "perception"],
   "armorClass": 14,
   "armorNote": "e.g. studded leather -- or null",
   "equipment": "a short list of carried gear",
@@ -34,7 +38,8 @@ RULES:
 - "classId" MUST be the exact id of one of the classes listed in AVAILABLE CLASSES below -- do not invent a class or use a name not on that list.
 - "abilities" should be six scores that make sense for the chosen class's likely primary/secondary abilities, using a standard array feel (roughly 8-15 range, not maxed out) -- these are the character's actual raw scores, not modifiers.
 - "armorClass" should be a plausible number for the character's level and likely equipment (10-20 range depending on level/armor/class) -- your best estimate; this does not need to be perfectly derived, a GM can adjust it.
-- Do NOT compute or state hit points, proficiency bonus, or spell slots -- those are filled in automatically from the chosen class's real data after you respond.
+- "skillProficiencies" must be 2-4 keys chosen from EXACTLY this list (lowercase, exact spelling): ${SKILL_KEYS_TEXT} -- pick ones that fit the chosen class and concept (e.g. a stealthy Rogue-type gets "stealth"/"sleight_of_hand", not "religion").
+- Do NOT compute or state hit points, proficiency bonus, spell slots, saving throw proficiencies, passive Perception, or initiative -- those are filled in automatically from the chosen class's real data and this character's ability scores after you respond.
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;

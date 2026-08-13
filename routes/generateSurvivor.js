@@ -26,8 +26,11 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 // Multi-ruleset genericization, Phase 8.
 const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
 const { slugify: slugify5e, buildSurvivorBodyHtml: buildSurvivorBodyHtml5e } = require("../lib/rulesets/5e/survivorTemplate");
-const { computeHitPoints, proficiencyBonusForLevel, spellSlotsForLevel } = require("../lib/rulesets/5e/survivorFormulas");
+const { computeHitPoints, proficiencyBonusForLevel, spellSlotsForLevel, passivePerception, initiativeBonus } = require("../lib/rulesets/5e/survivorFormulas");
+const { matchCoreClassName, savingThrowProficienciesForClass, SKILLS } = require("../lib/rulesets/5e/classFormulas");
 const { buildHomebrewSurvivorSystemPrompt } = require("../prompts/rulesets/5e/survivorContentPrompt");
+
+const VALID_SKILL_KEYS = new Set(SKILLS.map((s) => s.key));
 
 // Generic Player Characters (Homebrew only) -- see
 // prompts/rulesets/generic/survivorContentPrompt.js and
@@ -184,9 +187,27 @@ async function handle5eSurvivorGenerate(req, res) {
   const classContent = chosenClassFull && chosenClassFull.raw ? chosenClassFull.raw : {};
 
   const level = Math.max(1, Math.min(20, Math.round(Number(proposed.classLevel) || 1)));
-  const hitPoints = computeHitPoints(classContent.hitDie || "d8", level, (proposed.abilities && proposed.abilities.con) || 10);
+  const abilities = proposed.abilities || {};
+  const hitPoints = computeHitPoints(classContent.hitDie || "d8", level, abilities.con || 10);
   const proficiencyBonus = proficiencyBonusForLevel(level);
   const spellSlots = classContent.casterType && classContent.casterType !== "none" ? spellSlotsForLevel(classContent.casterType, level) : null;
+
+  // R4 Phase 2: skill proficiencies are genuinely the player's choice in
+  // real 5e, so the model's proposal is trusted -- but only after
+  // filtering to the real 18 skill keys, same defensive validation every
+  // other ruleset-aware route already applies to model-proposed
+  // enum-shaped fields. Saving throws, by contrast, are a fixed rule with
+  // no creative room, so they're re-derived from the chosen class's name
+  // here rather than trusted from either the model OR the class's own
+  // stored field (covers PCs built on a Class entry saved before this
+  // phase existed, whose savingThrowProficiencies may predate the
+  // code-determined fix in routes/generateClass.js).
+  const skillProficiencies = Array.isArray(proposed.skillProficiencies)
+    ? [...new Set(proposed.skillProficiencies.filter((k) => VALID_SKILL_KEYS.has(k)))]
+    : [];
+  const matchedCoreClass = matchCoreClassName(chosenClass.name);
+  const savingThrowProficiencies = savingThrowProficienciesForClass(matchedCoreClass, classContent.savingThrowProficiencies);
+  const isPerceptionProficient = skillProficiencies.includes("perception");
 
   const pc = {
     ...proposed,
@@ -198,6 +219,10 @@ async function handle5eSurvivorGenerate(req, res) {
     hitPoints,
     proficiencyBonus,
     spellSlots,
+    skillProficiencies,
+    savingThrowProficiencies,
+    passivePerception: passivePerception(abilities.wis || 10, proficiencyBonus, isPerceptionProficient),
+    initiativeBonus: initiativeBonus(abilities.dex || 10, 0),
     sourceMode: "homebrew"
   };
   if (existingEntry) pc.id = existingEntry.manifestEntry.id;

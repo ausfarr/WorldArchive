@@ -6,7 +6,7 @@
 //
 // Run with: node scripts/test5eSurvivorFormulas.js
 
-const { computeHitPoints, abilityModifier } = require("../lib/rulesets/5e/survivorFormulas");
+const { computeHitPoints, abilityModifier, passivePerception, initiativeBonus } = require("../lib/rulesets/5e/survivorFormulas");
 
 const failures = [];
 function check(label, condition, detail) {
@@ -53,12 +53,38 @@ function testMinimumHp() {
   check("d6, CON 1 (-5 mod), level 1: floored at 1, not negative", computeHitPoints("d6", 1, 1) >= 1);
 }
 
+// R4 Phase 2: Passive Perception = 10 + WIS mod + (proficiency bonus IF
+// proficient in Perception). Hand-computed against real class/level/
+// ability-score combos.
+function testPassivePerception() {
+  console.log("\nPassive Perception (10 + WIS mod + prof bonus if proficient):");
+  // Level 5 (prof bonus +3), WIS 14 (+2), proficient: 10 + 2 + 3 = 15.
+  check("level 5, WIS 14, proficient -> 15", passivePerception(14, 3, true) === 15, passivePerception(14, 3, true));
+  // Level 1 (prof bonus +2), WIS 10 (+0), NOT proficient: 10 + 0 + 0 = 10.
+  check("level 1, WIS 10, not proficient -> 10", passivePerception(10, 2, false) === 10, passivePerception(10, 2, false));
+  // Level 20 (prof bonus +6), WIS 20 (+5), proficient: 10 + 5 + 6 = 21.
+  check("level 20, WIS 20, proficient -> 21", passivePerception(20, 6, true) === 21, passivePerception(20, 6, true));
+}
+
+// R4 Phase 2: Initiative = DEX mod (+ optional flat feat bonus, unused
+// until Phase 5 but the parameter is tested here so that phase can't
+// silently break it).
+function testInitiativeBonus() {
+  console.log("\nInitiative bonus (DEX mod + optional feat bonus):");
+  check("DEX 16 (+3), no feat bonus -> +3", initiativeBonus(16, 0) === 3, initiativeBonus(16, 0));
+  check("DEX 8 (-1), no feat bonus -> -1", initiativeBonus(8, 0) === -1, initiativeBonus(8, 0));
+  check("DEX 16 (+3) + Alert-style +5 feat bonus -> +8", initiativeBonus(16, 5) === 8, initiativeBonus(16, 5));
+  check("feat bonus defaults to 0 when omitted", initiativeBonus(16) === 3, initiativeBonus(16));
+}
+
 function main() {
   testAbilityModifier();
   testLevel1Fighter();
   testLevel5Fighter();
   testLevel3Wizard();
   testMinimumHp();
+  testPassivePerception();
+  testInitiativeBonus();
 
   console.log("\n" + "=".repeat(50));
   if (failures.length) {
