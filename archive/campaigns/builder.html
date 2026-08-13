@@ -137,6 +137,29 @@
         </div>
         <button type="button" id="cm-add-btn" class="bm-btn">Add entry</button>
       </div>
+
+      <!-- R4 Phase 7: 5e-only -- pure DMG XP-table math against this
+           Quest's own referenced Bestiary entries + a party size/level,
+           no generation call. Hidden entirely for non-5e worlds (Echoes'
+           Tier system and Generic have no CR/XP concept to compute
+           against). See lib/rulesets/5e/encounterDifficulty.js. -->
+      <div id="cm-encounter-difficulty" style="display:none; margin-top: 28px;">
+        <h2>Encounter Difficulty</h2>
+        <p style="color: var(--ink-dim); font-size: 0.85rem; margin: 0 0 12px;">Checks this Quest's Bestiary entries against the real DMG XP thresholds for a party.</p>
+        <div style="border: 1px dashed var(--border-line); padding: 14px; display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+          <div>
+            <label style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">PARTY SIZE</label>
+            <input id="ed-party-size" type="number" min="1" value="4" style="width: 90px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+          </div>
+          <div>
+            <label style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">AVERAGE LEVEL</label>
+            <input id="ed-party-level" type="number" min="1" max="20" value="3" style="width: 90px; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+          </div>
+          <button type="button" id="ed-use-archive-pcs" class="bm-btn bm-btn-secondary">Use PCs From Archive</button>
+          <button type="button" id="ed-compute-btn" class="bm-btn">Check Difficulty</button>
+        </div>
+        <div id="ed-result" style="margin-top: 14px;"></div>
+      </div>
     </div>
 
     <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-line-soft); display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
@@ -166,9 +189,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.18"></script>
-<script src="../js/render.js?v=v0.18"></script>
-<script src="../js/campaignModule.js?v=v0.18"></script>
+<script src="/js/auth.js?v=v0.19"></script>
+<script src="../js/render.js?v=v0.19"></script>
+<script src="../js/campaignModule.js?v=v0.19"></script>
 <script>
   requireAuth().then((session) => {
     if (!session) return;

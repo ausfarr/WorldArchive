@@ -17,7 +17,7 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 // rework") -- see session_addendum_ruleset_genericization.md.
 const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
 const { slugify: slugify5e, buildClassBodyHtml: buildClassBodyHtml5e } = require("../lib/rulesets/5e/classTemplate");
-const { subclassUnlockLevel } = require("../lib/rulesets/5e/classFormulas");
+const { subclassUnlockLevel, matchCoreClassName, savingThrowProficienciesForClass } = require("../lib/rulesets/5e/classFormulas");
 const { buildHomebrewClassSystemPrompt } = require("../prompts/rulesets/5e/classContentPrompt");
 
 // Generic Classes (Homebrew only, narrative-first -- no leveling concept
@@ -169,21 +169,25 @@ async function handle5eClassGenerate(req, res) {
   const systemPrompt = buildHomebrewClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name });
   const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the class now.", maxTokens: 3500 });
 
-  // Subclass-unlock level is a REAL 5e rule, not a model choice --
-  // resolved by matching this class's name against the 12 core classes'
-  // known unlock levels (a homebrew class inspired by "Wizard" or
-  // "Warlock" in its name gets that class's real level); anything else
-  // falls back to level 3, the shared default among 7 of the 12 core
-  // classes (see classFormulas.js's subclassUnlockLevel()).
-  const nameLower = String(proposed.name || "").toLowerCase();
-  const matchedCoreClass = ["cleric", "sorcerer", "warlock", "druid", "wizard", "barbarian", "bard", "fighter", "monk", "paladin", "ranger", "rogue"].find((c) => nameLower.includes(c));
+  // Subclass-unlock level AND saving throw proficiencies are REAL 5e
+  // rules, not model choices -- both resolved by matching this class's
+  // name against the 12 core classes' known values (a homebrew class
+  // inspired by "Wizard" or "Warlock" in its name gets that class's real
+  // level/saves); anything else falls back to level 3 (the shared
+  // default among 7 of the 12 core classes) for the unlock level, and
+  // keeps the model's own proposed save pair for a genuinely original
+  // homebrew concept with no rules-book answer to look up (see
+  // classFormulas.js's savingThrowProficienciesForClass()).
+  const matchedCoreClass = matchCoreClassName(proposed.name);
   const unlockLevel = subclassUnlockLevel(matchedCoreClass || "");
+  const savingThrowProficiencies = savingThrowProficienciesForClass(matchedCoreClass, proposed.savingThrowProficiencies);
 
   const cls = {
     ...proposed,
     id: fillExistingId || slugify5e(proposed.name),
     faction: faction || null,
     subclassUnlockLevel: unlockLevel,
+    savingThrowProficiencies,
     sourceMode: "homebrew"
   };
   if (existingEntry) cls.id = existingEntry.manifestEntry.id;

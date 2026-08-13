@@ -109,14 +109,31 @@
   </div>
 
   <!-- 5e: fixed ability array baked into lib/rulesets/5e/statFormulas.js
-       -- nothing for this world owner to configure here at all. -->
+       -- nothing to configure there, but this is the natural home for
+       R4 Phase 3's Race/Species reference system (a small editable pool,
+       same "Skills-pattern" shape as the Echoes section above, deliberately
+       NOT a full content category -- see session_addendum_ruleset_recovery_r4_5e_completeness_scope.md). -->
   <div id="fixed-ruleset-container" style="display:none;">
     <div class="sheet" style="padding: 32px;">
       <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 12px;">Stats &amp; Skills</h1>
       <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0;" id="fixed-ruleset-note"></p>
     </div>
+
+    <div class="sheet" style="padding: 32px; margin-top: 24px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+        <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0;">Races &amp; Species</h1>
+        <button type="button" id="race-add-blank" class="generate-btn">+ Add Race</button>
+      </div>
+      <p style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 24px;">Starts from a hand-authored set of the core SRD races — edit, remove, or add your own. Optional: PCs and NPCs can pick one of these, or none at all.</p>
+
+      <div id="race-list"></div>
+      <button type="button" id="race-add-ai" class="generate-btn ai-action" style="margin-top: 4px;">+ Generate a New Race</button>
+
+      <p id="race-status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0 0;"></p>
+    </div>
+
     <div style="display:flex; justify-content:flex-end; margin-top: 24px;">
-      <button type="button" id="fixed-ruleset-continue" class="primary-btn">Continue →</button>
+      <button type="button" id="fixed-ruleset-continue" class="primary-btn">Save &amp; Continue →</button>
     </div>
   </div>
 </div>
@@ -170,6 +187,20 @@
     background: none; border: 1px solid var(--border-line); color: var(--ink-faint);
     padding: 6px 10px; cursor: pointer; font-family: var(--font-mono); font-size: 0.75rem; flex-shrink: 0;
   }
+  .race-card {
+    background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+    padding: 16px 18px; margin-bottom: 14px;
+  }
+  .race-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+  .race-name-input { font-family: var(--font-display); text-transform: uppercase; }
+  .race-asi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 10px 0; }
+  .race-asi-row label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-faint); text-transform: uppercase; display: block; margin-bottom: 3px; }
+  .race-asi-row input { width: 100%; }
+  .race-meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .race-trait-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: flex-start; }
+  .race-trait-row input { flex: 1; }
+  .race-trait-row textarea { flex: 2; }
+  .race-card-actions { display: flex; gap: 8px; margin-top: 10px; }
 </style>
 
 <script src="/config.js"></script>
@@ -182,9 +213,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.18"></script>
-<script src="/js/wizardSession.js?v=v0.18"></script>
-<script src="js/render.js?v=v0.18"></script>
+<script src="/js/auth.js?v=v0.19"></script>
+<script src="/js/wizardSession.js?v=v0.19"></script>
+<script src="js/render.js?v=v0.19"></script>
 <script>
 const CANONICAL_STATS = [
   { key: "body", mechanic: "Drives max health & physical resilience" },
@@ -532,8 +563,174 @@ document.getElementById("generic-save").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("fixed-ruleset-continue").addEventListener("click", () => {
-  window.location.href = "wizard-style.html";
+// ============================================================
+// R4 Phase 3 -- Race/Species reference system (5e only). Same
+// editable/addable/removable-list shape as Field Skills above.
+// ============================================================
+
+const RACE_ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
+let raceSystem = [];
+
+function escapeAttr(s) { return String(s || "").replace(/"/g, "&quot;"); }
+
+function renderRaces() {
+  const list = document.getElementById("race-list");
+  list.innerHTML = raceSystem.map((r, i) => `
+    <div class="race-card" data-index="${i}">
+      <div class="race-card-header">
+        <input class="field-input race-name-input race-name" placeholder="Race name" value="${escapeAttr(r.name)}" style="flex:1;">
+        <button type="button" class="remove-skill" data-action="remove-race">✕</button>
+      </div>
+      <div class="race-asi-row">
+        ${RACE_ABILITY_KEYS.map((k) => `<div><label>${k.toUpperCase()}</label><input type="number" min="0" max="2" class="field-input race-asi race-asi-${k}" value="${(r.abilityScoreIncrease && r.abilityScoreIncrease[k]) || 0}"></div>`).join("")}
+      </div>
+      <div class="race-meta-row">
+        <div><label style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-faint); text-transform: uppercase; display:block; margin-bottom:3px;">Size</label>
+          <select class="field-input race-size">
+            <option value="Small" ${r.size === "Small" ? "selected" : ""}>Small</option>
+            <option value="Medium" ${(r.size || "Medium") === "Medium" ? "selected" : ""}>Medium</option>
+          </select>
+        </div>
+        <div><label style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-faint); text-transform: uppercase; display:block; margin-bottom:3px;">Speed (ft.)</label>
+          <input type="number" class="field-input race-speed" value="${r.speed || 30}">
+        </div>
+      </div>
+      <input class="field-input race-choice-note" placeholder="Choice note (optional, e.g. player-assignable bonuses)" value="${escapeAttr(r.choiceNote)}" style="margin-bottom:10px;">
+      <label style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--ink-faint); text-transform: uppercase; display:block; margin-bottom:4px;">Traits</label>
+      <div class="race-traits-list">
+        ${(r.traits || []).map((t) => `
+          <div class="race-trait-row">
+            <input class="field-input race-trait-name" placeholder="Trait name" value="${escapeAttr(t.name)}">
+            <textarea class="field-input race-trait-desc" rows="1" placeholder="Description">${t.description || ""}</textarea>
+          </div>
+        `).join("")}
+      </div>
+      <div class="race-card-actions">
+        <button type="button" class="generate-btn" data-action="add-trait">+ Add Trait</button>
+        <button type="button" class="generate-btn ai-action" data-action="regenerate-race">Regenerate (AI)</button>
+      </div>
+      <textarea class="field-input race-flavor" rows="2" placeholder="Flavor" style="margin-top:10px;">${r.flavor || ""}</textarea>
+    </div>
+  `).join("");
+
+  applyAiEnabledGating();
+
+  list.querySelectorAll('[data-action="remove-race"]').forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      syncRacesFromDOM();
+      const index = Number(e.target.closest(".race-card").dataset.index);
+      raceSystem.splice(index, 1);
+      renderRaces();
+    });
+  });
+  list.querySelectorAll('[data-action="add-trait"]').forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      syncRacesFromDOM();
+      const index = Number(e.target.closest(".race-card").dataset.index);
+      raceSystem[index].traits = raceSystem[index].traits || [];
+      raceSystem[index].traits.push({ name: "", description: "" });
+      renderRaces();
+    });
+  });
+  list.querySelectorAll('[data-action="regenerate-race"]').forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      syncRacesFromDOM();
+      const index = Number(e.target.closest(".race-card").dataset.index);
+      const status = document.getElementById("race-status");
+      btn.disabled = true;
+      status.textContent = "Regenerating…";
+      try {
+        const res = await authFetch("/api/wizard/generate-race", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: raceSystem[index].name, existingRaces: raceSystem.filter((_, i2) => i2 !== index) })
+        });
+        if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+        const data = await res.json();
+        raceSystem[index] = data.race;
+        renderRaces();
+        status.textContent = "Regenerated — edit freely before saving.";
+      } catch (err) {
+        status.textContent = "Error: " + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+function syncRacesFromDOM() {
+  raceSystem = Array.from(document.querySelectorAll(".race-card")).map((card) => {
+    const abilityScoreIncrease = {};
+    RACE_ABILITY_KEYS.forEach((k) => { abilityScoreIncrease[k] = Number(card.querySelector(`.race-asi-${k}`).value) || 0; });
+    const traits = Array.from(card.querySelectorAll(".race-trait-row")).map((row) => ({
+      name: row.querySelector(".race-trait-name").value,
+      description: row.querySelector(".race-trait-desc").value
+    }));
+    return {
+      key: card.querySelector(".race-name").value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+      name: card.querySelector(".race-name").value,
+      abilityScoreIncrease,
+      choiceNote: card.querySelector(".race-choice-note").value || null,
+      size: card.querySelector(".race-size").value,
+      speed: Number(card.querySelector(".race-speed").value) || 30,
+      traits,
+      flavor: card.querySelector(".race-flavor").value
+    };
+  });
+}
+
+document.getElementById("race-add-blank").addEventListener("click", () => {
+  syncRacesFromDOM();
+  raceSystem.push({ key: "", name: "", abilityScoreIncrease: {}, choiceNote: null, size: "Medium", speed: 30, traits: [], flavor: "" });
+  renderRaces();
+});
+
+document.getElementById("race-add-ai").addEventListener("click", async () => {
+  syncRacesFromDOM();
+  const btn = document.getElementById("race-add-ai");
+  const status = document.getElementById("race-status");
+  btn.disabled = true;
+  status.textContent = "Generating…";
+  showGenerationOverlay(["Designing a new people for your world…", "Balancing ability score increases…", "Writing traits…", "Almost there…"]);
+  try {
+    const res = await authFetch("/api/wizard/generate-race", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ existingRaces: raceSystem })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Generation failed."); }
+    const data = await res.json();
+    raceSystem.push(data.race);
+    renderRaces();
+    status.textContent = "Generated — edit freely before saving.";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  } finally {
+    hideGenerationOverlay();
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("fixed-ruleset-continue").addEventListener("click", async () => {
+  syncRacesFromDOM();
+  const status = document.getElementById("race-status");
+  const btn = document.getElementById("fixed-ruleset-continue");
+  btn.disabled = true;
+  status.textContent = "Saving…";
+  try {
+    const res = await authFetch("/api/wizard/save-race-system", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ raceSystem })
+    });
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Saving races failed."); }
+    status.textContent = "Saved — continuing…";
+    window.location.href = "wizard-style.html";
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+    btn.disabled = false;
+  }
 });
 
 async function init() {
@@ -590,6 +787,15 @@ async function init() {
   } else {
     document.getElementById("fixed-ruleset-note").textContent =
       "D&D 5th Edition uses its own fixed set of core abilities — there's nothing to configure here. Continue to the next step.";
+    try {
+      const res = await authFetch("/api/wizard/race-system");
+      const data = await res.json();
+      raceSystem = data.raceSystem || [];
+    } catch (err) {
+      console.error("Could not load race system:", err);
+      raceSystem = [];
+    }
+    renderRaces();
   }
 }
 

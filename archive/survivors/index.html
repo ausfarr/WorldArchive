@@ -160,8 +160,15 @@ function wireClassBasedSurvivorForm() {
         <option value="">Let it choose</option>
       </select>
     </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-4" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">RACE (optional)</label>
+      <select id="gen-field-4" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Not specified</option>
+      </select>
+    </div>
   `;
   populateFactionSelect('gen-field-3', { includeUnaligned: true });
+  populate5eRaceSelect('gen-field-4');
 
   document.getElementById('gen-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -177,7 +184,8 @@ function wireClassBasedSurvivorForm() {
         body: JSON.stringify({
           name: document.getElementById('gen-name').value,
           classLevel: document.getElementById('gen-field-2').value ? Number(document.getElementById('gen-field-2').value) : undefined,
-          faction: document.getElementById('gen-field-3').value
+          faction: document.getElementById('gen-field-3').value,
+          raceKey: document.getElementById('gen-field-4').value || undefined
         })
       });
       const data = await res.json();
@@ -349,9 +357,9 @@ document.addEventListener('DOMContentLoaded', initSurvivorGenerateForm);
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.18"></script>
-<script src="../js/render.js?v=v0.18"></script>
-<script src="../js/rulesetManualForms.js?v=v0.18"></script>
+<script src="/js/auth.js?v=v0.19"></script>
+<script src="../js/render.js?v=v0.19"></script>
+<script src="../js/rulesetManualForms.js?v=v0.19"></script>
 <script>
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html

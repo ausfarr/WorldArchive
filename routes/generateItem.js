@@ -182,7 +182,7 @@ function resolveItemStats(item) {
 
 async function handle5eItemGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId, rarity } = req.body || {};
+  const { name, faction, fillExistingId, rarity, itemType } = req.body || {};
 
   let existingEntry = null;
   let isRegenerate = false;
@@ -206,7 +206,7 @@ async function handle5eItemGenerate(req, res) {
     ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
     : "No items archived yet -- any concept is available.";
 
-  const systemPrompt = buildHomebrewItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, rarity });
+  const systemPrompt = buildHomebrewItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, rarity, itemType });
   const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the item now.", maxTokens: 1500 });
 
   const item = {

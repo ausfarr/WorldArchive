@@ -44,20 +44,11 @@
 const CMF_PROFICIENCY_BONUS_BY_LEVEL = { 1:2,2:2,3:2,4:2,5:3,6:3,7:3,8:3,9:4,10:4,11:4,12:4,13:5,14:5,15:5,16:5,17:6,18:6,19:6,20:6 };
 const CMF_SUBCLASS_UNLOCK_LEVEL = { cleric:1, sorcerer:1, warlock:1, druid:2, wizard:2, barbarian:3, bard:3, fighter:3, monk:3, paladin:3, ranger:3, rogue:3 };
 const CMF_FULL_CASTER_SPELL_SLOTS = { 1:[2,0,0,0,0,0,0,0,0],2:[3,0,0,0,0,0,0,0,0],3:[4,2,0,0,0,0,0,0,0],4:[4,3,0,0,0,0,0,0,0],5:[4,3,2,0,0,0,0,0,0],6:[4,3,3,0,0,0,0,0,0],7:[4,3,3,1,0,0,0,0,0],8:[4,3,3,2,0,0,0,0,0],9:[4,3,3,3,1,0,0,0,0],10:[4,3,3,3,2,0,0,0,0],11:[4,3,3,3,2,1,0,0,0],12:[4,3,3,3,2,1,0,0,0],13:[4,3,3,3,2,1,1,0,0],14:[4,3,3,3,2,1,1,0,0],15:[4,3,3,3,2,1,1,1,0],16:[4,3,3,3,2,1,1,1,0],17:[4,3,3,3,2,1,1,1,1],18:[4,3,3,3,3,1,1,1,1],19:[4,3,3,3,3,2,1,1,1],20:[4,3,3,3,3,2,2,1,1] };
-const CMF_HALF_CASTER_SPELL_SLOTS = { 1:[0,0,0,0,0],2:[2,0,0,0,0],3:[3,0,0,0,0],4:[3,0,0,0,0],5:[4,2,0,0,0],6:[4,2,0,0,0],7:[4,3,0,0,0],8:[4,3,0,0,0],9:[4,3,2,0,0],10:[4,3,2,0,0],11:[4,3,3,0,0],12:[4,3,3,0,0],13:[4,3,3,1,0],14:[4,3,3,1,0],15:[4,3,3,2,0],16:[4,3,3,2,0],17:[4,3,3,3,1],18:[4,3,3,3,1],19:[4,3,3,3,2],20:[4,3,3,3,2] };
 const CMF_WARLOCK_PACT_MAGIC = { 1:{slots:1,slotLevel:1},2:{slots:2,slotLevel:1},3:{slots:2,slotLevel:2},4:{slots:2,slotLevel:2},5:{slots:2,slotLevel:3},6:{slots:2,slotLevel:3},7:{slots:2,slotLevel:4},8:{slots:2,slotLevel:4},9:{slots:2,slotLevel:5},10:{slots:2,slotLevel:5},11:{slots:3,slotLevel:5},12:{slots:3,slotLevel:5},13:{slots:3,slotLevel:5},14:{slots:3,slotLevel:5},15:{slots:3,slotLevel:5},16:{slots:3,slotLevel:5},17:{slots:4,slotLevel:5},18:{slots:4,slotLevel:5},19:{slots:4,slotLevel:5},20:{slots:4,slotLevel:5} };
 function cmfProficiencyBonusForLevel(level) { const l = Math.max(1, Math.min(20, Math.round(Number(level) || 1))); return CMF_PROFICIENCY_BONUS_BY_LEVEL[l]; }
 function cmfSubclassUnlockLevel(nameLower) {
   const match = Object.keys(CMF_SUBCLASS_UNLOCK_LEVEL).find((c) => nameLower.includes(c));
   return match ? CMF_SUBCLASS_UNLOCK_LEVEL[match] : 3;
-}
-function cmfSpellSlotsForLevel(casterType, level) {
-  const l = Math.max(1, Math.min(20, Math.round(Number(level) || 1)));
-  if (casterType === "full") return CMF_FULL_CASTER_SPELL_SLOTS[l];
-  if (casterType === "half") return CMF_HALF_CASTER_SPELL_SLOTS[l];
-  if (casterType === "third") return CMF_FULL_CASTER_SPELL_SLOTS[Math.max(1, Math.floor(l / 3))];
-  if (casterType === "warlock") return CMF_WARLOCK_PACT_MAGIC[l];
-  return null;
 }
 // From lib/rulesets/5e/survivorFormulas.js
 const CMF_HIT_DIE_AVERAGE = { 6: 4, 8: 5, 10: 6, 12: 7 };
@@ -72,6 +63,67 @@ function cmfComputeHitPoints(hitDie, level, conScore) {
   for (let l = 2; l <= lvl; l++) hp += perLevelAvg + conMod;
   return Math.max(1, hp);
 }
+function cmfPassivePerception(wisScore, proficiencyBonus, isPerceptionProficient) {
+  return 10 + cmfAbilityModifier(wisScore) + (isPerceptionProficient ? Number(proficiencyBonus) || 0 : 0);
+}
+function cmfInitiativeBonus(dexScore, featBonus) { return cmfAbilityModifier(dexScore) + (Number(featBonus) || 0); }
+// R4 Phase 6 additions -- from lib/rulesets/5e/survivorFormulas.js and classFormulas.js
+function cmfComputeMulticlassHitPoints(classEntries, conScore) {
+  const conMod = cmfAbilityModifier(conScore);
+  let hp = 0;
+  (classEntries || []).forEach((entry, i) => {
+    const m = String(entry.hitDie || "").match(/d(\d+)/i);
+    const dieSize = m ? Number(m[1]) : 8;
+    const perLevelAvg = CMF_HIT_DIE_AVERAGE[dieSize] || Math.ceil(dieSize / 2) + 1;
+    const levels = Math.max(0, Math.round(Number(entry.level) || 0));
+    if (i === 0) {
+      if (levels >= 1) hp += dieSize + conMod;
+      for (let l = 2; l <= levels; l++) hp += perLevelAvg + conMod;
+    } else {
+      for (let l = 1; l <= levels; l++) hp += perLevelAvg + conMod;
+    }
+  });
+  return Math.max(1, hp);
+}
+function cmfMulticlassCasterLevelContribution(casterType, level) {
+  const lvl = Math.max(0, Math.round(Number(level) || 0));
+  if (casterType === "full") return lvl;
+  if (casterType === "half") return Math.floor(lvl / 2);
+  if (casterType === "third") return Math.floor(lvl / 3);
+  return 0;
+}
+function cmfMulticlassSpellSlots(classEntries) {
+  const combinedLevel = (classEntries || []).reduce((sum, e) => sum + cmfMulticlassCasterLevelContribution(e.casterType, e.level), 0);
+  const sharedSlots = combinedLevel > 0 ? CMF_FULL_CASTER_SPELL_SLOTS[Math.max(1, Math.min(20, combinedLevel))] : null;
+  const warlockEntry = (classEntries || []).find((e) => e.casterType === "warlock");
+  const pactMagic = warlockEntry ? CMF_WARLOCK_PACT_MAGIC[Math.max(1, Math.min(20, Math.round(Number(warlockEntry.level) || 1)))] : null;
+  return { sharedSlots, pactMagic };
+}
+// R4 Phase 2 additions -- from lib/rulesets/5e/classFormulas.js
+const CMF_SAVING_THROW_PROFICIENCIES = {
+  barbarian: ["str", "con"], bard: ["dex", "cha"], cleric: ["wis", "cha"], druid: ["int", "wis"],
+  fighter: ["str", "con"], monk: ["str", "dex"], paladin: ["wis", "cha"], ranger: ["str", "dex"],
+  rogue: ["dex", "int"], sorcerer: ["con", "cha"], warlock: ["wis", "cha"], wizard: ["int", "wis"]
+};
+function cmfMatchCoreClassName(name) {
+  const nameLower = String(name || "").toLowerCase();
+  return Object.keys(CMF_SAVING_THROW_PROFICIENCIES).find((c) => nameLower.includes(c)) || null;
+}
+function cmfSavingThrowProficienciesForClass(matchedCoreClass, modelOrClassProposed) {
+  if (matchedCoreClass && CMF_SAVING_THROW_PROFICIENCIES[matchedCoreClass]) return [...CMF_SAVING_THROW_PROFICIENCIES[matchedCoreClass]];
+  return Array.isArray(modelOrClassProposed) ? modelOrClassProposed.slice(0, 2) : [];
+}
+const CMF_SKILLS = [
+  { key: "acrobatics", name: "Acrobatics" }, { key: "animal_handling", name: "Animal Handling" },
+  { key: "arcana", name: "Arcana" }, { key: "athletics", name: "Athletics" },
+  { key: "deception", name: "Deception" }, { key: "history", name: "History" },
+  { key: "insight", name: "Insight" }, { key: "intimidation", name: "Intimidation" },
+  { key: "investigation", name: "Investigation" }, { key: "medicine", name: "Medicine" },
+  { key: "nature", name: "Nature" }, { key: "perception", name: "Perception" },
+  { key: "performance", name: "Performance" }, { key: "persuasion", name: "Persuasion" },
+  { key: "religion", name: "Religion" }, { key: "sleight_of_hand", name: "Sleight of Hand" },
+  { key: "stealth", name: "Stealth" }, { key: "survival", name: "Survival" }
+];
 // From lib/rulesets/5e/itemFormulas.js -- real SRD weapon/armor stats,
 // trimmed to the subset offered in the baseItem dropdown below (the full
 // canonical table is the server-side source of truth; if this dropdown
@@ -434,6 +486,13 @@ function show5eClassEditForm(entry) {
     const name = val("ef-name");
     const unlockLevel = cmfSubclassUnlockLevel(name.toLowerCase());
     const subclassLevels = [Math.max(3, unlockLevel), unlockLevel + 3, unlockLevel + 7];
+    // R4 Phase 2: saving throw proficiencies are code-determined for a
+    // name that matches one of the 12 core classes (a real 5e rule, same
+    // as the AI-generation and procedural paths) -- the typed field is
+    // kept only as the fallback for a genuinely original homebrew name.
+    const matchedCoreClass = cmfMatchCoreClassName(name);
+    const typedSaves = val("ef-saves").split(",").map((s) => s.trim()).filter(Boolean);
+    const savingThrowProficiencies = cmfSavingThrowProficienciesForClass(matchedCoreClass, typedSaves);
     const updated = {
       ...raw,
       id: raw.id,
@@ -441,7 +500,7 @@ function show5eClassEditForm(entry) {
       faction: val("ef-faction") || null,
       hitDie: val("ef-hitDie"),
       primaryAbility: val("ef-primaryAbility"),
-      savingThrowProficiencies: val("ef-saves").split(",").map((s) => s.trim()).filter(Boolean),
+      savingThrowProficiencies,
       casterType: val("ef-casterType"),
       spellcastingAbility: val("ef-casterType") === "none" ? null : (val("ef-spellAbility") || null),
       features: featureState.filter((f) => f.name).map((f) => ({ level: Number(f.level) || 1, name: f.name, description: f.description })),
@@ -759,6 +818,32 @@ function show5eSpellEditForm(entry) {
 // this world's archive, per Phase 8's "a PC is a Class instance" rule.
 // ============================================================
 
+async function fetch5eRaceOptions() {
+  try {
+    const res = await authFetch("/api/wizard/race-system");
+    const data = await res.json();
+    return (data && data.raceSystem) || [];
+  } catch (err) {
+    console.error("Could not load races:", err);
+    return [];
+  }
+}
+
+// R4 Phase 5: static reference lists, not per-world -- see
+// routes/reference5e.js's header for why this doesn't just duplicate the
+// data client-side like the other CMF_* tables above.
+async function fetch5eBackgroundsAndFeats() {
+  try {
+    const res = await authFetch("/api/reference/5e/backgrounds-and-feats");
+    const data = await res.json();
+    return { backgrounds: (data && data.backgrounds) || [], feats: (data && data.feats) || [] };
+  } catch (err) {
+    console.error("Could not load backgrounds/feats:", err);
+    return { backgrounds: [], feats: [] };
+  }
+}
+const CMF_FIRST_ASI_LEVEL = 4; // lib/rulesets/5e/classFormulas.js's ABILITY_SCORE_IMPROVEMENT_LEVELS[0]
+
 async function show5eSurvivorEditForm(entry) {
   const raw = entry.raw || {};
   const classOptions = await fetchCategoryOptions("classes");
@@ -766,18 +851,40 @@ async function show5eSurvivorEditForm(entry) {
     alert("This world has no Classes yet -- generate or roll at least one Class before creating a Player Character.");
     return null;
   }
+  const raceOptions = await fetch5eRaceOptions();
+  const { backgrounds: backgroundOptions, feats: featOptions } = await fetch5eBackgroundsAndFeats();
   const abilities = raw.abilities || {};
+  // R4 Phase 6: multiclassing supports at most 2 classes (same cap the
+  // AI-generation prompt enforces -- "almost always one class," a second
+  // is a deliberate choice, never more). Two fixed slots rather than a
+  // dynamic add/remove list -- simpler and predictable for a rarely-used
+  // feature, still fully functional multiclassing.
+  const existingClasses = Array.isArray(raw.classes) ? raw.classes : [];
+  const class1 = existingClasses[0] || {};
+  const class2 = existingClasses[1] || {};
 
   const bodyHtml = `
     ${efField("Name", "ef-name", raw.name)}
     <div id="ef-faction-wrap"></div>
-    ${efSelect("Class", "ef-classId", idSelectOptionsHtml(classOptions, raw.classId))}
-    ${efField("Class Level (1-20)", "ef-classLevel", raw.classLevel || 1, { type: "number" })}
+    ${rowHeader("Class 1")}
+    ${efSelect("Class", "ef-classId-1", idSelectOptionsHtml(classOptions, class1.classId))}
+    ${efField("Level (1-20)", "ef-classLevel-1", class1.classLevel || 1, { type: "number" })}
+    ${rowHeader("Class 2 (multiclass, optional)")}
+    ${efSelect("Class", "ef-classId-2", idSelectOptionsHtml(classOptions, class2.classId, "None -- single-class character"))}
+    ${efField("Level (1-20)", "ef-classLevel-2", class2.classLevel || "", { type: "number" })}
+    <p style="color:var(--ink-faint); font-size:0.78rem; margin:-6px 0 14px;">Saving Throw Proficiencies come only from Class 1, the real multiclassing rule -- Class 2 never adds its own saves.</p>
+    ${efSelect("Race (optional)", "ef-raceKey", ['<option value="">Not specified</option>'].concat(raceOptions.map((r) => `<option value="${r.key}" ${r.key === raw.raceKey ? "selected" : ""}>${r.name}</option>`)).join(""))}
+    ${efSelect("Background (optional)", "ef-backgroundKey", ['<option value="">Not specified</option>'].concat(backgroundOptions.map((b) => `<option value="${b.key}" ${b.key === raw.backgroundKey ? "selected" : ""}>${b.name}</option>`)).join(""))}
+    ${efSelect("Feat (only applies at level 4+, instead of an Ability Score Improvement)", "ef-featKey", ['<option value="">Take the ASI instead</option>'].concat(featOptions.map((f) => `<option value="${f.key}" ${f.key === raw.featKey ? "selected" : ""}>${f.name}</option>`)).join(""))}
     ${rowHeader("Ability Scores")}
     <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 0 16px;">
       ${FIVEE_ABILITY_KEYS.map((k) => efField(k.toUpperCase(), `ef-ability-${k}`, abilities[k] != null ? abilities[k] : 10, { type: "number" })).join("")}
     </div>
-    <p style="color:var(--ink-faint); font-size:0.78rem; margin:-6px 0 14px;">Hit Points, Proficiency Bonus, and Spell Slots recompute automatically from the chosen Class + level on save -- not editable directly.</p>
+    <p style="color:var(--ink-faint); font-size:0.78rem; margin:-6px 0 14px;">Hit Points, Proficiency Bonus, Saving Throw Proficiencies, Passive Perception, and Initiative recompute automatically from the chosen Class + level + ability scores + skills on save -- not editable directly.</p>
+    ${rowHeader("Skill Proficiencies")}
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 4px 12px; margin-bottom: 14px;">
+      ${CMF_SKILLS.map((s) => `<label style="display:flex; align-items:center; gap:6px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);"><input type="checkbox" class="ef-skill-check" value="${s.key}" ${(raw.skillProficiencies || []).includes(s.key) ? "checked" : ""}> ${s.name}</label>`).join("")}
+    </div>
     <div style="display:flex; gap:12px;">
       ${efField("Armor Class", "ef-armorClass", raw.armorClass || 10, { type: "number" })}
       ${efField("Armor Note (optional)", "ef-armorNote", raw.armorNote)}
@@ -793,21 +900,69 @@ async function show5eSurvivorEditForm(entry) {
 
   const overlay = openEditOverlay(raw.name || entry.name || "Player Character", bodyHtml, async () => {
     const val = (id) => document.getElementById(id).value;
-    const chosenClass = classOptions.find((c) => c.id === val("ef-classId")) || classOptions[0];
-    const chosenClassFull = await (await authFetch(`/api/entries/classes/${chosenClass.id}`)).json();
-    const classContent = (chosenClassFull.entry && chosenClassFull.entry.raw) || {};
-    const level = Math.max(1, Math.min(20, Math.round(Number(val("ef-classLevel")) || 1)));
+
+    // R4 Phase 6: resolve up to 2 class slots into the real multiclass
+    // shape, fetching each chosen class's real hitDie/casterType/saves
+    // the same way the single-class form always has.
+    const classId1 = val("ef-classId-1");
+    const classId2 = val("ef-classId-2");
+    const slotRefs = [{ id: classId1, level: val("ef-classLevel-1") }];
+    if (classId2 && classId2 !== classId1) slotRefs.push({ id: classId2, level: val("ef-classLevel-2") });
+
+    const resolvedClasses = [];
+    for (const ref of slotRefs) {
+      const chosenClass = classOptions.find((c) => c.id === ref.id);
+      if (!chosenClass) continue;
+      const chosenClassFull = await (await authFetch(`/api/entries/classes/${chosenClass.id}`)).json();
+      const content = (chosenClassFull.entry && chosenClassFull.entry.raw) || {};
+      resolvedClasses.push({
+        classId: chosenClass.id,
+        className: chosenClass.name,
+        classLevel: Math.max(1, Math.min(20, Math.round(Number(ref.level) || 1))),
+        hitDie: content.hitDie || "d8",
+        casterType: content.casterType || "none",
+        savingThrowProficiencies: content.savingThrowProficiencies
+      });
+    }
+    if (!resolvedClasses.length) resolvedClasses.push({ classId: classOptions[0].id, className: classOptions[0].name, classLevel: 1, hitDie: "d8", casterType: "none" });
+
+    const totalLevel = resolvedClasses.reduce((sum, c) => sum + c.classLevel, 0);
     const con = Number(val("ef-ability-con")) || 10;
+    const wis = Number(val("ef-ability-wis")) || 10;
+    const dex = Number(val("ef-ability-dex")) || 10;
+    const skillProficiencies = Array.from(document.querySelectorAll(".ef-skill-check:checked")).map((el) => el.value);
+    // Race is recorded for reference/display only in manual mode -- unlike
+    // AI generation (which applies the ability score increase to a
+    // model-PROPOSED base score), a manually typed ability score is
+    // already whatever final number the author wants, so auto-adding the
+    // race bonus on top here would double-count it if they already did.
+    const chosenRace = raceOptions.find((r) => r.key === val("ef-raceKey")) || null;
+    const chosenBackground = backgroundOptions.find((b) => b.key === val("ef-backgroundKey")) || null;
+    const chosenFeat = totalLevel >= CMF_FIRST_ASI_LEVEL ? (featOptions.find((f) => f.key === val("ef-featKey")) || null) : null;
+    // Saving throws come ONLY from Class 1 (resolvedClasses[0]) -- the
+    // real multiclassing rule, same as the AI-generation/procedural paths.
+    const startingClass = resolvedClasses[0];
+    const matchedCoreClass = cmfMatchCoreClassName(startingClass.className);
+    const savingThrowProficiencies = cmfSavingThrowProficienciesForClass(matchedCoreClass, startingClass.savingThrowProficiencies);
+    const proficiencyBonus = cmfProficiencyBonusForLevel(totalLevel);
+    const hitPoints = cmfComputeMulticlassHitPoints(resolvedClasses.map((c) => ({ hitDie: c.hitDie, level: c.classLevel })), con);
+    const { sharedSlots, pactMagic } = cmfMulticlassSpellSlots(resolvedClasses.map((c) => ({ casterType: c.casterType, level: c.classLevel })));
 
     const updated = {
       ...raw,
       id: raw.id,
       name: val("ef-name"),
       faction: val("ef-faction") || null,
-      classId: chosenClass.id,
-      className: chosenClass.name,
-      classLevel: level,
+      classes: resolvedClasses.map((c) => ({ classId: c.classId, className: c.className, classLevel: c.classLevel })),
+      totalLevel,
+      raceKey: chosenRace ? chosenRace.key : null,
+      raceName: chosenRace ? chosenRace.name : null,
+      backgroundKey: chosenBackground ? chosenBackground.key : null,
+      backgroundDetail: chosenBackground,
+      featKey: chosenFeat ? chosenFeat.key : null,
+      featDetail: chosenFeat,
       abilities: Object.fromEntries(FIVEE_ABILITY_KEYS.map((k) => [k, Number(val(`ef-ability-${k}`)) || 10])),
+      skillProficiencies,
       armorClass: Number(val("ef-armorClass")) || 10,
       armorNote: val("ef-armorNote") || null,
       equipment: val("ef-equipment"),
@@ -817,9 +972,13 @@ async function show5eSurvivorEditForm(entry) {
       flaws: val("ef-flaws"),
       backstory: val("ef-backstory"),
       designNotes: val("ef-designNotes"),
-      hitPoints: cmfComputeHitPoints(classContent.hitDie || "d8", level, con),
-      proficiencyBonus: cmfProficiencyBonusForLevel(level),
-      spellSlots: classContent.casterType && classContent.casterType !== "none" ? cmfSpellSlotsForLevel(classContent.casterType, level) : null,
+      hitPoints,
+      proficiencyBonus,
+      savingThrowProficiencies,
+      passivePerception: cmfPassivePerception(wis, proficiencyBonus, skillProficiencies.includes("perception")),
+      initiativeBonus: cmfInitiativeBonus(dex, 0),
+      spellSlots: sharedSlots,
+      pactMagic,
       sourceMode: raw.sourceMode || "homebrew"
     };
     await postConfirmEntry("survivors", updated);

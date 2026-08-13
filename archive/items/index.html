@@ -175,6 +175,22 @@ function wire5eItemForm() {
         <option value="">Let it choose</option>
       </select>
     </div>
+    <div style="flex: 1; min-width: 160px;">
+      <label for="gen-field-4" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">TYPE</label>
+      <select id="gen-field-4" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px;">
+        <option value="">Let it choose</option>
+        <option value="weapon">Weapon</option>
+        <option value="armor">Armor</option>
+        <option value="wondrous">Wondrous Item</option>
+        <option value="potion">Potion</option>
+        <option value="scroll">Scroll</option>
+        <option value="ring">Ring</option>
+        <option value="rod">Rod</option>
+        <option value="staff">Staff</option>
+        <option value="wand">Wand</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
   `;
   populateFactionSelect('gen-field-3', { includeUnaligned: true });
 
@@ -192,7 +208,8 @@ function wire5eItemForm() {
         body: JSON.stringify({
           name: document.getElementById('gen-name').value,
           rarity: document.getElementById('gen-field-2').value,
-          faction: document.getElementById('gen-field-3').value
+          faction: document.getElementById('gen-field-3').value,
+          itemType: document.getElementById('gen-field-4').value
         })
       });
       const data = await res.json();
@@ -359,9 +376,9 @@ document.addEventListener('DOMContentLoaded', initItemGenerateForm);
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.18"></script>
-<script src="../js/render.js?v=v0.18"></script>
-<script src="../js/rulesetManualForms.js?v=v0.18"></script>
+<script src="/js/auth.js?v=v0.19"></script>
+<script src="../js/render.js?v=v0.19"></script>
+<script src="../js/rulesetManualForms.js?v=v0.19"></script>
 <script>
   requireAuth().then((session) => {
     if (!session) return; // requireAuth already redirected to /login.html

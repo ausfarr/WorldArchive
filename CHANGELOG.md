@@ -21,6 +21,35 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Ruleset recovery, Phase R4 (5e character-sheet completeness)** — the
+  5e ruleset's working parts (CR math, leveling, SRD monster import) were
+  solid, but a Player Character sheet was missing pieces a real table
+  would notice immediately. Shipped: an item type picker for 5e Items
+  (weapon/armor/wondrous/potion/etc., "let it choose" by default);
+  code-determined skill proficiencies, saving throw proficiencies (real
+  class→saves mapping for all 12 core classes), passive Perception, and
+  initiative bonus on every PC; a Race/Species reference system
+  (Skills-pattern, not a full category — a hand-authored starter list of
+  the 9 core SRD races, editable per world, with an optional PC/NPC
+  dropdown whose ability score increase is applied server-side); real
+  mechanical Backgrounds (13 core, skills/tool proficiency/equipment/
+  feature) and an optional Feat slot at the real ASI levels (hand-
+  authored fallback — see below); and full multiclassing (a PC can now
+  have up to two classes, with the real HP/spell-slot/proficiency-bonus/
+  saving-throw aggregation rules, verified against the published tables).
+  Also added a 5e-only Encounter Difficulty / XP Budget calculator on the
+  Quest builder, pure DMG-table math against a party and a Quest's
+  referenced Bestiary entries. **5e-bits/5e-database license
+  verification did not clear the source** — real side-by-side comparison
+  against the official CC-BY-4.0 SRD 5.2.1 confirmed the underlying game
+  numbers are accurate, but the repo's own README blankets all of its
+  content (including the 2024 directory) under OGL 1.0a with no CC-BY-4.0
+  mention anywhere, and its 2024 directory has no Spells data at all —
+  so Backgrounds/Feats ship hand-authored instead, flagged for upgrade
+  once a properly-labeled source (a promising lead was found) is
+  ingested in a future phase. See:
+  `session_addendum_r4_5e_completeness_shipped.md`
+
 - **Multi-ruleset genericization** — worlds can now pick a `ruleset` at
   creation time (`echoes` | `5e` | `pf2e` | `generic`), permanent once
   setup completes; Echoes stays fully intact and admin-only. Shipped:

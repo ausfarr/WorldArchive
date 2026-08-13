@@ -19,6 +19,11 @@ const { WEAPONS, ARMOR } = require("../../../lib/rulesets/5e/itemFormulas");
 const BASE_WEAPON_NAMES = Object.keys(WEAPONS).join(", ");
 const BASE_ARMOR_NAMES = Object.keys(ARMOR).join(", ");
 
+// The real schema values -- kept as a constant so the route can validate
+// the incoming itemType param against the same list this prompt uses,
+// rather than trusting client input directly.
+const ITEM_TYPES = ["weapon", "armor", "wondrous", "potion", "scroll", "ring", "rod", "staff", "wand", "other"];
+
 const SCHEMA_DESCRIPTION = `{
   "name": "Full Item Name",
   "itemType": "weapon | armor | wondrous | potion | scroll | ring | rod | staff | wand | other",
@@ -48,7 +53,7 @@ RULES:
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildHomebrewItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, rarity, campaignContext }) {
+function buildHomebrewItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, rarity, itemType, campaignContext }) {
   const dynamicContext = `SETTING (stay consistent with this):
 ${settingContext}
 
@@ -63,9 +68,10 @@ ${rosterContext}
 
 USER INPUT:
 Name: ${name || "generate one fitting the setting"}
-Target rarity: ${rarity || "choose one that fills a gap in the existing roster"}${campaignContext ? `\nCampaign context: ${campaignContext}` : ""}`;
+Target rarity: ${rarity || "choose one that fills a gap in the existing roster"}
+Target type: ${ITEM_TYPES.includes(itemType) ? `${itemType} (required)` : "choose one that fills a gap in the existing roster"}${campaignContext ? `\nCampaign context: ${campaignContext}` : ""}`;
 
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }
 
-module.exports = { buildHomebrewItemSystemPrompt };
+module.exports = { buildHomebrewItemSystemPrompt, ITEM_TYPES };

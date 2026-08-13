@@ -63,6 +63,7 @@ async function initCampaignBuilder() {
   const prefillConcept = params.get("prefillConcept");
 
   await cmPopulateAddEntrySelect();
+  cmInitEncounterDifficulty();
   document.getElementById("cm-add-category").addEventListener("change", cmPopulateAddEntrySelect);
   document.getElementById("cm-add-btn").addEventListener("click", cmAddEntryManually);
   document.getElementById("cm-generate-btn").addEventListener("click", cmGenerateWithAi);
@@ -540,4 +541,106 @@ async function cmDeleteModule() {
 function cmEscapeHtml(str) {
   if (str == null) return "";
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ---------- R4 Phase 7: Encounter Difficulty (5e only) ----------
+
+let edArchivePartyLevels = null; // set by "Use PCs From Archive" -- real per-character levels take priority over the size/avg-level inputs when present
+
+async function cmInitEncounterDifficulty() {
+  const host = document.getElementById("cm-encounter-difficulty");
+  if (!host) return;
+  let ruleset = "echoes";
+  try {
+    const res = await authFetch("/api/wizard/ruleset-options");
+    const data = await res.json();
+    ruleset = data.current || "echoes";
+  } catch (err) {
+    console.error("Could not load ruleset for Encounter Difficulty gating:", err);
+  }
+  if (ruleset !== "5e") return; // stays hidden -- Echoes' Tier system and Generic have no CR/XP concept
+  host.style.display = "block";
+
+  document.getElementById("ed-use-archive-pcs").addEventListener("click", cmUseArchivePcsForParty);
+  document.getElementById("ed-compute-btn").addEventListener("click", cmComputeEncounterDifficulty);
+  ["ed-party-size", "ed-party-level"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", () => { edArchivePartyLevels = null; }); // manual edit overrides a prior Archive pull
+  });
+}
+
+async function cmUseArchivePcsForParty() {
+  const result = document.getElementById("ed-result");
+  try {
+    const res = await authFetch("/api/entries/survivors");
+    const data = await res.json();
+    const pcs = (data && data.entries) || [];
+    if (!pcs.length) {
+      result.innerHTML = `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.8rem;">No Player Characters in the Archive yet.</p>`;
+      return;
+    }
+    const full = await Promise.all(pcs.map((p) => authFetch(`/api/entries/survivors/${encodeURIComponent(p.id)}`).then((r) => r.json())));
+    const levels = full
+      .map((f) => f.entry && f.entry.raw && f.entry.raw.totalLevel)
+      .filter((lvl) => typeof lvl === "number" && lvl > 0);
+    if (!levels.length) {
+      result.innerHTML = `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.8rem;">Couldn't read levels from the Archive's Player Characters.</p>`;
+      return;
+    }
+    edArchivePartyLevels = levels;
+    document.getElementById("ed-party-size").value = levels.length;
+    document.getElementById("ed-party-level").value = Math.round(levels.reduce((s, l) => s + l, 0) / levels.length);
+    result.innerHTML = `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.8rem;">Pulled ${levels.length} PC${levels.length === 1 ? "" : "s"} from the Archive (levels: ${levels.join(", ")}).</p>`;
+  } catch (err) {
+    result.innerHTML = `<p style="color: var(--danger, #c0392b); font-family: var(--font-mono); font-size: 0.8rem;">Couldn't load Player Characters: ${cmEscapeHtml(err.message)}</p>`;
+  }
+}
+
+async function cmComputeEncounterDifficulty() {
+  const result = document.getElementById("ed-result");
+  const btn = document.getElementById("ed-compute-btn");
+  btn.disabled = true;
+  result.innerHTML = `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.8rem;">Checking…</p>`;
+  try {
+    const bestiaryRefs = cmEntries.filter((e) => e.category === "enemies");
+    if (!bestiaryRefs.length) {
+      result.innerHTML = `<p style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.8rem;">This Quest has no Bestiary entries yet -- add some above to check difficulty.</p>`;
+      return;
+    }
+    const fullEnemies = await Promise.all(bestiaryRefs.map((e) => authFetch(`/api/entries/enemies/${encodeURIComponent(e.entryId)}`).then((r) => r.json())));
+    const monsterCrs = fullEnemies
+      .map((f) => f.entry && f.entry.raw && f.entry.raw.challengeRating && f.entry.raw.challengeRating.cr)
+      .filter((cr) => cr != null);
+
+    const partySize = Number(document.getElementById("ed-party-size").value) || 1;
+    const partyLevel = Number(document.getElementById("ed-party-level").value) || 1;
+    const partyLevels = edArchivePartyLevels && edArchivePartyLevels.length
+      ? edArchivePartyLevels
+      : Array.from({ length: partySize }, () => partyLevel);
+
+    const res = await authFetch("/api/reference/5e/encounter-difficulty", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ partyLevels, monsterCrs })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Couldn't compute difficulty.");
+
+    const DIFFICULTY_COLORS = { Trivial: "var(--ink-faint)", Easy: "var(--neon-cyan, #4dd0e1)", Medium: "#e0c341", Hard: "#e08a41", Deadly: "var(--danger, #c0392b)" };
+    result.innerHTML = `
+      <div style="border: 1px solid var(--border-line); padding: 14px;">
+        <p style="margin:0 0 6px; font-weight:700; font-size:1.1rem; color:${DIFFICULTY_COLORS[data.difficulty] || "var(--ink)"};">${cmEscapeHtml(data.difficulty)}</p>
+        <p style="margin:0 0 10px; color: var(--ink-dim); font-size:0.85rem;">${monsterCrs.length} monster${monsterCrs.length === 1 ? "" : "s"}, ${data.totalXp} XP × ${data.multiplier} multiplier = ${data.adjustedXp} adjusted XP</p>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint);">
+          <span>Easy: ${data.thresholds.easy}</span>
+          <span>Medium: ${data.thresholds.medium}</span>
+          <span>Hard: ${data.thresholds.hard}</span>
+          <span>Deadly: ${data.thresholds.deadly}</span>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    result.innerHTML = `<p style="color: var(--danger, #c0392b); font-family: var(--font-mono); font-size: 0.8rem;">${cmEscapeHtml(err.message)}</p>`;
+  } finally {
+    btn.disabled = false;
+  }
 }
