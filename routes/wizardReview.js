@@ -1,5 +1,5 @@
 const express = require("express");
-const { getDraft, getFullConfig, markSetupComplete } = require("../lib/worldConfigRepo");
+const { getDraft, getFullConfig, markSetupComplete, getRuleset } = require("../lib/worldConfigRepo");
 const { listLoreSections } = require("../lib/loreRepo");
 const { listEntries } = require("../lib/entriesRepo");
 const { generateFactionDeepLore } = require("../lib/factionDeepLore");
@@ -12,16 +12,18 @@ const router = express.Router();
 // across Steps 1-7 into one payload for the summary screen.
 router.get("/wizard/review", async (req, res) => {
   try {
-    const [draft, config, loreSections] = await Promise.all([
+    const [draft, config, loreSections, ruleset] = await Promise.all([
       getDraft(req.worldId),
       getFullConfig(req.worldId),
-      listLoreSections(req.worldId)
+      listLoreSections(req.worldId),
+      getRuleset(req.worldId)
     ]);
 
     res.json({
       step1: draft["1"] || {},
       loreSections: loreSections.map((s) => ({ title: s.title, content: s.content, core: s.core, categoryTags: s.category_tags })),
       factions: config.factions_json || [],
+      ruleset,
       statSystem: config.stat_system_json || null,
       skillSystem: config.skill_system_json || null,
       raceSystem: config.race_system_json || null,
