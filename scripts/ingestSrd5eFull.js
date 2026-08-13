@@ -104,14 +104,30 @@ function parseSpells(text) {
 
     const rest = block.slice(nameLine.length).trim();
     const typeMatch = rest.match(/^_(.+?)_/);
-    if (!typeMatch) continue; // not a real spell entry (shouldn't happen given the split, but stay defensive)
+    if (!typeMatch) continue; // not a real spell entry
     const typeLine = typeMatch[1].trim();
 
+    // Confirmed real bug (caught in production, not just testing): a
+    // handful of summon-type spells (Conjure Woodland Beings and
+    // similar) embed a full creature stat block in their description,
+    // with its own "#### Actions" / "#### Traits" / "#### Bonus
+    // Actions" subsections. Those subsections' bodies often open with
+    // SOME italic text too (e.g. an attack's "_Melee Attack Roll:_"
+    // line), which satisfied the old "any italic text" check and let
+    // "Actions"/"Traits" through as fake spell entries with garbage
+    // level/school -- and since several spells each embed their own
+    // "Actions"/"Traits" subsection, they collided on the same slugified
+    // srd_id within one upsert batch, which Postgres rejects outright
+    // ("ON CONFLICT DO UPDATE command cannot affect row a second time").
+    // Fix: only accept the italic line if it ACTUALLY matches the real
+    // spell level/school pattern -- skip (not default-and-keep) anything
+    // that doesn't.
     let level = 0;
     let school = null;
     let classes = [];
     const cantripMatch = typeLine.match(/^(\w+) Cantrip(?:\s*\(([^)]*)\))?$/i);
     const leveledMatch = typeLine.match(/^Level (\d+) (\w+)(?:\s*\(([^)]*)\))?$/i);
+    if (!cantripMatch && !leveledMatch) continue; // not a real spell entry
     if (cantripMatch) {
       level = 0;
       school = cantripMatch[1];
