@@ -6,7 +6,8 @@
 //
 // Run with: node scripts/test5eSurvivorFormulas.js
 
-const { computeHitPoints, abilityModifier, passivePerception, initiativeBonus } = require("../lib/rulesets/5e/survivorFormulas");
+const { computeHitPoints, computeMulticlassHitPoints, abilityModifier, passivePerception, initiativeBonus } = require("../lib/rulesets/5e/survivorFormulas");
+const { multiclassSpellSlots } = require("../lib/rulesets/5e/classFormulas");
 
 const failures = [];
 function check(label, condition, detail) {
@@ -77,6 +78,48 @@ function testInitiativeBonus() {
   check("feat bonus defaults to 0 when omitted", initiativeBonus(16) === 3, initiativeBonus(16));
 }
 
+// R4 Phase 6: real multiclass HP + spell slot rules, verified by hand
+// against the published tables (see classFormulas.js's
+// multiclassSpellSlots() header for why the multiclass slot table is
+// identical to the single-class full-caster table, just keyed by
+// combined caster level).
+function testMulticlassFighterWizard() {
+  console.log("\nMulticlass: Fighter 3 (starting class, d10, non-caster) / Wizard 2 (d6, full caster), CON 14:");
+  // HP: Fighter L1 max d10+2=12; Fighter L2-3 avg(d10)+2=8 x2=16; Wizard L1-2 avg(d6)+2=6 x2=12. Total 12+16+12=40.
+  const hp = computeMulticlassHitPoints([{ hitDie: "d10", level: 3 }, { hitDie: "d6", level: 2 }], 14);
+  check("HP === 40", hp === 40, hp);
+  // Combined caster level: Fighter contributes 0 (non-caster) + Wizard's full 2 = 2 -> FULL_CASTER_SPELL_SLOTS[2].
+  const slots = multiclassSpellSlots([{ casterType: "none", level: 3 }, { casterType: "full", level: 2 }]);
+  check("shared slots === [3,0,0,0,0,0,0,0,0]", JSON.stringify(slots.sharedSlots) === JSON.stringify([3, 0, 0, 0, 0, 0, 0, 0, 0]), JSON.stringify(slots.sharedSlots));
+  check("no Pact Magic (no Warlock in the pair)", slots.pactMagic === null);
+}
+
+function testMulticlassPaladinWarlock() {
+  console.log("\nMulticlass: Paladin 2 (starting class, d10, half caster) / Warlock 3 (d8, Pact Magic), CON 14:");
+  // HP: Paladin L1 max d10+2=12, L2 avg(d10)+2=8 -> 20; Warlock L1-3 avg(d8)+2=7 x3=21. Total 20+21=41.
+  const hp = computeMulticlassHitPoints([{ hitDie: "d10", level: 2 }, { hitDie: "d8", level: 3 }], 14);
+  check("HP === 41", hp === 41, hp);
+  // Combined caster level: Paladin half-caster floor(2/2)=1 -> FULL_CASTER_SPELL_SLOTS[1]; Warlock never contributes to (or draws from) the shared pool.
+  const slots = multiclassSpellSlots([{ casterType: "half", level: 2 }, { casterType: "warlock", level: 3 }]);
+  check("shared slots === [2,0,0,0,0,0,0,0,0]", JSON.stringify(slots.sharedSlots) === JSON.stringify([2, 0, 0, 0, 0, 0, 0, 0, 0]), JSON.stringify(slots.sharedSlots));
+  check("Pact Magic === {slots:2, slotLevel:2} (Warlock's own real level-3 progression)", JSON.stringify(slots.pactMagic) === JSON.stringify({ slots: 2, slotLevel: 2 }), JSON.stringify(slots.pactMagic));
+}
+
+function testMulticlassFullThirdCaster() {
+  console.log("\nMulticlass: Wizard 6 (starting class, d6, full caster) / a third-caster class at level 3 (d10), CON 14:");
+  // HP: Wizard L1 max d6+2=8, L2-6 avg(d6)+2=6 x5=30 -> 38; third-caster class L1-3 avg(d10)+2=8 x3=24. Total 38+24=62.
+  const hp = computeMulticlassHitPoints([{ hitDie: "d6", level: 6 }, { hitDie: "d10", level: 3 }], 14);
+  check("HP === 62", hp === 62, hp);
+  // Combined caster level: Wizard's full 6 + third-caster floor(3/3)=1 -> 7 -> FULL_CASTER_SPELL_SLOTS[7].
+  const slots = multiclassSpellSlots([{ casterType: "full", level: 6 }, { casterType: "third", level: 3 }]);
+  check("shared slots === [4,3,3,1,0,0,0,0,0]", JSON.stringify(slots.sharedSlots) === JSON.stringify([4, 3, 3, 1, 0, 0, 0, 0, 0]), JSON.stringify(slots.sharedSlots));
+}
+
+function testMulticlassCollapsesToSingleClass() {
+  console.log("\nMulticlass formula with only one class entry matches the plain single-class computeHitPoints():");
+  check("HP matches", computeMulticlassHitPoints([{ hitDie: "d10", level: 5 }], 14) === computeHitPoints("d10", 5, 14));
+}
+
 function main() {
   testAbilityModifier();
   testLevel1Fighter();
@@ -85,6 +128,10 @@ function main() {
   testMinimumHp();
   testPassivePerception();
   testInitiativeBonus();
+  testMulticlassFighterWizard();
+  testMulticlassPaladinWarlock();
+  testMulticlassFullThirdCaster();
+  testMulticlassCollapsesToSingleClass();
 
   console.log("\n" + "=".repeat(50));
   if (failures.length) {

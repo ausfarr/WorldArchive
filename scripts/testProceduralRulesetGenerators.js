@@ -205,7 +205,7 @@ async function run() {
   await save5eSurvivorEntry(world5e, pc, null);
   const savedPc = await getEntry(world5e, "survivors", pc.id);
   check("PC saved with a name", !!(savedPc && savedPc.name));
-  check("PC classId references the real class rolled earlier", savedPc.raw.classId === cls.id || db.entries.some((e) => e.category === "classes" && e.entry_id === savedPc.raw.classId));
+  check("PC classes[] references the real class rolled earlier", Array.isArray(savedPc.raw.classes) && savedPc.raw.classes.length > 0 && (savedPc.raw.classes[0].classId === cls.id || db.entries.some((e) => e.category === "classes" && e.entry_id === savedPc.raw.classes[0].classId)));
   check("PC hitPoints computed (not model/table-invented)", typeof savedPc.raw.hitPoints === "number" && savedPc.raw.hitPoints > 0);
 
   console.log("\n5e Survivors with NO classes yet (fresh world) should throw a clear error:");

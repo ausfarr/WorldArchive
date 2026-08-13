@@ -26,8 +26,8 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 // Multi-ruleset genericization, Phase 8.
 const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
 const { slugify: slugify5e, buildSurvivorBodyHtml: buildSurvivorBodyHtml5e } = require("../lib/rulesets/5e/survivorTemplate");
-const { computeHitPoints, proficiencyBonusForLevel, spellSlotsForLevel, passivePerception, initiativeBonus, applyAbilityScoreIncrease } = require("../lib/rulesets/5e/survivorFormulas");
-const { matchCoreClassName, savingThrowProficienciesForClass, SKILLS, ABILITY_SCORE_IMPROVEMENT_LEVELS } = require("../lib/rulesets/5e/classFormulas");
+const { computeMulticlassHitPoints, proficiencyBonusForLevel, passivePerception, initiativeBonus, applyAbilityScoreIncrease } = require("../lib/rulesets/5e/survivorFormulas");
+const { matchCoreClassName, savingThrowProficienciesForClass, SKILLS, ABILITY_SCORE_IMPROVEMENT_LEVELS, multiclassSpellSlots } = require("../lib/rulesets/5e/classFormulas");
 const { buildHomebrewSurvivorSystemPrompt } = require("../prompts/rulesets/5e/survivorContentPrompt");
 const { getRaceSystem } = require("../lib/worldConfigRepo");
 const { STARTER_5E_RACES } = require("../lib/rulesets/5e/starterRaces");
@@ -198,60 +198,89 @@ async function handle5eSurvivorGenerate(req, res) {
   const systemPrompt = buildHomebrewSurvivorSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, availableClassesText, name, faction, classLevel });
   const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Create the Player Character now.", maxTokens: 1800 });
 
-  const chosenClass = classEntries.find((c) => c.id === proposed.classId) || classEntries[0];
-  const chosenClassFull = await getEntry(worldId, "classes", chosenClass.id);
-  const classContent = chosenClassFull && chosenClassFull.raw ? chosenClassFull.raw : {};
+  // R4 Phase 6: resolve every proposed {classId, classLevel} entry against
+  // this world's real Class roster -- invalid/duplicate classIds are
+  // dropped rather than trusted, capped at 2 entries (this project's
+  // "almost always one class" rule from the prompt), and falls back to a
+  // single entry in the world's first available class if the model
+  // returned nothing usable at all (matches the old single-class route's
+  // own fallback-to-classEntries[0] behavior).
+  const proposedClasses = Array.isArray(proposed.classes) ? proposed.classes : [];
+  const seenClassIds = new Set();
+  const resolvedClassRefs = [];
+  for (const entry of proposedClasses) {
+    if (resolvedClassRefs.length >= 2) break;
+    const match = classEntries.find((c) => c.id === entry.classId);
+    if (!match || seenClassIds.has(match.id)) continue;
+    seenClassIds.add(match.id);
+    resolvedClassRefs.push({ manifestEntry: match, level: Math.max(1, Math.min(20, Math.round(Number(entry.classLevel) || 1))) });
+  }
+  if (!resolvedClassRefs.length) {
+    resolvedClassRefs.push({ manifestEntry: classEntries[0], level: 1 });
+  }
 
-  const level = Math.max(1, Math.min(20, Math.round(Number(proposed.classLevel) || 1)));
+  const resolvedClasses = await Promise.all(resolvedClassRefs.map(async (ref) => {
+    const full = await getEntry(worldId, "classes", ref.manifestEntry.id);
+    const content = full && full.raw ? full.raw : {};
+    return {
+      classId: ref.manifestEntry.id,
+      className: ref.manifestEntry.name,
+      classLevel: ref.level,
+      hitDie: content.hitDie || "d8",
+      casterType: content.casterType || "none",
+      savingThrowProficiencies: content.savingThrowProficiencies
+    };
+  }));
+  const totalLevel = resolvedClasses.reduce((sum, c) => sum + c.classLevel, 0);
+
   const race = await resolveRace(worldId, raceKey);
   // Race's ability score increase is applied to the model's proposed base
   // scores here, code-side, so it always shows up in the final numbers
   // (HP/passive Perception/initiative all derive from these) rather than
   // depending on the model to remember to add it in.
   const abilities = applyAbilityScoreIncrease(proposed.abilities || {}, race && race.abilityScoreIncrease);
-  const hitPoints = computeHitPoints(classContent.hitDie || "d8", level, abilities.con || 10);
-  const proficiencyBonus = proficiencyBonusForLevel(level);
-  const spellSlots = classContent.casterType && classContent.casterType !== "none" ? spellSlotsForLevel(classContent.casterType, level) : null;
+  const hitPoints = computeMulticlassHitPoints(resolvedClasses.map((c) => ({ hitDie: c.hitDie, level: c.classLevel })), abilities.con || 10);
+  const proficiencyBonus = proficiencyBonusForLevel(totalLevel);
+  const { sharedSlots, pactMagic } = multiclassSpellSlots(resolvedClasses.map((c) => ({ casterType: c.casterType, level: c.classLevel })));
 
   // R4 Phase 2: skill proficiencies are genuinely the player's choice in
   // real 5e, so the model's proposal is trusted -- but only after
   // filtering to the real 18 skill keys, same defensive validation every
   // other ruleset-aware route already applies to model-proposed
   // enum-shaped fields. Saving throws, by contrast, are a fixed rule with
-  // no creative room, so they're re-derived from the chosen class's name
-  // here rather than trusted from either the model OR the class's own
-  // stored field (covers PCs built on a Class entry saved before this
-  // phase existed, whose savingThrowProficiencies may predate the
-  // code-determined fix in routes/generateClass.js).
+  // no creative room -- and, per the real multiclassing rule, come ONLY
+  // from the character's FIRST class (resolvedClasses[0]); multiclassing
+  // into a second class never adds its saves.
   const skillProficiencies = Array.isArray(proposed.skillProficiencies)
     ? [...new Set(proposed.skillProficiencies.filter((k) => VALID_SKILL_KEYS.has(k)))]
     : [];
-  const matchedCoreClass = matchCoreClassName(chosenClass.name);
-  const savingThrowProficiencies = savingThrowProficienciesForClass(matchedCoreClass, classContent.savingThrowProficiencies);
+  const startingClass = resolvedClasses[0];
+  const matchedCoreClass = matchCoreClassName(startingClass.className);
+  const savingThrowProficiencies = savingThrowProficienciesForClass(matchedCoreClass, startingClass.savingThrowProficiencies);
   const isPerceptionProficient = skillProficiencies.includes("perception");
 
   // R4 Phase 5: Background is validated against the real 13-entry core
   // list (hand-authored fallback -- see backgroundsAndFeats.js's header
   // for why) rather than trusted verbatim from the model; a Feat only
-  // applies once the character has reached its first real ASI level,
-  // same "took the ASI instead" default as real play when left blank.
+  // applies once the character has reached its first real ASI level
+  // (checked against TOTAL level, not any single class's level).
   const background = CORE_BACKGROUNDS.find((b) => b.key === proposed.backgroundKey) || null;
-  const eligibleForFeat = level >= FIRST_ASI_LEVEL;
+  const eligibleForFeat = totalLevel >= FIRST_ASI_LEVEL;
   const feat = eligibleForFeat ? CORE_FEATS.find((f) => f.key === proposed.featKey) || null : null;
 
   const pc = {
     ...proposed,
     id: fillExistingId || slugify5e(proposed.name),
     faction: faction || null,
-    classId: chosenClass.id,
-    className: chosenClass.name,
-    classLevel: level,
+    classes: resolvedClasses.map((c) => ({ classId: c.classId, className: c.className, classLevel: c.classLevel })),
+    totalLevel,
     abilities,
     raceKey: race ? race.key : null,
     raceName: race ? race.name : null,
     hitPoints,
     proficiencyBonus,
-    spellSlots,
+    spellSlots: sharedSlots,
+    pactMagic,
     skillProficiencies,
     savingThrowProficiencies,
     passivePerception: passivePerception(abilities.wis || 10, proficiencyBonus, isPerceptionProficient),
@@ -270,7 +299,7 @@ async function handle5eSurvivorGenerate(req, res) {
   }
 
   await save5eSurvivorEntry(worldId, pc, null);
-  res.json({ preview: false, id: pc.id, name: pc.name, className: pc.className, faction: pc.faction, summary: pc.designNotes });
+  res.json({ preview: false, id: pc.id, name: pc.name, className: pc.classes.map((c) => `${c.className} ${c.classLevel}`).join(" / "), faction: pc.faction, summary: pc.designNotes });
 }
 
 // ============================================================
