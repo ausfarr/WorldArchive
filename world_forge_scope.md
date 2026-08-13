@@ -224,3 +224,33 @@ guideline?** If it's a guideline, the UI must say "estimated," the way
 See `session_addendum_ruleset_genericization.md` for full detail, the
 licensing research trail, bugs caught and fixed, and a recommended
 starting point for whoever picks this up next.
+
+## R5 — SRD ingestion unblocked, Import/Generate split (planned, not yet built)
+
+Supersedes this doc's own "no ready-made CC-BY-4.0 STRUCTURED dataset"
+conclusion above, and `scripts/ingestSrd5e.js`'s header note that
+Classes/Spells/Items aren't ingested. **A real source was found:
+`downfallx/dnd-5e-srd-markdown`** — genuine CC-BY-4.0 SRD 5.2.1,
+verified directly (README states the license plainly, ships the
+WotC-mandated attribution text, distinct from the already-rejected
+`5e-bits/5e-database`). It has real content for Spells, Equipment,
+Classes, Feats, and Magic Items — the exact gap the R4 addendum's Phase
+4 hit. Ingestion is real markdown/table parsing (not structured JSON
+like the monster source), so it needs its own careful parser with
+spot-check verification per category, same rigor bar as every other
+ingestion in this project.
+
+Also planned in the same session: real Import/Reflavor/Homebrew tiers
+for Items and Classes (currently zero import capability in either), and
+a fix for Enemies' Import vs Generate-with-AI both currently revealing
+the same picker screen (confirmed UX bug, see finding #6 in the ruleset
+recovery plan addendum) — carried to Items/Classes as they're built.
+
+Also bundled: the `entries_category_check` constraint still doesn't
+allow `'spells'` (confirmed — no migration through `023` touches it),
+World Info's Attributes/Skills sections still show on non-Echoes worlds
+(confirmed — `/wizard/review` never returns `ruleset`), and NPC/
+Survivors' Import button still sits outside the "+ Create Entry"
+staged-reveal flow that Enemies already uses.
+
+Full phased build plan: `session_prompt_r5_srd_ingestion_and_import_fixes.md`.
