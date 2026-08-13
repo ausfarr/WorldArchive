@@ -572,6 +572,83 @@ function wireImportCharacterButton() {
   btn.addEventListener("click", () => openImportCharacterModal(config));
 }
 
+// ============================================================
+// 5e Import/Reflavor/Homebrew source picker -- shared by Enemies, Items,
+// and Classes (R5 Phase 6). Originally three page-local implementations
+// (Enemies shipped first with a bug: both "Import (free)" and "Generate
+// with AI" revealed the same Stage-2 panel with all three mode buttons
+// visible, so Import read as a hidden sub-option of "Generate with AI"
+// rather than its own action -- see session_addendum_ruleset_recovery_plan.md
+// finding #6). R5 Phase 5 built Items/Classes correctly from the start
+// as two page-local copies of the fix; this phase extracts the shared
+// part into one place and retrofits Enemies to match, since by the third
+// near-identical copy the promotion/toggle logic (not the field layout,
+// which still differs per category) was genuinely identical markup.
+//
+// Each category page still builds its own #gen-import-view and
+// #gen-ai-view markup (different fields per category), then calls
+// promoteImportToStage1() once both exist in the DOM. Clicking "Import
+// (free)" (inserted into Stage 1, next to "Generate with AI") reveals
+// ONLY #gen-import-view; clicking "Generate with AI" reveals ONLY
+// #gen-ai-view, defaulted to Homebrew (Import is not reachable from that
+// button at all -- the fix). The .mode-btn/.mode-btn-tag/.mode-btn-active
+// CSS these views' Reflavor/Homebrew toggle buttons use lives in
+// archive/css/style.css (shared -- three pages needed the identical
+// rules, unlike this JS the CSS never differed per category).
+function whenReady(selector, cb, tries) {
+  tries = tries == null ? 40 : tries;
+  const el = document.querySelector(selector);
+  if (el) return cb(el);
+  if (tries <= 0) return;
+  requestAnimationFrame(() => whenReady(selector, cb, tries - 1));
+}
+
+function promoteImportToStage1(importViewId, aiViewId, importTitle) {
+  whenReady("#create-entry-stage1-row", (stage1Row) => {
+    if (document.getElementById("create-entry-import-btn")) return; // already injected
+    const aiBtn = document.getElementById("create-entry-ai-btn");
+
+    function showStage2() {
+      stage1Row.style.display = "none";
+      const eyebrow = document.querySelector(".sheet-eyebrow");
+      const fieldsWrap = document.getElementById("gen-form-fields");
+      const submitBtn = document.getElementById("gen-submit");
+      if (eyebrow) eyebrow.style.display = "";
+      if (fieldsWrap) fieldsWrap.style.display = "";
+      if (submitBtn) submitBtn.style.display = "";
+    }
+
+    const importBtn = document.createElement("button");
+    importBtn.type = "button";
+    importBtn.id = "create-entry-import-btn";
+    importBtn.textContent = "Import (free)";
+    importBtn.title = importTitle || "Copy official SRD content straight in -- zero AI cost.";
+    importBtn.style.cssText = "background: var(--bg-panel-raised); color: var(--neon-cyan); border: 1px solid var(--neon-cyan); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;";
+    importBtn.addEventListener("click", () => {
+      document.getElementById(importViewId).style.display = "flex";
+      document.getElementById(aiViewId).style.display = "none";
+      document.getElementById("gen-mode").value = "import";
+      document.getElementById("gen-submit").textContent = "Import";
+      showStage2();
+    });
+    stage1Row.insertBefore(importBtn, aiBtn || stage1Row.firstChild);
+
+    // "Generate with AI" shows ONLY the Reflavor/Homebrew view -- Import
+    // is not reachable from this button at all (the fix this phase ships).
+    if (aiBtn) {
+      aiBtn.addEventListener("click", () => {
+        document.getElementById(importViewId).style.display = "none";
+        document.getElementById(aiViewId).style.display = "flex";
+        document.getElementById("gen-mode").value = "homebrew";
+        document.getElementById("gen-submit").textContent = "Generate";
+        const homebrewBtn = document.querySelector('#gen-mode-buttons .mode-btn[data-mode="homebrew"]');
+        if (homebrewBtn) homebrewBtn.click();
+        showStage2();
+      });
+    }
+  });
+}
+
 // This is a plain paste-or-upload-then-call-the-generator flow, not an
 // edit form -- deliberately its own small overlay builder rather than
 // reusing openEditOverlay (that one's Save/Cancel wiring assumes an

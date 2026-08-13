@@ -230,6 +230,25 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); out
   border: 1px solid var(--border-line);
   border-top: 3px solid var(--fac-color, var(--neon-primary));
 }
+/* 5e Import/Reflavor/Homebrew source picker (Enemies/Items/Classes --
+   R5 Phase 6, extracted here from three identical page-local <style>
+   blocks once a third page needed the exact same rules; see
+   archive/js/render.js's promoteImportToStage1() for the JS side of
+   this pattern). */
+.mode-btn {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+  color: var(--ink-dim); padding: 8px 14px; cursor: pointer;
+  font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.82rem;
+}
+.mode-btn-tag {
+  font-family: var(--font-mono); text-transform: none; letter-spacing: 0; font-size: 0.65rem; color: var(--ink-faint);
+}
+.mode-btn-active {
+  border-color: var(--neon-primary); color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--neon-primary);
+}
+
 .sheet-header { padding: 32px 32px 24px; border-bottom: 1px solid var(--border-line-soft); }
 .sheet-eyebrow {
   font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.08em;
