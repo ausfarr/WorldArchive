@@ -1,0 +1,86 @@
+{
+  "_genreNote": "Archetypes are deliberately NOT genre-split -- these are conceptual roles (a tank, a skirmisher, a talker), not settings, and already read fine reflavored into any genre a world actually runs. Same reasoning as 5e's classes.json._genreNote.",
+  "archetypes": [
+    {
+      "weight": 1,
+      "value": {
+        "name": "The Bulwark",
+        "descriptionTemplate": "A character built to stand between danger and everyone else, absorbing what others can't.",
+        "flavorTemplate": "{name} isn't the flashiest option, but it's the one people want standing next to them.",
+        "features": [
+          { "name": "Hold the Line", "description": "Can plant themselves in a spot and become noticeably harder to move or bypass." },
+          { "name": "Draw the Eye", "description": "Good at making themselves the obvious target, on purpose." },
+          { "name": "Shrug It Off", "description": "Recovers from setbacks faster than most, physically or otherwise." }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "The Quickblade",
+        "descriptionTemplate": "A character built around speed and precision over raw force.",
+        "flavorTemplate": "{name} would rather end a fight in the first three seconds than the last three.",
+        "features": [
+          { "name": "First Strike", "description": "Tends to act before anyone else has quite caught up." },
+          { "name": "Read the Room", "description": "Picks up on small tells others miss -- a flinch, a shift in weight, a held breath." },
+          { "name": "Precision Over Power", "description": "Can turn a small opening into a decisive one." }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "The Wayfinder",
+        "descriptionTemplate": "A character defined by knowing where to go and what's actually there.",
+        "flavorTemplate": "{name} has been more places than they usually admit to.",
+        "features": [
+          { "name": "Never Quite Lost", "description": "Has an uncanny sense for direction and terrain, even somewhere new." },
+          { "name": "Contingency", "description": "Tends to have a backup plan already half-formed before it's needed." },
+          { "name": "Knows a Guy", "description": "Seems to have a useful contact wherever they end up." }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "The Voice",
+        "descriptionTemplate": "A character who gets what they need through words, presence, and timing rather than force.",
+        "flavorTemplate": "{name} has talked their way out of more trouble than most people talk their way into.",
+        "features": [
+          { "name": "Command Attention", "description": "Has a way of making a room listen, whether it wants to or not." },
+          { "name": "Read Intentions", "description": "Good at telling when someone's lying, or at least when they're nervous." },
+          { "name": "Rally", "description": "Can steady a group that's starting to fall apart." }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "The Tinker",
+        "descriptionTemplate": "A character who solves problems by building, fixing, or repurposing something clever.",
+        "flavorTemplate": "{name} has never met a broken thing they didn't want to take apart.",
+        "features": [
+          { "name": "Field Repair", "description": "Can patch, jury-rig, or improvise a fix in a pinch." },
+          { "name": "Waste Not", "description": "Gets more out of limited materials than seems reasonable." },
+          { "name": "Built for This", "description": "Carries or can rig up a tool for almost any situation, given a little time." }
+        ]
+      }
+    },
+    {
+      "weight": 1,
+      "value": {
+        "name": "The Outcast",
+        "descriptionTemplate": "A character shaped by having lived outside whatever counts as normal in this world.",
+        "flavorTemplate": "{name} learned to survive on terms nobody else would agree to.",
+        "features": [
+          { "name": "Hard-Won Instincts", "description": "Trusts their gut about danger, and their gut is usually right." },
+          { "name": "Nothing Left to Prove", "description": "Doesn't rattle easily -- they've already survived worse." },
+          { "name": "Own Rules", "description": "Solves problems in ways that wouldn't occur to someone with a more conventional upbringing." }
+        ]
+      }
+    }
+  ],
+  "designNotes": [
+    { "value": "Procedurally rolled, narrative-first (this world has no leveling/numeric class system) -- worth a manual polish pass.", "weight": 1 }
+  ]
+}

@@ -33,7 +33,8 @@ const CACHE_BUSTED_SCRIPTS = [
   "campaignModule",
   "auth",
   "wizardSession",
-  "themeBootstrap"
+  "themeBootstrap",
+  "rulesetManualForms"
 ];
 
 const fs = require("fs");
