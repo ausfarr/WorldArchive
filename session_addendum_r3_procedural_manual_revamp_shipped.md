@@ -285,28 +285,87 @@ Per the task's explicit instruction, checked rather than assumed:
    looked exactly like a real "Survivors can't find its Classes" defect
    until traced.
 
+## Follow-up pass — genre-awareness added (same session, after initial ship)
+
+Austin asked for the genre-awareness gap (below) to be closed rather than
+left as a follow-up. Addressed directly:
+
+- **`lib/proceduralGenerators/shared.js`** gained the same 5-bucket
+  genre-detection layer Echoes' `lib/proceduralGenerators.js` has —
+  `detectGenreBuckets`/`filterByGenre`/`pickG`/`pickGValue`/`pickGN`,
+  reimplemented independently (same reasoning as every other function in
+  that file — Echoes' module doesn't export its internals and stays
+  untouched per this project's scope). Same 5 buckets
+  (`post_apoc`/`fantasy`/`scifi`/`modern`/`horror`) + `"universal"`, same
+  keyword list, so a world's genre reads identically regardless of which
+  ruleset's tables end up drawing from it.
+- **Every new NAME/FLAVOR pool where genre mismatch is actually visible**
+  got real per-bucket content: 5e enemies (name epithets/nouns,
+  attack/weapon names, flavor lines), 5e items (weapon/armor/wondrous
+  item names, flavor lines — `baseItem` itself stays a fixed real SRD
+  lookup key regardless of genre, only the displayed name varies, same
+  "mechanics fixed, narrative reflavored" rule the AI Reflavor tier
+  follows), 5e survivors (first/last names, background/backstory/
+  equipment flavor), generic enemies (names, flavor), generic items
+  (names, flavor), generic survivors (names, background/backstory/
+  equipment flavor).
+- **Deliberately left universal, not genre-split, with the reasoning
+  written into each table's own `_genreNote`**: 5e/generic Classes
+  (archetype concepts like "Vanguard"/"The Bulwark" read fine in any
+  genre, and classes are low-volume-per-world so the authoring cost of
+  full variants doesn't buy much), 5e Spells (a spellcasting system
+  existing at all already implies some fantastical framing, and the
+  existing wording has no single-word swap that reads distinctly
+  post-apoc vs. sci-fi the way a weapon name does), every mechanical/
+  structural pool in every table (ability scores, CR weights, damage
+  types, creature size/type/alignment — the 5e SRD's own fixed rules
+  taxonomy, not flavor).
+- **A real, separate bug was found and fixed along the way**: several
+  flavor/description pools (`descriptionTemplates` on both rulesets'
+  Items, `flavorStatsTemplates` on Generic Enemies/Survivors,
+  `backgroundTemplates`/`backstoryTemplates` on both rulesets'
+  Survivors, `flavorTemplates` on 5e Spells) were plain string arrays,
+  but `weightedValue()` expects `{value, weight}` objects and reads
+  `row.value` — on a plain string, `.value` is `undefined`. Every one of
+  those fields was silently `undefined` on every procedurally-generated
+  entry since this session's original ship. Caught while auditing which
+  pools needed genre tags (converting them to proper `{value, weight,
+  genre}` shape was the same edit either way), not by a report — a
+  concrete argument for the "actually run it, don't just read it" bar
+  this project holds itself to. Fixed everywhere it was found; a repo-
+  wide grep for the same `weightedValue()`-on-plain-array pattern across
+  every touched file found no further instances.
+- **New test coverage** in `scripts/testProceduralRulesetGenerators.js`:
+  a scifi-flagged world's 5e enemies draw real scifi-tagged content (not
+  just the always-eligible universal rows) and never draw a fantasy/
+  post_apoc/modern/horror-only row; a fantasy-flagged world draws real
+  fantasy content; an unrecognized/made-up genre string still produces a
+  valid entry (fails open to the full pool, per Echoes' own established
+  rule); Generic enemies are genre-aware too, not just 5e; and a direct
+  regression guard — the same world generating under two different
+  genres produces visibly different flavor output, the literal bug this
+  whole gap was about ("always sounds post-apoc regardless of what the
+  wizard says"). All new + existing assertions **re-ran 25x clean**.
+  Headless-browser manual-form verification re-run afterward too, since
+  the fix touched the same generator files the manual forms don't call
+  into but share table imports with — confirmed unaffected.
+
 ## Explicitly flagged, not fixed (per this session's non-goals)
 
-- **Genre-awareness was not extended to the new 5e/Generic tables.**
-  Echoes' procedural system has a full 5-bucket genre-detection layer
-  (`detectGenreBuckets`/`filterByGenre`, built in a follow-up session
-  after the original procedural feature shipped). Replicating that for
-  9 new category+ruleset combinations was out of scope for this
-  session's effort budget — 5e is inherently D&D-fantasy-flavored by
-  definition, and Generic worlds already define their own flavor via
-  attributes/lore, which softens the need somewhat, but this is a real,
-  honest gap versus Echoes' quality bar specifically on genre variety
-  (not on schema correctness or formula accuracy). Flagged as a
-  reasonable follow-up, not silently dropped.
-- **Data table depth is a reasonable floor, not the "genre-expanded"
-  depth Echoes' tables eventually reached** (Echoes' post-expansion
-  tables run 40-190 rows per pool; this session's new tables run
-  roughly 10-30 rows per pool — closer to Echoes' ORIGINAL pre-expansion
-  depth). A world generating dozens of entries procedurally in one
-  category will start noticing repeats sooner than an Echoes world
-  would. Same honest tradeoff Echoes' own original addendum flagged
-  before its later genre-expansion pass — a good first-ship floor, not
-  the ceiling.
+- **Per-genre-bucket depth is still a floor, not Echoes' fully-expanded
+  ceiling.** After the genre-awareness pass, total rows per table run
+  75-135 (5e enemies 135, 5e survivors 121, 5e items 100, generic
+  enemies 75, generic survivors 58, generic items 35) — real per-genre
+  variety now exists everywhere it matters (name/flavor pools), but each
+  INDIVIDUAL genre bucket within a pool typically has 6-12 tagged rows
+  plus whatever's tagged universal, not Echoes' post-expansion 40-190-
+  rows-PER-BUCKET depth. A world generating dozens of entries
+  procedurally in one category and one genre will still start noticing
+  repeats sooner than an Echoes world would. Same honest tradeoff
+  Echoes' own original addendum flagged before its later genre-expansion
+  pass (which was its own dedicated follow-up session with six parallel
+  content-authoring agents) — a good floor, not the ceiling, and now
+  genre-correct rather than genre-blind.
 - **5e Items' manual/procedural rarity-vs-value sanity check
   (`rarityValueWarning`) is not computed** for manually-created items
   (the procedural generator does call it) — would need a third small

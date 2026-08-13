@@ -1,33 +1,72 @@
 {
   "firstNames": [
-    { "value": "Rowan", "weight": 2 }, { "value": "Sable", "weight": 2 }, { "value": "Teagan", "weight": 2 },
-    { "value": "Marlow", "weight": 2 }, { "value": "Iset", "weight": 2 }, { "value": "Corvid", "weight": 2 },
-    { "value": "Wren", "weight": 2 }, { "value": "Ashford", "weight": 2 }, { "value": "Vesna", "weight": 2 },
-    { "value": "Orin", "weight": 2 }, { "value": "Talon", "weight": 2 }, { "value": "Briar", "weight": 2 }
+    { "value": "Rowan", "weight": 2, "genre": ["universal"] },
+    { "value": "Wren", "weight": 2, "genre": ["universal"] },
+    { "value": "Briar", "weight": 2, "genre": ["universal", "fantasy"] },
+    { "value": "Teagan", "weight": 2, "genre": ["universal"] },
+    { "value": "Sable", "weight": 2, "genre": ["fantasy", "horror"] },
+    { "value": "Marlow", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Iset", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Ashford", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Vesna", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Orin", "weight": 2, "genre": ["fantasy", "universal"] },
+    { "value": "Grit", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Cole", "weight": 2, "genre": ["post_apoc", "modern"] },
+    { "value": "Ash", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Marsh", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Zara", "weight": 2, "genre": ["scifi"] },
+    { "value": "Vex", "weight": 2, "genre": ["scifi"] },
+    { "value": "Corvid", "weight": 2, "genre": ["scifi", "horror"] },
+    { "value": "Talon", "weight": 2, "genre": ["scifi", "modern"] },
+    { "value": "Alex", "weight": 2, "genre": ["modern"] },
+    { "value": "Jordan", "weight": 2, "genre": ["modern"] },
+    { "value": "Devon", "weight": 2, "genre": ["modern"] },
+    { "value": "Ilsbeth", "weight": 2, "genre": ["horror"] },
+    { "value": "Thaddeus", "weight": 2, "genre": ["horror"] },
+    { "value": "Constance", "weight": 2, "genre": ["horror"] }
   ],
   "lastNames": [
-    { "value": "Voss", "weight": 2 }, { "value": "Kade", "weight": 2 }, { "value": "Marrow", "weight": 2 },
-    { "value": "Solane", "weight": 2 }, { "value": "Thorne", "weight": 2 }, { "value": "Vale", "weight": 2 },
-    { "value": "Rask", "weight": 2 }, { "value": "Hollis", "weight": 2 }, { "value": "Winters", "weight": 2 }
+    { "value": "Voss", "weight": 2, "genre": ["universal"] },
+    { "value": "Vale", "weight": 2, "genre": ["universal"] },
+    { "value": "Hollis", "weight": 2, "genre": ["universal"] },
+    { "value": "Thorne", "weight": 2, "genre": ["fantasy", "horror"] },
+    { "value": "Solane", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Rask", "weight": 2, "genre": ["fantasy", "horror"] },
+    { "value": "Kade", "weight": 2, "genre": ["post_apoc", "modern"] },
+    { "value": "Marrow", "weight": 2, "genre": ["post_apoc", "horror"] },
+    { "value": "Ashwell", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Corvid", "weight": 2, "genre": ["scifi"] },
+    { "value": "Ilyrion", "weight": 2, "genre": ["scifi"] },
+    { "value": "Winters", "weight": 2, "genre": ["modern", "horror"] },
+    { "value": "Reyes", "weight": 2, "genre": ["modern"] },
+    { "value": "Graves", "weight": 2, "genre": ["horror"] }
   ],
   "equipmentTemplates": [
-    { "value": "Practical traveling gear, a weapon suited to their background, and one thing they won't sell no matter how bad things get.", "weight": 1 },
-    { "value": "Whatever they could carry when they left, plus whatever they've picked up since.", "weight": 1 }
+    { "value": "Practical traveling gear, a weapon suited to their background, and one thing they won't sell no matter how bad things get.", "weight": 1, "genre": ["universal"] },
+    { "value": "Whatever they could carry when they left, plus whatever they've picked up since.", "weight": 1, "genre": ["universal"] },
+    { "value": "A weapon, a scavenged kit, and enough scrap to trade for one more day.", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "A weapon, a charge cell running low, and a data-shard nobody's cracked yet.", "weight": 1, "genre": ["scifi"] },
+    { "value": "A weapon, a phone with a cracked screen, and a photo they keep meaning to throw out.", "weight": 1, "genre": ["modern"] },
+    { "value": "A weapon, a candle stub, and a page torn from something they wish they hadn't read.", "weight": 1, "genre": ["horror"] }
   ],
   "backgroundTemplates": [
-    "{name} didn't set out to end up here, but here they are.",
-    "{name} has a past they don't talk about much, and a present they're still figuring out.",
-    "{name} came up the hard way, and it shows in how they handle themselves."
+    { "value": "{name} didn't set out to end up here, but here they are.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} has a past they don't talk about much, and a present they're still figuring out.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} came up the hard way, and it shows in how they handle themselves.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} was born after everything already fell apart, so this is just what normal looks like.", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "{name} grew up somewhere the newer maps don't bother naming anymore.", "weight": 1, "genre": ["scifi"] },
+    { "value": "{name} had an ordinary life until it very suddenly wasn't.", "weight": 1, "genre": ["modern"] },
+    { "value": "{name} saw something once that they've never fully explained to anyone.", "weight": 1, "genre": ["horror"] }
   ],
   "backstoryTemplates": [
-    "{name} became a {className} after a decision that still doesn't feel fully settled, even now.",
-    "{name}'s path to being a {className} wasn't a straight line, and they'd be the first to admit it.",
-    "Whatever {name} expected out of life, being a {className} wasn't quite it -- but it fits, mostly."
+    { "value": "{name} became a {className} after a decision that still doesn't feel fully settled, even now.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name}'s path to being a {className} wasn't a straight line, and they'd be the first to admit it.", "weight": 1, "genre": ["universal"] },
+    { "value": "Whatever {name} expected out of life, being a {className} wasn't quite it -- but it fits, mostly.", "weight": 1, "genre": ["universal"] }
   ],
   "flavorStatsTemplates": [
-    "Capable in a fight when they need to be, better at avoiding one when they can.",
-    "Not the strongest in a room, but rarely the least prepared.",
-    "Leans on instinct and improvisation more than training."
+    { "value": "Capable in a fight when they need to be, better at avoiding one when they can.", "weight": 1, "genre": ["universal"] },
+    { "value": "Not the strongest in a room, but rarely the least prepared.", "weight": 1, "genre": ["universal"] },
+    { "value": "Leans on instinct and improvisation more than training.", "weight": 1, "genre": ["universal"] }
   ],
   "designNotes": [
     { "value": "Procedurally rolled -- attributes/background are table-generated, derived stats (if this world uses a formula) are code-computed.", "weight": 1 }

@@ -1,4 +1,5 @@
 {
+  "_genreNote": "Archetypes are deliberately NOT genre-split -- these are conceptual roles (a tank, a skirmisher, a talker), not settings, and already read fine reflavored into any genre a world actually runs. Same reasoning as 5e's classes.json._genreNote.",
   "archetypes": [
     {
       "weight": 1,

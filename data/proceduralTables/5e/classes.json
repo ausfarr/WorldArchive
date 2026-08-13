@@ -1,4 +1,5 @@
 {
+  "_genreNote": "Archetypes are deliberately NOT genre-split -- these are conceptual roles (a tank, a skirmisher, a striker-caster), not settings, and the existing names/flavor ('Vanguard', 'Stormcaller', 'Pactbound') already read fine reflavored into any genre a GM actually runs. Classes are also low-volume per world (per procedural_generation_scope_proposal.md's own finding: 'low volume, high depth per unit'), so the authoring cost of full per-genre archetype variants doesn't buy much -- a handful of universal, well-written archetypes beats 30 thinner genre-split ones here.",
   "archetypes": [
     {
       "weight": 1,

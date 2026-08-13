@@ -274,6 +274,74 @@ async function run() {
     check("throws when generic system unset", true);
   }
 
+  // ---------- Genre awareness ----------
+  // Every new procedural table carries a `genre` field per row -- verify
+  // filtering actually EXCLUDES rows, not just that it runs without
+  // crashing (a bug here would silently draw from the full pool
+  // regardless of the world's detected genre, defeating the point).
+  console.log("\n=== genre awareness ===");
+  const enemies5eTable = require("../data/proceduralTables/5e/enemies.json");
+  const enemiesGenericTable = require("../data/proceduralTables/generic/enemies.json");
+
+  function tagsFor(pool, value) {
+    const row = pool.find((r) => r.value === value);
+    return (row && row.genre) || ["universal"];
+  }
+
+  console.log("\n5e Enemies, scifi-flagged world (15x):");
+  const worldScifi = "world-5e-scifi";
+  upsertWorldConfigRow(worldScifi, { ruleset: "5e", draft_json: { "1": { genre: "Hard Sci-Fi" } } });
+  let sawNonUniversalScifi = false;
+  let allEpithetsEligible = true;
+  for (let i = 0; i < 15; i++) {
+    const e = await generate5eEnemyProcedurally(worldScifi);
+    const epithet = e.name.split(" ")[0];
+    const tags = tagsFor(enemies5eTable.nameEpithets, epithet);
+    if (tags.includes("scifi")) sawNonUniversalScifi = true;
+    if (!tags.includes("scifi") && !tags.includes("universal")) allEpithetsEligible = false;
+  }
+  check("scifi world draws real scifi-tagged epithets, not just universal ones", sawNonUniversalScifi);
+  check("scifi world never draws a fantasy/post_apoc/modern/horror-only epithet", allEpithetsEligible);
+
+  console.log("\n5e Enemies, fantasy-flagged world (15x):");
+  const worldFantasyGenre = "world-5e-fantasy-genre";
+  upsertWorldConfigRow(worldFantasyGenre, { ruleset: "5e", draft_json: { "1": { genre: "High Fantasy" } } });
+  let sawFantasyOnly = false;
+  for (let i = 0; i < 15; i++) {
+    const e = await generate5eEnemyProcedurally(worldFantasyGenre);
+    const epithet = e.name.split(" ")[0];
+    const tags = tagsFor(enemies5eTable.nameEpithets, epithet);
+    if (tags.includes("fantasy") && !tags.includes("scifi")) sawFantasyOnly = true;
+  }
+  check("fantasy world draws real fantasy-tagged epithets", sawFantasyOnly);
+
+  console.log("\n5e Enemies, unrecognized genre falls back to the full pool:");
+  const worldUnknownGenre = "world-5e-unknown-genre";
+  upsertWorldConfigRow(worldUnknownGenre, { ruleset: "5e", draft_json: { "1": { genre: "Something I Made Up That Matches No Keyword" } } });
+  const eUnknown = await generate5eEnemyProcedurally(worldUnknownGenre);
+  check("unrecognized genre still produces a valid enemy (fails open to full pool)", !!(eUnknown && eUnknown.name));
+
+  console.log("\nGeneric Enemies, this world's own genre (10x):");
+  const worldGenericHorror = "world-generic-horror";
+  upsertWorldConfigRow(worldGenericHorror, { ruleset: "generic", generic_system_json: genericSystem, draft_json: { "1": { genre: "Cosmic Horror" } } });
+  let sawHorrorOnly = false;
+  for (let i = 0; i < 10; i++) {
+    const e = await generateGenericEnemyProcedurally(worldGenericHorror, genericSystem);
+    const epithet = e.name.split(" ")[0];
+    const tags = tagsFor(enemiesGenericTable.nameEpithets, epithet);
+    if (tags.includes("horror") && !tags.includes("scifi") && !tags.includes("post_apoc")) sawHorrorOnly = true;
+  }
+  check("generic enemy generation is genre-aware too, not just 5e", sawHorrorOnly);
+
+  console.log("\nSame world, two different genres produce visibly different flavor (regression guard for the original 'always sounds post-apoc' bug):");
+  const worldSwap = "world-5e-genre-swap";
+  upsertWorldConfigRow(worldSwap, { ruleset: "5e", draft_json: { "1": { genre: "High Fantasy" } } });
+  const beforeSwap = await generate5eEnemyProcedurally(worldSwap);
+  upsertWorldConfigRow(worldSwap, { draft_json: { "1": { genre: "Hard Sci-Fi" } } });
+  const namesAfterSwap = [];
+  for (let i = 0; i < 10; i++) namesAfterSwap.push((await generate5eEnemyProcedurally(worldSwap)).actions[0].name);
+  check("changing a world's genre changes procedural flavor output (not stuck on one vocabulary)", namesAfterSwap.some((n) => n !== beforeSwap.actions[0].name), { before: beforeSwap.actions[0].name, after: namesAfterSwap });
+
   // ---------- Summary ----------
   console.log(`\n${failures.length === 0 ? "ALL PASS" : `${failures.length} FAILURE(S)`}`);
   if (failures.length) {

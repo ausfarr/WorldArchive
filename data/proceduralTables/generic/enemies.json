@@ -1,15 +1,56 @@
 {
   "nameEpithets": [
-    { "value": "Wretched", "weight": 2 }, { "value": "Hollow", "weight": 2 }, { "value": "Feral", "weight": 2 },
-    { "value": "Rimewalker", "weight": 2 }, { "value": "Ashborn", "weight": 2 }, { "value": "Gravebound", "weight": 2 },
-    { "value": "Nameless", "weight": 2 }, { "value": "Withered", "weight": 2 }, { "value": "Sundered", "weight": 2 },
-    { "value": "Marked", "weight": 2 }, { "value": "Restless", "weight": 2 }, { "value": "Silent", "weight": 2 }
+    { "value": "Wretched", "weight": 2, "genre": ["universal"] },
+    { "value": "Hollow", "weight": 2, "genre": ["universal"] },
+    { "value": "Nameless", "weight": 2, "genre": ["universal"] },
+    { "value": "Withered", "weight": 2, "genre": ["universal"] },
+    { "value": "Marked", "weight": 2, "genre": ["universal"] },
+    { "value": "Restless", "weight": 2, "genre": ["universal"] },
+    { "value": "Silent", "weight": 2, "genre": ["universal"] },
+    { "value": "Rimewalker", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Ashborn", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Gravebound", "weight": 2, "genre": ["fantasy", "horror"] },
+    { "value": "Sundered", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Rustbound", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Fallout", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Scavver", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Choke-Ash", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Voidtouched", "weight": 2, "genre": ["scifi"] },
+    { "value": "Derelict", "weight": 2, "genre": ["scifi"] },
+    { "value": "Signal-Lost", "weight": 2, "genre": ["scifi"] },
+    { "value": "Chrome", "weight": 2, "genre": ["scifi"] },
+    { "value": "Backalley", "weight": 2, "genre": ["modern"] },
+    { "value": "Off-Grid", "weight": 2, "genre": ["modern"] },
+    { "value": "Sublevel", "weight": 2, "genre": ["modern"] },
+    { "value": "Concrete", "weight": 2, "genre": ["modern"] },
+    { "value": "Wailing", "weight": 2, "genre": ["horror"] },
+    { "value": "Rot-Touched", "weight": 2, "genre": ["horror"] },
+    { "value": "Whispering", "weight": 2, "genre": ["horror"] },
+    { "value": "Unseen", "weight": 2, "genre": ["horror"] }
   ],
   "nameNouns": [
-    { "value": "Stalker", "weight": 2 }, { "value": "Beast", "weight": 2 }, { "value": "Wraith", "weight": 2 },
-    { "value": "Warden", "weight": 2 }, { "value": "Prowler", "weight": 2 }, { "value": "Husk", "weight": 2 },
-    { "value": "Sentinel", "weight": 2 }, { "value": "Marauder", "weight": 2 }, { "value": "Thing", "weight": 2 },
-    { "value": "Shade", "weight": 2 }, { "value": "Brute", "weight": 2 }, { "value": "Watcher", "weight": 2 }
+    { "value": "Stalker", "weight": 2, "genre": ["universal"] },
+    { "value": "Beast", "weight": 2, "genre": ["universal"] },
+    { "value": "Warden", "weight": 2, "genre": ["universal"] },
+    { "value": "Prowler", "weight": 2, "genre": ["universal"] },
+    { "value": "Husk", "weight": 2, "genre": ["universal"] },
+    { "value": "Sentinel", "weight": 2, "genre": ["universal"] },
+    { "value": "Watcher", "weight": 2, "genre": ["universal"] },
+    { "value": "Wraith", "weight": 2, "genre": ["fantasy", "horror"] },
+    { "value": "Shade", "weight": 2, "genre": ["fantasy", "horror"] },
+    { "value": "Marauder", "weight": 2, "genre": ["fantasy", "post_apoc"] },
+    { "value": "Raider", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Mutant", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Reaver", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Brute", "weight": 2, "genre": ["post_apoc", "modern"] },
+    { "value": "Drone", "weight": 2, "genre": ["scifi"] },
+    { "value": "Construct", "weight": 2, "genre": ["scifi"] },
+    { "value": "Anomaly", "weight": 2, "genre": ["scifi"] },
+    { "value": "Enforcer", "weight": 2, "genre": ["modern"] },
+    { "value": "Fixer", "weight": 2, "genre": ["modern"] },
+    { "value": "Thing", "weight": 2, "genre": ["horror"] },
+    { "value": "Abomination", "weight": 2, "genre": ["horror"] },
+    { "value": "Wailer", "weight": 2, "genre": ["horror"] }
   ],
   "traitsPool": [
     { "value": { "name": "Relentless", "description": "Doesn't slow down once it's committed to a fight, no matter how badly it's hurt." }, "weight": 2 },
@@ -19,6 +60,7 @@
     { "value": { "name": "Territorial", "description": "Rarely leaves its claimed ground, but is vicious about defending it." }, "weight": 2 },
     { "value": { "name": "Unnerving", "description": "Something about it makes people hesitate before engaging, even when they shouldn't." }, "weight": 2 }
   ],
+  "_traitsActionsNote": "traitsPool/actionsPool deliberately NOT genre-tagged -- these are abstract game-mechanical concepts (relentless, camouflaged, grapples, charges), not setting-specific flavor, and read fine unmodified in any genre.",
   "actionsPool": [
     { "value": { "name": "Savage Strike", "description": "A brutal, close-range attack meant to end a fight fast." }, "weight": 2 },
     { "value": { "name": "Grapple", "description": "Tries to pin a target in place before the real damage starts." }, "weight": 2 },
@@ -27,17 +69,22 @@
     { "value": { "name": "Piercing Cry", "description": "A sound or signal that rattles anyone nearby, making them easier to hit." }, "weight": 2 }
   ],
   "flavorTemplates": [
-    "{name} doesn't announce itself before it's already too late.",
-    "Whatever {name} used to be, it isn't anymore.",
-    "Locals have their own name for {name}, and it isn't a kind one.",
-    "{name} keeps to the places nobody else wants to go.",
-    "{name} has a reputation, and it's earned every bit of it."
+    { "value": "{name} doesn't announce itself before it's already too late.", "weight": 1, "genre": ["universal"] },
+    { "value": "Whatever {name} used to be, it isn't anymore.", "weight": 1, "genre": ["universal"] },
+    { "value": "Locals have their own name for {name}, and it isn't a kind one.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} keeps to the places nobody else wants to go.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} has a reputation, and it's earned every bit of it.", "weight": 1, "genre": ["universal"] },
+    { "value": "The old stories have a name for {name}, and the new ones haven't improved on it.", "weight": 1, "genre": ["fantasy"] },
+    { "value": "{name} was picked apart by the wasteland long before it ever picked a fight.", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "Nobody's sure whether {name} was built, grown, or something in between.", "weight": 1, "genre": ["scifi"] },
+    { "value": "{name} keeps turning up in the same three blocks, and the reports never quite agree on what it is.", "weight": 1, "genre": ["modern"] },
+    { "value": "Describing {name} accurately tends to make people stop wanting to look for it.", "weight": 1, "genre": ["horror"] }
   ],
   "flavorStatsTemplates": [
-    "Tough and aggressive up close, but not built for a drawn-out fight.",
-    "Fast and unpredictable -- hard to pin down, easy to underestimate.",
-    "Slow but devastating if it actually connects.",
-    "Wears an opponent down over time rather than overwhelming them outright."
+    { "value": "Tough and aggressive up close, but not built for a drawn-out fight.", "weight": 1, "genre": ["universal"] },
+    { "value": "Fast and unpredictable -- hard to pin down, easy to underestimate.", "weight": 1, "genre": ["universal"] },
+    { "value": "Slow but devastating if it actually connects.", "weight": 1, "genre": ["universal"] },
+    { "value": "Wears an opponent down over time rather than overwhelming them outright.", "weight": 1, "genre": ["universal"] }
   ],
   "designNotes": [
     { "value": "Procedurally rolled -- attributes/traits are table-generated, worth a manual pass before running it at the table.", "weight": 1 }

@@ -99,7 +99,16 @@ entry from here forward gets both a real date and a version at write time.
   forms. Verified via a new permanent test script
   (`scripts/testProceduralRulesetGenerators.js`, real write path against
   an in-memory Supabase fake, run 25x clean) plus 19 headless-browser
-  assertions across every new form. See:
+  assertions across every new form. **Follow-up, same day:** the new
+  procedural tables gained real genre-awareness (same 5-bucket detection
+  Echoes' own procedural system has — a sci-fi-flagged world now draws
+  "Chrome Prowler" wielding a "Servo-Fist," a fantasy world draws
+  "Blightfang Ghoul" wielding a "Greataxe," instead of always sounding
+  the same regardless of what the wizard says), which also surfaced and
+  fixed a real pre-existing bug: several flavor/description/background
+  pools were plain string arrays being read with an object-shaped
+  accessor, so those fields were silently `undefined` on every
+  procedurally-generated entry since this phase's original ship. See:
   `session_addendum_r3_procedural_manual_revamp_shipped.md`
 - **Beta feedback fixes (batch 3)** — six independent bugs from beta
   tester feedback: Quest generation can no longer select/reference a

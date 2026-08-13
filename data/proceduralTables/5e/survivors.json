@@ -1,17 +1,37 @@
 {
   "firstNames": [
-    { "value": "Aldric", "weight": 2 }, { "value": "Branwen", "weight": 2 }, { "value": "Corin", "weight": 2 },
-    { "value": "Dessa", "weight": 2 }, { "value": "Edrin", "weight": 2 }, { "value": "Fira", "weight": 2 },
-    { "value": "Gareth", "weight": 2 }, { "value": "Halina", "weight": 2 }, { "value": "Ivor", "weight": 2 },
-    { "value": "Junia", "weight": 2 }, { "value": "Kellan", "weight": 2 }, { "value": "Liora", "weight": 2 },
-    { "value": "Merric", "weight": 2 }, { "value": "Nessa", "weight": 2 }, { "value": "Osric", "weight": 2 },
-    { "value": "Petra", "weight": 2 }, { "value": "Quinlan", "weight": 2 }, { "value": "Rosalind", "weight": 2 }
+    { "value": "Aldric", "weight": 2, "genre": ["fantasy"] }, { "value": "Branwen", "weight": 2, "genre": ["fantasy"] }, { "value": "Corin", "weight": 2, "genre": ["fantasy", "universal"] },
+    { "value": "Dessa", "weight": 2, "genre": ["fantasy"] }, { "value": "Edrin", "weight": 2, "genre": ["fantasy"] }, { "value": "Fira", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Gareth", "weight": 2, "genre": ["fantasy"] }, { "value": "Halina", "weight": 2, "genre": ["fantasy"] }, { "value": "Ivor", "weight": 2, "genre": ["fantasy", "universal"] },
+    { "value": "Junia", "weight": 2, "genre": ["fantasy"] }, { "value": "Kellan", "weight": 2, "genre": ["fantasy", "universal"] }, { "value": "Liora", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Merric", "weight": 2, "genre": ["fantasy"] }, { "value": "Nessa", "weight": 2, "genre": ["fantasy", "universal"] }, { "value": "Osric", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Petra", "weight": 2, "genre": ["fantasy", "universal"] }, { "value": "Quinlan", "weight": 2, "genre": ["fantasy"] }, { "value": "Rosalind", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Cole", "weight": 2, "genre": ["post_apoc"] }, { "value": "Raze", "weight": 2, "genre": ["post_apoc"] }, { "value": "Nyla", "weight": 2, "genre": ["post_apoc"] },
+    { "value": "Grit", "weight": 2, "genre": ["post_apoc"] }, { "value": "Kess", "weight": 2, "genre": ["post_apoc"] }, { "value": "Vance", "weight": 2, "genre": ["post_apoc", "modern"] },
+    { "value": "Marsh", "weight": 2, "genre": ["post_apoc"] }, { "value": "Dex", "weight": 2, "genre": ["post_apoc", "scifi"] },
+    { "value": "Zara", "weight": 2, "genre": ["scifi"] }, { "value": "Kael", "weight": 2, "genre": ["scifi"] }, { "value": "Nyx", "weight": 2, "genre": ["scifi", "horror"] },
+    { "value": "Orion", "weight": 2, "genre": ["scifi"] }, { "value": "Vex", "weight": 2, "genre": ["scifi"] }, { "value": "Ilan", "weight": 2, "genre": ["scifi"] },
+    { "value": "Rook", "weight": 2, "genre": ["scifi", "modern"] },
+    { "value": "Alex", "weight": 2, "genre": ["modern"] }, { "value": "Jordan", "weight": 2, "genre": ["modern"] }, { "value": "Sam", "weight": 2, "genre": ["modern"] },
+    { "value": "Maya", "weight": 2, "genre": ["modern"] }, { "value": "Devon", "weight": 2, "genre": ["modern"] }, { "value": "Casey", "weight": 2, "genre": ["modern"] },
+    { "value": "Morgan", "weight": 2, "genre": ["modern", "horror"] },
+    { "value": "Mortimer", "weight": 2, "genre": ["horror"] }, { "value": "Ilsbeth", "weight": 2, "genre": ["horror"] }, { "value": "Constance", "weight": 2, "genre": ["horror"] },
+    { "value": "Thaddeus", "weight": 2, "genre": ["horror"] }, { "value": "Agatha", "weight": 2, "genre": ["horror"] }, { "value": "Silas", "weight": 2, "genre": ["horror", "fantasy"] },
+    { "value": "Ophelia", "weight": 2, "genre": ["horror", "fantasy"] }
   ],
   "lastNames": [
-    { "value": "Ashgrove", "weight": 2 }, { "value": "Blackwell", "weight": 2 }, { "value": "Corvin", "weight": 2 },
-    { "value": "Duskwalker", "weight": 2 }, { "value": "Emberly", "weight": 2 }, { "value": "Fenwick", "weight": 2 },
-    { "value": "Graymoor", "weight": 2 }, { "value": "Hollowell", "weight": 2 }, { "value": "Ironvale", "weight": 2 },
-    { "value": "Justenne", "weight": 2 }, { "value": "Kesslar", "weight": 2 }, { "value": "Larkspur", "weight": 2 }
+    { "value": "Ashgrove", "weight": 2, "genre": ["fantasy"] }, { "value": "Blackwell", "weight": 2, "genre": ["fantasy", "horror"] }, { "value": "Corvin", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Duskwalker", "weight": 2, "genre": ["fantasy"] }, { "value": "Emberly", "weight": 2, "genre": ["fantasy"] }, { "value": "Fenwick", "weight": 2, "genre": ["fantasy", "universal"] },
+    { "value": "Graymoor", "weight": 2, "genre": ["fantasy"] }, { "value": "Hollowell", "weight": 2, "genre": ["fantasy", "horror"] }, { "value": "Ironvale", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Justenne", "weight": 2, "genre": ["fantasy"] }, { "value": "Kesslar", "weight": 2, "genre": ["fantasy", "universal"] }, { "value": "Larkspur", "weight": 2, "genre": ["fantasy"] },
+    { "value": "Ash", "weight": 2, "genre": ["post_apoc"] }, { "value": "Kade", "weight": 2, "genre": ["post_apoc", "modern"] }, { "value": "Marrow", "weight": 2, "genre": ["post_apoc", "horror"] },
+    { "value": "Rusk", "weight": 2, "genre": ["post_apoc"] }, { "value": "Vane", "weight": 2, "genre": ["post_apoc"] }, { "value": "Cinder", "weight": 2, "genre": ["post_apoc", "universal"] },
+    { "value": "Voss", "weight": 2, "genre": ["scifi"] }, { "value": "Corvid", "weight": 2, "genre": ["scifi"] }, { "value": "Solane", "weight": 2, "genre": ["scifi"] },
+    { "value": "Kestrel", "weight": 2, "genre": ["scifi", "modern"] }, { "value": "Ilyrion", "weight": 2, "genre": ["scifi"] },
+    { "value": "Hale", "weight": 2, "genre": ["modern"] }, { "value": "Reyes", "weight": 2, "genre": ["modern"] }, { "value": "Winters", "weight": 2, "genre": ["modern", "horror"] },
+    { "value": "Park", "weight": 2, "genre": ["modern"] }, { "value": "Cross", "weight": 2, "genre": ["modern", "horror"] },
+    { "value": "Thorne", "weight": 2, "genre": ["horror", "fantasy"] }, { "value": "Graves", "weight": 2, "genre": ["horror"] }, { "value": "Rask", "weight": 2, "genre": ["horror"] },
+    { "value": "Wraithe", "weight": 2, "genre": ["horror"] }
   ],
   "abilityScorePatterns": [
     { "value": { "str": 15, "dex": 13, "con": 14, "int": 10, "wis": 12, "cha": 8 }, "weight": 3 },
@@ -20,6 +40,7 @@
     { "value": { "str": 14, "dex": 10, "con": 15, "int": 8, "wis": 13, "cha": 12 }, "weight": 3 },
     { "value": { "str": 8, "dex": 14, "con": 12, "int": 10, "wis": 13, "cha": 16 }, "weight": 3 }
   ],
+  "_abilityScorePatternsNote": "Deliberately NOT genre-tagged -- raw ability scores are pure mechanics, not flavor.",
   "armorNotes": [
     { "value": "unarmored, relies on reflexes", "acBonus": 0, "weight": 2 },
     { "value": "padded leathers", "acBonus": 1, "weight": 3 },
@@ -28,20 +49,28 @@
     { "value": "a patchwork of scavenged plate", "acBonus": 4, "weight": 1 }
   ],
   "equipmentTemplates": [
-    { "value": "A weapon suited to their training, a bedroll, rations for a week, and a keepsake they won't explain.", "weight": 1 },
-    { "value": "Well-worn traveling gear, a small coin purse, and a journal with more crossed-out entries than finished ones.", "weight": 1 },
-    { "value": "A weapon, a healer's kit half-used, and a letter they haven't opened yet.", "weight": 1 }
+    { "value": "A weapon suited to their training, a bedroll, rations for a week, and a keepsake they won't explain.", "weight": 1, "genre": ["universal"] },
+    { "value": "Well-worn traveling gear, a small coin purse, and a journal with more crossed-out entries than finished ones.", "weight": 1, "genre": ["universal"] },
+    { "value": "A weapon, a healer's kit half-used, and a letter they haven't opened yet.", "weight": 1, "genre": ["universal"] },
+    { "value": "A weapon, a gas mask, a half-empty canteen, and enough scrap to trade for one more day.", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "A weapon, a multitool, a charge cell running low, and a data-shard nobody's cracked yet.", "weight": 1, "genre": ["scifi"] },
+    { "value": "A weapon, a phone with a cracked screen, a wallet with barely enough in it, and a photo they keep meaning to throw out.", "weight": 1, "genre": ["modern"] },
+    { "value": "A weapon, a candle stub, a locket that won't open, and a page torn from something they wish they hadn't read.", "weight": 1, "genre": ["horror"] }
   ],
   "backgroundTemplates": [
-    "{name} left home before anyone could talk them out of it.",
-    "{name} used to have a much quieter life, before circumstances intervened.",
-    "{name} trained for this longer than most people would guess, and still feels unready.",
-    "{name} fell into this line of work by accident and never quite fell back out."
+    { "value": "{name} left home before anyone could talk them out of it.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} used to have a much quieter life, before circumstances intervened.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} trained for this longer than most people would guess, and still feels unready.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} fell into this line of work by accident and never quite fell back out.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} was born after everything already fell apart, so this is just what normal looks like to them.", "weight": 1, "genre": ["post_apoc"] },
+    { "value": "{name} grew up somewhere the newer maps don't bother naming anymore.", "weight": 1, "genre": ["scifi"] },
+    { "value": "{name} had an ordinary life until it very suddenly wasn't.", "weight": 1, "genre": ["modern"] },
+    { "value": "{name} saw something once that they've never fully explained to anyone.", "weight": 1, "genre": ["horror"] }
   ],
   "backstoryTemplates": [
-    "{name} took up the {className}'s path after losing something they still haven't replaced. The road since has been more about momentum than direction.",
-    "Nobody in {name}'s hometown expected them to become a {className} -- least of all {name}. It stuck anyway.",
-    "{name} trained under someone who's no longer around to see how it turned out. Being a {className} is, in part, still an argument with that absence."
+    { "value": "{name} took up the {className}'s path after losing something they still haven't replaced. The road since has been more about momentum than direction.", "weight": 1, "genre": ["universal"] },
+    { "value": "Nobody in {name}'s hometown expected them to become a {className} -- least of all {name}. It stuck anyway.", "weight": 1, "genre": ["universal"] },
+    { "value": "{name} trained under someone who's no longer around to see how it turned out. Being a {className} is, in part, still an argument with that absence.", "weight": 1, "genre": ["universal"] }
   ],
   "ideals": [
     { "value": "\"Nobody gets left behind, full stop.\"", "weight": 1 },
