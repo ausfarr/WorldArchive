@@ -13,20 +13,26 @@ const { getSettingContext } = require("../lib/worldFlavor");
 const { buildWizardRaceSystemPrompt } = require("../prompts/wizardRaceSystemPrompt");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
-const { STARTER_5E_RACES } = require("../lib/rulesets/5e/starterRaces");
+const { getSeedRacePool } = require("../lib/rulesets/5e/raceSystemSeed");
 
 const router = express.Router();
 
 const ABILITY_KEYS = ["str", "dex", "con", "int", "wis", "cha"];
 
 // GET returns this world's own saved list once it has one; before the
-// first save, returns the hand-authored starter list (never silently
-// persisted -- the world only "owns" a race system once Save is used,
-// same progressive-commit rule every other wizard step follows).
+// first save, returns the real-SRD-derived seed pool (R6 Phase 2 --
+// falls back to the hand-authored starter list if srd_library has no
+// species rows yet or the read fails, see raceSystemSeed.js) -- never
+// silently persisted, the world only "owns" a race system once Save is
+// used, same progressive-commit rule every other wizard step follows.
 router.get("/wizard/race-system", async (req, res) => {
   try {
     const raceSystem = await getRaceSystem(req.worldId);
-    res.json({ raceSystem: raceSystem && raceSystem.length ? raceSystem : STARTER_5E_RACES, isStarterDefault: !raceSystem || !raceSystem.length });
+    if (raceSystem && raceSystem.length) {
+      return res.json({ raceSystem, isStarterDefault: false });
+    }
+    const seedPool = await getSeedRacePool();
+    res.json({ raceSystem: seedPool, isStarterDefault: true });
   } catch (err) {
     console.error("Loading race system failed:", err);
     res.status(500).json({ error: err.message });

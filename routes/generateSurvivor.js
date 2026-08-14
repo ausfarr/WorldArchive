@@ -30,21 +30,22 @@ const { computeMulticlassHitPoints, proficiencyBonusForLevel, passivePerception,
 const { matchCoreClassName, savingThrowProficienciesForClass, SKILLS, ABILITY_SCORE_IMPROVEMENT_LEVELS, multiclassSpellSlots } = require("../lib/rulesets/5e/classFormulas");
 const { buildHomebrewSurvivorSystemPrompt } = require("../prompts/rulesets/5e/survivorContentPrompt");
 const { getRaceSystem } = require("../lib/worldConfigRepo");
-const { STARTER_5E_RACES } = require("../lib/rulesets/5e/starterRaces");
+const { getSeedRacePool } = require("../lib/rulesets/5e/raceSystemSeed");
 const { CORE_BACKGROUNDS, CORE_FEATS } = require("../lib/rulesets/5e/backgroundsAndFeats");
 
 const VALID_SKILL_KEYS = new Set(SKILLS.map((s) => s.key));
 const FIRST_ASI_LEVEL = Math.min(...ABILITY_SCORE_IMPROVEMENT_LEVELS);
 
-// R4 Phase 3: resolves an optional raceKey against this world's own
-// saved race list, falling back to the hand-authored starter list for a
-// world that hasn't explicitly saved one yet -- same fallback
-// GET /api/wizard/race-system already returns to the frontend, so a
-// raceKey submitted from that dropdown always resolves here too.
+// R4 Phase 3 (R6 Phase 2: seed source updated): resolves an optional
+// raceKey against this world's own saved race list, falling back to the
+// real-SRD-derived seed pool for a world that hasn't explicitly saved
+// one yet -- same fallback GET /api/wizard/race-system already returns
+// to the frontend, so a raceKey submitted from that dropdown always
+// resolves here too.
 async function resolveRace(worldId, raceKey) {
   if (!raceKey) return null;
   const saved = await getRaceSystem(worldId);
-  const pool = saved && saved.length ? saved : STARTER_5E_RACES;
+  const pool = saved && saved.length ? saved : await getSeedRacePool();
   return pool.find((r) => r.key === raceKey) || null;
 }
 
