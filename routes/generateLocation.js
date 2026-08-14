@@ -13,8 +13,17 @@ const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
 const { createNewLocation } = require("../lib/campaignEntryGenerators");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 router.post("/generate-location", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
@@ -62,7 +71,7 @@ router.post("/generate-location", requireAiEnabled, enforceGenerationCap, enforc
 
     // Step 2: content generation
     const contentSystemPrompt = buildLocationContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, npcRosterText, name, regionBiome, faction, existingContent: priorRaw });
-    const location = await callClaudeExpectingJson({
+    let location = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the Location now.",
       maxTokens: 2500
@@ -74,6 +83,9 @@ router.post("/generate-location", requireAiEnabled, enforceGenerationCap, enforc
     // A specific faction chosen by the user is a known fact, not a
     // suggestion — same fix as generate.js's NPC route.
     if (faction) location.faction = faction;
+
+    const linkResult = await resolveReferencesForEntry(worldId, "locations", location);
+    location = linkResult.raw;
 
     if (mode === "regenerate") {
       const newBodyHtmlPreview = buildLocationBodyHtml(location);
@@ -97,6 +109,7 @@ router.post("/generate-location", requireAiEnabled, enforceGenerationCap, enforc
     // restored here after it was accidentally reverted by an unrelated
     // later delivery that touched this same file.)
     await saveLocationEntry(worldId, location, null);
+    await afterSave(worldId, "locations", location, linkResult.unresolvedGhosts);
 
     res.json({
       preview: false,

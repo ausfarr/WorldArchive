@@ -26,8 +26,19 @@ const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
 const { saveGenericSurvivorEntry } = require("../lib/rulesets/generic/survivorRepo");
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js. Called after
+// every successful save below (manual create, edit, and regenerate-
+// confirm all land here -- the single shared write path).
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 // Shared write path for every "regenerate" preview across all categories
 // except factions (handled separately below, since it needs a freshly
@@ -68,10 +79,17 @@ const HAS_PORTRAIT = {
 router.post("/confirm-entry", async (req, res) => {
   const worldId = req.worldId;
   try {
-    const { category, entry } = req.body || {};
-    if (!entry || !entry.id) {
+    const { category, entry: rawEntry } = req.body || {};
+    if (!rawEntry || !rawEntry.id) {
       return res.status(400).json({ error: "Missing entry or entry.id" });
     }
+
+    // Forward-resolve before anything else touches this entry -- both a
+    // manual-create and an edit/regenerate-confirm can land here with
+    // references that are now resolvable against the archive even if
+    // they weren't at the original /generate-X call (see lib/entryLinker.js).
+    const linkResult = await resolveReferencesForEntry(worldId, category, rawEntry);
+    const entry = linkResult.raw;
 
     // v0.9 Manual Mode: this endpoint is now the creation point for
     // manually-made entries (see archive/js/render.js's
@@ -117,6 +135,7 @@ router.post("/confirm-entry", async (req, res) => {
         const roundupRows = await buildFactionRoundup(worldId, entry.factionKey);
         await saveFactionEntry(worldId, entry, roundupRows);
         await syncReciprocalRelationships(worldId, entry);
+        await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
         return { status: 200, body: { saved: true, id: entry.id, category } };
       }
 
@@ -139,6 +158,7 @@ router.post("/confirm-entry", async (req, res) => {
           // so it's called directly here instead of assigned to `writer`.
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericEnemyEntry(worldId, entry, genericSystem, undefined);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -151,6 +171,7 @@ router.post("/confirm-entry", async (req, res) => {
           // to resolve keyAttribute's display label.
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericClassEntry(worldId, entry, genericSystem, undefined);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -160,6 +181,7 @@ router.post("/confirm-entry", async (req, res) => {
         else if (ruleset === "generic") {
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericItemEntry(worldId, entry, genericSystem, undefined);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -169,6 +191,7 @@ router.post("/confirm-entry", async (req, res) => {
         else if (ruleset === "generic") {
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericSurvivorEntry(worldId, entry, genericSystem, undefined);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -178,6 +201,7 @@ router.post("/confirm-entry", async (req, res) => {
 
       const imageUrl = HAS_PORTRAIT[category] ? getPortraitUrl(worldId, entry.id) : undefined;
       await writer(worldId, entry, imageUrl);
+      await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
       return { status: 200, body: { saved: true, id: entry.id, category } };
     };
 

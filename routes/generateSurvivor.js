@@ -57,8 +57,17 @@ const { slugify: slugifyGeneric, buildSurvivorBodyHtml: buildSurvivorBodyHtmlGen
 const { computeDerivedStats } = require("../lib/rulesets/generic/statFormulas");
 const { buildHomebrewSurvivorSystemPrompt: buildHomebrewGenericSurvivorSystemPrompt } = require("../prompts/rulesets/generic/survivorContentPrompt");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("survivors"), async (req, res) => {
   try {
@@ -120,7 +129,7 @@ async function handleEchoesSurvivorGenerate(req, res) {
     existingContent: priorRaw,
     importSourceText: (!fillExistingId && importText && importText.trim()) ? importText.trim() : undefined
   });
-  const survivor = await callClaudeExpectingJson({
+  let survivor = await callClaudeExpectingJson({
     systemPrompt: contentSystemPrompt,
     userMessage: importText ? "Import and structure this character now." : "Generate the PC now.",
     maxTokens: 2000
@@ -129,6 +138,9 @@ async function handleEchoesSurvivorGenerate(req, res) {
   if (fillExistingId) survivor.id = fillExistingId;
   if (existingEntry) survivor.name = existingEntry.name;
   if (faction) survivor.faction = faction;
+
+  const echoesLinkResult = await resolveReferencesForEntry(worldId, "survivors", survivor);
+  survivor = echoesLinkResult.raw;
 
   if (mode === "regenerate") {
     const statLabels = await getStatLabels(worldId);
@@ -146,6 +158,7 @@ async function handleEchoesSurvivorGenerate(req, res) {
   }
 
   await saveSurvivorEntry(worldId, survivor, null);
+  await afterSave(worldId, "survivors", survivor, echoesLinkResult.unresolvedGhosts);
 
   res.json({
     preview: false,
@@ -290,7 +303,7 @@ async function handle5eSurvivorGenerate(req, res) {
   });
   const feat = eligibleForFeat ? asiFeatPool.find((f) => f.key === proposed.featKey) || null : null;
 
-  const pc = {
+  let pc = {
     ...proposed,
     id: fillExistingId || slugify5e(proposed.name),
     faction: faction || null,
@@ -315,12 +328,16 @@ async function handle5eSurvivorGenerate(req, res) {
   };
   if (existingEntry) pc.id = existingEntry.manifestEntry.id;
 
+  const linkResult = await resolveReferencesForEntry(worldId, "survivors", pc);
+  pc = linkResult.raw;
+
   if (isRegenerate) {
     const newBodyHtmlPreview = buildSurvivorBodyHtml5e(pc, null);
     return res.json({ preview: true, mode: "regenerate", category: "survivors", id: pc.id, name: pc.name, entry: pc, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
   }
 
   await save5eSurvivorEntry(worldId, pc, null);
+  await afterSave(worldId, "survivors", pc, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: pc.id, name: pc.name, className: pc.classes.map((c) => `${c.className} ${c.classLevel}`).join(" / "), faction: pc.faction, summary: pc.designNotes });
 }
 
@@ -376,7 +393,7 @@ async function handleGenericSurvivorGenerate(req, res) {
 
   const chosenClass = classEntries.find((c) => c.id === proposed.classId) || classEntries[0];
 
-  const pc = {
+  let pc = {
     ...proposed,
     id: fillExistingId || slugifyGeneric(proposed.name),
     faction: faction || null,
@@ -387,12 +404,16 @@ async function handleGenericSurvivorGenerate(req, res) {
   };
   if (existingEntry) pc.id = existingEntry.manifestEntry.id;
 
+  const linkResult = await resolveReferencesForEntry(worldId, "survivors", pc);
+  pc = linkResult.raw;
+
   if (isRegenerate) {
     const newBodyHtmlPreview = buildSurvivorBodyHtmlGeneric(pc, genericSystem, null);
     return res.json({ preview: true, mode: "regenerate", category: "survivors", id: pc.id, name: pc.name, entry: pc, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
   }
 
   await saveGenericSurvivorEntry(worldId, pc, genericSystem, null);
+  await afterSave(worldId, "survivors", pc, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: pc.id, name: pc.name, className: pc.className, faction: pc.faction, summary: pc.designNotes });
 }
 

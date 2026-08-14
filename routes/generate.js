@@ -16,8 +16,19 @@ const { createNewNpc } = require("../lib/campaignEntryGenerators");
 const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
 const { buildDefaultCombatProfile: buildDefaultGenericCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2): every save path below calls
+// resolveReferencesForEntry() right before building/saving bodyHtml, and
+// this after each successful non-preview save. See lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
@@ -40,7 +51,7 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
         settingContext, loreContext, factionOptionsText, rosterContext,
         name, role, faction, importSourceText: importText.trim()
       });
-      const npc = await callClaudeExpectingJson({
+      let npc = await callClaudeExpectingJson({
         systemPrompt: contentSystemPrompt,
         userMessage: "Import and structure this character now.",
         maxTokens: 3000
@@ -62,7 +73,11 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
           }
         }
       }
+      const importLinkResult = await resolveReferencesForEntry(worldId, "npcs", npc);
+      npc = importLinkResult.raw;
+
       await saveNpcEntry(worldId, npc, null);
+      await afterSave(worldId, "npcs", npc, importLinkResult.unresolvedGhosts);
       return res.json({
         preview: false,
         id: npc.id,
@@ -113,7 +128,7 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
 
     // Step 2: content generation
     const contentSystemPrompt = buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent: priorRaw });
-    const npc = await callClaudeExpectingJson({
+    let npc = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",
       maxTokens: 3000
@@ -158,6 +173,9 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       }
     }
 
+    const fillLinkResult = await resolveReferencesForEntry(worldId, "npcs", npc);
+    npc = fillLinkResult.raw;
+
     if (mode === "regenerate") {
       const newBodyHtmlPreview = buildBodyHtml(npc);
       return res.json({
@@ -180,6 +198,7 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     // restored here after it was accidentally reverted by an unrelated
     // later delivery that touched this same file.)
     await saveNpcEntry(worldId, npc, null);
+    await afterSave(worldId, "npcs", npc, fillLinkResult.unresolvedGhosts);
 
     res.json({
       preview: false,

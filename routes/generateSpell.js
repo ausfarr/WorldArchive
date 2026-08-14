@@ -25,8 +25,17 @@ const { isValidSpellLevel } = require("../lib/rulesets/5e/spellFormulas");
 const { mapSrdSpellMechanics } = require("../lib/rulesets/5e/srdSpellMapper");
 const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 router.post("/generate-spell", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("spells"), async (req, res) => {
   try {
@@ -90,7 +99,7 @@ async function handle5eSpellGenerate(req, res) {
     }
 
     const mechanics = mapSrdSpellMechanics(srdRow.data_json);
-    const spell = {
+    let spell = {
       id: fillExistingId || slugify(srdRow.name),
       name: srdRow.name,
       flavor: null,
@@ -101,6 +110,9 @@ async function handle5eSpellGenerate(req, res) {
       ...mechanics
     };
 
+    const importLinkResult = await resolveReferencesForEntry(worldId, "spells", spell);
+    spell = importLinkResult.raw;
+
     if (isRegenerate) {
       const newBodyHtmlPreview = buildSpellBodyHtml(spell);
       return res.json({ preview: true, mode: "regenerate", category: "spells", id: spell.id, name: spell.name, entry: spell, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
@@ -108,6 +120,7 @@ async function handle5eSpellGenerate(req, res) {
 
     await save5eSpellEntry(worldId, spell);
     await recordImport(worldId, resolvedSrdLibraryId, spell.id);
+    await afterSave(worldId, "spells", spell, importLinkResult.unresolvedGhosts);
     return res.json({ preview: false, id: spell.id, name: spell.name, level: spell.level, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
   }
 
@@ -174,12 +187,16 @@ async function handle5eSpellGenerate(req, res) {
 
   if (existingEntry) spell.id = existingEntry.manifestEntry.id;
 
+  const linkResult = await resolveReferencesForEntry(worldId, "spells", spell);
+  spell = linkResult.raw;
+
   if (isRegenerate) {
     const newBodyHtmlPreview = buildSpellBodyHtml(spell);
     return res.json({ preview: true, mode: "regenerate", category: "spells", id: spell.id, name: spell.name, entry: spell, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
   }
 
   await save5eSpellEntry(worldId, spell);
+  await afterSave(worldId, "spells", spell, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: spell.id, name: spell.name, level: spell.level, summary: spell.designNotes });
 }
 
