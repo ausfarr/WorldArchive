@@ -21,6 +21,19 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Bug fix: entry-cap rejection didn't refund the generation spend** —
+  every `/generate-X` route mounts `enforceGenerationCap` (deducts
+  points/quota/a credit, attaches `req.refundGeneration()`) BEFORE
+  `enforceEntryCapOnGenerate`. When the entry cap rejected a request with
+  a 403, it returned directly without ever calling
+  `req.refundGeneration()`, so a world sitting at its 30-entry free cap
+  burned a full generation's spend on every single attempt for zero
+  output. Currently dormant since `BILLING_ENABLED` defaults off, but a
+  live landmine for when it's flipped on. Fixed in
+  `middleware/enforceEntryCap.js`; new regression test
+  `scripts/testEntryCapRefund.js` (stubs billingRepo/entriesRepo/
+  worldConfigRepo via `require.cache`, no DB needed).
+
 - **Ruleset recovery, Phase R4 (5e character-sheet completeness)** — the
   5e ruleset's working parts (CR math, leveling, SRD monster import) were
   solid, but a Player Character sheet was missing pieces a real table
