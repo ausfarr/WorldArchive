@@ -69,6 +69,15 @@ async function enforceEntryCapOnGenerate(req, res, next) {
     if (req.body && req.body.mode === "import") return next();
     const result = await checkEntryCap(req.worldId, req.userId);
     if (!result.allowed) {
+      // enforceGenerationCap (mounted before this middleware on every
+      // /generate-X route) already deducted points/quota/a credit for
+      // this request before we knew the entry cap itself would block it
+      // -- without this refund, a world sitting at its entry cap burns a
+      // full generation's spend on every single attempt for zero output,
+      // same failure mode migrations/018_generation_refund.sql and
+      // req.refundGeneration() exist to close everywhere else (see
+      // routes/generateEnemy.js's catch block for the same pattern).
+      if (req.refundGeneration) await req.refundGeneration();
       return res.status(403).json({
         error: "entry_cap_reached",
         message: `You've reached the ${result.cap}-entry limit for this world. Subscribe for unlimited entries, or buy more from Settings.`,

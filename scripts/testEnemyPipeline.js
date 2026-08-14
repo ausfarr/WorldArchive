@@ -1,3 +1,13 @@
+// scripts/testEnemyPipeline.js
+//
+// End-to-end enemy generation pipeline test: POST /api/generate-enemy with
+// global.fetch mocked for the Anthropic/Gemini calls, verifying the real
+// route + middleware + save path runs without touching a live Supabase
+// project. See scripts/testPipeline.js's header comment for the full story
+// on why this needed rewriting (stale flat-file assertions from before the
+// entries-table migration, plus the requireAiEnabled/enforceGenerationCap/
+// enforceEntryCapOnGenerate middleware chain added afterward) and
+// scripts/lib/fakeSupabase.js for the shared in-memory Supabase fake.
 process.env.ANTHROPIC_API_KEY = "test-key";
 process.env.GEMINI_API_KEY = "test-key";
 
@@ -46,10 +56,19 @@ global.fetch = async (url, opts) => {
   return originalFetch(url, opts);
 };
 
+require("./lib/fakeSupabase").install();
+
 const express = require("express");
 const generateEnemyRoute = require("../routes/generateEnemy");
+const { getEntry } = require("../lib/entriesRepo");
+
 const app = express();
 app.use(express.json());
+app.use((req, res, next) => {
+  req.userId = "test-user";
+  req.worldId = "test-world";
+  next();
+});
 app.use("/api", generateEnemyRoute);
 
 const server = app.listen(4009, async () => {
@@ -61,17 +80,13 @@ const server = app.listen(4009, async () => {
   console.log("Status:", res.status);
   console.log("Body:", JSON.stringify(data, null, 2));
 
-  const fs = require("fs");
-  const path = require("path");
-  const dataText = fs.readFileSync(path.join(__dirname, "..", "archive", "enemies", "data", "containment-warden.js"), "utf8");
-  console.log("\\n=== Generated bodyHtml derived stats section ===");
-  const match = dataText.match(/<h2>Derived Stats<\/h2>[\s\S]*?<\/table>/);
+  const saved = await getEntry("test-world", "enemies", "containment-warden");
+  console.log("\n=== Generated bodyHtml derived stats section ===");
+  const match = saved && saved.bodyHtml && saved.bodyHtml.match(/<h2>Derived Stats<\/h2>[\s\S]*?<\/table>/);
   console.log(match ? match[0] : "NOT FOUND");
 
-  const { loadWindowExport } = require("../lib/roster");
-  const parsed = loadWindowExport(dataText, "ENTRY");
-  console.log("\\nRound-trip parse OK:", !!parsed);
-  console.log("Tier tag class correct (tier-elite):", dataText.includes('class="tag tier-elite"'));
+  console.log("\nEntry saved to entries table:", !!saved);
+  console.log("Tier tag class correct (tier-elite):", !!(saved && saved.tags && saved.tags.some((t) => t.includes('class="tag tier-elite"'))));
 
   server.close(); process.exit(0);
 });
