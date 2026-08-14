@@ -12,11 +12,8 @@
 
 const { buildCacheableSystemPrompt } = require("../../../lib/claude");
 const { SKILLS, ABILITY_SCORE_IMPROVEMENT_LEVELS } = require("../../../lib/rulesets/5e/classFormulas");
-const { CORE_BACKGROUNDS, CORE_FEATS } = require("../../../lib/rulesets/5e/backgroundsAndFeats");
 
 const SKILL_KEYS_TEXT = SKILLS.map((s) => s.key).join(", ");
-const BACKGROUND_KEYS_TEXT = CORE_BACKGROUNDS.map((b) => `${b.key} (${b.name})`).join(", ");
-const FEAT_KEYS_TEXT = CORE_FEATS.map((f) => `${f.key} (${f.name})`).join(", ");
 const FIRST_ASI_LEVEL = Math.min(...ABILITY_SCORE_IMPROVEMENT_LEVELS);
 
 const SCHEMA_DESCRIPTION = `{
@@ -40,7 +37,29 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: how this avoids overlapping the existing roster"
 }`;
 
-const STATIC_INSTRUCTIONS = `You are creating an original Player Character for a tabletop game world archive, built on one of this world's own generated Classes. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
+// R6 Phase 3: backgroundsText/featsText are no longer module-level
+// constants built from the old hand-authored lib/rulesets/5e/
+// backgroundsAndFeats.js at require-time -- they're passed in per call,
+// built by the caller from getRealBackgroundsAndFeats() (real ingested
+// SRD data, with the same hand-authored lists as an offline fallback --
+// see backgroundsAndFeatsSeed.js). Still passed to
+// buildCacheableSystemPrompt() as the STATIC block either way: real
+// Anthropic prompt-cache behavior keys off the actual text content sent
+// per request, not off whether that text happened to come from a JS
+// module-level constant, so this doesn't change caching behavior in
+// practice (the real backgrounds/feats lists are themselves static
+// content, just now resolved from srd_library instead of hardcoded).
+//
+// The Background's Origin Feat grant itself is NOT part of what the
+// model proposes -- it's resolved deterministically, code-side, in
+// routes/generateSurvivor.js after the model picks "backgroundKey" (this
+// project's "model writes narrative, code writes structure" principle,
+// same treatment as HP/proficiency bonus/spell slots). The model only
+// ever sees and picks "backgroundKey"; "featKey" below is the SEPARATE,
+// additive, optional ASI-level General Feat pick (R4 Phase 5, unchanged
+// mechanic, now sourced from real Feats).
+function buildStaticInstructions(backgroundsText, featsText) {
+  return `You are creating an original Player Character for a tabletop game world archive, built on one of this world's own generated Classes. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
 RULES:
 - Each "classId" in "classes" MUST be the exact id of one of the classes listed in AVAILABLE CLASSES below -- do not invent a class or use a name not on that list.
@@ -48,14 +67,15 @@ RULES:
 - "abilities" should be six scores that make sense for the chosen class(es)' likely primary/secondary abilities, using a standard array feel (roughly 8-15 range, not maxed out) -- these are the character's actual raw scores, not modifiers.
 - "armorClass" should be a plausible number for the character's total level and likely equipment (10-20 range depending on level/armor/class) -- your best estimate; this does not need to be perfectly derived, a GM can adjust it.
 - "skillProficiencies" must be 2-4 keys chosen from EXACTLY this list (lowercase, exact spelling): ${SKILL_KEYS_TEXT} -- pick ones that fit the chosen class(es) and concept (e.g. a stealthy Rogue-type gets "stealth"/"sleight_of_hand", not "religion").
-- "backgroundKey" MUST be the exact key of one of these: ${BACKGROUND_KEYS_TEXT} -- pick whichever fits the character's life before adventuring; the "background" narrative field below should be consistent with it but doesn't need to restate it.
-- "featKey" only matters once the character's TOTAL level (summed across every entry in "classes") is ${FIRST_ASI_LEVEL} or higher (below that, no Ability Score Improvement has been reached yet, so it should be null). At total level ${FIRST_ASI_LEVEL}+, choose EITHER null (the character took the flat ability score bump, the more common real-play default) OR the exact key of one of these feats if it fits the concept well: ${FEAT_KEYS_TEXT}.
+- "backgroundKey" MUST be the exact key of one of these: ${backgroundsText} -- pick whichever fits the character's life before adventuring; the "background" narrative field below should be consistent with it but doesn't need to restate it. Choosing a Background automatically grants its listed Origin Feat -- you do not need to (and should not try to) specify that separately.
+- "featKey" is a SEPARATE, optional General Feat pick, and only matters once the character's TOTAL level (summed across every entry in "classes") is ${FIRST_ASI_LEVEL} or higher (below that, no Ability Score Improvement has been reached yet, so it should be null). At total level ${FIRST_ASI_LEVEL}+, choose EITHER null (the character took the flat ability score bump, the more common real-play default) OR the exact key of one of these feats if it fits the concept well: ${featsText}.
 - Do NOT compute or state hit points, proficiency bonus, spell slots, saving throw proficiencies, passive Perception, or initiative -- those are filled in automatically from the chosen class(es)' real data and this character's ability scores after you respond.
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
+}
 
-function buildHomebrewSurvivorSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, availableClassesText, name, faction, classLevel, campaignContext }) {
+function buildHomebrewSurvivorSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, availableClassesText, name, faction, classLevel, campaignContext, backgroundsText, featsText }) {
   const dynamicContext = `SETTING (stay consistent with this):
 ${settingContext}
 
@@ -76,7 +96,7 @@ Name: ${name || "generate one fitting the setting"}
 Faction: ${faction || "choose one that fills a gap in the existing roster, or null if faction-agnostic"}
 Target total level: ${classLevel || "choose one that fills a gap in the existing roster (level 1-5 is a reasonable default if genuinely unspecified)"}${campaignContext ? `\nCampaign context: ${campaignContext}` : ""}`;
 
-  return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
+  return buildCacheableSystemPrompt(buildStaticInstructions(backgroundsText, featsText), dynamicContext);
 }
 
 module.exports = { buildHomebrewSurvivorSystemPrompt };
