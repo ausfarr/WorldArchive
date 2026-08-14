@@ -21,6 +21,12 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+_(nothing queued yet)_
+
+---
+
+## v0.95 — 08/14/2026 — D&D 5e Ruleset Revamp
+
 - **Real SRD Backgrounds/Species/Feats + Magic Items backfill (R6)** —
   this session had real Supabase credentials for the first time in this
   project's history, and the load-bearing finding is that the

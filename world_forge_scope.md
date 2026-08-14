@@ -21,6 +21,19 @@ the recovery addendum as the current source of truth for what's actually
 working and what's next; this file's phase table stays as an accurate
 record of what shipped in the original project.
 
+**Update (v0.95, 08/14/2026):** the recovery plan referenced above is now
+fully shipped — R1 (pf2e removed) through R6 (real SRD Backgrounds/
+Species/Feats/Magic Items backfill) are all done. 5e is a real, complete
+second ruleset (Bestiary/Classes/Items/Spells/full PC sheet, all backed
+by real licensed SRD content), Generic is a real narrative-first third
+option, and procedural/manual entry work correctly on both. See
+`CHANGELOG.md`'s v0.95 entry and `session_addendum_r4_5e_completeness_shipped.md`
+/ `session_addendum_r5_srd_ingestion_and_import_fixes.md` /
+`session_addendum_r6_srd_content_backfill.md` for the full detail. Still
+flagged, not yet fixed: `scripts/verifySrd5eFullIngest.js` has a
+pre-existing broken import and possible Spells/Classes source drift —
+worth a real look before leaning on it for a production-data audit.
+
 ## Why this exists
 
 Chronicled originally hardcoded one mechanical system: Austin's own
