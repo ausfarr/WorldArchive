@@ -21,6 +21,19 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Bug fix: entry-cap rejection didn't refund the generation spend** —
+  every `/generate-X` route mounts `enforceGenerationCap` (deducts
+  points/quota/a credit, attaches `req.refundGeneration()`) BEFORE
+  `enforceEntryCapOnGenerate`. When the entry cap rejected a request with
+  a 403, it returned directly without ever calling
+  `req.refundGeneration()`, so a world sitting at its 30-entry free cap
+  burned a full generation's spend on every single attempt for zero
+  output. Currently dormant since `BILLING_ENABLED` defaults off, but a
+  live landmine for when it's flipped on. Fixed in
+  `middleware/enforceEntryCap.js`; new regression test
+  `scripts/testEntryCapRefund.js` (stubs billingRepo/entriesRepo/
+  worldConfigRepo via `require.cache`, no DB needed).
+
 - **Fixed the two broken generation-pipeline test scripts** —
   `scripts/testPipeline.js` and `scripts/testEnemyPipeline.js` had been
   silently dead since the Supabase/multi-tenant migration: they asserted
