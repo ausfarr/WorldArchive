@@ -38,6 +38,7 @@ class FakeQuery {
   insert(row) { this.op = { type: "insert", row }; return this; }
   update(patch) { this.op = { type: "update", patch }; return this; }
   upsert(row, opts) { this.op = { type: "upsert", row, onConflict: (opts && opts.onConflict) || "" }; return this; }
+  delete() { this.op = { type: "delete" }; return this; }
   maybeSingle() { this._single = "maybe"; return this; }
   single() { this._single = "required"; return this; }
 
@@ -52,6 +53,11 @@ class FakeQuery {
       const targets = rows.filter((r) => matches(r, this.filters));
       targets.forEach((r) => Object.assign(r, this.op.patch));
       return { data: this._single ? targets[0] : targets, error: null };
+    }
+    if (this.op.type === "delete") {
+      const targets = rows.filter((r) => matches(r, this.filters));
+      db[this.table] = rows.filter((r) => !matches(r, this.filters));
+      return { data: targets, error: null };
     }
     if (this.op.type === "upsert") {
       const onConflictCols = this.op.onConflict.split(",").map((s) => s.trim()).filter(Boolean);

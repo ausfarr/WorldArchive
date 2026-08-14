@@ -30,8 +30,17 @@ const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
 const { buildEnemyBodyHtml: buildEnemyBodyHtmlGeneric } = require("../lib/rulesets/generic/enemyTemplate");
 const { generateHomebrewGenericEnemy } = require("../lib/rulesets/generic/homebrewEnemyGenerator");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 router.post("/generate-enemy", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
@@ -111,7 +120,7 @@ async function handleEchoesEnemyGenerate(req, res) {
   const statLabelsText = formatStatLabelsForPrompt(statLabels);
 
   const contentSystemPrompt = buildEnemyContentSystemPrompt({ settingContext, loreContext, factionOptionsText, statLabelsText, rosterContext, name, faction, tier, existingContent: priorRaw });
-  const enemy = await callClaudeExpectingJson({
+  let enemy = await callClaudeExpectingJson({
     systemPrompt: contentSystemPrompt,
     userMessage: "Generate the enemy now.",
     maxTokens: 3000
@@ -125,6 +134,9 @@ async function handleEchoesEnemyGenerate(req, res) {
 
   const warning = attributeBudgetWarning(enemy.attributes, enemy.tier);
   if (warning) console.warn("Attribute budget check:", warning);
+
+  const echoesLinkResult = await resolveReferencesForEntry(worldId, "enemies", enemy);
+  enemy = echoesLinkResult.raw;
 
   if (mode === "regenerate") {
     const newBodyHtmlPreview = buildEnemyBodyHtml(enemy, null, statLabels);
@@ -149,6 +161,7 @@ async function handleEchoesEnemyGenerate(req, res) {
   // restored here after it was accidentally reverted by an unrelated
   // later delivery that touched this same file.)
   await saveEnemyEntry(worldId, enemy, null);
+  await afterSave(worldId, "enemies", enemy, echoesLinkResult.unresolvedGhosts);
 
   res.json({
     preview: false,
@@ -231,7 +244,7 @@ async function handle5eEnemyGenerate(req, res) {
 
     const mechanics = mapSrdMonsterMechanics(srdRow.data_json);
     mechanics.challengeRating.xp = XP_BY_CR[mechanics.challengeRating.cr] || null;
-    const enemy = {
+    let enemy = {
       id: fillExistingId || slugify5e(srdRow.name),
       name: srdRow.name,
       faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null,
@@ -243,6 +256,9 @@ async function handle5eEnemyGenerate(req, res) {
       ...mechanics
     };
 
+    const importLinkResult = await resolveReferencesForEntry(worldId, "enemies", enemy);
+    enemy = importLinkResult.raw;
+
     if (isRegenerate) {
       const newBodyHtmlPreview = buildEnemyBodyHtml5e(enemy, null);
       return res.json({ preview: true, mode: "regenerate", category: "enemies", id: enemy.id, name: enemy.name, entry: enemy, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
@@ -250,6 +266,7 @@ async function handle5eEnemyGenerate(req, res) {
 
     await save5eEnemyEntry(worldId, enemy, null);
     await recordImport(worldId, resolvedSrdLibraryId, enemy.id);
+    await afterSave(worldId, "enemies", enemy, importLinkResult.unresolvedGhosts);
     return res.json({ preview: false, id: enemy.id, name: enemy.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
   }
 
@@ -313,12 +330,16 @@ async function handle5eEnemyGenerate(req, res) {
 
   if (existingEntry) enemy.id = existingEntry.manifestEntry.id;
 
+  const linkResult = await resolveReferencesForEntry(worldId, "enemies", enemy);
+  enemy = linkResult.raw;
+
   if (isRegenerate) {
     const newBodyHtmlPreview = buildEnemyBodyHtml5e(enemy, null);
     return res.json({ preview: true, mode: "regenerate", category: "enemies", id: enemy.id, name: enemy.name, entry: enemy, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
   }
 
   await save5eEnemyEntry(worldId, enemy, null);
+  await afterSave(worldId, "enemies", enemy, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: enemy.id, name: enemy.name, faction: enemy.faction, summary: enemy.designNotes });
 }
 
@@ -355,9 +376,12 @@ async function handleGenericEnemyGenerate(req, res) {
   // Shared with the NPC "Combatant" upgrade
   // (lib/rulesets/generic/homebrewEnemyGenerator.js) -- same "reuse it,
   // don't fork it" pattern the 5e version already established.
-  const enemy = await generateHomebrewGenericEnemy(worldId, genericSystem, { name, faction });
+  let enemy = await generateHomebrewGenericEnemy(worldId, genericSystem, { name, faction });
   if (fillExistingId) enemy.id = fillExistingId;
   if (existingEntry) enemy.id = existingEntry.manifestEntry.id;
+
+  const linkResult = await resolveReferencesForEntry(worldId, "enemies", enemy);
+  enemy = linkResult.raw;
 
   if (isRegenerate) {
     const newBodyHtmlPreview = buildEnemyBodyHtmlGeneric(enemy, genericSystem, null);
@@ -365,6 +389,7 @@ async function handleGenericEnemyGenerate(req, res) {
   }
 
   await saveGenericEnemyEntry(worldId, enemy, genericSystem, null);
+  await afterSave(worldId, "enemies", enemy, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: enemy.id, name: enemy.name, faction: enemy.faction, summary: enemy.designNotes });
 }
 

@@ -10,8 +10,17 @@ const { slugify, buildLogBodyHtml } = require("../lib/logTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
 const { createNewLog } = require("../lib/campaignEntryGenerators");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
@@ -65,13 +74,16 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
     const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
 
     const contentSystemPrompt = buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, locationRosterText, name, logType, existingContent: priorRaw });
-    const log = await callClaudeExpectingJson({
+    let log = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the log now.",
       maxTokens: 1500
     });
     log.id = fillExistingId || log.id || slugify(log.name);
     if (existingEntry) log.name = existingEntry.name;
+
+    const linkResult = await resolveReferencesForEntry(worldId, "logs", log);
+    log = linkResult.raw;
 
     if (mode === "regenerate") {
       const newBodyHtmlPreview = buildLogBodyHtml(log);
@@ -89,6 +101,7 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
 
     // No image step - logs are text-only artifacts, no portrait in the real archive.
     await saveLogEntry(worldId, log);
+    await afterSave(worldId, "logs", log, linkResult.unresolvedGhosts);
 
     res.json({
       preview: false,

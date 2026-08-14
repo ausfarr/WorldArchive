@@ -5,8 +5,17 @@ const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { generateFactionDeepLore, createNewFaction, syncReciprocalRelationships } = require("../lib/factionDeepLore");
 const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 const { saveFactionEntry } = require("../lib/fileWriter");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
@@ -18,7 +27,9 @@ router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforce
       // goes through preview/confirm (routes/confirmEntry.js), same as
       // every other category's regenerate, since it's replacing content
       // a person may already be looking at.
-      const { faction, roundupRows, priorBodyHtml } = await generateFactionDeepLore(worldId, fillExistingId);
+      let { faction, roundupRows, priorBodyHtml } = await generateFactionDeepLore(worldId, fillExistingId);
+      const linkResult = await resolveReferencesForEntry(worldId, "factions", faction);
+      faction = linkResult.raw;
       const newBodyHtmlPreview = buildFactionBodyHtml(faction, roundupRows);
 
       return res.json({
@@ -38,9 +49,13 @@ router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforce
     // concept/description, same "Generate New Entry" shape every other
     // category already has. Saved directly, no preview step, matching
     // how a new npc/enemy/item/class/survivor is created.
-    const { faction, roundupRows } = await createNewFaction(worldId, { name, concept });
+    let { faction, roundupRows } = await createNewFaction(worldId, { name, concept });
+    const linkResult = await resolveReferencesForEntry(worldId, "factions", faction);
+    faction = linkResult.raw;
+
     await saveFactionEntry(worldId, faction, roundupRows);
     await syncReciprocalRelationships(worldId, faction);
+    await afterSave(worldId, "factions", faction, linkResult.unresolvedGhosts);
 
     res.json({
       preview: false,

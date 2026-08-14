@@ -32,8 +32,17 @@ const { saveGenericItemEntry } = require("../lib/rulesets/generic/itemRepo");
 const { slugify: slugifyGeneric, buildItemBodyHtml: buildItemBodyHtmlGeneric } = require("../lib/rulesets/generic/itemTemplate");
 const { buildHomebrewItemSystemPrompt: buildHomebrewGenericItemSystemPrompt } = require("../prompts/rulesets/generic/itemContentPrompt");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 const RARITY_WORDS = ["Common", "Uncommon", "Rare", "Legendary"];
 function parseSubtitleForItem(subtitle) {
@@ -108,7 +117,7 @@ async function handleEchoesItemGenerate(req, res) {
   const weaponSkillsText = formatWeaponSkillsForPrompt(skillSystem);
 
   const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent: priorRaw });
-  const item = await callClaudeExpectingJson({
+  let item = await callClaudeExpectingJson({
     systemPrompt: contentSystemPrompt,
     userMessage: "Generate the item now.",
     maxTokens: 2000
@@ -132,6 +141,9 @@ async function handleEchoesItemGenerate(req, res) {
     item.weaponSkillLabel = resolveWeaponSkillLabel(skillSystem, item.weaponSkill);
   }
 
+  const echoesLinkResult = await resolveReferencesForEntry(worldId, "items", item);
+  item = echoesLinkResult.raw;
+
   if (mode === "regenerate") {
     const newBodyHtmlPreview = buildItemBodyHtml(item);
     return res.json({
@@ -154,6 +166,7 @@ async function handleEchoesItemGenerate(req, res) {
   // restored here after it was accidentally reverted by an unrelated
   // later delivery that touched this same file.)
   await saveItemEntry(worldId, item, null);
+  await afterSave(worldId, "items", item, echoesLinkResult.unresolvedGhosts);
 
   res.json({
     preview: false,
@@ -254,7 +267,7 @@ async function handle5eItemGenerate(req, res) {
     // rarity/attunement, mapSrdItemMechanics() having resolved those from
     // the row's own data_json rather than this route guessing by category.
     const mechanics = mapSrdItemMechanics(srdRow.data_json);
-    const item = {
+    let item = {
       id: fillExistingId || slugify5e(srdRow.name),
       name: srdRow.name,
       rarity: null,
@@ -272,6 +285,9 @@ async function handle5eItemGenerate(req, res) {
       ...mechanics
     };
 
+    const importLinkResult = await resolveReferencesForEntry(worldId, "items", item);
+    item = importLinkResult.raw;
+
     if (isRegenerate) {
       const newBodyHtmlPreview = buildItemBodyHtml5e(item, null);
       return res.json({ preview: true, mode: "regenerate", category: "items", id: item.id, name: item.name, entry: item, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
@@ -279,6 +295,7 @@ async function handle5eItemGenerate(req, res) {
 
     await save5eItemEntry(worldId, item, null);
     await recordImport(worldId, resolvedSrdLibraryId, item.id);
+    await afterSave(worldId, "items", item, importLinkResult.unresolvedGhosts);
     return res.json({ preview: false, id: item.id, name: item.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
   }
 
@@ -349,12 +366,16 @@ async function handle5eItemGenerate(req, res) {
 
   if (existingEntry) item.id = existingEntry.manifestEntry.id;
 
+  const linkResult = await resolveReferencesForEntry(worldId, "items", item);
+  item = linkResult.raw;
+
   if (isRegenerate) {
     const newBodyHtmlPreview = buildItemBodyHtml5e(item, null);
     return res.json({ preview: true, mode: "regenerate", category: "items", id: item.id, name: item.name, entry: item, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
   }
 
   await save5eItemEntry(worldId, item, null);
+  await afterSave(worldId, "items", item, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: item.id, name: item.name, rarity: item.rarity, summary: item.designNotes });
 }
 
@@ -402,7 +423,7 @@ async function handleGenericItemGenerate(req, res) {
 
   const validAttributeKeys = new Set(genericSystem.attributes.map((a) => a.key));
   const boostsAttribute = validAttributeKeys.has(proposed.boostsAttribute) ? proposed.boostsAttribute : null;
-  const item = {
+  let item = {
     ...proposed,
     id: fillExistingId || slugifyGeneric(proposed.name),
     faction: faction || null,
@@ -412,12 +433,16 @@ async function handleGenericItemGenerate(req, res) {
   };
   if (existingEntry) item.id = existingEntry.manifestEntry.id;
 
+  const linkResult = await resolveReferencesForEntry(worldId, "items", item);
+  item = linkResult.raw;
+
   if (isRegenerate) {
     const newBodyHtmlPreview = buildItemBodyHtmlGeneric(item, genericSystem, null);
     return res.json({ preview: true, mode: "regenerate", category: "items", id: item.id, name: item.name, entry: item, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
   }
 
   await saveGenericItemEntry(worldId, item, genericSystem, null);
+  await afterSave(worldId, "items", item, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: item.id, name: item.name, faction: item.faction, summary: item.designNotes });
 }
 

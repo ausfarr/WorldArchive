@@ -31,8 +31,17 @@ const { saveGenericClassEntry } = require("../lib/rulesets/generic/classRepo");
 const { slugify: slugifyGeneric, buildClassBodyHtml: buildClassBodyHtmlGeneric } = require("../lib/rulesets/generic/classTemplate");
 const { buildHomebrewClassSystemPrompt: buildHomebrewGenericClassSystemPrompt } = require("../prompts/rulesets/generic/classContentPrompt");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
+const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
+
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+  await backfillReferencesFromNewEntry(worldId, category, savedContent);
+  for (const ghost of unresolvedGhosts || []) {
+    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+}
 
 router.post("/generate-class", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("classes"), async (req, res) => {
   try {
@@ -94,13 +103,16 @@ async function handleEchoesClassGenerate(req, res) {
   const contentSystemPrompt = buildClassContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, weaponSkillsText, rosterContext, locationRosterText, name, existingContent: priorRaw });
   // Generous budget - a full 1-99 tree with ~21 abilities across 4 tiers
   // is genuinely long content, not a truncation risk we're guessing at.
-  const cls = await callClaudeExpectingJson({
+  let cls = await callClaudeExpectingJson({
     systemPrompt: contentSystemPrompt,
     userMessage: "Generate the class now.",
     maxTokens: 8000
   });
   cls.id = fillExistingId || cls.id || slugify(cls.baseName);
   if (existingBaseName) cls.baseName = existingBaseName;
+
+  const echoesLinkResult = await resolveReferencesForEntry(worldId, "classes", cls);
+  cls = echoesLinkResult.raw;
 
   if (mode === "regenerate") {
     const newBodyHtmlPreview = buildClassBodyHtml(cls);
@@ -124,6 +136,7 @@ async function handleEchoesClassGenerate(req, res) {
   // restored here after it was accidentally reverted by an unrelated
   // later delivery that touched this same file.)
   await saveClassEntry(worldId, cls, null);
+  await afterSave(worldId, "classes", cls, echoesLinkResult.unresolvedGhosts);
 
   res.json({
     preview: false,
@@ -193,7 +206,7 @@ async function handle5eClassGenerate(req, res) {
     }
 
     const mechanics = mapSrdClassMechanics(srdRow.data_json);
-    const cls = {
+    let cls = {
       id: fillExistingId || slugify5e(srdRow.name),
       name: srdRow.name,
       faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null,
@@ -205,6 +218,9 @@ async function handle5eClassGenerate(req, res) {
       ...mechanics
     };
 
+    const importLinkResult = await resolveReferencesForEntry(worldId, "classes", cls);
+    cls = importLinkResult.raw;
+
     if (isRegenerate) {
       const newBodyHtmlPreview = buildClassBodyHtml5e(cls, null);
       return res.json({ preview: true, mode: "regenerate", category: "classes", id: cls.id, name: cls.name, entry: cls, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
@@ -212,6 +228,7 @@ async function handle5eClassGenerate(req, res) {
 
     await save5eClassEntry(worldId, cls, null);
     await recordImport(worldId, resolvedSrdLibraryId, cls.id);
+    await afterSave(worldId, "classes", cls, importLinkResult.unresolvedGhosts);
     return res.json({ preview: false, id: cls.id, name: cls.name, summary: `Imported from 5e SRD (${srdRow.source_edition}).` });
   }
 
@@ -295,12 +312,16 @@ async function handle5eClassGenerate(req, res) {
 
   if (existingEntry) cls.id = existingEntry.manifestEntry.id;
 
+  const linkResult = await resolveReferencesForEntry(worldId, "classes", cls);
+  cls = linkResult.raw;
+
   if (isRegenerate) {
     const newBodyHtmlPreview = buildClassBodyHtml5e(cls, null);
     return res.json({ preview: true, mode: "regenerate", category: "classes", id: cls.id, name: cls.name, entry: cls, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
   }
 
   await save5eClassEntry(worldId, cls, null);
+  await afterSave(worldId, "classes", cls, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: cls.id, name: cls.name, faction: cls.faction, summary: cls.designNotes });
 }
 
@@ -346,7 +367,7 @@ async function handleGenericClassGenerate(req, res) {
   const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the class now.", maxTokens: 2000 });
 
   const validAttributeKeys = new Set(genericSystem.attributes.map((a) => a.key));
-  const cls = {
+  let cls = {
     ...proposed,
     id: fillExistingId || slugifyGeneric(proposed.name),
     faction: faction || null,
@@ -355,12 +376,16 @@ async function handleGenericClassGenerate(req, res) {
   };
   if (existingEntry) cls.id = existingEntry.manifestEntry.id;
 
+  const linkResult = await resolveReferencesForEntry(worldId, "classes", cls);
+  cls = linkResult.raw;
+
   if (isRegenerate) {
     const newBodyHtmlPreview = buildClassBodyHtmlGeneric(cls, genericSystem, null);
     return res.json({ preview: true, mode: "regenerate", category: "classes", id: cls.id, name: cls.name, entry: cls, newBodyHtmlPreview, oldBodyHtmlPreview: existingEntry.bodyHtml });
   }
 
   await saveGenericClassEntry(worldId, cls, genericSystem, null);
+  await afterSave(worldId, "classes", cls, linkResult.unresolvedGhosts);
   res.json({ preview: false, id: cls.id, name: cls.name, faction: cls.faction, summary: cls.designNotes });
 }
 
