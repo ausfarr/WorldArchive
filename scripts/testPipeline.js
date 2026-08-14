@@ -1,3 +1,24 @@
+// scripts/testPipeline.js
+//
+// End-to-end NPC generation pipeline test: POST /api/generate-npc with
+// global.fetch mocked for the Anthropic call, verifying the real route +
+// middleware + save path runs without touching a live Supabase project.
+//
+// Rewritten for the Postgres/multi-tenant architecture -- this script
+// predated both the entries-table migration (it used to assert against
+// flat `archive/npcs/data/<id>.js` + `manifest.js` files, which the app
+// hasn't written since; see CLAUDE.md's "Data model" section) and the
+// requireAiEnabled/enforceGenerationCap/enforceEntryCapOnGenerate
+// middleware chain that now sits in front of every /generate-X route
+// (added for multi-tenant billing/caps, after this script was last
+// touched). Both left it permanently broken: the file-existence checks
+// always failed even when the route worked, and once the middleware
+// chain landed, the route errored outright trying to reach a real
+// Supabase project this sandbox has no network access to. Fixed the same
+// way scripts/testProceduralRulesetGenerators.js already solved this: an
+// in-memory fake for @supabase/supabase-js's query-builder surface,
+// injected into require.cache before any real app module loads, so the
+// real code path runs unmodified against fake tables.
 process.env.ANTHROPIC_API_KEY = "test-key";
 process.env.IMAGEGEN_API_KEY = "test-key";
 
@@ -63,11 +84,24 @@ global.fetch = async (url, opts) => {
   return originalFetch(url, opts);
 };
 
+require("./lib/fakeSupabase").install();
+
 const express = require("express");
 const generateRoute = require("../routes/generate");
+const { getEntry } = require("../lib/entriesRepo");
 
 const app = express();
 app.use(express.json());
+app.use((req, res, next) => {
+  // Stand-in for middleware/resolveTenant.js, which this script
+  // deliberately doesn't exercise (it does a real Supabase Auth JWT
+  // round trip) -- every downstream route/middleware only ever reads
+  // req.userId/req.worldId, so a fixed pair is enough to run the real
+  // generation code path end to end.
+  req.userId = "test-user";
+  req.worldId = "test-world";
+  next();
+});
 app.use("/api", generateRoute);
 
 const server = app.listen(4001, async () => {
@@ -80,14 +114,10 @@ const server = app.listen(4001, async () => {
   console.log("Response status:", res.status);
   console.log("Response body:", JSON.stringify(data, null, 2));
 
-  const fs = require("fs");
-  const path = require("path");
-  const dataFileExists = fs.existsSync(path.join(__dirname, "..", "archive", "npcs", "data", "vess-okoro.js"));
-  const imageExists = fs.existsSync(path.join(__dirname, "..", "archive", "images", "vess-okoro.png"));
-  const manifestText = fs.readFileSync(path.join(__dirname, "..", "archive", "npcs", "manifest.js"), "utf8");
-  console.log("Data file written:", dataFileExists);
-  console.log("Image written:", imageExists);
-  console.log("Manifest contains new entry:", manifestText.includes("vess-okoro"));
+  const saved = await getEntry("test-world", "npcs", "vess-okoro");
+  console.log("Entry saved to entries table:", !!saved);
+  console.log("Name matches:", saved && saved.name === "Vess Okoro");
+  console.log("bodyHtml rendered:", !!(saved && saved.bodyHtml));
 
   server.close();
   process.exit(0);
