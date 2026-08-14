@@ -219,15 +219,42 @@ async function wire5eItemForm() {
     </div>
   `;
 
-  let srdItems = [];
+  // R6 Phase 4: the Import/Reflavor picker now offers BOTH mundane
+  // Equipment (srd_library.category = 'items') and the real 260 Magic
+  // Items ('magic-items') in one dropdown, grouped and visually
+  // distinguished -- magic items show their real rarity (+ an
+  // attunement marker) right in the option label, so a Rare item
+  // requiring attunement doesn't look identical to a plain Longsword.
+  // Two separate fetches (routes/srdLibrary.js only takes one category
+  // per call) rather than a backend change -- each call's rows are
+  // already tagged with which fetch produced them, so no server-side
+  // 'category' column needs to round-trip through the picker at all.
+  let mundaneItems = [];
+  let magicItems = [];
   try {
-    const res = await authFetch('/api/srd-library?ruleset=5e&category=items');
-    const data = await res.json();
-    srdItems = data.entries || [];
+    const [mundaneRes, magicRes] = await Promise.all([
+      authFetch('/api/srd-library?ruleset=5e&category=items'),
+      authFetch('/api/srd-library?ruleset=5e&category=magic-items')
+    ]);
+    mundaneItems = (await mundaneRes.json()).entries || [];
+    magicItems = (await magicRes.json()).entries || [];
   } catch (err) {
     console.error('Could not load SRD item list:', err);
   }
-  const srdOptionsHtml = srdItems.map((it) => `<option value="${it.id}">${it.name}</option>`).join('') || '<option value="">No SRD items available</option>';
+  // Rarity is real and already on the picker's light row shape
+  // (listSrdEntries selects it); attunement lives inside data_json's
+  // typeLine text, not a top-level column, so it isn't worth widening
+  // the picker query just to show it a second time here -- it's fully
+  // preserved and shown on the actual item card once imported (see
+  // itemTemplate.js's rarityLine()), which is what matters for not
+  // silently dropping real mechanical info.
+  function magicItemLabel(it) {
+    return `${it.name} (${it.rarity || 'Magic'})`;
+  }
+  const srdOptionsHtml =
+    (mundaneItems.length ? `<optgroup label="Equipment">${mundaneItems.map((it) => `<option value="${it.id}">${it.name}</option>`).join('')}</optgroup>` : '') +
+    (magicItems.length ? `<optgroup label="Magic Items">${magicItems.map((it) => `<option value="${it.id}">${magicItemLabel(it)}</option>`).join('')}</optgroup>` : '')
+    || '<option value="">No SRD items available</option>';
   document.getElementById('gen-import-srd-picker').innerHTML = srdOptionsHtml;
   document.getElementById('gen-reflavor-srd-picker').innerHTML = srdOptionsHtml;
 

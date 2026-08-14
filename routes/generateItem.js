@@ -219,10 +219,19 @@ async function handle5eItemGenerate(req, res) {
 
   // The generic card "Regenerate" button only ever posts { fillExistingId
   // } -- recover srdLibraryId from the existing entry's saved srdSourceId
-  // when it's missing, same fallback as routes/generateEnemy.js.
+  // when it's missing, same fallback as routes/generateEnemy.js. R6 Phase
+  // 4: srd_library now has TWO item categories ('items' for mundane
+  // equipment, 'magic-items' for the real 260 Magic Items), and srd_id is
+  // only unique WITHIN a category (migrations/020's own UNIQUE(ruleset,
+  // category, srd_id) constraint) -- so recovery needs to know which
+  // category the entry actually came from, not just assume 'items'.
+  // srdSourceCategory is stamped onto the entry below at Import/Reflavor
+  // time; entries saved before this phase existed have no such field and
+  // correctly default to 'items', the only category that existed then.
   let resolvedSrdLibraryId = srdLibraryId;
   if (!resolvedSrdLibraryId && (effectiveMode === "import" || effectiveMode === "reflavor") && existingEntry && existingEntry.raw && existingEntry.raw.srdSourceId) {
-    const recovered = await getSrdEntryBySlug("5e", "items", existingEntry.raw.srdSourceId);
+    const sourceCategory = existingEntry.raw.srdSourceCategory || "items";
+    const recovered = await getSrdEntryBySlug("5e", sourceCategory, existingEntry.raw.srdSourceId);
     if (recovered) resolvedSrdLibraryId = recovered.id;
   }
 
@@ -238,11 +247,17 @@ async function handle5eItemGenerate(req, res) {
       return res.status(409).json({ error: `This SRD item was already imported into this world as '${alreadyImportedAs}'.` });
     }
 
+    // R6 Phase 4: rarity/requiresAttunement/attunementRequirement below
+    // are the DEFAULT for mundane equipment (srd_library's 'items'
+    // category) -- for a real Magic Item ('magic-items' category),
+    // mechanics (spread last, below) overrides them with the item's real
+    // rarity/attunement, mapSrdItemMechanics() having resolved those from
+    // the row's own data_json rather than this route guessing by category.
     const mechanics = mapSrdItemMechanics(srdRow.data_json);
     const item = {
       id: fillExistingId || slugify5e(srdRow.name),
       name: srdRow.name,
-      rarity: null, // mundane equipment -- srd_library's 'items' category is weapons/armor/gear/tools, not magic items
+      rarity: null,
       requiresAttunement: false,
       attunementRequirement: null,
       baseItem: null,
@@ -252,6 +267,7 @@ async function handle5eItemGenerate(req, res) {
       designNotes: null,
       sourceMode: "import",
       srdSourceId: srdRow.srd_id,
+      srdSourceCategory: srdRow.category,
       srdLicenseNote: srdRow.license_note,
       ...mechanics
     };
@@ -298,11 +314,14 @@ async function handle5eItemGenerate(req, res) {
       designNotes: reflavored.designNotes,
       sourceMode: "reflavor",
       srdSourceId: srdRow.srd_id,
+      srdSourceCategory: srdRow.category,
       srdLicenseNote: srdRow.license_note,
       ...mechanics,
       // Model's rewritten description overrides the mapper's raw-source
       // description text -- the mapper's mechanics (resolvedStats/
-      // valueGp/weightLb) above are NOT touched by the model at all.
+      // valueGp/weightLb/rarity/attunement) above are NOT touched by the
+      // model at all -- Reflavor rewrites narrative only, real mechanics
+      // (including a real Magic Item's rarity/attunement) stay as-is.
       description: reflavored.description || mechanics.description
     };
 
