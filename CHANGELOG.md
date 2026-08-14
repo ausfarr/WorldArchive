@@ -21,6 +21,65 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Real SRD Backgrounds/Species/Feats + Magic Items backfill (R6)** —
+  this session had real Supabase credentials for the first time in this
+  project's history, and the load-bearing finding is that the
+  credentials don't help: this environment's network policy blocks the
+  Supabase host outright (confirmed via the egress proxy's own
+  diagnostics), so every phase below was built and thoroughly verified
+  offline, not against production. Ingested real SRD Backgrounds (4 —
+  the free SRD's real count, not a full PHB's 16) and Species (9) from
+  `character-origins.md`, the one source file R5's ingestion never
+  touched. Wired the real 9 Species into the Race/Species reference
+  pool (replacing `starterRaces.js` as the default seed, kept as an
+  offline fallback). Replaced the hand-authored Backgrounds/Feats with
+  the real ingested ones and built the real 2024 mechanic a Background
+  actually has: it grants one specific named Origin Feat immediately at
+  level 1 (Acolyte → Magic Initiate, Criminal → Alert, Sage → Magic
+  Initiate, Soldier → Savage Attacker), separate and additive from the
+  existing optional General Feat at real ASI levels. Wired the 260 real
+  SRD Magic Items (ingested by R5, never used by anything) into Items'
+  Import tier, fixing two real bugs along the way: rarity/attunement
+  were being silently dropped for every Import/Reflavor item, and
+  Regenerate would have silently failed to recover a Magic Item's SRD
+  source (`srd_id` collision risk across the two item categories).
+  Backfilled R5's missing addendum and CHANGELOG entry from its real
+  commit history (no addendum was ever written for R5 at the time).
+  Flagged, not fixed: R5's own `verifySrd5eFullIngest.js` has a
+  pre-existing broken import and possible Spells/Classes source drift;
+  `world_forge_scope.md`'s R5 section is now stale ("planned, not yet
+  built" — R5 shipped months of work ago). See:
+  `session_addendum_r6_srd_content_backfill.md`
+
+- **SRD ingestion + Import/Reflavor fixes (R5)** — a real, properly
+  CC-BY-4.0-licensed source (`downfallx/dnd-5e-srd-markdown`) cleared
+  where R4's `5e-bits/5e-database` lead didn't. Ingested real SRD
+  Spells (349), Equipment, Classes (12, one sample subclass each), 17
+  Feats, and 260 Magic Items into `srd_library`; wired Import (free,
+  zero AI cost) / Reflavor (AI rewrites narrative, mechanics untouched)
+  / Homebrew for Items, Classes, and Spells, matching the pattern
+  Enemies already had. Fixed a real UI bug found along the way — Import
+  and "Generate with AI" were showing the exact same panel — by
+  splitting every category's Stage-2 view into two mutually-exclusive
+  sub-views, and extracted the shared promotion/toggle mechanics into
+  `render.js`/`style.css` once three pages needed it. Also: added
+  `'spells'` to `entries.category`'s CHECK constraint (was silently
+  rejecting every spell write since the category predated the
+  migrations folder), gated World Info's Attributes/Skills sections to
+  Echoes-only rulesets, moved Import Character into the staged
+  create-entry flow, fixed Regenerate on every Import/Reflavor entry
+  across all four categories (a pre-existing gap, not new this
+  session), added CC-BY-4.0 attribution badges to Items/Classes/Spells,
+  and bumped `srd_library`'s query limit past Spells' real row count.
+  **Left for a later session:** Magic Items (260 real rows) and Feats
+  (17 real rows) were ingested but never wired to anything — Import
+  scope was Items/Classes/Spells only; Backgrounds/Species
+  (`character-origins.md`) were never ingested at all. No addendum or
+  CHANGELOG entry was written at the time — this entry and
+  `session_addendum_r5_srd_ingestion_and_import_fixes.md` were
+  reconstructed retroactively during R6 from the real commit history.
+  See: `session_addendum_r5_srd_ingestion_and_import_fixes.md`
+
 - **Ruleset recovery, Phase R4 (5e character-sheet completeness)** — the
   5e ruleset's working parts (CR math, leveling, SRD monster import) were
   solid, but a Player Character sheet was missing pieces a real table
