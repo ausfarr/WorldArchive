@@ -31,7 +31,7 @@ const { matchCoreClassName, savingThrowProficienciesForClass, SKILLS, ABILITY_SC
 const { buildHomebrewSurvivorSystemPrompt } = require("../prompts/rulesets/5e/survivorContentPrompt");
 const { getRaceSystem } = require("../lib/worldConfigRepo");
 const { getSeedRacePool } = require("../lib/rulesets/5e/raceSystemSeed");
-const { CORE_BACKGROUNDS, CORE_FEATS } = require("../lib/rulesets/5e/backgroundsAndFeats");
+const { getRealBackgroundsAndFeats, eligibleAsiFeats } = require("../lib/rulesets/5e/backgroundsAndFeatsSeed");
 
 const VALID_SKILL_KEYS = new Set(SKILLS.map((s) => s.key));
 const FIRST_ASI_LEVEL = Math.min(...ABILITY_SCORE_IMPROVEMENT_LEVELS);
@@ -196,7 +196,16 @@ async function handle5eSurvivorGenerate(req, res) {
     ? rosterEntries.map((e) => `- ${e.id} | ${e.name}: ${e.subtitle || ""}`).join("\n")
     : "No Player Characters archived yet -- any concept is available.";
 
-  const systemPrompt = buildHomebrewSurvivorSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, availableClassesText, name, faction, classLevel });
+  // R6 Phase 3: real ingested Backgrounds/Feats (falls back to the old
+  // hand-authored lists if srd_library is unreachable -- see
+  // backgroundsAndFeatsSeed.js), fetched once and reused for both the
+  // prompt's grounding text below and the post-response validation
+  // further down, rather than fetching twice.
+  const { backgrounds: realBackgrounds, feats: realFeats } = await getRealBackgroundsAndFeats();
+  const backgroundsText = realBackgrounds.map((b) => `${b.key} (${b.name})`).join(", ");
+  const featsText = realFeats.map((f) => `${f.key} (${f.name})`).join(", ");
+
+  const systemPrompt = buildHomebrewSurvivorSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, availableClassesText, name, faction, classLevel, backgroundsText, featsText });
   const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Create the Player Character now.", maxTokens: 1800 });
 
   // R4 Phase 6: resolve every proposed {classId, classLevel} entry against
@@ -260,14 +269,26 @@ async function handle5eSurvivorGenerate(req, res) {
   const savingThrowProficiencies = savingThrowProficienciesForClass(matchedCoreClass, startingClass.savingThrowProficiencies);
   const isPerceptionProficient = skillProficiencies.includes("perception");
 
-  // R4 Phase 5: Background is validated against the real 13-entry core
-  // list (hand-authored fallback -- see backgroundsAndFeats.js's header
-  // for why) rather than trusted verbatim from the model; a Feat only
-  // applies once the character has reached its first real ASI level
-  // (checked against TOTAL level, not any single class's level).
-  const background = CORE_BACKGROUNDS.find((b) => b.key === proposed.backgroundKey) || null;
+  // R6 Phase 3: Background is validated against the real ingested list
+  // (realBackgrounds, fetched above -- falls back to the old
+  // hand-authored list if srd_library is unreachable) rather than
+  // trusted verbatim from the model. Choosing a Background deterministically
+  // grants its real Origin Feat (background.originFeat, resolved
+  // server-side by backgroundsAndFeatsSeed.js's join against the real
+  // Feats -- code writes structure, the model never proposes this part).
+  // The separate, additive ASI-level General Feat pick only applies once
+  // the character has reached its first real ASI level (checked against
+  // TOTAL level, not any single class's level), and its candidate pool
+  // excludes the Background's own Origin Feat UNLESS that feat is
+  // Repeatable (e.g. Magic Initiate) -- see eligibleAsiFeats's header for
+  // why that matters.
+  const background = realBackgrounds.find((b) => b.key === proposed.backgroundKey) || null;
   const eligibleForFeat = totalLevel >= FIRST_ASI_LEVEL;
-  const feat = eligibleForFeat ? CORE_FEATS.find((f) => f.key === proposed.featKey) || null : null;
+  const asiFeatPool = eligibleAsiFeats(realFeats, {
+    totalLevel,
+    excludeNonRepeatableKey: background && background.originFeat ? background.originFeat.key : null
+  });
+  const feat = eligibleForFeat ? asiFeatPool.find((f) => f.key === proposed.featKey) || null : null;
 
   const pc = {
     ...proposed,
