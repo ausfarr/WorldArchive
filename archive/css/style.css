@@ -213,6 +213,20 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); out
   color: var(--ink-faint);
 }
 
+/* Entry cross-linking, Phase 3: an inline Category A reference (e.g. a
+   5e spell's Classes list) that couldn't be resolved to an archived
+   entry -- visually related to .entry-card.locked's "not yet archived"
+   treatment (same ink-faint color, same concept) but distinct since this
+   sits inline inside running text/table cells rather than as a whole
+   card. Dashed underline (not solid, so it doesn't read as a broken
+   link) plus a native tooltip via the element's title attribute. */
+.unarchived-ref {
+  color: var(--ink-faint);
+  font-style: italic;
+  border-bottom: 1px dashed var(--ink-faint);
+  cursor: help;
+}
+
 /* ---------- Tags / pills ---------- */
 .tag {
   display: inline-block; font-family: var(--font-mono); font-size: 0.65rem;
