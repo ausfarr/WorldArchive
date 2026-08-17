@@ -1,0 +1,31 @@
+# Chronicled — Austin's Action Items
+
+Ranked highest-ROI first. These are the things only Austin can do (posting under his own account, replying as himself, making product-adjacent calls). Everything else lives with Claude in `GROWTH_STRATEGY.md` Section 4.
+
+Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
+
+---
+
+## This week
+
+- [ ] **#1 — Post `drafts/reddit_post_worldbuilding.md` to r/worldbuilding today.** Highest reach, lowest gate. Add your own screenshot/GIF if you have one from an actual generated world (real content beats a mockup). Tag the link with `?utm_source=reddit&utm_campaign=worldbuilding_launch`.
+- [ ] **#2 — Post `drafts/reddit_post_rpg_generators.md` to r/rpg_generators today**, same day as #1. This is the real test of whether that channel is actually the best one, not just the one that felt good pre-paywall. Tag the link `?utm_source=reddit&utm_campaign=rpggenerators_launch`.
+- [ ] **#3 — Reply to every comment on both posts for the first 48 hours.** This is the single highest-leverage personal time cost this week — posts where the OP engages outperform ones that go quiet.
+- [ ] **#4 — Before posting to r/DMAcademy, spend 5 minutes confirming their current self-promo rule** (megathread, specific flair, or outright ban on product posts). Rules drift and I couldn't verify live this session. Once confirmed, post `drafts/reddit_post_dmacademy.md` in whatever the correct format is.
+- [ ] **#5 — Post the first X/Twitter build-in-public thread** (`drafts/twitter_build_in_public_thread.md`). Takes ~15 min. Set a recurring weekly reminder to do this again next week using whatever's newest in CHANGELOG.md.
+- [ ] **#6 — Log results in `DAILY_LOG.md`** at the 24h and 48h marks for both Reddit posts: upvotes, comment count/sentiment, click-throughs (if UTM-trackable), any trial signups you can attribute to the window.
+
+## Optional this week, only if it's low-friction
+
+- [ ] **Send `drafts/tester_reengagement_dm.md`** to any of the 5–6 active beta testers who might have a good screenshot or quote to share — real usage proof is the strongest asset for the next round of posts. Skip if it feels like extra work right now; this isn't blocking anything else.
+
+## Next week (don't start yet, listed so the plan doesn't get lost)
+
+- [ ] Compare r/worldbuilding vs. r/rpg_generators results head-to-head — this decides which one gets the bigger share of future effort.
+- [ ] Stagger 1–2 more subreddit posts (r/rpg, r/BehindTheTables) with non-identical framing.
+- [ ] Revisit Product Hunt / Show HN timing once this week's posts have produced citable comments/signups.
+
+## Explicitly not this week (logged so it doesn't get pursued too early)
+
+- YouTube/Twitch creator outreach — needs a polished demo GIF and 1–2 real testimonials first, neither exists yet.
+- World Anvil's own Discord — pitching a competitor inside their community is a fast way to get banned and burn goodwill, skip entirely.
