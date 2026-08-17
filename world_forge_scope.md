@@ -260,7 +260,11 @@ the same picker screen (confirmed UX bug, see finding #6 in the ruleset
 recovery plan addendum) — carried to Items/Classes as they're built.
 
 Also bundled: the `entries_category_check` constraint still doesn't
-allow `'spells'` (confirmed — no migration through `023` touches it),
+allow `'spells'` (confirmed — no migration through `023` touches it;
+**fixed since by `migrations/024_spells_category_check.sql`** — this
+line is stale, kept here for the historical record rather than silently
+edited, per the entry cross-linking Phase 0 audit's note that this file
+had drifted, see `phase0_entry_linking_audit.md` finding #8),
 World Info's Attributes/Skills sections still show on non-Echoes worlds
 (confirmed — `/wizard/review` never returns `ruleset`), and NPC/
 Survivors' Import button still sits outside the "+ Create Entry"
