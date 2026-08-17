@@ -21,7 +21,32 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
-_(nothing queued yet)_
+- **Entry cross-linking (Phases 0–4) — backfilled CHANGELOG/addendum for
+  already-shipped work, plus new regression tests** — `lib/entryLinker.js`
+  and `lib/entryLinkRegistry.js` (merged via PRs #28/#29, Phases 0–3) add
+  a deterministic, zero-AI-call resolver that fills in cross-category
+  references — a 5e spell's class list, an NPC's `relationships[]`, a
+  Location's `notableNpcs[]`, a Log's `locationId`, a Faction's
+  `relationships[]` — both forward (when an entry is saved, resolve
+  against what already exists) and backward (when a NEW entry is saved,
+  sweep the world for anything that named it and couldn't resolve
+  before). Wired into every generation/confirm save path. Shipped with
+  no CHANGELOG entry or addendum at the time; both are backfilled now,
+  from the real Phase 0–4 commit history. Also shipped this session:
+  `scripts/testEntryLinker.js`, offline regression coverage for the
+  resolver (forward NAME_ONLY_ARRAY/ID_POINTER_ARRAY/self-referential
+  matching, backward patch + rebake, stale-ghost cleanup,
+  `ensureGhostPlaceholder` idempotency) — the feature had none before,
+  despite being load-bearing for every save path in the app. **Phase 4
+  (the one-off production backfill sweep for entries saved before this
+  feature existed) remains incomplete** — `scripts/backfillEntryLinks.js`
+  is written and tested against the fake, but this sandbox's network
+  policy still blocks the real Supabase host (reconfirmed this session),
+  so it has never been run for real; needs a session with real DB
+  network access, or a manual hybrid run. Also fixed a stale line in
+  `world_forge_scope.md` (claimed `entries_category_check` still
+  rejected `'spells'` — `migrations/024` already fixed that, flagged but
+  never corrected). See: `session_addendum_entry_cross_linking_shipped.md`
 
 ---
 
