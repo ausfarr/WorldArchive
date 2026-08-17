@@ -171,7 +171,12 @@ router.post("/campaign-modules/generate", requireAiEnabled, enforceGenerationCap
 router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
-    const { category, concept } = req.body || {};
+    // mode/srdLibraryId only mean anything for enemies/items on a 5e
+    // world (see lib/campaignEntryGenerators.js's createNewEnemy/
+    // createNewItem) -- npcs/locations/logs' generators simply ignore
+    // extra properties on their options object, same as before this was
+    // added.
+    const { category, concept, mode, srdLibraryId } = req.body || {};
     const generator = SLOT_GENERATORS[category];
     if (!generator) {
       if (req.refundGeneration) await req.refundGeneration();
@@ -182,7 +187,7 @@ router.post("/campaign-modules/generate-slot-entry", requireAiEnabled, enforceGe
       if (req.refundGeneration) await req.refundGeneration();
       return res.status(400).json({ error: `The '${category}' category is disabled for this world, so a Quest slot can't be filled there.` });
     }
-    const result = await generator(worldId, { campaignContext: concept });
+    const result = await generator(worldId, { campaignContext: concept, mode, srdLibraryId });
     res.json({
       category,
       entryId: result.id,

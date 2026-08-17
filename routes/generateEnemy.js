@@ -18,12 +18,9 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 // Multi-ruleset genericization, Phase 3 (Bestiary proof of concept) --
 // see session_addendum_ruleset_genericization.md.
 const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
-const { slugify: slugify5e, buildEnemyBodyHtml: buildEnemyBodyHtml5e } = require("../lib/rulesets/5e/enemyTemplate");
-const { XP_BY_CR } = require("../lib/rulesets/5e/statFormulas");
-const { mapSrdMonsterMechanics } = require("../lib/rulesets/5e/srdMonsterMapper");
-const { buildReflavorEnemySystemPrompt } = require("../prompts/rulesets/5e/enemyContentPrompt");
+const { buildEnemyBodyHtml: buildEnemyBodyHtml5e } = require("../lib/rulesets/5e/enemyTemplate");
 const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
-const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
+const { generateHomebrew5eEnemy, import5eEnemy, reflavor5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
 
 // Multi-ruleset genericization, Phase 10 (Generic ruleset).
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
@@ -242,19 +239,11 @@ async function handle5eEnemyGenerate(req, res) {
       return res.status(409).json({ error: `This SRD monster was already imported into this world as '${alreadyImportedAs}'.` });
     }
 
-    const mechanics = mapSrdMonsterMechanics(srdRow.data_json);
-    mechanics.challengeRating.xp = XP_BY_CR[mechanics.challengeRating.cr] || null;
-    let enemy = {
-      id: fillExistingId || slugify5e(srdRow.name),
-      name: srdRow.name,
-      faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null,
-      flavor: null,
-      designNotes: null,
-      sourceMode: "import",
-      srdSourceId: srdRow.srd_id,
-      srdLicenseNote: srdRow.license_note,
-      ...mechanics
-    };
+    // Extracted to lib/rulesets/5e/homebrewEnemyGenerator.js's
+    // import5eEnemy() so lib/campaignEntryGenerators.js's createNewEnemy()
+    // (Quest/Campaign Module slot-fill) can dispatch through the exact
+    // same tier instead of only ever calling the Echoes-only prompt.
+    let enemy = import5eEnemy(srdRow, { faction: faction || (existingEntry && existingEntry.raw && existingEntry.raw.faction) || null, fillExistingId });
 
     const importLinkResult = await resolveReferencesForEntry(worldId, "enemies", enemy);
     enemy = importLinkResult.raw;
@@ -271,10 +260,6 @@ async function handle5eEnemyGenerate(req, res) {
   }
 
   // ---- Reflavor / Homebrew both call Claude ----
-  const settingContext = await getSettingContext(worldId);
-  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
-  const loreContext = await getLoreContext(worldId, { category: "enemies", faction });
-
   let enemy;
 
   if (effectiveMode === "reflavor") {
@@ -285,40 +270,21 @@ async function handle5eEnemyGenerate(req, res) {
     const srdRow = await getSrdEntry(resolvedSrdLibraryId);
     if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
 
-    const systemPrompt = buildReflavorEnemySystemPrompt({ settingContext, loreContext, factionOptionsText, sourceMonster: srdRow.data_json, faction });
-    const reflavored = await callClaudeExpectingJson({ systemPrompt, userMessage: "Reflavor the monster now.", maxTokens: 2000 });
-
-    const mechanics = mapSrdMonsterMechanics(srdRow.data_json);
-    mechanics.challengeRating.xp = XP_BY_CR[mechanics.challengeRating.cr] || null;
-    enemy = {
-      id: fillExistingId || slugify5e(reflavored.name),
-      name: reflavored.name,
-      faction: faction || null,
-      flavor: reflavored.flavor,
-      designNotes: reflavored.designNotes,
-      sourceMode: "reflavor",
-      srdSourceId: srdRow.srd_id,
-      srdLicenseNote: srdRow.license_note,
-      ...mechanics,
-      // Model's rewritten narrative overrides the mapper's raw-source
-      // traits/actions -- but only the name/description text; the
-      // mapper's mechanics (AC/HP/abilities/resistances/etc.) above are
-      // NOT touched by the model at all.
-      traits: reflavored.traits || mechanics.traits,
-      actions: reflavored.actions && reflavored.actions.length === mechanics.actions.length ? reflavored.actions : mechanics.actions
-    };
+    // Extracted to homebrewEnemyGenerator.js's reflavor5eEnemy() -- same
+    // "reuse it, don't fork it" reasoning as Import above.
+    enemy = await reflavor5eEnemy(worldId, srdRow, { faction, fillExistingId });
 
     // Phase 12 (Differential Billing): Reflavor only asks the model to
     // rewrite wording -- every mechanically-relevant number is carried
-    // through untouched from the SRD source (see the comment on
-    // `mechanics` above). That's much closer to a field-assist ("help me
-    // reword this") than a full from-scratch generation, so once the
-    // reflavor has actually succeeded, refund the gap between what
-    // enforceGenerationCap already spent up front (a full generation's
-    // points, since mode isn't known until this handler runs) and the
-    // field-assist rate this tier should really cost. Only the
-    // difference is refunded -- not the whole spend, unlike Import above
-    // -- so Reflavor still costs something, just less than Homebrew.
+    // through untouched from the SRD source. That's much closer to a
+    // field-assist ("help me reword this") than a full from-scratch
+    // generation, so once the reflavor has actually succeeded, refund the
+    // gap between what enforceGenerationCap already spent up front (a
+    // full generation's points, since mode isn't known until this
+    // handler runs) and the field-assist rate this tier should really
+    // cost. Only the difference is refunded -- not the whole spend,
+    // unlike Import above -- so Reflavor still costs something, just
+    // less than Homebrew.
     if (req.refundGeneration) await req.refundGeneration(POINTS_PER_GENERATION - POINTS_PER_FIELD_ASSIST);
   } else {
     // Homebrew -- shared with Phase 7's NPC "Combatant" upgrade, see
