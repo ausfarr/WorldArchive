@@ -21,7 +21,20 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
-_(nothing queued yet)_
+- **Quest/Campaign Module slot-fill now respects ruleset for Enemies/Items** —
+  the "Generate one" button on an unmatched Quest slot used to always
+  generate an Echoes-shaped entry regardless of the world's actual
+  ruleset; it now dispatches on ruleset exactly like the standalone
+  "Generate New Entry" buttons, and a 5e world's slot-fill also exposes
+  the full Import/Reflavor/Homebrew source-tier choice, not just
+  Homebrew. See `session_addendum_quest_slot_fill_ruleset_and_background_equipment.md`.
+- **5e Background equipment/tool-proficiency no longer shows raw SRD
+  choice text** — Soldier's Tool Proficiency and all 4 real backgrounds'
+  Equipment field resolve deterministically to concrete gear instead of
+  showing unresolved "Choose one kind of X" / "Choose A or B" chargen
+  instructions on a generated PC's sheet. Existing saved PCs are not
+  retroactively fixed (only affects newly-generated PCs going forward) —
+  see the same addendum.
 
 ---
 
