@@ -69,6 +69,18 @@ async function main() {
   check("Every real background resolved a real originFeat (no silent join miss)", backgrounds.every((b) => !!b.originFeat), true);
   check("Every real background carries the CC-BY-4.0 license note", backgrounds.every((b) => !!b.licenseNote), true);
 
+  // -- Background equipment/tool-proficiency auto-resolve (Quest slot-
+  // fill session -- see
+  // session_addendum_quest_slot_fill_ruleset_and_background_equipment.md).
+  // The SRD source embeds unresolved player CHOICE text directly in the
+  // Tool Proficiency/Equipment fields ("Choose one kind of X", "Choose A
+  // or B") -- srdBackgroundMapper.js resolves both deterministically at
+  // read time, no AI call.
+  check("Soldier's Tool Proficiency resolves 'Choose one kind of Gaming Set' to a concrete tool", bgByName("Soldier").toolProficiency, "Dice Set");
+  check("No background's resolved Equipment still contains the raw 'Choose' instruction", backgrounds.every((b) => !/Choose/i.test(b.equipment)), true);
+  check("Soldier's resolved Equipment shows the concrete tool, not '(same as above)'", /Dice Set/.test(bgByName("Soldier").equipment) && !/same as above/i.test(bgByName("Soldier").equipment), true);
+  check("Every real background's Option B gold alternative was preserved (equipmentGoldAlternative)", backgrounds.every((b) => !!b.equipmentGoldAlternative), true);
+
   // -- eligibleAsiFeats: Epic Boon level-gating -----------------------------
   const poolLevel4 = eligibleAsiFeats(feats, { totalLevel: 4 });
   const poolLevel19 = eligibleAsiFeats(feats, { totalLevel: 19 });
