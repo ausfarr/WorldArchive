@@ -1,8 +1,8 @@
 # Chronicled — Growth Strategy
 
 **Owner:** Austin | **Growth lead:** Claude (this thread's role — NOT product dev, see World Builder Dev project for that)
-**Last updated:** 2026-08-17
-**Status:** Paid launch week. Billing flipped live this week. First growth push post-paywall starts today.
+**Last updated:** 2026-08-17 (automated daily check-in, evening)
+**Status:** Paid launch week, still Day 1. Billing flipped live this week; Austin uploaded this workstream's docs today but has **not yet posted** either drafted Reddit post — Action Items #1/#2 are still the top priority, unchanged from this morning.
 
 Read this file cold if you're a future session picking this up. It supersedes nothing in `world_forge_scope.md` (that's product) but sits alongside `session_addendum_marketing_launch_plan.md` (the Weeks 1–4 plan drafted before billing went live) — this doc is the next layer down: the actual channel research, competitor ammo, and this week's execution plan, written after billing went live.
 
@@ -50,7 +50,9 @@ Full baseline data lives in `COMPETITOR_WATCH.md` (update that file, not this se
 - *"None of the big three worldbuilding tools have real AI content generation built in as of today — that's the actual gap Chronicled fills, not just 'another wiki.'"*
 - On price: Chronicled's $5/mo undercuts World Anvil's popular Grandmaster tier ($8.25/mo) and LegendKeeper ($9/mo) while including generation, not just hosting.
 
-No direct "AI-native, lore-grounded worldbuilding generator with auto-filed archive" competitor was found in this pass — that positioning currently looks genuinely open. Re-verify each cycle (see COMPETITOR_WATCH.md) since this space moves fast and a competitor could ship AI features at any time.
+No direct "AI-native, lore-grounded worldbuilding generator with auto-filed archive" competitor was found in this original pass — that positioning looked genuinely open. Re-verify each cycle (see COMPETITOR_WATCH.md) since this space moves fast and a competitor could ship AI features at any time.
+
+**2026-08-17 update — that claim is now in question, not confirmed false.** A search pass (direct page fetch blocked by this environment's egress rules, so unverified at the source) surfaced **CharGen** (char-gen.com), which markets a "World Codex" that generates and cross-links regions/settlements/factions/NPCs/plot hooks — the same core pitch as Chronicled. Full details in `COMPETITOR_WATCH.md`'s 2026-08-17 entry. **Don't lead outreach copy with "nobody else does this" until Austin or a future session confirms what CharGen actually is** — the "why switch" bullet below may need softening in the meantime.
 
 ## 3. r/rpg_generators — validated, with a real caveat
 
