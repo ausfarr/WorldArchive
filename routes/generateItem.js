@@ -9,7 +9,7 @@ const { saveItemEntry } = require("../lib/fileWriter");
 const { slugify, buildItemBodyHtml } = require("../lib/itemTemplate");
 const { clampDamageRange } = require("../lib/itemFormulas");
 const { getLoreContext } = require("../lib/loreContext");
-const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getSkillSystem, formatWeaponSkillsForPrompt, resolveWeaponSkillLabel, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
+const { getSettingContext, getStatLabels, formatStatLabelsForPrompt, getSkillSystem, formatWeaponSkillsForPrompt, resolveWeaponSkillLabel } = require("../lib/worldFlavor");
 const { createNewItem } = require("../lib/campaignEntryGenerators");
 const { requireCategoryAvailable } = require("../middleware/requireCategoryAvailable");
 const { getRuleset } = require("../lib/worldConfigRepo");
@@ -17,21 +17,18 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 
 // Multi-ruleset genericization, Phase 6 (Items) -- see
 // session_addendum_ruleset_genericization.md.
-const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
-const { slugify: slugify5e, buildItemBodyHtml: buildItemBodyHtml5e } = require("../lib/rulesets/5e/itemTemplate");
-const { lookupWeapon, lookupArmor, rarityValueWarning } = require("../lib/rulesets/5e/itemFormulas");
-const { buildHomebrewItemSystemPrompt, buildReflavorItemSystemPrompt } = require("../prompts/rulesets/5e/itemContentPrompt");
-const { mapSrdItemMechanics } = require("../lib/rulesets/5e/srdItemMapper");
+const { buildItemBodyHtml: buildItemBodyHtml5e } = require("../lib/rulesets/5e/itemTemplate");
 const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
+const { generateHomebrew5eItem, import5eItem, reflavor5eItem } = require("../lib/rulesets/5e/homebrewItemGenerator");
 
 // Generic Items (Homebrew only, narrative-first) -- see
 // prompts/rulesets/generic/itemContentPrompt.js and
 // lib/rulesets/generic/itemTemplate.js's header comments.
 const { saveGenericItemEntry } = require("../lib/rulesets/generic/itemRepo");
-const { slugify: slugifyGeneric, buildItemBodyHtml: buildItemBodyHtmlGeneric } = require("../lib/rulesets/generic/itemTemplate");
-const { buildHomebrewItemSystemPrompt: buildHomebrewGenericItemSystemPrompt } = require("../prompts/rulesets/generic/itemContentPrompt");
+const { buildItemBodyHtml: buildItemBodyHtmlGeneric } = require("../lib/rulesets/generic/itemTemplate");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
+const { generateHomebrewGenericItem } = require("../lib/rulesets/generic/homebrewItemGenerator");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 
 const router = express.Router();
@@ -186,18 +183,13 @@ async function handleEchoesItemGenerate(req, res) {
 // tables in lib/rulesets/5e/itemFormulas.js, never trusted from the
 // model directly). Same three-tier shape as routes/generateEnemy.js's
 // handle5eEnemyGenerate.
+// resolveItemStats() moved into
+// lib/rulesets/5e/homebrewItemGenerator.js when the Homebrew branch
+// below was extracted into a shared, reusable function (Quest/Campaign
+// Module slot-fill ruleset fix needed the exact same pipeline -- "reuse
+// it, don't fork it", same as routes/generateEnemy.js's
+// homebrewEnemyGenerator.js extraction).
 // ============================================================
-function resolveItemStats(item) {
-  if (item.itemType === "weapon" && item.baseItem) {
-    const base = lookupWeapon(item.baseItem);
-    if (base) return { ...base };
-  }
-  if (item.itemType === "armor" && item.baseItem) {
-    const base = lookupArmor(item.baseItem);
-    if (base) return { ...base };
-  }
-  return null;
-}
 
 async function handle5eItemGenerate(req, res) {
   const worldId = req.worldId;
@@ -260,30 +252,11 @@ async function handle5eItemGenerate(req, res) {
       return res.status(409).json({ error: `This SRD item was already imported into this world as '${alreadyImportedAs}'.` });
     }
 
-    // R6 Phase 4: rarity/requiresAttunement/attunementRequirement below
-    // are the DEFAULT for mundane equipment (srd_library's 'items'
-    // category) -- for a real Magic Item ('magic-items' category),
-    // mechanics (spread last, below) overrides them with the item's real
-    // rarity/attunement, mapSrdItemMechanics() having resolved those from
-    // the row's own data_json rather than this route guessing by category.
-    const mechanics = mapSrdItemMechanics(srdRow.data_json);
-    let item = {
-      id: fillExistingId || slugify5e(srdRow.name),
-      name: srdRow.name,
-      rarity: null,
-      requiresAttunement: false,
-      attunementRequirement: null,
-      baseItem: null,
-      magicBonus: null,
-      magicalProperties: [],
-      flavor: null,
-      designNotes: null,
-      sourceMode: "import",
-      srdSourceId: srdRow.srd_id,
-      srdSourceCategory: srdRow.category,
-      srdLicenseNote: srdRow.license_note,
-      ...mechanics
-    };
+    // Extracted to lib/rulesets/5e/homebrewItemGenerator.js's
+    // import5eItem() so lib/campaignEntryGenerators.js's createNewItem()
+    // (Quest/Campaign Module slot-fill) can dispatch through the exact
+    // same tier instead of only ever calling the Echoes-only prompt.
+    let item = import5eItem(srdRow, { fillExistingId });
 
     const importLinkResult = await resolveReferencesForEntry(worldId, "items", item);
     item = importLinkResult.raw;
@@ -300,10 +273,6 @@ async function handle5eItemGenerate(req, res) {
   }
 
   // ---- Reflavor / Homebrew both call Claude ----
-  const settingContext = await getSettingContext(worldId);
-  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
-  const loreContext = await getLoreContext(worldId, { category: "items" });
-
   let item;
 
   if (effectiveMode === "reflavor") {
@@ -314,54 +283,19 @@ async function handle5eItemGenerate(req, res) {
     const srdRow = await getSrdEntry(resolvedSrdLibraryId);
     if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
 
-    const systemPrompt = buildReflavorItemSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceItem: srdRow.data_json });
-    const reflavored = await callClaudeExpectingJson({ systemPrompt, userMessage: "Reflavor the item now.", maxTokens: 1200 });
-
-    const mechanics = mapSrdItemMechanics(srdRow.data_json);
-    item = {
-      id: fillExistingId || slugify5e(reflavored.name),
-      name: reflavored.name,
-      rarity: null,
-      requiresAttunement: false,
-      attunementRequirement: null,
-      baseItem: null,
-      magicBonus: null,
-      magicalProperties: [],
-      flavor: reflavored.flavor,
-      designNotes: reflavored.designNotes,
-      sourceMode: "reflavor",
-      srdSourceId: srdRow.srd_id,
-      srdSourceCategory: srdRow.category,
-      srdLicenseNote: srdRow.license_note,
-      ...mechanics,
-      // Model's rewritten description overrides the mapper's raw-source
-      // description text -- the mapper's mechanics (resolvedStats/
-      // valueGp/weightLb/rarity/attunement) above are NOT touched by the
-      // model at all -- Reflavor rewrites narrative only, real mechanics
-      // (including a real Magic Item's rarity/attunement) stay as-is.
-      description: reflavored.description || mechanics.description
-    };
+    // Extracted to homebrewItemGenerator.js's reflavor5eItem() -- same
+    // "reuse it, don't fork it" reasoning as Import above.
+    item = await reflavor5eItem(worldId, srdRow, { fillExistingId });
 
     // Same Differential Billing treatment as Enemies' Reflavor tier --
     // only the gap between a full generation's points and a field-assist's
     // points is refunded, not the whole spend.
     if (req.refundGeneration) await req.refundGeneration(POINTS_PER_GENERATION - POINTS_PER_FIELD_ASSIST);
   } else {
-    const rosterEntries = await listEntries(worldId, "items", { locked: false });
-    const rosterContext = rosterEntries.length
-      ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
-      : "No items archived yet -- any concept is available.";
-
-    const systemPrompt = buildHomebrewItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, rarity, itemType });
-    const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the item now.", maxTokens: 1500 });
-
-    item = {
-      ...proposed,
-      id: fillExistingId || slugify5e(proposed.name),
-      resolvedStats: resolveItemStats(proposed),
-      rarityValueWarning: rarityValueWarning(proposed.rarity, proposed.valueGp),
-      sourceMode: "homebrew"
-    };
+    // Homebrew -- extracted to homebrewItemGenerator.js's
+    // generateHomebrew5eItem(), same reasoning as Import/Reflavor above.
+    item = await generateHomebrew5eItem(worldId, { name, rarity, itemType });
+    if (fillExistingId) item.id = fillExistingId;
   }
 
   if (existingEntry) item.id = existingEntry.manifestEntry.id;
@@ -410,27 +344,13 @@ async function handleGenericItemGenerate(req, res) {
     isRegenerate = !manifestEntry.locked;
   }
 
-  const settingContext = await getSettingContext(worldId);
-  const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
-  const loreContext = await getLoreContext(worldId, { category: "items" });
-  const rosterEntries = await listEntries(worldId, "items", { locked: false });
-  const rosterContext = rosterEntries.length
-    ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
-    : "No items archived yet -- any concept is available.";
-
-  const systemPrompt = buildHomebrewGenericItemSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, genericSystem });
-  const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the item now.", maxTokens: 1500 });
-
-  const validAttributeKeys = new Set(genericSystem.attributes.map((a) => a.key));
-  const boostsAttribute = validAttributeKeys.has(proposed.boostsAttribute) ? proposed.boostsAttribute : null;
-  let item = {
-    ...proposed,
-    id: fillExistingId || slugifyGeneric(proposed.name),
-    faction: faction || null,
-    boostsAttribute,
-    boostAmount: boostsAttribute ? (Number(proposed.boostAmount) || 0) : null,
-    sourceMode: "homebrew"
-  };
+  // Extracted to lib/rulesets/generic/homebrewItemGenerator.js's
+  // generateHomebrewGenericItem() so
+  // lib/campaignEntryGenerators.js's createNewItem() (Quest/Campaign
+  // Module slot-fill) can call the exact same pipeline instead of only
+  // ever calling the Echoes-only prompt.
+  let item = await generateHomebrewGenericItem(worldId, genericSystem, { name, faction });
+  if (fillExistingId) item.id = fillExistingId;
   if (existingEntry) item.id = existingEntry.manifestEntry.id;
 
   const linkResult = await resolveReferencesForEntry(worldId, "items", item);

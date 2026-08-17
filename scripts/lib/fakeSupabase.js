@@ -34,6 +34,16 @@ class FakeQuery {
   }
   select() { return this; }
   eq(col, val) { this.filters.push([col, val]); return this; }
+  // Only the one real caller's shape is supported --
+  // lib/srdLibraryRepo.js's findNearestCrMonsters() calls
+  // .not("cr", "is", null) to exclude monsters with no parsed CR. Any
+  // other op fails loudly rather than silently mis-filtering.
+  not(col, op, val) {
+    if (op !== "is" || val !== null) throw new Error(`fakeSupabase: unhandled not(${col}, ${op}, ${val})`);
+    this.notNullFilters = this.notNullFilters || [];
+    this.notNullFilters.push(col);
+    return this;
+  }
   order() { return this; }
   insert(row) { this.op = { type: "insert", row }; return this; }
   update(patch) { this.op = { type: "update", patch }; return this; }
@@ -75,7 +85,8 @@ class FakeQuery {
       return { data: this._single ? row : [row], error: null };
     }
     // select
-    const filtered = rows.filter((r) => matches(r, this.filters));
+    let filtered = rows.filter((r) => matches(r, this.filters));
+    if (this.notNullFilters) filtered = filtered.filter((r) => this.notNullFilters.every((col) => r[col] != null));
     if (this._single === "maybe") return { data: filtered[0] || null, error: null };
     if (this._single === "required") return { data: filtered[0], error: filtered[0] ? null : { message: "not found" } };
     return { data: filtered, error: null };
