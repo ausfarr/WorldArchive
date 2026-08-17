@@ -4,6 +4,8 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-08-17 evening (automated check-in):** nothing below is checked off yet — #1 and #2 are still the whole blocker. Everything else in this file is waiting on those two posts going out.
+
 ---
 
 ## This week
@@ -14,6 +16,7 @@ Update this file's checkboxes as you go — future sessions (including this one,
 - [ ] **#4 — Before posting to r/DMAcademy, spend 5 minutes confirming their current self-promo rule** (megathread, specific flair, or outright ban on product posts). Rules drift and I couldn't verify live this session. Once confirmed, post `drafts/reddit_post_dmacademy.md` in whatever the correct format is.
 - [ ] **#5 — Post the first X/Twitter build-in-public thread** (`drafts/twitter_build_in_public_thread.md`). Takes ~15 min. Set a recurring weekly reminder to do this again next week using whatever's newest in CHANGELOG.md.
 - [ ] **#6 — Log results in `DAILY_LOG.md`** at the 24h and 48h marks for both Reddit posts: upvotes, comment count/sentiment, click-throughs (if UTM-trackable), any trial signups you can attribute to the window.
+- [ ] **#7 — New, 5 min: open char-gen.com/tools and getchargen.com yourself.** A search-only pass (no direct fetch access this session) suggests CharGen may be a real direct competitor — AI-generated, cross-linked regions/factions/NPCs, similar to Chronicled's pitch. If it's real, the "nobody else does this" line in the drafted posts and `GROWTH_STRATEGY.md` §2 needs softening before you post #1/#2. Details in `COMPETITOR_WATCH.md`'s 2026-08-17 entry.
 
 ## Optional this week, only if it's low-friction
 

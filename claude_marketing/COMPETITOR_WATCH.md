@@ -46,9 +46,21 @@
 
 - **Campfire** (campfirewriting.com) — worldbuilding/writing suite, but positioned at novelists/authors, not TTRPG GMs specifically. Different audience, not a head-to-head competitor for Chronicled's positioning.
 - **Individual itch.io generators** (NPC generators, loot generators, etc.) — a large fragmented long tail of single-purpose tools, mostly free/cheap one-offs. Not a subscription competitor, but this is the audience already primed to want "a generator" — relevant for channel targeting (r/rpg_generators, itch.io TTRPG tag pages), not for pricing comparison.
+- **RoleForge** (alpha, June 2026) and **DreamGen** — both position around AI-narrated/AI-GM'd play sessions (live roleplay, "Scenario Codex" session memory), not pre-session content generation filed into a browsable archive. Different job-to-be-done than Chronicled; watch in case either pivots toward prep/archive.
+- **chatbrat.ai** — lets you build a persistent, chattable NPC to stress-test before the table. Adjacent (NPC-focused), not a wiki/archive competitor.
 
-## Chronicled's current position vs. all three primary competitors
+## ⚠ 2026-08-17 update — possible direct competitor found, needs manual verification
 
-No direct competitor found with AI-native content generation grounded in the user's own archived lore, auto-filed into a browsable archive. That's the real open wedge as of this baseline. Chronicled at $5/mo for 25 generations/month (plus a no-card 10-generation trial) undercuts Grandmaster ($8.25/mo) and LegendKeeper Pro ($9/mo) while including generation, not just hosting/editing.
+Web search (not a direct page fetch — char-gen.com is blocked by this environment's egress proxy, so this is unverified at the source) surfaced **CharGen** (char-gen.com / getchargen.com) as a "World Codex" + Region Generator producing regions, settlements, factions, NPCs, and plot hooks, explicitly **linked together** — the same "AI-generated content grounded in and cross-referencing the same world" pitch Chronicled makes. Search snippets describe a free tier plus a paid Guild tier around $5/mo, but those exact numbers (2 worlds / 42 articles) suspiciously match World Anvil's Freeman limits, so treat the pricing detail as **low-confidence, likely search-summary noise** until someone opens char-gen.com/tools and getchargen.com directly.
 
-**Watch for:** any of these three shipping an AI generation feature — that would close the wedge and needs a strategy update, not just a note. Check this section first on every quarterly re-check.
+**This matters:** if real, it directly contradicts the "no direct AI-native, lore-grounded generator" wedge claim below and the "no direct competitor found" line in `GROWTH_STRATEGY.md` §2 that outreach copy leans on. **Action needed:** Austin (or a future session with working browser/fetch access) should open both CharGen URLs, confirm what it actually does and costs, and report back — don't lead marketing copy with "nobody else does this" until that's resolved one way or the other.
+
+Also surfaced, lower priority: **DunMax** ("D&D World Builder," mobile app) — claims AI generation of NPCs/cities/factions/lore. Smaller footprint, not independently verified, logged for awareness only.
+
+## Chronicled's current position vs. primary competitors
+
+World Anvil, Kanka, and LegendKeeper: still no native AI generation as of this check. World Anvil's April 2026 update added quality-of-life features (Autolinker, larger image uploads, advanced search) to the free Freeman tier, but the 42-article cap itself was not reversed — a partial goodwill gesture, not a full walk-back of the 2024 cut. Chronicled at $5/mo for 25 generations/month (plus a no-card 10-generation trial) still undercuts Grandmaster ($8.25/mo) and LegendKeeper Pro ($9/mo) while including generation.
+
+**The "no direct AI-native competitor" wedge is no longer a clean claim** — see the CharGen flag above. Re-verify before repeating it in outreach copy.
+
+**Watch for:** CharGen verification (top priority next check), and any of the big three shipping AI generation — either would need a strategy update, not just a note. Check this section first on every re-check.
