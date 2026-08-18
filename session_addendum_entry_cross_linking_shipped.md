@@ -47,13 +47,20 @@ Two reference "types," carried over verbatim from the Phase 0 design:
   (`ID_POINTER`, `ID_POINTER_ARRAY`, `NAME_ONLY_ARRAY`), and how to match
   them. Four shared categories (npcs, factions, logs, locations — no
   `lib/rulesets/<id>/` variant exists for any of them) apply to every
-  ruleset including Echoes automatically; five ruleset-varying categories
-  (enemies, classes, items, spells, survivors) are scoped to 5e and
-  generic only, per the original task brief — Echoes' own three
-  equivalent gaps (`classTemplate.js`'s `evolutionEvent.locationId`,
+  ruleset including Echoes automatically. `phase0_entry_linking_audit.md`
+  originally scoped the five ruleset-varying categories (enemies, classes,
+  items, spells, survivors) to 5e and generic only and flagged Echoes'
+  own three equivalent gaps (`classTemplate.js`'s `evolutionEvent.locationId`,
   `itemTemplate.js`'s `foundAtLocationId`, `survivorTemplate.js`'s
-  `relationships[].toId`) were deliberately left out, flagged in the
-  registry's own comments as a small, isolated follow-up if ever wanted.
+  `relationships[].toId`) as an optional follow-up — but Phase 1 (`58a9813`)
+  actually shipped all three under `RULESET_FIELDS.echoes` anyway, and
+  Phase 2 wired `resolveReferencesForEntry`/`backfillReferencesFromNewEntry`
+  into all three Echoes generate routes (`routes/generateClass.js`,
+  `generateItem.js`, `generateSurvivor.js`) the same as every other
+  category. **Corrected in this pass** — an earlier version of this
+  addendum, written from the Phase 0 plan rather than the actual Phase 1
+  diff, incorrectly said these were left out; they were not. Nothing
+  in the codebase needs to change, only this doc did.
 - **`lib/entryLinker.js`** — four functions:
   - `resolveReferencesForEntry(worldId, category, raw)` — forward
     resolution. Builds a normalized-name → row lookup per target
@@ -164,9 +171,9 @@ diff, or use the hybrid approach the paused commit message sketched
 (fetch via an MCP tool with real Supabase access, run the tested code
 locally, write back via that same tool).
 
-**Two follow-ups noted in Phase 0 but never picked up, still open:**
-Echoes' own three equivalent reference-field gaps (see above — a small,
-isolated addition if ever wanted), and there's no way from within this
-sandbox to verify the resolver's `getRuleset()`/`getCategory()` calls
-against real per-world data beyond what Phase 0's live production audit
-already sampled.
+**One follow-up noted in Phase 0, still open:** there's no way from
+within this sandbox to verify the resolver's `getRuleset()`/`getCategory()`
+calls against real per-world data beyond what Phase 0's live production
+audit already sampled. (Phase 0's other flagged follow-up, Echoes' three
+reference-field gaps, was actually shipped in Phase 1 despite the Phase 0
+plan proposing to skip it — see the correction above; not an open item.)

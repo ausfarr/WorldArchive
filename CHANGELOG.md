@@ -21,6 +21,33 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **"Help Me" field-assist system prompt is now cacheable** — every
+  Help Me call on a given entry (worldId/category/faction unchanged)
+  was paying full input-token price for `lib/worldFlavor.js`'s setting
+  context and `lib/loreContext.js`'s lore context every single click,
+  even though both are pure deterministic reads that come back
+  byte-identical for every field on the same entry. `lib/fieldAssist.js`
+  now builds its system prompt as instructions+setting+lore in one
+  `cache_control`-marked block, with the (field-dependent, usually
+  absent) quote-craft guidance appended uncached after it — repeat Help
+  Me clicks while filling out one entry now hit Anthropic's prompt
+  cache for that whole shared prefix instead of paying full price every
+  time. No behavior change to the suggestions themselves; verified with
+  a mocked-fetch harness confirming the cache block content and
+  cache_control placement are correct, plus the existing
+  `testPipeline.js`/`testEnemyPipeline.js` offline suites and a manual
+  server boot.
+- **Entry cross-linking addendum corrected** — a doc-only fix:
+  `session_addendum_entry_cross_linking_shipped.md` incorrectly stated
+  that Echoes' three ruleset-specific reference-field gaps
+  (`evolutionEvent.locationId`, `foundAtLocationId`,
+  `survivors.relationships[].toId`) were left unimplemented; they were
+  actually shipped in Phase 1 (`lib/entryLinkRegistry.js`'s
+  `RULESET_FIELDS.echoes`) and wired into the Echoes generate routes in
+  Phase 2. The addendum had been backfilled from the pre-Phase-1
+  planning doc (`phase0_entry_linking_audit.md`) rather than the real
+  diff — fixed both docs so a future session doesn't spend time
+  re-implementing something that already exists.
 - **Quest/Campaign Module slot-fill now respects ruleset for Enemies/Items** —
   the "Generate one" button on an unmatched Quest slot used to always
   generate an Echoes-shaped entry regardless of the world's actual
