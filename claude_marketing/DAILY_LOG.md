@@ -4,6 +4,28 @@ Newest entries at the top. Log what actually happened, not what was planned — 
 
 ---
 
+## 2026-08-18 — Automated daily check-in, Day 2 still pending; CharGen confirmed as real competitor
+
+**Session summary:** Second automated check-in. Nothing has moved on Austin's side — Action Items #1 and #2 are still unchecked, two calendar days after the kickoff session. The main development this session was on the competitive-intelligence side, not the outreach side.
+
+**1. Previous post visibility check — still N/A, nothing posted yet.** Searched for `"chronicled.world" reddit`, `"Chronicled" TTRPG worldbuilding AI reddit post`, and a site-scoped Reddit query — no indexed Reddit posts about Chronicled exist anywhere. So there's still nothing for the "silent suppression" check to actually check. Direct reddit.com fetch is **now failing even harder than before** — WebFetch returned an outright "Claude Code is unable to fetch from www.reddit.com" this session (previously it was an egress-proxy block; same practical effect, worth noting the failure mode changed slightly). Verifying post visibility once posts exist will still need Austin's own logged-out check or search-engine indexing, not a direct fetch from this environment.
+
+**2. Competitive landscape scan — real movement here:**
+- **CharGen is now CONFIRMED as a direct competitor**, not just flagged. Its own changelog/feature pages (search-indexed, still can't direct-fetch char-gen.com) describe a "World Codex" that cross-links NPCs, factions, settlements, regions, and species via a relationship graph — the same "grounded, everything connects" pitch this project uses. CharGen also publishes its own "World Anvil alternatives" and "Kanka/LegendKeeper alternatives" comparison content — it's an active, resourced competitor. Pricing correction: the "$5/mo Guild tier" flagged yesterday was noise — CharGen's real pricing is a gold-credit *art* system (free 10 gold/day, Plus $9.99/mo, Elite $19.99/mo), nothing at $5/mo. No mention of Chronicled anywhere in CharGen's own content — not on their radar yet.
+- **New competitor found: Friends & Fables (fables.gg).** Free worldbuilding tools spanning NPCs/monsters/items/spells/factions/lore/quests/races/classes — nearly Chronicled's exact category list — completely free, no ads/restrictions, exportable. Its actual business is a paid AI-narrated multiplayer text-RPG ($19.95–$39.95/mo), so the free tools are likely a lead-gen loss-leader rather than the core product — softens the threat somewhat, but it's still a free alternative someone will bring up. Whether its output is cross-linked/grounded like CharGen's and Chronicled's is unverified (fables.gg is egress-blocked too).
+- World Anvil's August 2026 update: UI-only (professional settings ported to new editor) plus a community reading challenge — no pricing or AI-feature change. Kanka/LegendKeeper: no pricing changes found. StormScape (encounter-builder, runs its own "vs. World Anvil/LegendKeeper/Kanka" comparison content) surfaced again — logged as a secondary watch item, not urgent.
+- Full detail and sourcing in `COMPETITOR_WATCH.md`'s 2026-08-18 entry; strategic consequence written up in `GROWTH_STRATEGY.md` §2.
+
+**3. New opportunities:** None found — Reddit is still fully inaccessible to this session (see above), so there's no way to scan live threads for engagement opportunities from here. No other concrete lead surfaced via general web search this session.
+
+**4. Real numbers:** None logged beyond the static 18 free-beta signups / 5–6 active testers. Still qualitative-only; numbers won't move until posts actually go out.
+
+**5. Strategy adjustments made:** Retired the "no direct AI-native competitor" claim entirely in `GROWTH_STRATEGY.md` §2 (it was "in question" yesterday, now confirmed false) and added Friends & Fables as a tracked competitor in `COMPETITOR_WATCH.md`. **Checked both drafted Reddit posts against this** — neither `drafts/reddit_post_worldbuilding.md` nor `drafts/reddit_post_rpg_generators.md` actually claims "nobody else does this," so no draft edits were needed. Flagged for a *future* session (not urgent): once outreach is actually happening, comparison-content copy should lean on Chronicled's real remaining differentiators (private per-user archive vs. CharGen's shared codex, world-specific stat/skill system, preview-then-confirm regenerate, PDF/VTT export) rather than the now-false "only one that links things" claim. Channel priority (r/worldbuilding → r/rpg_generators → r/DMAcademy) unchanged — nothing today argues for reordering it.
+
+**Bottom line for Austin:** the competitive picture firmed up real this time — CharGen is a genuine, resourced competitor and there's a new free alternative (Friends & Fables) worth knowing about — but the actual blocker hasn't moved: two days in, #1 and #2 still haven't been posted, and everything downstream is still waiting on that.
+
+---
+
 ## 2026-08-17 (evening) — Automated daily check-in, Day 1 still pending
 
 **Session summary:** First run of the daily automated check-in. Nothing has moved on Austin's side yet — this is the same calendar day as the kickoff session below, and neither Reddit draft has been posted.
