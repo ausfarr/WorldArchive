@@ -170,6 +170,13 @@ waiting to be filled in later.
 - `lib/itemTemplate.js`: `foundAtLocationId` → locations, QuestItem-only (B, existing)
 - `lib/survivorTemplate.js`: `relationships[].toId` → same shape as NPCs' (B, existing)
 
+**Update, post-Phase-1:** question 2 below was resolved as "fold in" —
+all three of these shipped in `lib/entryLinkRegistry.js`'s
+`RULESET_FIELDS.echoes` and are wired into the Echoes generate routes.
+This section is kept as-written for the historical record of what Phase 0
+scoped; see `session_addendum_entry_cross_linking_shipped.md` for what
+actually shipped.
+
 ## Open questions for you before Phase 1 starts
 
 1. **`factions.relationships[].faction`** — include in Phase 1 (add
