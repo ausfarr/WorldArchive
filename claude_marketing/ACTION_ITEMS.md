@@ -4,7 +4,7 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
-**Status as of 2026-08-18 (automated check-in, Day 2):** nothing below is checked off yet — #1 and #2 are still the whole blocker, now two check-ins running. #7 below is updated: CharGen is now confirmed as a real competitor (no longer "possible, needs verification"), and a second competitor (Friends & Fables, free) was found — see `COMPETITOR_WATCH.md`'s 2026-08-18 entry. This doesn't block posting; the drafts don't claim "nobody else does this" so they're still safe to post as-is.
+**Status as of 2026-08-19 (automated check-in, Day 3):** nothing below is checked off yet — #1 and #2 are still the whole blocker, now three check-ins running. A third competitor (Reality Forge) was confirmed and CharGen shipped an MCP-server integration + sketch tool since yesterday — see `COMPETITOR_WATCH.md`'s 2026-08-19 entry. Still doesn't block posting; nothing in the drafts needs changing. New this check-in: **#8**, a lower-friction parallel action (AI-tool directory submissions) that doesn't require the same activation energy as a public Reddit post — worth doing this week even if #1/#2 keep stalling.
 
 ---
 
@@ -17,6 +17,8 @@ Update this file's checkboxes as you go — future sessions (including this one,
 - [ ] **#5 — Post the first X/Twitter build-in-public thread** (`drafts/twitter_build_in_public_thread.md`). Takes ~15 min. Set a recurring weekly reminder to do this again next week using whatever's newest in CHANGELOG.md.
 - [ ] **#6 — Log results in `DAILY_LOG.md`** at the 24h and 48h marks for both Reddit posts: upvotes, comment count/sentiment, click-throughs (if UTM-trackable), any trial signups you can attribute to the window.
 - [ ] **#7 — Updated 2026-08-18: CharGen is now confirmed (not just possible) — no action needed before posting #1/#2.** Its "World Codex" does cross-link NPCs/factions/settlements/regions, same wedge as Chronicled. Good news: neither drafted post claims "nobody else does this," so both are still safe to post unmodified. If you have 5 min anyway, worth a real look at char-gen.com yourself for your own awareness (still can't be fetched from this session) — and also **fables.gg**, a newly found free worldbuilding tool with nearly Chronicled's exact category list. Neither is urgent; this is background awareness, not a blocker.
+
+- [ ] **#8 — New, 2026-08-19. Submit Chronicled to 2–3 AI-tool directories** (start with theresanaiforthat.com's "Worldbuilding" and "World-building" categories, ~163 tools listed there currently — open submission flow). ~10 min each, free, no public post required — a genuinely easier win than #1/#2 if those keep stalling. Doesn't replace them; do both.
 
 ## Optional this week, only if it's low-friction
 

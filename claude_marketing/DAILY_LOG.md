@@ -4,6 +4,28 @@ Newest entries at the top. Log what actually happened, not what was planned — 
 
 ---
 
+## 2026-08-19 — Automated daily check-in, Day 3 still pending; third competitor confirmed, new low-friction channel found
+
+**Session summary:** Third automated check-in. Still nothing moved on Austin's side — Action Items #1 and #2 are unchecked for a third straight day. This session's main development, again, was competitive intelligence plus one new growth-channel idea, not outreach progress (there's still nothing to report there).
+
+**1. Previous post visibility check — still N/A, nothing posted yet.** Searched `"chronicled.world" reddit` and `site:reddit.com "Chronicled" TTRPG worldbuilding AI` — no indexed Reddit posts about Chronicled found, same as the prior two check-ins. Direct reddit.com fetch is still hard-blocked ("Claude Code is unable to fetch from www.reddit.com") — confirmed again this session, unchanged failure mode from 2026-08-18. So the "silent suppression" check this task exists to run still has nothing to check; that verification has to happen via Austin's own logged-out browser check once a post actually exists.
+
+**2. Competitive landscape scan — real movement again:**
+- **Reality Forge (reality-forge.com)** confirmed as a third direct competitor via independent roundup coverage — another "entity graph" tool that cross-references every NPC/place/faction/event so new generations don't contradict what already exists. Same wedge as Chronicled and CharGen. Direct fetch blocked (egress proxy), so pricing/exact scope unverified — flagged for Austin to check directly when he has a minute.
+- **CharGen keeps shipping and remains the most resourced competitor**: became an MCP server in July 2026 (AI assistants can read/write a user's CharGen campaign directly — a more sophisticated integration play than anything in this space right now), shipped a sketch-guided generation tool, and ran a giveaway that closed 2026-08-16. Still no mention of Chronicled anywhere in their content.
+- World Anvil: no material change since yesterday (Reading Challenge community event, ported UI settings — already logged).
+- Full detail in `COMPETITOR_WATCH.md`'s 2026-08-19 entry.
+
+**3. New opportunities:** Reddit is still fully inaccessible from this session, so no live thread-level engagement scan was possible again. Did surface one concrete, actionable lever while searching competitor coverage: **AI-tool directory sites** (theresanaiforthat.com confirmed to run open-submission "Worldbuilding"/"World-building" categories with 28–163 listed tools) are a free, passive discovery channel nobody has pursued yet. Unlike the Reddit posts, this doesn't require a public "here's my project" post — just filling out a listing form — so it's lower activation energy for a founder who's stalled three days running on the harder ask. Added as Action Item §4 #8 in `GROWTH_STRATEGY.md` and a new checklist item below. Also noted (not urgent): both CharGen and Friends & Fables are actively publishing their own "best AI worldbuilding tools" roundup/listicle blog posts as content marketing — a tactic class Chronicled could copy later once there's enough product maturity/screenshots to fill one out credibly.
+
+**4. Real numbers:** None logged beyond the static 18 free-beta signups / 5–6 active testers. Still qualitative-only — numbers won't move until outreach actually goes out.
+
+**5. Strategy adjustments made:** Logged Reality Forge and CharGen's MCP-server/sketch-tool shipments in `COMPETITOR_WATCH.md` and `GROWTH_STRATEGY.md` §2. Added the AI-directory-submission idea as a new, lower-friction parallel action in `GROWTH_STRATEGY.md` §4 (item #8) — explicitly framed as *in addition to*, not instead of, the still-unposted Reddit drafts, since it can't substitute for the reach a real post gets. No change to channel priority ordering (r/worldbuilding → r/rpg_generators → r/DMAcademy) — nothing today argues for reordering it, the blocker isn't which channel, it's that none have been touched yet.
+
+**Bottom line for Austin:** three days in, the blocker hasn't moved — #1 and #2 are still sitting unposted while a third funded competitor (Reality Forge) and CharGen's continued shipping (MCP integration, sketch tool) both landed this week. If posting to Reddit itself is the friction point, the AI-directory submissions added today are a genuinely 10-minute, lower-stakes way to get *something* moving this week without touching that blocker directly.
+
+---
+
 ## 2026-08-18 — Automated daily check-in, Day 2 still pending; CharGen confirmed as real competitor
 
 **Session summary:** Second automated check-in. Nothing has moved on Austin's side — Action Items #1 and #2 are still unchecked, two calendar days after the kickoff session. The main development this session was on the competitive-intelligence side, not the outreach side.
