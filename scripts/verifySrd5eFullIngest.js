@@ -38,8 +38,7 @@ const {
   parseFeats,
   parseMagicItems,
   parseClasses,
-  parseWeapons,
-  parseArmor
+  parseWeaponsAndArmor
 } = require("./ingestSrd5eFull.js");
 
 const RAW_BASE = "https://raw.githubusercontent.com/downfallx/dnd-5e-srd-markdown/master";
@@ -64,44 +63,61 @@ async function verifyOffline() {
   const spells = parseSpells(await fetchText("spells.md"));
   const spellByName = (n) => spells.find((s) => s.name === n);
 
-  check("Fireball level/school", [spellByName("Fireball").level, spellByName("Fireball").school], [3, "Evocation"]);
-  check("Fireball range", spellByName("Fireball").range, "150 feet");
-  check("Fire Bolt level/school (cantrip)", [spellByName("Fire Bolt").level, spellByName("Fire Bolt").school], [0, "Evocation"]);
-  check("Cure Wounds level/school", [spellByName("Cure Wounds").level, spellByName("Cure Wounds").school], [1, "Abjuration"]);
-  check("Cure Wounds range", spellByName("Cure Wounds").range, "Touch");
-  check("Magic Missile level/school", [spellByName("Magic Missile").level, spellByName("Magic Missile").school], [1, "Evocation"]);
-  check("Shield level/school", [spellByName("Shield").level, spellByName("Shield").school], [1, "Abjuration"]);
+  // Level/name are also mirrored at the top level (for DB columns), but
+  // school/range/etc. only live inside data_json -- match the real shape
+  // parseSpells() returns, not a flattened one it never produced.
+  check("Fireball level/school", [spellByName("Fireball").level, spellByName("Fireball").data_json.school], [3, "Evocation"]);
+  check("Fireball range", spellByName("Fireball").data_json.range, "150 feet");
+  check("Fire Bolt level/school (cantrip)", [spellByName("Fire Bolt").level, spellByName("Fire Bolt").data_json.school], [0, "Evocation"]);
+  check("Cure Wounds level/school", [spellByName("Cure Wounds").level, spellByName("Cure Wounds").data_json.school], [1, "Abjuration"]);
+  check("Cure Wounds range", spellByName("Cure Wounds").data_json.range, "Touch");
+  check("Magic Missile level/school", [spellByName("Magic Missile").level, spellByName("Magic Missile").data_json.school], [1, "Evocation"]);
+  check("Shield level/school", [spellByName("Shield").level, spellByName("Shield").data_json.school], [1, "Abjuration"]);
   console.log(`(${spells.length} spells parsed total)\n`);
 
   const classes = parseClasses(await fetchText("classes.md"));
   const classByName = (n) => classes.find((c) => c.name === n);
 
-  check("Fighter hit die / primary ability", [classByName("Fighter").hitDie, classByName("Fighter").primaryAbility], [10, "Strength or Dexterity"]);
-  check("Wizard hit die / primary ability", [classByName("Wizard").hitDie, classByName("Wizard").primaryAbility], [6, "Intelligence"]);
-  check("Sorcerer hit die / primary ability", [classByName("Sorcerer").hitDie, classByName("Sorcerer").primaryAbility], [6, "Charisma"]);
+  // hitDie is the source's full sentence ("D10 per Fighter level"), not a
+  // bare number -- parseClasses() never strips it down to just the die size.
+  check("Fighter hit die / primary ability", [classByName("Fighter").data_json.hitDie, classByName("Fighter").data_json.primaryAbility], ["D10 per Fighter level", "Strength or Dexterity"]);
+  check("Wizard hit die / primary ability", [classByName("Wizard").data_json.hitDie, classByName("Wizard").data_json.primaryAbility], ["D6 per Wizard level", "Intelligence"]);
+  check("Sorcerer hit die / primary ability", [classByName("Sorcerer").data_json.hitDie, classByName("Sorcerer").data_json.primaryAbility], ["D6 per Sorcerer level", "Charisma"]);
   console.log(`(${classes.length} classes parsed total, each with exactly one SRD sample subclass)\n`);
 
+  // Weapons and Armor come out of one combined parser (itemType
+  // distinguishes them) -- there's no separate parseWeapons/parseArmor
+  // export, that pair never existed in ingestSrd5eFull.js.
   const equipmentText = await fetchText("equipment.md");
-  const weapons = parseWeapons(equipmentText);
-  const armor = parseArmor(equipmentText);
+  const weaponsAndArmor = parseWeaponsAndArmor(equipmentText);
+  const weapons = weaponsAndArmor.filter((i) => i.data_json.itemType === "Weapon");
+  const armor = weaponsAndArmor.filter((i) => i.data_json.itemType === "Armor");
   const weaponByName = (n) => weapons.find((w) => w.name === n);
   const armorByName = (n) => armor.find((a) => a.name === n);
 
-  check("Chain Mail AC/Str/Stealth/weight/cost", [armorByName("Chain Mail").armorClass, armorByName("Chain Mail").strength, armorByName("Chain Mail").stealth, armorByName("Chain Mail").weight, armorByName("Chain Mail").cost], ["16", "Str 13", "Disadvantage", "55 lb.", "75 GP"]);
-  check("Studded Leather Armor AC/Str/Stealth/weight/cost", [armorByName("Studded Leather Armor").armorClass, armorByName("Studded Leather Armor").strength, armorByName("Studded Leather Armor").stealth, armorByName("Studded Leather Armor").weight, armorByName("Studded Leather Armor").cost], ["12 + Dex modifier", "—", "—", "13 lb.", "45 GP"]);
-  check("Longsword damage/properties/mastery/weight/cost", [weaponByName("Longsword").damage, weaponByName("Longsword").properties, weaponByName("Longsword").mastery, weaponByName("Longsword").weight, weaponByName("Longsword").cost], ["1d8 Slashing", "Versatile (1d10)", "Sap", "3 lb.", "15 GP"]);
+  check("Chain Mail AC/Str/Stealth/weight/cost", [armorByName("Chain Mail").data_json.armorClass, armorByName("Chain Mail").data_json.strength, armorByName("Chain Mail").data_json.stealth, armorByName("Chain Mail").data_json.weight, armorByName("Chain Mail").data_json.cost], ["16", "Str 13", "Disadvantage", "55 lb.", "75 GP"]);
+  check("Studded Leather Armor AC/Str/Stealth/weight/cost", [armorByName("Studded Leather Armor").data_json.armorClass, armorByName("Studded Leather Armor").data_json.strength, armorByName("Studded Leather Armor").data_json.stealth, armorByName("Studded Leather Armor").data_json.weight, armorByName("Studded Leather Armor").data_json.cost], ["12 + Dex modifier", "—", "—", "13 lb.", "45 GP"]);
+  check("Longsword damage/properties/mastery/weight/cost", [weaponByName("Longsword").data_json.damage, weaponByName("Longsword").data_json.properties, weaponByName("Longsword").data_json.mastery, weaponByName("Longsword").data_json.weight, weaponByName("Longsword").data_json.cost], ["1d8 Slashing", "Versatile (1d10)", "Sap", "3 lb.", "15 GP"]);
   console.log(`(${weapons.length} weapons, ${armor.length} armor entries parsed total)\n`);
 
   const items = parseMagicItems(await fetchText("magic-items.md"));
   const itemByName = (n) => items.find((i) => i.name === n);
 
-  check("Bag of Holding rarity/attunement", [itemByName("Bag of Holding").rarity, itemByName("Bag of Holding").attunement], ["Uncommon", null]);
-  check("Cloak of Protection rarity/attunement", [itemByName("Cloak of Protection").rarity, itemByName("Cloak of Protection").attunement], ["Uncommon", "Requires Attunement"]);
-  check("Ring of Protection rarity/attunement", [itemByName("Ring of Protection").rarity, itemByName("Ring of Protection").attunement], ["Rare", "Requires Attunement"]);
+  // rarity is mirrored at the top level (it's its own DB column); there's
+  // no separate `attunement` field anywhere in parseMagicItems()'s output
+  // -- that's derived downstream from data_json.typeLine by
+  // lib/rulesets/5e/srdItemMapper.js's parseAttunement() (covered by
+  // scripts/test5eMagicItemMapper.js). This check only needs to confirm
+  // the raw typeLine text parseAttunement() will read is intact.
+  check("Bag of Holding rarity/typeLine has no attunement clause", [itemByName("Bag of Holding").rarity, /Requires Attunement/i.test(itemByName("Bag of Holding").data_json.typeLine)], ["Uncommon", false]);
+  check("Cloak of Protection rarity/typeLine requires attunement", [itemByName("Cloak of Protection").rarity, /Requires Attunement/i.test(itemByName("Cloak of Protection").data_json.typeLine)], ["Uncommon", true]);
+  check("Ring of Protection rarity/typeLine requires attunement", [itemByName("Ring of Protection").rarity, /Requires Attunement/i.test(itemByName("Ring of Protection").data_json.typeLine)], ["Rare", true]);
   console.log(`(${items.length} magic items parsed total)\n`);
 
   const feats = parseFeats(await fetchText("feats.md"));
-  check("Alert category/prerequisite", [feats.find((f) => f.name === "Alert").category, feats.find((f) => f.name === "Alert").prerequisite], ["Origin", null]);
+  // parseFeats() never splits a prerequisite out of the category line --
+  // "Origin Feat" is the whole category string for a feat with none.
+  check("Alert category", feats.find((f) => f.name === "Alert").data_json.category, "Origin Feat");
   console.log(`(${feats.length} feats parsed total -- note: the free SRD's feat list is much smaller than a full PHB's, see this session's addendum for the discrepancy this surfaced against R4's hand-authored feat fallback)\n`);
 }
 
