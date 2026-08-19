@@ -21,6 +21,32 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fixed `scripts/verifySrd5eFullIngest.js` — it was silently broken and
+  never actually verifying the R5/R6 SRD ingestion parsers.** The offline
+  mode (the one path a sandbox with no reachable Supabase can run) crashed
+  outright on `parseWeapons is not a function` — it destructured
+  `parseWeapons`/`parseArmor` from `ingestSrd5eFull.js`, which only ever
+  exported a single combined `parseWeaponsAndArmor`. Before that crash it
+  was also reporting false failures on every Spell/Class/Feat check
+  (`Fireball range: got undefined`, `Fighter hit die: got null`, etc.) —
+  those fields only exist inside each parsed row's `data_json`, not at
+  the top level the script was reading from, and the Class hit-die
+  expectation (`10`) never matched the source's real string format
+  (`"D10 per Fighter level"`). Re-verified all of it against the live
+  source markdown: `ingestSrd5eFull.js`'s actual parsers are correct and
+  healthy — every failure was in this script's own stale assertions, not
+  production ingestion logic. Fixed the magic-item attunement check the
+  same way: there's no `attunement` field on the raw parsed row (that's
+  derived downstream from `data_json.typeLine` by
+  `lib/rulesets/5e/srdItemMapper.js`'s `parseAttunement()`, already
+  covered by `scripts/test5eMagicItemMapper.js`) — this script now checks
+  the raw `typeLine` text directly, which is the actual thing it's
+  responsible for verifying. All 20 offline checks pass now; also ran
+  `testPipeline.js`, `testEnemyPipeline.js`, and
+  `test5eMagicItemMapper.js` to confirm nothing else regressed, and a
+  manual server boot. (This sandbox's network policy still blocks the
+  real Supabase host, so `--live` mode remains unexercised here — same
+  standing limitation noted in prior sessions' entries below.)
 - **"Help Me" field-assist system prompt is now cacheable** — every
   Help Me call on a given entry (worldId/category/faction unchanged)
   was paying full input-token price for `lib/worldFlavor.js`'s setting
