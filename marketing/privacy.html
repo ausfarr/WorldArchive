@@ -45,8 +45,8 @@
     <tr><td>Email address</td><td>Account login, or waitlist signup if you're not yet a user</td></tr>
     <tr><td>World/campaign details you enter</td><td>Used to generate content grounded in your setting</td></tr>
     <tr><td>Generated content &amp; portrait art</td><td>Stored so your archive persists between sessions</td></tr>
-    <tr><td>Usage data (generation counts, plan status, credit balance)</td><td>Enforcing plan limits and cost tracking. During the current free beta, this is just a generation count against the beta cap — billing/plan/credit tracking exists in the system but isn't active yet.</td></tr>
-    <tr><td>Billing status (plan, subscription status, payment history)</td><td>Once billing is switched on, managed by Stripe on our behalf — see below. We store which plan you're on and whether payments are current, not your card details.</td></tr>
+    <tr><td>Usage data (generation/point counts, subscription status, credit balance, entry counts per world)</td><td>Enforcing trial, subscription, and entry limits, and cost tracking.</td></tr>
+    <tr><td>Billing status (plan, subscription status, payment history)</td><td>Managed by Stripe on our behalf — see below. We store which plan you're on and whether payments are current, not your card details.</td></tr>
   </table>
 
   <h2>2. Third Parties We Use</h2>
@@ -55,7 +55,7 @@
     <li><strong>Supabase</strong> — authentication, database, and file storage for your account and archive</li>
     <li><strong>Anthropic (Claude)</strong> — generates narrative/text content based on what you enter</li>
     <li><strong>Google (Gemini)</strong> — generates portrait art</li>
-    <li><strong>Stripe</strong> — will process subscription and credit-purchase payments once billing is switched on. Your card details go directly to Stripe; we never receive or store them. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's privacy policy</a>.</li>
+    <li><strong>Stripe</strong> — processes subscription, credit-pack, and entry-pack payments. Your card details go directly to Stripe; we never receive or store them. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's privacy policy</a>.</li>
     <li><strong>Resend</strong> — sends account-related email (e.g. login/verification)</li>
     <li><strong>Render</strong> — hosts the application</li>
   </ul>
@@ -69,7 +69,7 @@
   </ul>
 
   <h2>4. Your Data, Your Control</h2>
-  <p>You can delete a world from the Settings page at any time. Once billing is switched on, you'll be able to manage or cancel your subscription and view billing history directly through Stripe's self-serve billing portal, linked from the Settings page. To delete your account entirely or request a copy of your data, email us and we'll handle it directly — there's no automated self-serve flow for this yet, being a small product.</p>
+  <p>You can delete a world from the Settings page at any time. You can manage or cancel your subscription and view billing history directly through Stripe's self-serve billing portal, linked from the Settings page. To delete your account entirely or request a copy of your data, email us and we'll handle it directly — there's no automated self-serve flow for this yet, being a small product.</p>
 
   <h2>5. Waitlist Signups</h2>
   <p>If you sign up for the waitlist before creating an account, we store your email address and, internally, a note of where you signed up from (e.g. the landing page or itch.io) so we can understand which channels are working. This is used only to invite you and isn't shared externally.</p>
@@ -81,13 +81,13 @@
   <p>Questions about your data or this policy: <a href="mailto:ausfarr@gmail.com">ausfarr@gmail.com</a></p>
 </div>
 
-<footer class="legal-footer">CHRONICLED — WORLD ARCHIVE SYSTEM &nbsp;·&nbsp; <span class="app-version">v0.7 · beta</span></footer>
+<footer class="legal-footer">CHRONICLED — WORLD ARCHIVE SYSTEM &nbsp;·&nbsp; <span class="app-version">v0.7</span></footer>
 
 <script src="version.js"></script>
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' · beta';
+      el.textContent = window.APP_VERSION;
     });
   }
 </script>

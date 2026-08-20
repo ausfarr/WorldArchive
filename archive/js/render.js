@@ -44,7 +44,6 @@ async function applySpellsNavVisibility() {
   }
 }
 
-// TODO(Austin): swap in the real Google Form URL once created.
 const BETA_FEEDBACK_FORM_URL = "https://forms.gle/UuQSHAetFnkAXxV87";
 
 // ============================================================

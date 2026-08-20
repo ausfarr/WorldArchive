@@ -30,7 +30,7 @@
   .leaflet-control-zoom a { background: var(--bg-panel-raised); color: var(--ink); border-color: var(--border-line); }
   .leaflet-control-zoom a:hover { background: var(--bg-void); color: var(--neon-cyan); }
 </style>
-<script src="js/themeBootstrap.js?v=v0.95"></script>
+<script src="js/themeBootstrap.js?v=v1.0.0"></script>
 
 </head>
 <body data-category="map">
@@ -98,7 +98,7 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7 · beta</span><a href="licenses.html" class="footer-license-link">Content Licenses</a>
+    <span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7</span><a href="licenses.html" class="footer-license-link">Content Licenses</a>
   </div>
 </footer>
 
@@ -137,14 +137,14 @@
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+      el.textContent = window.APP_VERSION;
     });
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.95"></script>
-<script src="js/render.js?v=v0.95"></script>
-<script src="js/mapLayout.js?v=v0.95"></script>
+<script src="/js/auth.js?v=v1.0.0"></script>
+<script src="js/render.js?v=v1.0.0"></script>
+<script src="js/mapLayout.js?v=v1.0.0"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
   // Faction accent colors reuse the same lookup NPC/Bestiary pages use

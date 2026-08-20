@@ -176,7 +176,7 @@
 </div>
 
 <footer class="site-footer">
-  <div class="wrap"><span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7 · beta</span></div>
+  <div class="wrap"><span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7</span></div>
 </footer>
 
 <script src="/config.js"></script>
@@ -184,14 +184,14 @@
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' \u00b7 beta';
+      el.textContent = window.APP_VERSION;
     });
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v0.95"></script>
-<script src="../js/render.js?v=v0.95"></script>
-<script src="../js/campaignModule.js?v=v0.95"></script>
+<script src="/js/auth.js?v=v1.0.0"></script>
+<script src="../js/render.js?v=v1.0.0"></script>
+<script src="../js/campaignModule.js?v=v1.0.0"></script>
 <script>
   requireAuth().then((session) => {
     if (!session) return;

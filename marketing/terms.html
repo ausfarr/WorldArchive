@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Terms of Service — Chronicled</title>
-<meta name="description" content="Chronicled's terms of service — plain-language terms covering the free beta, the billing plans built for later, your content, and accounts.">
+<meta name="description" content="Chronicled's terms of service — plain-language terms covering the free trial, subscription and credit billing, your content, and accounts.">
 <link rel="canonical" href="https://chronicled.world/terms.html">
 <meta name="robots" content="noindex">
 
@@ -43,18 +43,19 @@
   <p>Chronicled is a tool that generates tabletop RPG campaign content — NPCs, monsters, items, factions, locations, and related material — along with AI-generated portrait art, and organizes it into a browsable archive for your own campaign or setting.</p>
 
   <h2>2. Plans &amp; Usage</h2>
-  <p>Chronicled is currently in <strong>free beta</strong>. Every world gets 25 free content generations, no payment method required. There's no subscription or credit purchase active right now — see the <a href="pricing.html">pricing &amp; beta status page</a> for the honest current state of this.</p>
-  <p>A billing system is built for when Chronicled leaves beta, and isn't switched on yet:</p>
+  <p>Every new account starts with a <strong>free trial</strong>: 10 content generations, no payment method required. See the <a href="pricing.html">pricing page</a> for the current numbers.</p>
+  <p>Past the trial, two ways to keep generating:</p>
   <ul>
-    <li><strong>Subscription</strong> — a monthly plan that includes a set number of generations per billing cycle, billed automatically until canceled.</li>
-    <li><strong>Credits</strong> — one-time purchases that add extra generations on top of your monthly plan. Credits don't expire and roll over between billing cycles.</li>
+    <li><strong>Subscription</strong> — a $5/month plan that includes 25 generations per billing cycle, billed automatically until canceled, and includes unlimited entries per world.</li>
+    <li><strong>Credits</strong> — one-time purchases ($2 per 5 generations) that add extra generations on top of your trial or monthly plan. Credits don't expire and roll over between billing cycles.</li>
   </ul>
-  <p>Generation limits, pricing, and what counts toward them may change as the product develops, including when billing is switched on. We'll make a reasonable effort to communicate material changes in advance, and beta usage/worlds carry over rather than reset.</p>
+  <p>Separately, every world gets 30 free entries (an entry is any NPC, monster, item, faction, or other piece of content in your archive, generated or manually created); beyond that, entry packs ($5 per 25 entries) add more. Active subscribers don't need entry packs — entries are unlimited while subscribed.</p>
+  <p>Generation and entry limits, pricing, and what counts toward them may change as the product develops. We'll make a reasonable effort to communicate material changes in advance, and existing usage/worlds carry over rather than reset when they do.</p>
 
   <h2>3. Billing &amp; Payments</h2>
-  <p>Payments are processed by Stripe. We never see or store your full card number — Stripe handles that directly. By subscribing or purchasing credits (once that's switched on), you authorize us to charge your payment method through Stripe for the applicable amount on the applicable schedule.</p>
-  <p>Subscriptions renew automatically each billing cycle until canceled. You'll be able to cancel or update your payment method at any time from the Settings page, which opens Stripe's secure self-serve billing portal. Canceling stops future charges; it doesn't retroactively refund the current cycle.</p>
-  <p>Purchased credits are non-refundable but do not expire, including if your subscription is later canceled.</p>
+  <p>Payments are processed by Stripe. We never see or store your full card number — Stripe handles that directly. By subscribing or purchasing credits or entry packs, you authorize us to charge your payment method through Stripe for the applicable amount on the applicable schedule.</p>
+  <p>Subscriptions renew automatically each billing cycle until canceled. You can cancel or update your payment method at any time from the Settings page, which opens Stripe's secure self-serve billing portal. Canceling stops future charges; it doesn't retroactively refund the current cycle.</p>
+  <p>If your subscription lapses or is canceled, your monthly generation quota drops to zero and your world's entry cap stops being unlimited, but any purchased credits and any entries or worlds you've already created remain exactly as they are — nothing is deleted or locked. Purchased credits and entry packs are non-refundable but do not expire, including after a subscription is canceled.</p>
   <p>Refund requests outside of the above are handled case-by-case — email <a href="mailto:ausfarr@gmail.com">ausfarr@gmail.com</a>.</p>
 
   <h2>4. Your Content</h2>
@@ -73,13 +74,13 @@
   <p>Questions about these terms: <a href="mailto:ausfarr@gmail.com">ausfarr@gmail.com</a></p>
 </div>
 
-<footer class="legal-footer">CHRONICLED — WORLD ARCHIVE SYSTEM &nbsp;·&nbsp; <span class="app-version">v0.7 · beta</span></footer>
+<footer class="legal-footer">CHRONICLED — WORLD ARCHIVE SYSTEM &nbsp;·&nbsp; <span class="app-version">v0.7</span></footer>
 
 <script src="version.js"></script>
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' · beta';
+      el.textContent = window.APP_VERSION;
     });
   }
 </script>

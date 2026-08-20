@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Build Log — Chronicled</title>
-<meta name="description" content="What's shipping in Chronicled, as it ships — new generators, features, and fixes for the free-beta worldbuilding archive tool.">
+<meta name="description" content="What's shipping in Chronicled, as it ships — new generators, features, and fixes for the worldbuilding archive tool.">
 <link rel="canonical" href="https://chronicled.world/changelog.html">
 
 <meta property="og:type" content="website">
@@ -50,7 +50,7 @@
     <h1>Build Log</h1>
     <p class="dek">What's new in Chronicled — new generators, features, and fixes, as they ship. Written for anyone following along, not just for the dev team.</p>
     <div class="status-line"><span class="dot">●</span> <!-- BUILD:STATUS:START -->
-Currently in beta &nbsp;·&nbsp; Latest version: v0.95
+Latest version: v1.0.0
 <!-- BUILD:STATUS:END --></div>
   </div>
 </section>
@@ -59,6 +59,19 @@ Currently in beta &nbsp;·&nbsp; Latest version: v0.95
 
   <div class="entries">
   <!-- BUILD:ENTRIES:START -->
+    <div class="entry">
+      <div class="meta"><span class="version">v1.0.0</span><span class="date">08/20/2026</span></div>
+      <h2>Subscriptions, Credits &amp; Entry Packs</h2>
+      <ul>
+        <li>Every new account starts with a free trial — 10 generations, no card required.</li>
+        <li>A $5/month subscription gets you 25 generations every billing cycle, plus unlimited entries in your world.</li>
+        <li>Need a top-up instead? $2 buys 5 more generations, one-time, no recurring charge — credits roll over and never expire.</li>
+        <li>Every world also gets 30 free entries (any NPC, monster, item, faction, or other piece of content, generated or handwritten in Manual Mode) — beyond that, $5 buys a pack of 25 more.</li>
+        <li>Manage or cancel your subscription anytime from Settings, through Stripe's self-serve billing portal.</li>
+        <li>A round of reliability fixes across generation, entry cross-linking, and field-assist performance.</li>
+      </ul>
+    </div>
+
     <div class="entry">
       <div class="meta"><span class="version">v0.95</span><span class="date">08/14/2026</span></div>
       <h2>A Second Ruleset: Real D&amp;D 5e Support</h2>
@@ -116,7 +129,7 @@ Currently in beta &nbsp;·&nbsp; Latest version: v0.95
       <h2>Chronicled is here</h2>
       <ul>
         <li>Chronicled name created, with a new home at chronicled.world.</li>
-        <li>Usage limits and a Settings page added for beta — see your generation usage at a glance.</li>
+        <li>Usage limits and a Settings page added — see your generation usage at a glance.</li>
       </ul>
     </div>
 
@@ -174,7 +187,7 @@ Currently in beta &nbsp;·&nbsp; Latest version: v0.95
 <footer class="site-footer">
   <div class="wrap">
     <span>CHRONICLED &nbsp;·&nbsp; questions or feedback: <a href="mailto:ausfarr@gmail.com">ausfarr@gmail.com</a></span>
-    <span class="app-version">v0.7 · beta</span>
+    <span class="app-version">v0.7</span>
   </div>
 </footer>
 
@@ -182,7 +195,7 @@ Currently in beta &nbsp;·&nbsp; Latest version: v0.95
 <script>
   if (window.APP_VERSION) {
     document.querySelectorAll('.app-version').forEach(function(el) {
-      el.textContent = window.APP_VERSION + ' · beta';
+      el.textContent = window.APP_VERSION;
     });
   }
 </script>

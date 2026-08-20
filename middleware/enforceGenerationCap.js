@@ -46,7 +46,6 @@
 const { checkAndIncrementGenerationCount, refundGenerationCount, GENERATION_CAP, POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 const { getSubscription, spendSubscriptionGeneration, refundSubscriptionGeneration, TRIAL_CAP } = require("../lib/billingRepo");
 
-// TODO(Austin): swap in a real contact address before beta testers see this.
 const CONTACT_EMAIL = "ausfarr@gmail.com";
 
 const BILLING_ENABLED = process.env.BILLING_ENABLED === "true";
