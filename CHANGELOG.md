@@ -21,6 +21,36 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+---
+
+## v1.0.0 — 08/20/2026 — Public Launch
+
+- **Billing is fully live** — `BILLING_ENABLED` flipped on, replacing the
+  flat legacy beta cap with the real tiered flow: a 10-generation free
+  trial (no card), a $5/month subscription (25 generations/cycle,
+  unlimited entries), $2/5-generation credit packs (roll over, spent
+  after quota), and $5/25-entry packs for worlds past the 30-free-entry
+  baseline. See `session_addendum_v1_launch_cleanup.md`.
+- **Found and fixed a real units bug in the live `plans` table** —
+  `plans.monthly_quota` (the subscriber monthly generation quota) was
+  live-set to 1250 instead of the intended 125 points (25
+  generations/month), a 10x overcorrection with no matching migration
+  file (migration 015's own `monthly_quota * 5` backfill was correct;
+  something set it further after that). `migrations/025_fix_monthly_quota_units.sql`
+  corrects it — **MUST RUN BY HAND before this is accurate in
+  production**, per repo convention (no migration runner). See the same
+  addendum for the full verification trail.
+- **Beta framing removed everywhere it's user-facing** — every
+  `archive/*.html` and `marketing/*.html` footer's `· beta` suffix
+  dropped; `marketing/pricing.html`, `terms.html`, `privacy.html`,
+  `index.html`, and `compare.html` rewritten from "we're in beta,
+  billing is off" framing to describe what's actually live, with real
+  confirmed numbers throughout (`pricing.html` now covers entries too,
+  which it never mentioned before). Marketing CTAs now link straight to
+  `archive/login.html?mode=signup` (new query-param support added this
+  session) instead of the waitlist form; `waitlist-form.js` and the
+  `/waitlist` backend route are untouched and still available for a
+  future secondary use.
 - **⚠️ Touches billing-adjacent code — `countEntries()` (`lib/entriesRepo.js`)
   no longer counts locked ghost placeholders against the free 30-entry
   cap.** `lib/entryLinker.js`'s `ensureGhostPlaceholder()` auto-creates
