@@ -56,10 +56,8 @@
 <script>
 let mode = "signin"; // "signin" | "signup"
 
-document.getElementById("toggle-mode").addEventListener("click", (e) => {
-  e.preventDefault();
-  mode = mode === "signin" ? "signup" : "signin";
-  const isSignup = mode === "signup";
+function applyMode(isSignup) {
+  mode = isSignup ? "signup" : "signin";
   document.getElementById("form-title").textContent = isSignup ? "Sign Up" : "Log In";
   document.getElementById("form-sub").textContent = isSignup
     ? "Create a new Chronicled account."
@@ -69,7 +67,18 @@ document.getElementById("toggle-mode").addEventListener("click", (e) => {
     ? "Already have an account?"
     : "Don't have an account?";
   document.getElementById("toggle-mode").textContent = isSignup ? "Log in" : "Sign up";
+}
+
+document.getElementById("toggle-mode").addEventListener("click", (e) => {
+  e.preventDefault();
+  applyMode(mode !== "signup");
 });
+
+// ?mode=signup lands directly in signup mode -- marketing site CTAs link
+// here instead of the old waitlist form (see session_addendum_v1_launch_cleanup.md).
+if (new URLSearchParams(window.location.search).get("mode") === "signup") {
+  applyMode(true);
+}
 
 document.getElementById("auth-form").addEventListener("submit", async (e) => {
   e.preventDefault();
