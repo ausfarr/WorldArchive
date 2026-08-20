@@ -4,9 +4,16 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
-**Status as of 2026-08-19 (automated check-in, Day 3):** nothing below is checked off yet — #1 and #2 are still the whole blocker, now three check-ins running. A third competitor (Reality Forge) was confirmed and CharGen shipped an MCP-server integration + sketch tool since yesterday — see `COMPETITOR_WATCH.md`'s 2026-08-19 entry. Still doesn't block posting; nothing in the drafts needs changing. New this check-in: **#8**, a lower-friction parallel action (AI-tool directory submissions) that doesn't require the same activation energy as a public Reddit post — worth doing this week even if #1/#2 keep stalling.
+**Status as of 2026-08-20 (automated check-in, Day 4):** nothing below is checked off yet — #1 and #2 are still the whole blocker, now four check-ins running with zero outreach posted. Nothing found today changes the drafts or the plan: today's research actually independently confirmed the drafts' framing is right (see `GROWTH_STRATEGY.md` §2a — "lore consistency, not AI" is the real gap in this space per outside sources, not just this project's own read). Two new names logged (`COMPETITOR_WATCH.md`), neither urgent. **The single biggest thing to do today is still #1/#2 — everything else on this list is secondary to that.**
 
 ---
+
+## What to do today (2026-08-20)
+
+1. **Post `drafts/reddit_post_worldbuilding.md` to r/worldbuilding.** Nothing has changed about this draft in four days — it's still ready. Add the UTM tag, add a screenshot/GIF if you have one.
+2. **Post `drafts/reddit_post_rpg_generators.md` to r/rpg_generators**, same day. Both drafts have now sat ready for four days with no new information that changes them — today's research reconfirmed the framing is right, not that it needs rework.
+3. **Block 20–30 min after posting to reply to early comments.** The first hour or two of responses sets the tone for the rest of the thread's life.
+4. If — and only if — Reddit itself is the sticking point: do **#8 (AI-directory submissions)** instead today as a smaller, real step forward, but don't let it become a permanent substitute for #1/#2.
 
 ## This week
 
