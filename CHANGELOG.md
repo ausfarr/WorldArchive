@@ -21,6 +21,29 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **⚠️ Touches billing-adjacent code — `countEntries()` (`lib/entriesRepo.js`)
+  no longer counts locked ghost placeholders against the free 30-entry
+  cap.** `lib/entryLinker.js`'s `ensureGhostPlaceholder()` auto-creates
+  `locked: true` stub rows whenever generated content references an
+  NPC/Location/etc. that doesn't exist yet — entirely automatic, not
+  something a user directly asks for. `countEntries()` (the sole basis
+  for `middleware/enforceEntryCap.js`'s cap check and the Settings-page
+  usage display in `routes/billing.js`) had no `.eq("locked", false)`
+  filter, unlike `listEntries`'s `{ locked: false }` option, every
+  `lib/roster.js` roster-context builder, and `routes/adminWorlds.js`'s
+  own entry-count query (which already excludes locked rows for the same
+  "placeholder rows shouldn't count as real content" reason). Content-free
+  ghost stubs were silently eating into a free world's entry budget.
+  `BILLING_ENABLED` defaults off so this cap isn't enforced in production
+  today, but it's a live latent bug for the moment billing is turned on.
+  Also fixed `lib/roster.js`'s `buildClassRosterContext` — it was the only
+  one of seven `buildXRosterContext` functions missing the "nothing
+  archived yet" fallback string, so a world's first-ever class generation
+  rendered an empty roster section instead of an explanatory line under
+  `prompts/classContentPrompt.js`'s "EXISTING ROSTER" header. Verified
+  with `testPipeline.js`, `testEnemyPipeline.js`, `testEntryCapRefund.js`,
+  and a manual server boot; no migration needed (`locked` column already
+  exists).
 - **Fixed `scripts/verifySrd5eFullIngest.js` — it was silently broken and
   never actually verifying the R5/R6 SRD ingestion parsers.** The offline
   mode (the one path a sandbox with no reachable Supabase can run) crashed
