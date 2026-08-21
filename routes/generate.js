@@ -17,6 +17,7 @@ const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefa
 const { buildDefaultCombatProfile: buildDefaultGenericCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -106,6 +107,11 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       }
       mode = existingEntry.locked ? "fill" : "regenerate";
       if (mode === "regenerate") {
+        const gate = await requireSubscriptionToRegenerate(req);
+        if (!gate.allowed) {
+          if (req.refundGeneration) await req.refundGeneration();
+          return res.status(403).json(gate.body);
+        }
         const prior = await readNpcEntry(worldId, fillExistingId);
         priorRaw = prior && prior.raw ? prior.raw : null;
         priorBodyHtml = prior ? prior.bodyHtml : null;

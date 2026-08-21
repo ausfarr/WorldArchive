@@ -1,6 +1,5 @@
 const express = require("express");
-const { resetWorldConfig, getGenerationCount } = require("../lib/worldConfigRepo");
-const { TRIAL_CAP } = require("../lib/billingRepo");
+const { resetWorldConfig, getGenerationCount, FREE_MONTHLY_GENERATION_CAP } = require("../lib/worldConfigRepo");
 const { clearLoreSections } = require("../lib/loreRepo");
 const { deleteAllEntries } = require("../lib/entriesRepo");
 const { deleteAllCampaignModules } = require("../lib/campaignModuleRepo");
@@ -11,13 +10,14 @@ const router = express.Router();
 
 // Legacy endpoint, kept for backward compatibility -- the Settings page
 // now calls /api/billing/status (routes/billing.js) instead, which
-// covers both trial and subscribed states. This one only ever reflects
-// the trial-cap number now (TRIAL_CAP, from lib/billingRepo.js) since it
-// has no concept of a subscription. Read-only, doesn't touch the counter.
+// covers both free-account and subscribed states. This one only ever
+// reflects the free-account monthly cap now
+// (FREE_MONTHLY_GENERATION_CAP, from lib/worldConfigRepo.js) since it has
+// no concept of a subscription. Read-only, doesn't touch the counter.
 router.get("/generation-usage", async (req, res) => {
   try {
     const used = await getGenerationCount(req.worldId);
-    res.json({ used, cap: TRIAL_CAP, remaining: Math.max(0, TRIAL_CAP - used) });
+    res.json({ used, cap: FREE_MONTHLY_GENERATION_CAP, remaining: Math.max(0, FREE_MONTHLY_GENERATION_CAP - used) });
   } catch (err) {
     console.error("Loading generation usage failed:", err);
     res.status(500).json({ error: err.message });

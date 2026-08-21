@@ -253,29 +253,41 @@ async function loadUsage() {
       return;
     }
 
-    if (data.state === "trial") {
-      const pct = Math.min(100, Math.round((data.trialUsed / data.trialCap) * 100));
+    if (data.state === "free") {
+      const pct = Math.min(100, Math.round((data.freeUsed / data.freeCap) * 100));
+      const imagePct = Math.min(100, Math.round((data.freeImageUsed / data.freeImageCap) * 100));
+      const nextReset = new Date(data.nextResetAt).toLocaleDateString();
       el.innerHTML = `
-        <div>${data.trialRemaining} of ${data.trialCap} free trial generations remaining (${data.trialUsed} used) — no card required. Counts NPCs, enemies, items, classes, logs, survivors, and factions generated or regenerated from the archive. Wizard setup doesn't count against this.</div>
-        ${data.creditBalance > 0 ? `<div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available.</div>` : ""}
+        <div>${data.freeRemaining} of ${data.freeCap} free generations remaining this month (${data.freeUsed} used) — no card required. Counts NPCs, enemies, items, classes, logs, survivors, and factions generated or regenerated from the archive. Wizard setup doesn't count against this.</div>
         <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
           <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
         </div>
+        <div style="margin-top:14px;">${data.freeImageRemaining} of ${data.freeImageCap} free image${data.freeImageCap === 1 ? "" : "s"} remaining this month (${data.freeImageUsed} used) — portraits and battle maps both draw from this.</div>
+        <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
+          <div style="height:100%; width:${imagePct}%; background: var(--neon-cyan);"></div>
+        </div>
+        <div style="margin-top:8px; font-size:0.85rem; color: var(--ink-dim);">Resets ${nextReset}.</div>
+        ${data.creditBalance > 0 ? `<div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available.</div>` : ""}
         ${renderEntryCapStatus(data.entryCap)}
       `;
-      actions.innerHTML = `<button id="subscribe-btn" style="${BTN_PRIMARY}">Subscribe — $5/month (25 generations/mo, unlimited entries)</button>` + renderCreditsControls()
+      actions.innerHTML = `<button id="subscribe-btn" style="${BTN_PRIMARY}">Subscribe — $4.99/month (50 generations + 10 images/mo, unlimited entries, regenerate/remix)</button>` + renderCreditsControls()
         + (data.entryCap && !data.entryCap.unlimited ? renderEntryPackControls() : "");
       document.getElementById("subscribe-btn").addEventListener("click", () => startCheckout("/api/billing/checkout/subscribe"));
     } else {
       const pct = Math.min(100, Math.round((data.usedThisCycle / data.monthlyQuota) * 100));
+      const imagePct = Math.min(100, Math.round((data.usedImagesThisCycle / data.monthlyQuotaImages) * 100));
       const renewsOn = new Date(data.currentPeriodEnd).toLocaleDateString();
       const statusLabel = data.status === "active" ? "" : ` — ${data.status === "past_due" ? "payment issue, update your card" : "canceled"}`;
       el.innerHTML = `
         <div>${data.planName}${statusLabel}: ${data.remainingThisCycle} of ${data.monthlyQuota} generations remaining this cycle (${data.usedThisCycle} used). Renews ${renewsOn}.</div>
-        <div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available (never expire, used after your monthly quota).</div>
         <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
           <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
         </div>
+        <div style="margin-top:14px;">${data.remainingImagesThisCycle} of ${data.monthlyQuotaImages} images remaining this cycle (${data.usedImagesThisCycle} used).</div>
+        <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
+          <div style="height:100%; width:${imagePct}%; background: var(--neon-cyan);"></div>
+        </div>
+        <div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available (never expire, used after your monthly quota).</div>
         ${renderEntryCapStatus(data.entryCap)}
       `;
       actions.innerHTML = `<button id="manage-billing-btn" style="${BTN_SECONDARY}">Manage Billing</button>` + renderCreditsControls()
