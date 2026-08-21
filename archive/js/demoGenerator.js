@@ -66,6 +66,37 @@ function renderUsageNote() {
     `${textLeft} of ${DEMO_TEXT_CAP} free generations left today · ${portraitLeft} of ${DEMO_PORTRAIT_CAP} free portrait left today`;
 }
 
+// Conversion wall (Phase 3) -- framed as an invitation, not a hard
+// block, per the locked decision: hitting either cap or clicking
+// "Save This" should read as "there's more if you sign up," never as a
+// dead end. Hooks into the app's existing signup flow (login.html's
+// own ?mode=signup handling, the same deep link the marketing site's
+// CTAs already use -- see login.html's comment) rather than building
+// any new auth UI here.
+const WALL_COPY = {
+  "cap-text": {
+    headline: "You've hit today's free limit",
+    copy: "You've used your 2 free demo generations for today. Sign up free to keep building — no daily limit in your own world, plus Factions, Items, Locations, and everything else Chronicled generates."
+  },
+  "cap-portrait": {
+    headline: "You've used today's free portrait",
+    copy: "Sign up free to generate as many portraits as your world needs, alongside everything else Chronicled builds for you."
+  },
+  save: {
+    headline: "Save this to your own world",
+    copy: "Create a free account and this character — plus everything else you generate — gets saved to your own living Archive instead of disappearing on refresh."
+  }
+};
+
+function showSignupWall(reason) {
+  const wall = document.getElementById("signup-wall");
+  const copy = WALL_COPY[reason] || WALL_COPY["cap-text"];
+  document.getElementById("wall-headline").textContent = copy.headline;
+  document.getElementById("wall-copy").textContent = copy.copy;
+  wall.style.display = "block";
+  wall.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 function escapeHtml(str) {
   if (str == null) return "";
   return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -122,6 +153,7 @@ async function handleGenerate() {
   btn.disabled = true;
   status.textContent = "Generating — this can take up to 20 seconds…";
   document.getElementById("result-sheet").style.display = "none";
+  document.getElementById("signup-wall").style.display = "none";
 
   try {
     const res = await fetch("/api/demo/generate", {
@@ -137,6 +169,7 @@ async function handleGenerate() {
       usage.textUsed = DEMO_TEXT_CAP; // sync the client mirror to the server's authoritative "capped" state
       writeUsageCookie(usage);
       renderUsageNote();
+      showSignupWall("cap-text");
       return;
     }
     if (!res.ok) throw new Error(data.error || "Generation failed.");
@@ -200,6 +233,7 @@ async function handleGeneratePortrait() {
       usage.portraitUsed = DEMO_PORTRAIT_CAP;
       writeUsageCookie(usage);
       renderUsageNote();
+      showSignupWall("cap-portrait");
       return;
     }
     if (!res.ok) throw new Error(data.error || "Portrait generation failed.");
@@ -219,6 +253,7 @@ async function handleGeneratePortrait() {
 
 document.getElementById("generate-btn").addEventListener("click", handleGenerate);
 document.getElementById("portrait-btn").addEventListener("click", handleGeneratePortrait);
+document.getElementById("save-this-btn").addEventListener("click", () => showSignupWall("save"));
 
 loadPresets();
 renderUsageNote();
