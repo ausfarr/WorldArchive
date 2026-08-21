@@ -45,12 +45,26 @@ const adminIngestSrdFullRoute = require("./routes/adminIngestSrdFull");
 const adminIngestSrdOriginsRoute = require("./routes/adminIngestSrdOrigins");
 const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
+const demoRoute = require("./routes/demo"); // unauthenticated demo generator -- see session_addendum_demo_mode_scope.md
 const stripeWebhookRoute = require("./routes/stripeWebhook");
 const billingRoute = require("./routes/billing");
 const { APP_VERSION } = require("./lib/version");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Render terminates TLS at its own edge and proxies to this instance,
+// setting a real X-Forwarded-For header -- without telling Express to
+// trust it, req.ip resolves to Render's internal proxy for every
+// request, not the actual visitor, which would silently break
+// routes/demo.js's per-IP rate limiting (every visitor would collide on
+// the same "IP"). Trusting exactly one hop (Render's own edge, not an
+// unbounded chain) is the correct setting for this hosting shape -- see
+// Express's trust-proxy docs for why a bare `true` (trust every hop) is
+// wrong here. No other route reads req.ip today (every authenticated
+// route scopes by req.worldId instead), so this has no effect anywhere
+// else.
+app.set("trust proxy", 1);
 
 // MUST be registered before express.json() below. Stripe signature
 // verification (routes/stripeWebhook.js) needs the raw request body
@@ -101,6 +115,12 @@ app.get("/version.js", (req, res) => {
 // accepts cross-origin requests, from the separate chronicled.world
 // static site).
 app.use(waitlistRoute);
+
+// Unauthenticated demo generator -- same reasoning as waitlistRoute
+// above: no account/session exists yet, so this must stay outside the
+// resolveTenant gate below. See routes/demo.js's header and
+// session_addendum_demo_mode_scope.md for the full design.
+app.use("/api/demo", demoRoute);
 
 // Every /api route below expects req.worldId, set by resolveTenant after
 // verifying the request's Supabase JWT (see middleware/resolveTenant.js).
