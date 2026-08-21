@@ -64,6 +64,23 @@ const NO_FACTIONS_TEXT = formatFactionOptionsForPrompt([]);
 const NO_NPC_ROSTER_TEXT = "No NPCs archived yet — any role+faction combination is available.";
 const NO_ENEMY_ROSTER_TEXT = "No enemies archived yet -- any concept is available.";
 
+// A visitor's own typed setting, capped and wrapped to match the shape
+// lib/demoPresets.js's fixed presets already provide (a "Genre & tone: ..."
+// settingContext string) -- generateDemoNpc/generateDemoEnemy below don't
+// need to know the difference between the two sources. This is the actual
+// point of letting a visitor type their own setting instead of only
+// picking a preset: it's the one thing a canned demo can't show --
+// generation grounded in *your* idea, not a generic template (see
+// marketing/compare.html's "grounded, not generic" pitch). Cap length
+// generously enough for a real setting blurb but far short of anything
+// that would meaningfully change generation cost.
+const MAX_CUSTOM_SETTING_LENGTH = 500;
+
+function buildCustomPreset(customSetting) {
+  const trimmed = String(customSetting).trim().slice(0, MAX_CUSTOM_SETTING_LENGTH);
+  return { settingContext: `Genre & tone: ${trimmed}` };
+}
+
 async function generateDemoNpc(preset) {
   const systemPrompt = buildNpcContentSystemPrompt({
     settingContext: preset.settingContext,
@@ -102,13 +119,19 @@ async function generateDemoEnemy(preset) {
 
 router.post("/generate", async (req, res) => {
   try {
-    const { category, preset: presetKey } = req.body || {};
+    const { category, preset: presetKey, customSetting } = req.body || {};
     if (category !== "npcs" && category !== "enemies") {
       return res.status(400).json({ error: "category must be 'npcs' or 'enemies'." });
     }
-    const preset = getDemoPreset(presetKey);
-    if (!preset) {
-      return res.status(400).json({ error: `Unknown preset '${presetKey}'.`, presets: listDemoPresets() });
+
+    let preset;
+    if (typeof customSetting === "string" && customSetting.trim()) {
+      preset = buildCustomPreset(customSetting);
+    } else {
+      preset = getDemoPreset(presetKey);
+      if (!preset) {
+        return res.status(400).json({ error: `Unknown preset '${presetKey}'.`, presets: listDemoPresets() });
+      }
     }
 
     const clientIp = getClientIp(req);

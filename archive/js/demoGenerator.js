@@ -15,6 +15,18 @@ const DEMO_TEXT_CAP = 2;
 const DEMO_PORTRAIT_CAP = 1;
 const USAGE_COOKIE_NAME = "chronicled_demo_usage";
 
+// Handoff key read by wizard-lore.html's init() after signup, to prefill
+// the Import Existing panel with whatever setting text this visitor typed
+// here -- see that file's comment for the reasoning. sessionStorage (not
+// localStorage) matches the admin-view pattern in auth.js: this should
+// only survive the current tab through signup, not linger indefinitely.
+const DEMO_LORE_HANDOFF_KEY = "chronicled_demo_lore";
+
+function getCustomSetting() {
+  const val = document.getElementById("custom-setting").value.trim();
+  return val || null;
+}
+
 let selectedPreset = null;
 let selectedCategory = "npcs";
 let currentResult = null; // { category, raw } from the last successful /generate — feeds /generate-portrait
@@ -95,6 +107,20 @@ function showSignupWall(reason) {
   document.getElementById("wall-copy").textContent = copy.copy;
   wall.style.display = "block";
   wall.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  // Hand off whatever setting text this visitor typed so wizard-lore.html
+  // can prefill it after signup instead of making them retype it -- see
+  // that file's init() for the read side. Only worth stashing if they
+  // actually wrote their own setting; the fixed genre presets aren't
+  // theirs to carry forward.
+  const customSetting = getCustomSetting();
+  if (customSetting) {
+    try {
+      sessionStorage.setItem(DEMO_LORE_HANDOFF_KEY, customSetting);
+    } catch (err) {
+      // Private browsing / storage disabled -- fine, they just retype it.
+    }
+  }
 }
 
 function escapeHtml(str) {
@@ -164,10 +190,15 @@ async function handleGenerate() {
   document.getElementById("signup-wall").style.display = "none";
 
   try {
+    const customSetting = getCustomSetting();
     const res = await fetch("/api/demo/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ category: selectedCategory, preset: selectedPreset })
+      body: JSON.stringify(
+        customSetting
+          ? { category: selectedCategory, customSetting }
+          : { category: selectedCategory, preset: selectedPreset }
+      )
     });
     const data = await res.json();
 

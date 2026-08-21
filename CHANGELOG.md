@@ -21,6 +21,7 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Pricing page comparison table, one-click OAuth, and a demo that can now be grounded in your own idea.** Three independent, additive changes: (1) `marketing/pricing.html` gets a Free-Trial-vs-Subscription comparison table below the existing plan cards, reusing `compare.html`'s table CSS rather than inventing new styles; (2) `login.html` adds Google/Discord one-click sign-in via Supabase OAuth alongside the existing email+password form (still needs the providers enabled in the Supabase dashboard before it's live); (3) the unauthenticated `/demo` generator can now take a visitor's own typed setting instead of only picking one of 3 fixed genre presets, and hands that text off (via `sessionStorage`) to prefill the wizard's Lore step if they sign up afterward. See `session_addendum_pricing_and_signup_friction.md`.
 - **🔥 Production outage, fixed same-day: every generation for a subscribed
   account was 500ing with "Internal server error."** Traced via live
   Supabase logs to `check_and_spend_subscription_generation` throwing

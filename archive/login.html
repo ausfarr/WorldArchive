@@ -31,6 +31,18 @@
 
     <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 16px 0 0; display: none;"></p>
 
+    <div style="display:flex; align-items:center; gap:12px; margin: 20px 0;">
+      <div style="flex:1; height:1px; background: var(--border-line);"></div>
+      <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint);">OR</span>
+      <div style="flex:1; height:1px; background: var(--border-line);"></div>
+    </div>
+
+    <!-- One-click OAuth, alongside (not instead of) email+password --
+         see archive/js/auth.js's signInWithOAuth() for why this needs no
+         separate signup/signin toggle. -->
+    <button type="button" id="oauth-google-btn" style="width:100%; background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 12px; font-family: var(--font-body); cursor: pointer; margin-bottom: 10px;">Continue with Google</button>
+    <button type="button" id="oauth-discord-btn" style="width:100%; background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 12px; font-family: var(--font-body); cursor: pointer;">Continue with Discord</button>
+
     <p style="font-size: 0.85rem; color: var(--ink-dim); margin: 20px 0 0; text-align: center;">
       <span id="toggle-mode-prompt">Don't have an account?</span>
       <a href="#" id="toggle-mode">Sign up</a>
@@ -60,7 +72,7 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.0.0"></script>
+<script src="/js/auth.js?v=v1.0.1"></script>
 <script>
 let mode = "signin"; // "signin" | "signup"
 
@@ -87,6 +99,28 @@ document.getElementById("toggle-mode").addEventListener("click", (e) => {
 if (new URLSearchParams(window.location.search).get("mode") === "signup") {
   applyMode(true);
 }
+
+document.getElementById("oauth-google-btn").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  status.style.display = "block";
+  status.textContent = "Redirecting to Google…";
+  try {
+    await signInWithOAuth("google");
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  }
+});
+
+document.getElementById("oauth-discord-btn").addEventListener("click", async () => {
+  const status = document.getElementById("status");
+  status.style.display = "block";
+  status.textContent = "Redirecting to Discord…";
+  try {
+    await signInWithOAuth("discord");
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  }
+});
 
 document.getElementById("auth-form").addEventListener("submit", async (e) => {
   e.preventDefault();

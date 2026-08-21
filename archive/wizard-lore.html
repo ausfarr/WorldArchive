@@ -130,9 +130,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.0.0"></script>
-<script src="/js/wizardSession.js?v=v1.0.0"></script>
-<script src="js/render.js?v=v1.0.0"></script>
+<script src="/js/auth.js?v=v1.0.1"></script>
+<script src="/js/wizardSession.js?v=v1.0.1"></script>
+<script src="js/render.js?v=v1.0.1"></script>
 <script>
 let currentSections = [];
 let currentSource = "generated";
@@ -250,6 +250,29 @@ document.getElementById("save-lore").addEventListener("click", async () => {
   }
 });
 
+// Demo-to-signup handoff (see archive/js/demoGenerator.js's showSignupWall)
+// -- a visitor who typed their own setting in the unauthenticated demo
+// shouldn't have to retype it here. Only offered when there's no saved
+// lore already (that always wins) and read-once: cleared immediately so
+// it can't reappear on a later visit or a second "Start Over" pass through
+// the wizard.
+const DEMO_LORE_HANDOFF_KEY = "chronicled_demo_lore";
+
+function offerDemoLoreHandoff() {
+  let demoLore;
+  try {
+    demoLore = sessionStorage.getItem(DEMO_LORE_HANDOFF_KEY);
+    sessionStorage.removeItem(DEMO_LORE_HANDOFF_KEY);
+  } catch (err) {
+    return; // storage disabled -- nothing to offer
+  }
+  if (!demoLore) return;
+
+  showPanel("import-panel");
+  document.getElementById("import-text").value = demoLore;
+  document.getElementById("status").textContent = "Brought over the setting you typed in the demo — review it below, then Import & Parse.";
+}
+
 async function init() {
   await requireAuth();
   renderAuthStatus();
@@ -262,10 +285,12 @@ async function init() {
       document.getElementById("status").textContent = "Loaded your previously saved lore below.";
       currentSource = sections[0].source || "generated";
       renderSections(sections);
+      return;
     }
   } catch (err) {
     console.error("Could not load existing lore:", err);
   }
+  offerDemoLoreHandoff();
 }
 
 init();

@@ -115,6 +115,24 @@ async function signIn(email, password) {
   return data;
 }
 
+// One-click OAuth sign-in/sign-up (same Supabase Auth user record either
+// way -- Supabase treats "sign in" and "sign up" as the same call for
+// OAuth providers, unlike the email/password form above which has two
+// distinct methods). This does a full-page redirect to the provider and
+// back to redirectTo, so there's nothing to return here -- the caller's
+// code after this call never runs. On return, Supabase JS's default
+// detectSessionInUrl behavior parses the auth response from the URL and
+// populates getSession() before any of this page's own JS runs its
+// getCurrentSession() check, so no extra callback-handling code is needed
+// beyond what login.html already does.
+async function signInWithOAuth(provider) {
+  const { error } = await getSupabaseClient().auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: window.location.origin + "/login.html" }
+  });
+  if (error) throw error;
+}
+
 async function signOut() {
   await getSupabaseClient().auth.signOut();
   window.location.href = "/login.html";
