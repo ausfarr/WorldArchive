@@ -101,13 +101,15 @@ class FakeQuery {
   }
 }
 
-// The only two RPCs the default (BILLING_ENABLED unset/false) legacy cap
-// path in middleware/enforceGenerationCap.js calls -- both are real
-// Postgres functions with no query-builder equivalent, so they need their
-// own hand-rolled semantics rather than falling out of FakeQuery generically.
-// billingRepo.js's RPCs (subscription/credit path) are deliberately NOT
-// covered here -- BILLING_ENABLED is off by default, so that branch never
-// runs in this sandbox and doesn't need a fake.
+// The core RPCs the default (BILLING_ENABLED unset/false) legacy cap path
+// in middleware/enforceGenerationCap.js calls, plus increment_entries_
+// purchased (used by lib/worldConfigRepo.js's addPurchasedEntries,
+// regardless of BILLING_ENABLED -- see scripts/testEntriesPurchasedIncrement.js)
+// -- all real Postgres functions with no query-builder equivalent, so they
+// need their own hand-rolled semantics rather than falling out of
+// FakeQuery generically. billingRepo.js's own RPCs (subscription/credit
+// path) are deliberately NOT covered here -- BILLING_ENABLED is off by
+// default, so that branch never runs in this sandbox and doesn't need a fake.
 function fakeRpc(fn, params) {
   if (fn === "check_and_increment_generation_count") {
     const row = db.world_config.find((r) => r.world_id === params.p_world_id);
@@ -120,6 +122,12 @@ function fakeRpc(fn, params) {
     const row = db.world_config.find((r) => r.world_id === params.p_world_id);
     if (row) row.generation_count = Math.max(0, (row.generation_count || 0) - params.p_amount);
     return { data: null, error: null };
+  }
+  if (fn === "increment_entries_purchased") {
+    const row = db.world_config.find((r) => r.world_id === params.p_world_id);
+    if (!row) return { data: null, error: { message: `world_config row for world_id ${params.p_world_id} does not exist` } };
+    row.entries_purchased = (row.entries_purchased || 0) + params.p_amount;
+    return { data: row.entries_purchased, error: null };
   }
   return { data: null, error: { message: `fakeSupabase: unhandled rpc "${fn}"` } };
 }

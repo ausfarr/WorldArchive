@@ -17,16 +17,46 @@
 // Same BILLING_ENABLED kill switch as enforceGenerationCap.js: while
 // billing is off (legacy beta default), there is no entry cap at all,
 // same as there's no trial/subscription concept at all yet.
+//
+// Entry-cap race fix: two near-simultaneous /generate-X requests (a
+// double-click, or two tabs) could previously both pass the cap check
+// while sitting one below the cap, since a real AI call (several
+// seconds) sits between the check and the eventual save. See
+// reserveEntryCapSlot() below for the in-process reservation that closes
+// this the same way routes/confirmEntry.js's withLock() already closed
+// the identical race on its own (lock-for-the-whole-request) write path.
 const { getSubscription } = require("../lib/billingRepo");
 const { countEntries } = require("../lib/entriesRepo");
 const { getEntriesPurchased, FREE_ENTRY_CAP } = require("../lib/worldConfigRepo");
+const { withLock } = require("../lib/asyncLock");
 
 const BILLING_ENABLED = process.env.BILLING_ENABLED === "true";
+
+// In-flight reservations, keyed by worldId -- see reserveEntryCapSlot()
+// below for why these exist. Plain in-process counters, same tradeoff as
+// lib/asyncLock.js's withLock/chromiumSemaphore: doesn't help across
+// multiple server instances behind a load balancer, not needed at
+// current single-instance beta scale.
+const pendingReservations = new Map();
+
+function addReservation(worldId) {
+  pendingReservations.set(worldId, (pendingReservations.get(worldId) || 0) + 1);
+}
+
+function releaseReservation(worldId) {
+  const current = pendingReservations.get(worldId) || 0;
+  if (current <= 1) pendingReservations.delete(worldId);
+  else pendingReservations.set(worldId, current - 1);
+}
 
 // Returns { allowed, unlimited, count?, cap? }. Callers that already
 // know they're editing an existing entry (not creating one) should
 // never call this -- see routes/confirmEntry.js for the existence check
 // that decides whether to call this at all.
+//
+// Counts this world's pending reservations (see reserveEntryCapSlot())
+// alongside the real row count so a generation still in flight -- which
+// hasn't landed a row yet -- still holds its claimed slot against the cap.
 async function checkEntryCap(worldId, userId) {
   if (!BILLING_ENABLED) return { allowed: true, unlimited: true };
 
@@ -40,7 +70,34 @@ async function checkEntryCap(worldId, userId) {
     getEntriesPurchased(worldId)
   ]);
   const cap = FREE_ENTRY_CAP + purchased;
-  return { allowed: count < cap, unlimited: false, count, cap };
+  const reserved = pendingReservations.get(worldId) || 0;
+  return { allowed: count + reserved < cap, unlimited: false, count, cap };
+}
+
+// Atomically checks the cap and, if allowed, reserves a slot for it --
+// closes the same check-then-act race routes/confirmEntry.js's withLock()
+// fixes for its own write path (see that file's comment on the identical
+// problem), but a /generate-X route can't just hold a lock for its whole
+// duration the way confirm-entry does: a real Claude/Gemini call (several
+// seconds) sits between the cap check here and the eventual save, and
+// serializing every generation request for a world behind one lock would
+// kill legitimate concurrency (generating an NPC while also generating an
+// Item, say) just to close a narrow race window at the cap boundary.
+//
+// Instead, only the cheap check-and-reserve step below runs inside the
+// lock (a couple of DB reads plus an in-memory increment -- no AI call),
+// using the SAME `entry-cap:${worldId}` key confirm-entry.js locks on, so
+// the two code paths serialize against each other too. The reservation
+// itself is released later, whether the request ultimately saves, errors,
+// or the cap itself rejects it (see enforceEntryCapOnGenerate below) --
+// holding it open for that long, unlocked, is what lets the reservation
+// (not a full lock) stand in for the row that doesn't exist yet.
+async function reserveEntryCapSlot(worldId, userId) {
+  return withLock(`entry-cap:${worldId}`, async () => {
+    const result = await checkEntryCap(worldId, userId);
+    if (result.allowed && !result.unlimited) addReservation(worldId);
+    return result;
+  });
 }
 
 // Express middleware for the 8 /generate-X routes. Skips entirely when
@@ -67,7 +124,7 @@ async function enforceEntryCapOnGenerate(req, res, next) {
   try {
     if (req.body && req.body.fillExistingId) return next();
     if (req.body && req.body.mode === "import") return next();
-    const result = await checkEntryCap(req.worldId, req.userId);
+    const result = await reserveEntryCapSlot(req.worldId, req.userId);
     if (!result.allowed) {
       // enforceGenerationCap (mounted before this middleware on every
       // /generate-X route) already deducted points/quota/a credit for
@@ -85,10 +142,17 @@ async function enforceEntryCapOnGenerate(req, res, next) {
         count: result.count
       });
     }
+    // A slot was reserved above -- release it once this request is fully
+    // done (success, downstream error, whatever) so it stops counting
+    // against the cap. By then the save either landed (countEntries()
+    // reflects it for real) or didn't (nothing to hold open for). "finish"
+    // fires for every response this route can produce, so no individual
+    // /generate-X route needs to know this bookkeeping exists.
+    if (!result.unlimited) res.on("finish", () => releaseReservation(req.worldId));
     next();
   } catch (err) {
     next(err);
   }
 }
 
-module.exports = { checkEntryCap, enforceEntryCapOnGenerate, BILLING_ENABLED };
+module.exports = { checkEntryCap, reserveEntryCapSlot, enforceEntryCapOnGenerate, BILLING_ENABLED };
