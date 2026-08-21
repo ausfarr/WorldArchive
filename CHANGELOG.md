@@ -21,6 +21,26 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **🔥 Production outage, fixed same-day: every generation for a subscribed
+  account was 500ing with "Internal server error."** Traced via live
+  Supabase logs to `check_and_spend_subscription_generation` throwing
+  `column reference "used_this_cycle" is ambiguous` (Postgres 42702) —
+  `returns table(..., used_this_cycle integer, ...)` implicitly declares
+  `used_this_cycle` as a plpgsql variable for the whole function body,
+  colliding with the unqualified `subscriptions.used_this_cycle` column
+  reference inside its own `UPDATE`. Present in both the 1-arg version
+  (`migrations/012_billing.sql`) and the 2-arg `p_amount` version
+  (`migrations/015_field_assist_points.sql`) since the points migration,
+  but never triggered until today — it only fires once
+  `BILLING_ENABLED=true` *and* a real subscriber (not trial/legacy-cap,
+  which take a different code path) still has quota left, and today was
+  the first time that combination actually happened in production.
+  `refund_subscription_generation` (018) is unaffected — it `returns
+  void`, so it has no colliding OUT-parameter variable. Fixed directly in
+  production (verified via a `BEGIN`/`ROLLBACK` call against the real
+  subscriber row) by aliasing the table and qualifying the column
+  reference; same fix captured in `migrations/028_fix_subscription_spend_column_ambiguity.sql`
+  for anyone re-applying against a fresh database.
 - **⚠️ Touches billing — two real money/quota races found and fixed, both
   live now that `BILLING_ENABLED=true` (v1.0.0 launch).** (1) Two
   near-simultaneous `/generate-X` requests (double-click, two tabs) for a
