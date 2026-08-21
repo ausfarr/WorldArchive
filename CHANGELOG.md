@@ -21,6 +21,32 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **⚠️ Touches billing — two real money/quota races found and fixed, both
+  live now that `BILLING_ENABLED=true` (v1.0.0 launch).** (1) Two
+  near-simultaneous `/generate-X` requests (double-click, two tabs) for a
+  world sitting one entry below its cap could both pass
+  `enforceEntryCapOnGenerate`'s check before either's save landed — the
+  same check-then-act race `routes/confirmEntry.js`'s `withLock()` already
+  closed for its own write path, just never propagated to the 10
+  generation routes it also guards. Fixed with an in-process reservation
+  (`middleware/enforceEntryCap.js`'s `reserveEntryCapSlot()`) that claims
+  a slot atomically (under the same `entry-cap:${worldId}` lock
+  confirm-entry uses) at check time and releases it on `res.on("finish")`,
+  without holding a lock across the several-second AI call in between —
+  that would've serialized every generation request for a world just to
+  close one narrow race. (2) `lib/worldConfigRepo.js`'s
+  `addPurchasedEntries()` was a plain read-modify-write, justified as safe
+  because it's "only called once per Stripe webhook event" — true for one
+  event, but two *different* `checkout.session.completed` events for the
+  same world (two quick entry-pack purchases, or a Stripe redelivery) can
+  race each other and silently lose one purchase's +25 entries. Now an
+  atomic single-round-trip Postgres function,
+  `migrations/026_atomic_entries_purchased_increment.sql` — **needs to be
+  applied by hand against Supabase**, no migration runner. New regression
+  coverage: `scripts/testEntryCapRefund.js` gained a concurrent-requests
+  case, `scripts/testEntriesPurchasedIncrement.js` is new. See
+  `session_addendum_entry_cap_race_fixes_shipped.md`.
+
 ---
 
 ## v1.0.0 — 08/20/2026 — Public Launch
