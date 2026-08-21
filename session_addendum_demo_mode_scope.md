@@ -191,6 +191,42 @@ route also depends on. `enforceGenerationCap.js`/every other existing
 route reads `req.worldId`, never `req.ip`, so this has no observable
 effect on any authenticated path.
 
+**Correction (production bug, later session): "exactly one hop" was
+wrong, and it broke the cap for real.** Once live, the per-visitor cap
+misfired — sometimes bypassed entirely (successive generations from the
+same visitor not counted against each other), sometimes an unexpected
+block. Root cause: Render's traffic actually passes through *multiple*
+hops (Cloudflare, then Render's own load balancer) before reaching the
+app, confirmed via Render's own community guidance — not the single hop
+this doc assumed. `app.set('trust proxy', 1)` made Express read the
+entry ONE STEP IN from the socket side of `X-Forwarded-For`, which (with
+more than one real hop) lands on an intermediate proxy's IP, not the
+visitor's — and that intermediate value isn't guaranteed stable across
+requests (different Cloudflare edge nodes, different Render LB
+instances), which is exactly what let the same visitor's repeated
+generations look like different "visitors" to the cap check.
+
+Fixed two ways:
+1. `server.js` now sets `app.set('trust proxy', true)` — trusts the
+   whole chain, so Express reads the LEFTMOST entry in
+   `X-Forwarded-For`, matching Render's own documented contract that the
+   real client IP is always placed first regardless of hop count. Safe
+   specifically because Render's containers have no direct public
+   ingress other than through Render's own edge — an end user has no
+   path to inject a spoofed leftmost entry the way they could on a bare
+   host with no proxy in front.
+2. More importantly, `routes/demo.js`'s actual per-visitor identification
+   no longer goes through Express's `req.ip`/trust-proxy hop-arithmetic
+   at all — `lib/demoUsageRepo.js`'s new `getClientIp(req)` reads
+   `X-Forwarded-For` directly and takes the first entry itself. This
+   sidesteps needing to know or maintain Render's exact hop count (which
+   Render doesn't publish as a stable number — one third-party report
+   found "3" worked empirically, exactly the kind of magic number liable
+   to break silently the next time Render's infra changes a hop).
+   Verified directly: a fake multi-hop `X-Forwarded-For` with a
+   different trailing proxy IP on every request still resolves to the
+   same real client, and the cap now holds correctly across it.
+
 ## `demo_usage` table (migration, not run by Claude — Austin runs it by hand)
 
 `migrations/027_demo_usage.sql` (next number after `026_atomic_entries_purchased_increment.sql`):
