@@ -24,6 +24,10 @@ Newest entries at the top. Log what actually happened, not what was planned — 
 
 **Bottom line for Austin:** something moved for the first time in five check-ins, but not visibly enough to act on: the checkboxes say #1/#2 are posted, but there's no URL, no number, and no trace this session could find externally. Paste the actual post links into this file (or just tell the next check-in directly) so this stops being a search-engine guessing game — and if those posts haven't gone out yet, swap the "it's in beta" line for something reflecting the v1.0.0 launch before they do.
 
+Austin:
+https://www.reddit.com/r/rpg_generators/comments/1vtquiw/chronicled_is_out_of_beta_v100_is_live/
+Link above to post. Let's move on from this and move on from pending tasks. Check the post if you can, if not, we just continue forward. Keep doing your thing, don't ever get caught up on tasks not completed. If possible, find ways to make the actual website better, draft marketing ideas, etc. Keep pushing to get this seen.
+
 ---
 
 ## 2026-08-20 — Automated daily check-in, Day 4 still pending; pain point independently validated, two new names found
