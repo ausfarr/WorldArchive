@@ -194,8 +194,20 @@
 <script src="/js/auth.js?v=v1.0.0"></script>
 <script src="js/render.js?v=v1.0.0"></script>
 <script>
-  requireAuth().then(async (session) => {
-    if (!session) return;
+  // Deliberately NOT requireAuth() here (that redirects straight to
+  // /login.html) -- a signed-out visitor landing on the app root should
+  // see the unauthenticated demo generator first (archive/demo.html,
+  // session_addendum_demo_mode_scope.md), with the signup wall reached
+  // FROM there, not before it. Every other authenticated page still uses
+  // requireAuth() unchanged -- this special-cases only the root landing
+  // page, not the shared auth gate (an expired session mid-flow on e.g.
+  // dossier.html should still go to /login.html, not back to the demo).
+  (async () => {
+    const session = await getCurrentSession();
+    if (!session) {
+      window.location.href = "/demo.html";
+      return;
+    }
     // Safety net for anyone landing here directly (bookmark, back
     // button) whose world hasn't finished setup yet -- a blank homepage
     // with no world info is a bad thing for a new tester to hit.
@@ -209,7 +221,7 @@
     applyCategoryConfig();
     applySiteTheme();
     loadAndRenderHomepageCounts();
-  });
+  })();
 </script>
 </body>
 </html>

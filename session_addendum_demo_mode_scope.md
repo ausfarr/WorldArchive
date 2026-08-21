@@ -62,6 +62,64 @@ identically for every ruleset (`world_forge_scope.md`: "Factions/
 Locations/NPCs/Logs are the confirmed-narrative exceptions... should
 stay ungated so they keep working identically across every ruleset").
 
+## Correction (later session): Enemies now use the real 5e pipeline, not Generic
+
+**Supersedes this doc's original Enemy-generation call.** The
+"Generic ruleset's Homebrew pipeline" reasoning above was this doc's own
+proposal, not something Austin had signed off on — once reviewed, his
+explicit call was the opposite: demo Enemies should follow the *exact*
+5e generator, since 5e (not Generic) is the ruleset the public product
+actually targets and the demo should read as a faithful preview of that
+specific pipeline, not a genre-agnostic placeholder system. Shipped as:
+
+- `lib/rulesets/5e/homebrewEnemyGenerator.js`'s `generateHomebrew5eEnemy()`
+  gained three new optional override params —
+  `settingContextOverride`/`factionOptionsTextOverride`/`loreContextOverride`
+  — mirroring the `rosterOverride` param that already existed on this
+  exact function for the same reason. Real callers
+  (`routes/generateEnemy.js`, `lib/campaignEntryGenerators.js`,
+  `routes/npcCombatant.js`'s Combatant upgrade) never pass these, so
+  their behavior is byte-for-byte unchanged.
+- `routes/demo.js`'s `generateDemoEnemy()` calls that function with
+  `worldId: null` and all four overrides supplied (the preset's seed
+  paragraph, the empty-faction/lore/roster fallback strings), so nothing
+  inside it ever touches a real `worldId`-scoped table. `srd_library`
+  itself (queried by `findNearestCrMonsters` for the "1-2 real reference
+  monsters" the Homebrew tier grounds against) is a *shared*, not
+  tenant-scoped table per `world_forge_scope.md`'s data model — no
+  override needed there, and an empty/unseeded table degrades to the
+  prompt's own "no reference monster available" fallback rather than
+  erroring.
+- Rendered via the real `lib/rulesets/5e/enemyTemplate.js`'s
+  `buildEnemyBodyHtml()` — a genuine 5e stat block (AC/HP/six ability
+  scores/saving throws/skills/senses/CR), with the same honest
+  "estimated — review before play" CR caveat every real 5e world's
+  Homebrew tier shows, computed by the same `computeChallengeRating()`
+  formula code, not model-stated.
+- NPCs additionally now attach `DEFAULT_NPC_COMBAT_PROFILE`
+  (`lib/rulesets/5e/npcCombatDefaults.js`, a static object, no DB call)
+  the same way `routes/generate.js` does for every real 5e-ruleset NPC —
+  so a demo NPC's dossier includes the same embedded Combat Profile
+  section a real 5e world's NPC would.
+
+The Generic-ruleset path (`DEMO_GENERIC_SYSTEM`, etc.) described below
+in the original "Enemies" section is what actually shipped in Phase 1
+and was replaced in a later session — kept in this doc as an accurate
+record of what was built and why it changed, not silently edited away.
+
+## Landing page routing (later session)
+
+Also changed after review: `archive/index.html` no longer sends a
+signed-out visitor straight to `/login.html` via `requireAuth()`. It now
+checks `getCurrentSession()` directly and redirects to `/demo.html`
+instead when there's no session — the demo is the new front door for a
+fresh, unauthenticated visit to `app.chronicled.world`, with the signup
+wall (Phase 3) reached *from* the demo rather than before it.
+`requireAuth()` itself is untouched, so every other authenticated page
+(dossier, settings, wizard, etc.) still redirects an expired/missing
+session to `/login.html` exactly as before — this only special-cases the
+root landing page, not the shared auth gate.
+
 ## Decisions locked (recap, not re-litigated)
 
 - Lives inside `app.chronicled.world`, not the marketing site.
