@@ -3,11 +3,18 @@
 // Unauthenticated demo generator -- lets a visitor generate a small,
 // hard-capped number of NPCs/Enemies (text, then an optional portrait)
 // with no account and no worldId. See
-// session_addendum_demo_mode_scope.md for the full design and why this
-// reuses the real generation pipelines (NPCs' ruleset-agnostic prompt;
-// Enemies' Generic-ruleset Homebrew pipeline, since Echoes' own
-// attribute formulas are as off-limits here as its setting is) rather
-// than forking a parallel one.
+// session_addendum_demo_mode_scope.md for the full design (updated:
+// Enemies now go through the real 5e Homebrew pipeline, not the Generic
+// ruleset's -- Austin's explicit call, since 5e is the ruleset the
+// public product actually targets and the demo should read as a
+// faithful preview of that, not a made-up placeholder system). NPCs stay
+// on the ruleset-agnostic prompt every ruleset (including 5e) already
+// shares. Neither path forks a parallel generator -- Enemies reuse
+// lib/rulesets/5e/homebrewEnemyGenerator.js's generateHomebrew5eEnemy()
+// via new override params added there for exactly this caller (real CR
+// math, real SRD reference-monster lookup, real stat-block template),
+// same "reuse it, don't fork it" rule this file already followed for
+// NPCs.
 //
 // Deliberately mounted in server.js BEFORE app.use("/api", resolveTenant)
 // -- same reasoning as routes/waitlist.js -- so these routes never need
@@ -28,13 +35,13 @@ const express = require("express");
 const { callClaude, callClaudeExpectingJson, HAIKU_MODEL } = require("../lib/claude");
 const { generateImage } = require("../lib/imagegen");
 const { buildNpcContentSystemPrompt } = require("../prompts/npcContentPrompt");
-const { buildHomebrewGenericEnemySystemPrompt } = require("../prompts/rulesets/generic/enemyContentPrompt");
 const { buildArtPromptSystemPrompt } = require("../prompts/artPromptPrompt");
 const { buildBodyHtml: buildNpcBodyHtml, slugify: slugifyNpc } = require("../lib/entryTemplate");
-const { buildEnemyBodyHtml, slugify: slugifyEnemy } = require("../lib/rulesets/generic/enemyTemplate");
-const { computeDerivedStats } = require("../lib/rulesets/generic/statFormulas");
+const { generateHomebrew5eEnemy } = require("../lib/rulesets/5e/homebrewEnemyGenerator");
+const { buildEnemyBodyHtml: buildEnemyBodyHtml5e } = require("../lib/rulesets/5e/enemyTemplate");
+const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
 const { formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
-const { getDemoPreset, listDemoPresets, DEMO_GENERIC_SYSTEM } = require("../lib/demoPresets");
+const { getDemoPreset, listDemoPresets } = require("../lib/demoPresets");
 const {
   DEMO_TEXT_CAP,
   DEMO_PORTRAIT_CAP,
@@ -72,32 +79,23 @@ async function generateDemoNpc(preset) {
     maxTokens: 3000
   });
   npc.id = npc.id || slugifyNpc(npc.name);
+  // Real 5e-ruleset worlds attach this same lightweight default combat
+  // profile to every generated NPC (routes/generate.js) so an un-stat'd
+  // NPC is never a hard dead-end in combat -- a static object, no
+  // worldId/DB lookup involved, so it's exactly as free to attach here.
+  npc.combatProfile = DEFAULT_NPC_COMBAT_PROFILE;
   const bodyHtml = buildNpcBodyHtml(npc, null);
   return { category: "npcs", raw: npc, bodyHtml };
 }
 
 async function generateDemoEnemy(preset) {
-  const systemPrompt = buildHomebrewGenericEnemySystemPrompt({
-    settingContext: preset.settingContext,
-    loreContext: "",
-    factionOptionsText: NO_FACTIONS_TEXT,
-    rosterContext: NO_ENEMY_ROSTER_TEXT,
-    name: null,
-    genericSystem: DEMO_GENERIC_SYSTEM
+  const enemy = await generateHomebrew5eEnemy(null, {
+    settingContextOverride: preset.settingContext,
+    factionOptionsTextOverride: NO_FACTIONS_TEXT,
+    loreContextOverride: "",
+    rosterOverride: NO_ENEMY_ROSTER_TEXT
   });
-  const proposed = await callClaudeExpectingJson({
-    systemPrompt,
-    userMessage: "Design the monster now.",
-    maxTokens: 2000
-  });
-  const enemy = {
-    ...proposed,
-    id: slugifyEnemy(proposed.name),
-    faction: null,
-    derivedStats: computeDerivedStats(DEMO_GENERIC_SYSTEM, proposed.attributes),
-    sourceMode: "homebrew"
-  };
-  const bodyHtml = buildEnemyBodyHtml(enemy, DEMO_GENERIC_SYSTEM, null);
+  const bodyHtml = buildEnemyBodyHtml5e(enemy, null);
   return { category: "enemies", raw: enemy, bodyHtml };
 }
 

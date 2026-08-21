@@ -140,11 +140,19 @@ document.querySelectorAll(".category-card").forEach((el) => {
   el.addEventListener("click", () => selectCategory(el.dataset.category));
 });
 
+// Mirrors the exact eyebrow/subtitle text the real save paths would
+// produce (lib/fileWriter.js's saveNpcEntry; lib/rulesets/5e/enemyRepo.js's
+// save5eEnemyEntry + its buildEnemyManifestEntry) -- nothing demo-specific
+// invented here, just computed client-side since there's no save step.
 function eyebrowAndSubtitle(category, raw) {
   if (category === "npcs") {
     return { eyebrow: `NPC Dossier — ${raw.roleArchetype || "Character"}`, subtitle: raw.callsign ? `"${raw.callsign}"` : "" };
   }
-  return { eyebrow: "Bestiary Entry — Homebrew Creature", subtitle: "" };
+  const cr = raw.challengeRating || {};
+  return {
+    eyebrow: `Bestiary Entry — CR ${cr.cr != null ? cr.cr : "?"}`,
+    subtitle: `${raw.size || ""} ${raw.type || ""} — CR ${cr.cr != null ? cr.cr : "?"}`.trim()
+  };
 }
 
 async function handleGenerate() {
