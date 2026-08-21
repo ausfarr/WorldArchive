@@ -53,18 +53,36 @@ const { APP_VERSION } = require("./lib/version");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Render terminates TLS at its own edge and proxies to this instance,
-// setting a real X-Forwarded-For header -- without telling Express to
-// trust it, req.ip resolves to Render's internal proxy for every
-// request, not the actual visitor, which would silently break
-// routes/demo.js's per-IP rate limiting (every visitor would collide on
-// the same "IP"). Trusting exactly one hop (Render's own edge, not an
-// unbounded chain) is the correct setting for this hosting shape -- see
-// Express's trust-proxy docs for why a bare `true` (trust every hop) is
-// wrong here. No other route reads req.ip today (every authenticated
-// route scopes by req.worldId instead), so this has no effect anywhere
-// else.
-app.set("trust proxy", 1);
+// CORRECTION (see lib/demoUsageRepo.js's getClientIp): this used to be
+// `app.set("trust proxy", 1)`, on the wrong assumption that Render's
+// edge was a single hop. In production it isn't -- traffic passes
+// through multiple layers (Cloudflare, then Render's own load balancer)
+// before reaching this app, confirmed via Render's own community
+// guidance, not just this project's earlier guess. Trusting only 1 hop
+// made Express read the WRONG entry out of X-Forwarded-For (the
+// closest-to-server end, walking back exactly 1 step) instead of the
+// real visitor, which is why routes/demo.js's per-IP cap misfired in
+// practice -- sometimes bypassed (a different intermediate hop's IP on
+// every request), sometimes an unlucky coincidental block, never the
+// real visitor consistently.
+//
+// `true` trusts the whole chain and reads the LEFTMOST entry in
+// X-Forwarded-For as req.ip -- which matches Render's own documented
+// contract that the real client IP is always placed first, however many
+// hops follow it. This is safe specifically because Render's containers
+// aren't reachable directly from the public internet -- only through
+// Render's own edge, which is the one actually constructing/prepending
+// that header, so an end user has no path to inject a spoofed leftmost
+// entry the way they could on a host with no proxy in front at all.
+//
+// That said, routes/demo.js's actual per-IP rate limiting does NOT rely
+// on Express's req.ip/trust-proxy hop arithmetic at all anymore -- see
+// lib/demoUsageRepo.js's getClientIp(), which reads X-Forwarded-For's
+// first entry directly instead of trusting Express (and Render's own
+// undocumented, seemingly-not-fixed hop count) to agree on a number.
+// This setting still matters for Express's own req.protocol/req.secure
+// behind TLS termination, used elsewhere in the app.
+app.set("trust proxy", true);
 
 // MUST be registered before express.json() below. Stripe signature
 // verification (routes/stripeWebhook.js) needs the raw request body

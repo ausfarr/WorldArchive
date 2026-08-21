@@ -45,6 +45,7 @@ const { getDemoPreset, listDemoPresets } = require("../lib/demoPresets");
 const {
   DEMO_TEXT_CAP,
   DEMO_PORTRAIT_CAP,
+  getClientIp,
   checkAndIncrementDemoText,
   checkAndIncrementDemoPortrait,
   refundDemoText,
@@ -110,7 +111,8 @@ router.post("/generate", async (req, res) => {
       return res.status(400).json({ error: `Unknown preset '${presetKey}'.`, presets: listDemoPresets() });
     }
 
-    const usage = await checkAndIncrementDemoText(req.ip);
+    const clientIp = getClientIp(req);
+    const usage = await checkAndIncrementDemoText(clientIp);
     if (!usage.allowed) {
       return res.status(429).json({
         error: "You've used your free demo generations for today. Sign up to keep building — it only takes a minute.",
@@ -123,7 +125,7 @@ router.post("/generate", async (req, res) => {
       const result = category === "npcs" ? await generateDemoNpc(preset) : await generateDemoEnemy(preset);
       res.json(result);
     } catch (genErr) {
-      await refundDemoText(req.ip);
+      await refundDemoText(clientIp);
       throw genErr;
     }
   } catch (err) {
@@ -149,7 +151,8 @@ router.post("/generate-portrait", async (req, res) => {
       return res.status(400).json({ error: "subjectJson is required." });
     }
 
-    const usage = await checkAndIncrementDemoPortrait(req.ip);
+    const clientIp = getClientIp(req);
+    const usage = await checkAndIncrementDemoPortrait(clientIp);
     if (!usage.allowed) {
       return res.status(429).json({
         error: "You've used your free demo portrait for today. Sign up to keep building — it only takes a minute.",
@@ -171,7 +174,7 @@ router.post("/generate-portrait", async (req, res) => {
       const imageDataUrl = `data:${mimeType};base64,${buffer.toString("base64")}`;
       res.json({ imageDataUrl });
     } catch (genErr) {
-      await refundDemoPortrait(req.ip);
+      await refundDemoPortrait(clientIp);
       throw genErr;
     }
   } catch (err) {
