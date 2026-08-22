@@ -55,7 +55,15 @@ class FakeQuery {
   _run() {
     const rows = db[this.table];
     if (this.op.type === "insert") {
-      const row = { ...this.op.row, id: rows.length + 1 };
+      // Every real table this fake backs has a `uuid` primary key (see
+      // migrations/*.sql) -- callers that compare an inserted row's id
+      // against a route param (a string, e.g. req.params.id) rely on
+      // that id being a string too. A bare numeric counter broke
+      // strict === comparisons in matches() the moment a test round-
+      // tripped an id through an HTTP route (scripts/testEntryDrift
+      // Suggestions.js's dismiss/apply calls) -- caught there, fixed
+      // here since every insert() caller shares this one fake.
+      const row = { ...this.op.row, id: `fake-${rows.length + 1}` };
       rows.push(row);
       return { data: this._single ? row : [row], error: null };
     }

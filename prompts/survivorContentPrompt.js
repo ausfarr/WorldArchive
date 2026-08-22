@@ -84,9 +84,13 @@ RELATIONSHIPS: at minimum, state a faction allegiance (or explicit "unaligned").
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, factionOptionsText, rosterContext, availableClasses, name, className, faction, existingContent, importSourceText, calendarContext }) {
+function buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, factionOptionsText, rosterContext, availableClasses, name, className, faction, existingContent, importSourceText, calendarContext, revisionNote }) {
+  // Session Prep Companion, Phase 7 -- see npcContentPrompt.js's identical comment.
+  const revisionBlock = revisionNote
+    ? `\nSPECIFIC REQUESTED UPDATE -- address this explicitly in your revision:\n${revisionNote}\n`
+    : "";
   const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n${revisionBlock}`
     : "";
 
   // Import path — same principle as prompts/npcContentPrompt.js's

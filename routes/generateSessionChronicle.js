@@ -34,6 +34,7 @@ const { getLoreContext } = require("../lib/loreContext");
 const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { validateWorldDate } = require("../lib/calendar");
 const { resolveReferencesForEntry } = require("../lib/entryLinker");
+const { validateImpliedUpdates } = require("../lib/sessionChronicleSuggestions");
 
 const router = express.Router();
 
@@ -132,6 +133,12 @@ router.post("/generate-session-chronicle", requireAiEnabled, enforceEntryCapOnGe
       sessionNumber,
       worldDate
     };
+    // Session Prep Companion, Phase 7 -- validated now (preview time) so
+    // the DM only ever sees implied updates that resolve to real
+    // entries; re-validated again at confirm time (lib/
+    // sessionChronicleSuggestions.js) since the archive can change in
+    // between.
+    log.impliedUpdates = await validateImpliedUpdates(worldId, proposal.impliedUpdates);
 
     const newBodyHtmlPreview = buildLogBodyHtml(log, calendarConfig);
     res.json({

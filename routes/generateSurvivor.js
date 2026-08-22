@@ -93,7 +93,7 @@ router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforc
 // ============================================================
 async function handleEchoesSurvivorGenerate(req, res) {
   const worldId = req.worldId;
-  let { name, className, faction, fillExistingId, importText } = req.body || {};
+  let { name, className, faction, fillExistingId, importText, revisionNote } = req.body || {};
   let existingEntry = null;
   let priorRaw = null;
   let priorBodyHtml = null;
@@ -131,7 +131,8 @@ async function handleEchoesSurvivorGenerate(req, res) {
     rosterContext, availableClasses, name, className, faction,
     existingContent: priorRaw,
     importSourceText: (!fillExistingId && importText && importText.trim()) ? importText.trim() : undefined,
-    calendarContext: formatCalendarContextForPrompt(calendarConfig)
+    calendarContext: formatCalendarContextForPrompt(calendarConfig),
+    revisionNote
   });
   let survivor = await callClaudeExpectingJson({
     systemPrompt: contentSystemPrompt,

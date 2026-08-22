@@ -1488,6 +1488,7 @@ function showFactionEditForm(entry) {
       </div>
       <div style="padding:24px 28px;">
         ${field("Name", "ef-name", raw.name)}
+        ${field("Status (optional)", "ef-status", raw.status, { placeholder: "e.g. active, collapsed, allied, hostile" })}
         ${field("Nickname / Epithet", "ef-nickname", raw.nickname)}
         ${field("Overview Quote", "ef-overviewQuote", raw.overviewQuote, { textarea: true, rows: 2 })}
         ${field("Core Philosophy", "ef-corePhilosophy", raw.corePhilosophy, { textarea: true, rows: 2 })}
@@ -1583,6 +1584,7 @@ function showFactionEditForm(entry) {
       id: raw.id,
       factionKey: raw.factionKey,
       name: val("ef-name"),
+      status: val("ef-status") || null,
       nickname: val("ef-nickname"),
       foundingDate: readWorldDateField("ef-foundingDate"),
       overviewQuote: val("ef-overviewQuote"),
@@ -1715,6 +1717,7 @@ function showNpcEditForm(entry) {
     ${efSelect("Role Archetype", "ef-roleArchetype", NPC_ROLE_ARCHETYPES.map((r) => `<option value="${r}" ${r === raw.roleArchetype ? "selected" : ""}>${r}</option>`).join(""))}
     <div id="ef-faction-wrap"></div>
     ${efField("Age", "ef-age", raw.age, { type: "number" })}
+    ${efField("Status (optional)", "ef-status", raw.status, { placeholder: "e.g. alive, dead, missing" })}
     ${efWorldDateField("Birth Date", "ef-birthDate", raw.birthDate)}
     ${efWorldDateField("Appointed Date", "ef-appointedDate", raw.appointedDate)}
     ${efWorldDateField("Death Date", "ef-deathDate", raw.deathDate)}
@@ -1759,6 +1762,7 @@ function showNpcEditForm(entry) {
       roleArchetype: val("ef-roleArchetype"),
       faction: val("ef-faction"),
       age: val("ef-age") ? Number(val("ef-age")) : raw.age,
+      status: val("ef-status") || null,
       birthDate: readWorldDateField("ef-birthDate"),
       appointedDate: readWorldDateField("ef-appointedDate"),
       deathDate: readWorldDateField("ef-deathDate"),
@@ -1898,6 +1902,7 @@ function showEnemyEditForm(entry) {
     ${efField("Name", "ef-name", raw.name)}
     <div id="ef-faction-wrap"></div>
     ${efSelect("Tier", "ef-tier", ENEMY_TIERS.map((t) => `<option value="${t}" ${t === raw.tier ? "selected" : ""}>${t}</option>`).join(""))}
+    ${efField("Status (Boss tier only)", "ef-status", raw.status, { placeholder: "e.g. active, defeated, fled" })}
     ${efField("Role", "ef-role", raw.role)}
     ${efField("Signature Quote (leave blank for Trash tier)", "ef-signatureQuote", raw.signatureQuote, { textarea: true, rows: 2 })}
     ${efField("Flavor", "ef-flavor", raw.flavor, { textarea: true })}
@@ -1933,6 +1938,7 @@ function showEnemyEditForm(entry) {
       name: val("ef-name"),
       faction: val("ef-faction") || null,
       tier: val("ef-tier"),
+      status: val("ef-tier") === "Boss" ? (val("ef-status") || null) : null,
       role: val("ef-role"),
       signatureQuote: val("ef-signatureQuote") || null,
       flavor: val("ef-flavor"),
@@ -2442,6 +2448,7 @@ function showItemEditForm(entry) {
       <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Quest Item</h3>
       ${efField("Where Found / Why It Matters", "ef-whereFoundWhyMatters", raw.whereFoundWhyMatters, { textarea: true })}
       <div id="ef-foundAtLocationId-wrap"></div>
+      ${efField("Status (optional)", "ef-status", raw.status, { placeholder: "e.g. intact, consumed, lost" })}
       ${efWorldDateField("Created Date", "ef-createdDate", raw.createdDate)}
       ${efWorldDateField("Discovered Date", "ef-discoveredDate", raw.discoveredDate)}
     </div>
@@ -2470,6 +2477,7 @@ function showItemEditForm(entry) {
       effect: category === "Consumable" ? val("ef-effect") : null,
       whereFoundWhyMatters: category === "QuestItem" ? val("ef-whereFoundWhyMatters") : null,
       foundAtLocationId: category === "QuestItem" ? (val("ef-foundAtLocationId") || null) : null,
+      status: category === "QuestItem" ? (val("ef-status") || null) : null,
       createdDate: category === "QuestItem" ? readWorldDateField("ef-createdDate") : null,
       discoveredDate: category === "QuestItem" ? readWorldDateField("ef-discoveredDate") : null,
       designNotes: val("ef-designNotes")
@@ -2559,6 +2567,7 @@ function showSurvivorEditForm(entry) {
       ${efField("Sanity", "ef-attr-sanity", attrs.sanity, { type: "number" })}
       ${efField("Fate", "ef-attr-fate", attrs.fate, { type: "number" })}
     </div>
+    ${efField("Status (optional)", "ef-status", raw.status, { placeholder: "e.g. alive, dead, missing" })}
     ${efWorldDateField("Birth Date", "ef-birthDate", raw.birthDate)}
     ${efWorldDateField("Appointed Date", "ef-appointedDate", raw.appointedDate)}
     ${efWorldDateField("Death Date", "ef-deathDate", raw.deathDate)}
@@ -2597,6 +2606,7 @@ function showSurvivorEditForm(entry) {
       playerName: val("ef-playerName") || null,
       faction: val("ef-faction"),
       className: val("ef-className"),
+      status: val("ef-status") || null,
       birthDate: readWorldDateField("ef-birthDate"),
       appointedDate: readWorldDateField("ef-appointedDate"),
       deathDate: readWorldDateField("ef-deathDate"),

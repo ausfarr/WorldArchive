@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Timeline — The Archive</title>
+<title>Suggested Updates — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
 <script>
 (function() {
@@ -40,7 +40,7 @@
 })();
 </script>
 </head>
-<body data-category="timeline">
+<body data-category="pending-updates">
 
 <header class="site-header">
   <div class="wrap">
@@ -74,12 +74,12 @@
 </header>
 
 <div class="wrap">
-  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span>Timeline</span></div>
-  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;">Timeline of Events</h1>
-  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;">A world-wide, chronological record -- confirmed Session Chronicles, dates resolved from Logs, and any Regenerate you chose to log as a real in-world event. Deterministic, never AI-generated. A richer calendar view is coming later; this is the plain list for now.</p>
+  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span>Suggested Updates</span></div>
+  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;">Suggested Updates</h1>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;">When a Session Chronicle or a Log's resolved date implies a real change to something already archived, it shows up here for review -- never applied automatically. Act on it (a quick status flip, or a pre-filled Regenerate you still confirm yourself) or dismiss it.</p>
 
-  <div id="tl-list"></div>
-  <p id="tl-list-empty" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">Nothing on the Timeline yet -- confirm a Session Chronicle, a Log with a resolved date, or opt a Regenerate into the Timeline to see events here.</p>
+  <div id="pu-list"></div>
+  <p id="pu-list-empty" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">No pending suggestions right now.</p>
 </div>
 
 <footer class="site-footer">
@@ -98,9 +98,9 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js?v=v1.0.0"></script>
 <script src="../js/render.js?v=v1.0.0"></script>
-<script src="../js/timeline.js?v=v1.0.0"></script>
+<script src="../js/pendingUpdates.js?v=v1.0.0"></script>
 <script>
-  initTimelinePage();
+  initPendingUpdatesPage();
 </script>
 
 </body>

@@ -22,7 +22,16 @@ const SCHEMA_DESCRIPTION = `{
   "context": "one sentence: what this record physically is (a journal entry, a scribe's account, a survivor's retelling) and who's presumed to have written it",
   "bodyText": "the in-setting prose account of the session, plain text with real line breaks -- written as if by an in-world witness/participant, not a DM's out-of-character summary. Cover what actually happened per the DM's recap notes below.",
   "faction": "one of this world's faction ids (see FACTIONS below), or null if this session doesn't center on one",
-  "designNotes": "1-2 sentences: what this session moved forward, and anything notable that deviated from what was planned"
+  "designNotes": "1-2 sentences: what this session moved forward, and anything notable that deviated from what was planned",
+  "impliedUpdates": [
+    {
+      "category": "npcs | factions | survivors | items",
+      "entryId": "a real id from THIS QUEST/CAMPAIGN'S ROSTER below -- never invent one",
+      "suggestionType": "status_flip | regenerate",
+      "targetStatus": "ONLY for suggestionType status_flip -- a short new status value (e.g. \\"dead\\", \\"missing\\", \\"hostile\\", \\"allied\\", \\"consumed\\"), else null",
+      "deltaText": "one sentence: what happened and why this entry should be updated, written as a revision instruction (e.g. \\"Died in the reactor collapse during Session 3 -- should reflect this.\\")"
+    }
+  ]
 }`;
 
 // STATIC — identical for every call, every world. Cached.
@@ -33,6 +42,8 @@ CRITICAL -- PLANNED VS. ACTUAL: if a SESSION PACKET (the prep plan for this sess
 VOICE: write bodyText as an in-world document, not a DM's out-of-character session summary -- present tense or past tense in-character retelling, grounded in this world's own tone (see SETTING/LORE below), not "the party did X, then Y."
 
 ANCHOR IT: reference real roster entries (NPCs/locations/etc.) that were actually part of this session wherever the recap notes name them -- don't invent new named characters/locations that weren't in the recap notes or the roster.
+
+IMPLIED UPDATES (impliedUpdates): if the recap notes clearly imply a real state change to a SPECIFIC existing roster entry (an NPC died, a faction lost territory, an item was consumed/lost, an ally turned hostile), surface it here as a suggestion -- NEVER apply it yourself, this only ever proposes. Most sessions imply zero or very few of these -- an empty array is normal and expected; don't force one. Only reference entryIds that are genuinely in THIS QUEST/CAMPAIGN'S ROSTER below, never invent one, and never suggest an update for something the recap notes don't actually support.
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;

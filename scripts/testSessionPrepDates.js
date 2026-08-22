@@ -132,7 +132,12 @@ async function main() {
   check("a pending_entry_updates row was created", pendingAfterFirstMention.length === 1);
   check("the suggestion targets the right entry/category/field", (() => {
     const row = pendingAfterFirstMention[0];
-    return row.entry_id === "miller-thom" && row.category === "npcs" && row.delta_text.includes("deathDate");
+    // listPendingUpdates() now maps rows through Phase 7's rowToUpdate()
+    // (lib/pendingEntryUpdatesRepo.js), which returns camelCase fields --
+    // entryId/deltaText, not the raw snake_case entry_id/delta_text this
+    // assertion originally checked back when this Phase 3 stub returned
+    // raw rows untouched.
+    return row.entryId === "miller-thom" && row.category === "npcs" && row.deltaText.includes("deathDate");
   })());
   check("the referenced NPC's deathDate is NOT silently written (still null)", (await getEntry(WORLD_ID, "npcs", "miller-thom")).raw.deathDate === null);
 

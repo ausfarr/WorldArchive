@@ -81,9 +81,17 @@ QUEST HOOK: only if the archetype is Quest-Giver, or a hook falls out naturally 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent, campaignContext, importSourceText, calendarContext }) {
+function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent, campaignContext, importSourceText, calendarContext, revisionNote }) {
+  // revisionNote: Session Prep Companion, Phase 7 -- a DM acting on a
+  // suggested update (lib/logDateSuggestions.js/lib/sessionChronicleSuggestions.js)
+  // pre-fills this regenerate with the suggestion's own delta_text, so
+  // the model addresses that specific implied change rather than just
+  // doing a generic freshen-up pass.
+  const revisionBlock = revisionNote
+    ? `\nSPECIFIC REQUESTED UPDATE -- address this explicitly in your revision:\n${revisionNote}\n`
+    : "";
   const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n${revisionBlock}`
     : "";
 
   // Import path: the user already has a character written up somewhere

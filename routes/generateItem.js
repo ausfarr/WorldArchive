@@ -77,7 +77,7 @@ router.post("/generate-item", requireAiEnabled, enforceGenerationCap, enforceEnt
 // ============================================================
 async function handleEchoesItemGenerate(req, res) {
   const worldId = req.worldId;
-  let { name, category, rarity, fillExistingId } = req.body || {};
+  let { name, category, rarity, fillExistingId, revisionNote } = req.body || {};
 
   if (!fillExistingId) {
     const result = await createNewItem(worldId, { name, category, rarity });
@@ -116,7 +116,7 @@ async function handleEchoesItemGenerate(req, res) {
   const weaponSkillsText = formatWeaponSkillsForPrompt(skillSystem);
   const calendarConfig = await getCalendarConfig(worldId);
 
-  const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent: priorRaw, calendarContext: formatCalendarContextForPrompt(calendarConfig) });
+  const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent: priorRaw, calendarContext: formatCalendarContextForPrompt(calendarConfig), revisionNote });
   let item = await callClaudeExpectingJson({
     systemPrompt: contentSystemPrompt,
     userMessage: "Generate the item now.",

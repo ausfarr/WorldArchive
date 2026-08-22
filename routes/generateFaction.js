@@ -21,14 +21,14 @@ async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
 router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
-    const { fillExistingId, name, concept } = req.body || {};
+    const { fillExistingId, name, concept, revisionNote } = req.body || {};
 
     if (fillExistingId) {
       // Existing faction -- expand/revise its Deep Lore. This always
       // goes through preview/confirm (routes/confirmEntry.js), same as
       // every other category's regenerate, since it's replacing content
       // a person may already be looking at.
-      let { faction, roundupRows, priorBodyHtml } = await generateFactionDeepLore(worldId, fillExistingId);
+      let { faction, roundupRows, priorBodyHtml } = await generateFactionDeepLore(worldId, fillExistingId, revisionNote);
       const linkResult = await resolveReferencesForEntry(worldId, "factions", faction);
       faction = linkResult.raw;
       const calendarConfig = await getCalendarConfig(worldId);

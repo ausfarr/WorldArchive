@@ -34,7 +34,7 @@ async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
 router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
-    let { name, role, faction, fillExistingId, importText } = req.body || {};
+    let { name, role, faction, fillExistingId, importText, revisionNote } = req.body || {};
 
     // Import path: no fillExistingId (brand new entry, same as a normal
     // "Generate New Entry"), but grounded in user-provided source text
@@ -135,7 +135,7 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     const calendarConfig = await getCalendarConfig(worldId);
 
     // Step 2: content generation
-    const contentSystemPrompt = buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent: priorRaw, calendarContext: formatCalendarContextForPrompt(calendarConfig) });
+    const contentSystemPrompt = buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent: priorRaw, calendarContext: formatCalendarContextForPrompt(calendarConfig), revisionNote });
     let npc = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",

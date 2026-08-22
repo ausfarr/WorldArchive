@@ -57,9 +57,13 @@ ${SCHEMA_DESCRIPTION}`;
 // economy/military/tensions, formatted as plain text — the equivalent of
 // the old hardcoded FACTION_SEEDS entry, but sourced from the world's own
 // data instead of Austin's hand-written Echoes seeds.
-function buildFactionContentSystemPrompt({ factionName, seedText, loreContext, roundupContext, otherFactionNames, existingContent, calendarContext }) {
+function buildFactionContentSystemPrompt({ factionName, seedText, loreContext, roundupContext, otherFactionNames, existingContent, calendarContext, revisionNote }) {
+  // Session Prep Companion, Phase 7 -- see npcContentPrompt.js's identical comment.
+  const revisionBlock = revisionNote
+    ? `\nSPECIFIC REQUESTED UPDATE -- address this explicitly in your revision:\n${revisionNote}\n`
+    : "";
   const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roundup/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roundup/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n${revisionBlock}`
     : "";
 
   const factionListBlock = (otherFactionNames || []).length
