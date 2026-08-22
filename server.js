@@ -45,7 +45,6 @@ const adminIngestSrdFullRoute = require("./routes/adminIngestSrdFull");
 const adminIngestSrdOriginsRoute = require("./routes/adminIngestSrdOrigins");
 const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
-const demoRoute = require("./routes/demo"); // unauthenticated demo generator -- see session_addendum_demo_mode_scope.md
 const stripeWebhookRoute = require("./routes/stripeWebhook");
 const billingRoute = require("./routes/billing");
 const { APP_VERSION } = require("./lib/version");
@@ -53,18 +52,17 @@ const { APP_VERSION } = require("./lib/version");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// CORRECTION (see lib/demoUsageRepo.js's getClientIp): this used to be
-// `app.set("trust proxy", 1)`, on the wrong assumption that Render's
-// edge was a single hop. In production it isn't -- traffic passes
-// through multiple layers (Cloudflare, then Render's own load balancer)
-// before reaching this app, confirmed via Render's own community
-// guidance, not just this project's earlier guess. Trusting only 1 hop
-// made Express read the WRONG entry out of X-Forwarded-For (the
-// closest-to-server end, walking back exactly 1 step) instead of the
-// real visitor, which is why routes/demo.js's per-IP cap misfired in
-// practice -- sometimes bypassed (a different intermediate hop's IP on
-// every request), sometimes an unlucky coincidental block, never the
-// real visitor consistently.
+// CORRECTION: this used to be `app.set("trust proxy", 1)`, on the wrong
+// assumption that Render's edge was a single hop. In production it isn't
+// -- traffic passes through multiple layers (Cloudflare, then Render's
+// own load balancer) before reaching this app, confirmed via Render's own
+// community guidance, not just this project's earlier guess. Trusting
+// only 1 hop made Express read the WRONG entry out of X-Forwarded-For
+// (the closest-to-server end, walking back exactly 1 step) instead of the
+// real visitor -- this used to misfire the now-removed unauthenticated
+// demo route's per-IP rate limiting in exactly this way (sometimes
+// bypassed, sometimes an unlucky coincidental block, never the real
+// visitor consistently).
 //
 // `true` trusts the whole chain and reads the LEFTMOST entry in
 // X-Forwarded-For as req.ip -- which matches Render's own documented
@@ -75,11 +73,6 @@ const PORT = process.env.PORT || 3000;
 // that header, so an end user has no path to inject a spoofed leftmost
 // entry the way they could on a host with no proxy in front at all.
 //
-// That said, routes/demo.js's actual per-IP rate limiting does NOT rely
-// on Express's req.ip/trust-proxy hop arithmetic at all anymore -- see
-// lib/demoUsageRepo.js's getClientIp(), which reads X-Forwarded-For's
-// first entry directly instead of trusting Express (and Render's own
-// undocumented, seemingly-not-fixed hop count) to agree on a number.
 // This setting still matters for Express's own req.protocol/req.secure
 // behind TLS termination, used elsewhere in the app.
 app.set("trust proxy", true);
@@ -113,6 +106,16 @@ app.get("/config.js", (req, res) => {
     `window.SUPABASE_CONFIG = ${JSON.stringify({
       url: process.env.SUPABASE_URL,
       publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY
+    })};\n` +
+    // Public Turnstile site key (not the secret) -- guards
+    // archive/js/auth.js's requireAuth() anonymous-signup call against
+    // scripted abuse. Undefined/empty until Austin creates a Turnstile
+    // site and sets this env var; auth.js treats a missing key as "skip
+    // the client-side token," relying on Supabase's own dashboard-side
+    // CAPTCHA requirement (once enabled) as the real enforcement point --
+    // see that file's comment.
+    `window.TURNSTILE_CONFIG = ${JSON.stringify({
+      siteKey: process.env.TURNSTILE_SITE_KEY || null
     })};`
   );
 });
@@ -133,12 +136,6 @@ app.get("/version.js", (req, res) => {
 // accepts cross-origin requests, from the separate chronicled.world
 // static site).
 app.use(waitlistRoute);
-
-// Unauthenticated demo generator -- same reasoning as waitlistRoute
-// above: no account/session exists yet, so this must stay outside the
-// resolveTenant gate below. See routes/demo.js's header and
-// session_addendum_demo_mode_scope.md for the full design.
-app.use("/api/demo", demoRoute);
 
 // Every /api route below expects req.worldId, set by resolveTenant after
 // verifying the request's Supabase JWT (see middleware/resolveTenant.js).
