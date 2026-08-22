@@ -16,6 +16,7 @@ const generateSessionPacketRoute = require("./routes/generateSessionPacket"); //
 const generateSessionChronicleRoute = require("./routes/generateSessionChronicle"); // Session Prep Companion, Phase 5
 const timelineRoute = require("./routes/timeline"); // Session Prep Companion, Phase 6
 const pendingUpdatesRoute = require("./routes/pendingUpdates"); // Session Prep Companion, Phase 7
+const calendarNotableDatesRoute = require("./routes/calendarNotableDates"); // Session Prep Companion, Phase 8
 const generateEntryImageRoute = require("./routes/generateEntryImage");
 const generateSpellRoute = require("./routes/generateSpell"); // multi-ruleset genericization, Phase 4 -- 5e-only category, no Echoes equivalent
 const npcCombatantRoute = require("./routes/npcCombatant"); // multi-ruleset genericization, Phase 7 -- NPC "Combatant" upgrade
@@ -172,6 +173,7 @@ app.use("/api", generateSessionPacketRoute);
 app.use("/api", generateSessionChronicleRoute);
 app.use("/api", timelineRoute);
 app.use("/api", pendingUpdatesRoute);
+app.use("/api", calendarNotableDatesRoute);
 app.use("/api", generateEntryImageRoute);
 app.use("/api", generateSpellRoute);
 app.use("/api", npcCombatantRoute);

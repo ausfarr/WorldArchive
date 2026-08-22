@@ -44,7 +44,17 @@ class FakeQuery {
     this.notNullFilters.push(col);
     return this;
   }
-  order() { return this; }
+  // Accumulates every .order() call (chained multi-column order, same as
+  // PostgREST -- lib/calendarNotableDatesRepo.js's listNotableDates()
+  // chains .order("month_index").order("day") and expects both to
+  // apply) instead of the previous no-op, which happened to look correct
+  // only because every earlier caller's single .order("created_at")
+  // coincided with insertion order anyway.
+  order(col, opts) {
+    this.orderBy = this.orderBy || [];
+    this.orderBy.push({ col, ascending: !opts || opts.ascending !== false });
+    return this;
+  }
   insert(row) { this.op = { type: "insert", row }; return this; }
   update(patch) { this.op = { type: "update", patch }; return this; }
   upsert(row, opts) { this.op = { type: "upsert", row, onConflict: (opts && opts.onConflict) || "" }; return this; }
@@ -75,6 +85,13 @@ class FakeQuery {
     if (this.op.type === "delete") {
       const targets = rows.filter((r) => matches(r, this.filters));
       db[this.table] = rows.filter((r) => !matches(r, this.filters));
+      // Same _single handling as insert/update above -- lib/calendar
+      // NotableDatesRepo.js's deleteNotableDate() chains
+      // .delete()...select().maybeSingle() and needs `data` to come back
+      // as one object-or-null (so "not found" reads as a falsy null),
+      // not an array that's truthy even when empty.
+      if (this._single === "maybe") return { data: targets[0] || null, error: null };
+      if (this._single === "required") return { data: targets[0], error: targets[0] ? null : { message: "not found" } };
       return { data: targets, error: null };
     }
     if (this.op.type === "upsert") {
@@ -95,6 +112,15 @@ class FakeQuery {
     // select
     let filtered = rows.filter((r) => matches(r, this.filters));
     if (this.notNullFilters) filtered = filtered.filter((r) => this.notNullFilters.every((col) => r[col] != null));
+    if (this.orderBy && this.orderBy.length) {
+      filtered = filtered.slice().sort((a, b) => {
+        for (const { col, ascending } of this.orderBy) {
+          if (a[col] < b[col]) return ascending ? -1 : 1;
+          if (a[col] > b[col]) return ascending ? 1 : -1;
+        }
+        return 0;
+      });
+    }
     if (this._single === "maybe") return { data: filtered[0] || null, error: null };
     if (this._single === "required") return { data: filtered[0], error: filtered[0] ? null : { message: "not found" } };
     return { data: filtered, error: null };
