@@ -16,16 +16,19 @@
 // more deliberate artifact than a routine NPC/Item; a DM should always
 // review it before it's archived.
 //
-// Quota/billing wiring (enforceGenerationCap) is deliberately NOT applied
-// here yet -- see this session's Phase 9, which wires this route into
-// the same 5-credit unit as every other generator (session_prep_
-// companion_scope.md Section 7.7). requireAiEnabled and
-// enforceEntryCapOnGenerate are both real gates already, though: the
-// account-level AI toggle and the per-world entry cap apply the same as
-// every other category from this phase onward.
+// Session Prep Companion, Phase 9 -- quota/billing wiring (scope doc
+// Section 7.7): a Session Packet generation costs the same as any other
+// generation, 1 unit = POINTS_PER_GENERATION (5) points, whether "new"
+// or a regenerate (fillExistingId set) -- same as every one of the 7
+// pre-existing generate routes, no special-casing for this category.
+// enforceGenerationCap must run BEFORE enforceEntryCapOnGenerate (see
+// that middleware's own header comment): it needs req.refundGeneration
+// to already exist so it can refund a charged-but-blocked-by-entry-cap
+// request rather than silently burning points for zero output.
 
 const express = require("express");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { getEntry } = require("../lib/entriesRepo");
@@ -129,7 +132,7 @@ async function buildContextAndPrompt(worldId, { questId, campaignId, concept }) 
   return { context, rosterLookup, systemPrompt };
 }
 
-router.post("/generate-session-packet", requireAiEnabled, enforceEntryCapOnGenerate, async (req, res) => {
+router.post("/generate-session-packet", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { questId, campaignId, fillExistingId, concept } = req.body || {};
@@ -193,6 +196,7 @@ router.post("/generate-session-packet", requireAiEnabled, enforceEntryCapOnGener
     });
   } catch (err) {
     console.error("Session Packet generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });

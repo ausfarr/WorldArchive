@@ -21,6 +21,7 @@
 
 const express = require("express");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
+const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { getEntry } = require("../lib/entriesRepo");
@@ -52,7 +53,7 @@ Planned beats:
 ${beats || "(none)"}`;
 }
 
-router.post("/generate-session-chronicle", requireAiEnabled, enforceEntryCapOnGenerate, async (req, res) => {
+router.post("/generate-session-chronicle", requireAiEnabled, async (req, res) => {
   try {
     const worldId = req.worldId;
     const { questId, campaignId, recapNotes, fillExistingId } = req.body || {};
@@ -82,9 +83,45 @@ router.post("/generate-session-chronicle", requireAiEnabled, enforceEntryCapOnGe
       return res.status(400).json({ error: "Recap notes are required to generate a Chronicle." });
     }
 
+    const sessionPacket = await findLatestSessionPacketFor(worldId, { questId: effectiveQuestId, campaignId: effectiveCampaignId });
+
+    // Session Prep Companion, Phase 9 -- quota/billing wiring (scope doc
+    // Section 7.7). The scope doc leaves open whether a Chronicle
+    // generation costs its own 5 credits or rides on the Packet it
+    // followed's charge; flagged assumption going into this phase (see
+    // its commit message): BUNDLED when a Session Packet already exists
+    // for this quest/campaign (coarse-grained -- "already exists" for
+    // this quest/campaign at all, not tied to a specific session number
+    // -- there's no per-session pairing mechanism between a Packet and
+    // the Chronicle that recaps it anywhere else in this codebase, and
+    // building one is out of scope for pinning down this billing
+    // question), STANDALONE-CHARGED (its own 5 credits, same unit as
+    // every other generation) when generated with no preceding Packet at
+    // all. Applies identically to new vs. regenerate (fillExistingId) --
+    // the bundling question is about whether a Packet already covered
+    // this quest/campaign's session-prep cost, not about which specific
+    // generation call this is.
+    //
+    // Calling enforceGenerationCap/enforceEntryCapOnGenerate directly
+    // (rather than as declarative route middleware) because the
+    // bundling decision needs effectiveQuestId/effectiveCampaignId --
+    // only known after resolving fillExistingId above -- and because
+    // enforceGenerationCap is itself conditional here, unlike every
+    // other generate route. Order still matters the same way it does
+    // everywhere else (see enforceEntryCap.js's own header comment):
+    // enforceGenerationCap first so its req.refundGeneration exists for
+    // enforceEntryCapOnGenerate to call if IT then blocks.
+    if (!sessionPacket) {
+      let proceeded = false;
+      await enforceGenerationCap(req, res, () => { proceeded = true; });
+      if (!proceeded) return; // enforceGenerationCap already sent the 403
+    }
+    let entryCapProceeded = false;
+    await enforceEntryCapOnGenerate(req, res, () => { entryCapProceeded = true; });
+    if (!entryCapProceeded) return; // already sent the 403 (and refunded points above if any were charged)
+
     const context = await assembleSessionContext(worldId, { questId: effectiveQuestId, campaignId: effectiveCampaignId });
     const rosterContext = formatRosterContextText(context);
-    const sessionPacket = await findLatestSessionPacketFor(worldId, { questId: effectiveQuestId, campaignId: effectiveCampaignId });
 
     const settingContext = await getSettingContext(worldId);
     const loreContext = await getLoreContext(worldId, { category: "logs" });
@@ -154,6 +191,7 @@ router.post("/generate-session-chronicle", requireAiEnabled, enforceEntryCapOnGe
     });
   } catch (err) {
     console.error("Session Chronicle generation failed:", err);
+    if (req.refundGeneration) await req.refundGeneration();
     res.status(500).json({ error: err.message });
   }
 });
