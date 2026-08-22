@@ -168,6 +168,20 @@ router.patch("/settings/ai-toggle", async (req, res) => {
   }
 });
 
+// v1.1 anonymous-by-default access: an anonymous Supabase session has no
+// email at all (req.userEmail is undefined), and Stripe Checkout needs a
+// real one to create a customer/send receipts. Shared across all three
+// checkout routes below rather than duplicated -- the only thing that
+// differs per route is the message.
+function requireRealEmail(req, res) {
+  if (req.userEmail) return true;
+  res.status(400).json({
+    error: "email_required",
+    message: "Add an email to your account first (Save Your World, from the account menu), then try again."
+  });
+  return false;
+}
+
 // Kicks off a Stripe Checkout Session for the single subscription plan.
 // Returns a URL the frontend redirects the browser to -- Stripe hosts
 // the actual payment form, nothing card-related ever touches our server.
@@ -175,6 +189,7 @@ router.post("/billing/checkout/subscribe", async (req, res) => {
   if (!BILLING_ENABLED) {
     return res.status(403).json({ error: "Billing isn't turned on yet." });
   }
+  if (!requireRealEmail(req, res)) return;
   try {
     const plan = await getPlan(DEFAULT_PLAN_ID);
     const existing = await getSubscription(req.userId);
@@ -202,6 +217,7 @@ router.post("/billing/checkout/credits", async (req, res) => {
   if (!BILLING_ENABLED) {
     return res.status(403).json({ error: "Billing isn't turned on yet." });
   }
+  if (!requireRealEmail(req, res)) return;
   try {
     const packs = parseInt(req.body.packs, 10);
     if (!Number.isInteger(packs) || packs < 1) {
@@ -241,6 +257,7 @@ router.post("/billing/checkout/entries", async (req, res) => {
   if (!BILLING_ENABLED) {
     return res.status(403).json({ error: "Billing isn't turned on yet." });
   }
+  if (!requireRealEmail(req, res)) return;
   try {
     const packs = parseInt(req.body.packs, 10);
     if (!Number.isInteger(packs) || packs < 1) {
