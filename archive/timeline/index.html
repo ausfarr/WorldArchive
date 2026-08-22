@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Campaigns — The Archive</title>
+<title>Timeline — The Archive</title>
 <link rel="stylesheet" href="../css/style.css">
 <script>
 (function() {
@@ -40,7 +40,7 @@
 })();
 </script>
 </head>
-<body data-category="campaign-arcs">
+<body data-category="timeline">
 
 <header class="site-header">
   <div class="wrap">
@@ -73,17 +73,12 @@
 </header>
 
 <div class="wrap">
-  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span id="crumb-label">Campaigns</span></div>
-  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;" id="page-title">Campaigns</h1>
-  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;" id="page-blurb">Multi-stage story arcs, each built from an ordered sequence of Quests.</p>
+  <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span>Timeline</span></div>
+  <h1 style="font-family: var(--font-display); text-transform: uppercase; margin: 20px 0 8px;">Timeline of Events</h1>
+  <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 24px;">A world-wide, chronological record -- confirmed Session Chronicles, dates resolved from Logs, and any Regenerate you chose to log as a real in-world event. Deterministic, never AI-generated. A richer calendar view is coming later; this is the plain list for now.</p>
 
-  <div class="sheet" style="margin: 0 0 24px; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-    <p style="margin: 0; color: var(--ink-dim); font-size: 0.9rem;">Sequence existing Quests by hand, or let the archive plan an arc from what's already here.</p>
-    <a href="builder.html" class="bm-btn" style="text-decoration: none; display: inline-block; background: var(--neon-primary); color: var(--bg-void); border: none; font-weight: 600;">New Campaign</a>
-  </div>
-
-  <div id="arc-list" class="entry-grid"></div>
-  <p id="arc-list-empty" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">No Campaigns yet — build your first one above.</p>
+  <div id="tl-list"></div>
+  <p id="tl-list-empty" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">Nothing on the Timeline yet -- confirm a Session Chronicle, a Log with a resolved date, or opt a Regenerate into the Timeline to see events here.</p>
 </div>
 
 <footer class="site-footer">
@@ -102,16 +97,9 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/js/auth.js?v=v1.0.0"></script>
 <script src="../js/render.js?v=v1.0.0"></script>
-<script src="../js/campaignArc.js?v=v1.0.0"></script>
+<script src="../js/timeline.js?v=v1.0.0"></script>
 <script>
-  requireAuth().then((session) => {
-    if (!session) return;
-    renderAuthStatus();
-    applySpellsNavVisibility();
-    applyCategoryConfig();
-    applySiteTheme();
-    loadAndRenderCampaignArcList();
-  });
+  initTimelinePage();
 </script>
 
 </body>

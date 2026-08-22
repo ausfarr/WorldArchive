@@ -897,6 +897,26 @@ function showRegeneratePreview(data) {
     ? data.oldBodyHtmlPreview
     : `<p style="color: var(--ink-faint); font-style: italic;">No prior structured content on record for this entry (it predates the regenerate feature) — only the new version is shown below.</p>`;
 
+  // Session Prep Companion, Phase 6, Section 5a -- "log this to the
+  // Timeline?" toggle. Only offered for an actual Regenerate of an
+  // EXISTING entry (not a brand-new entry, and not logs/session-packets,
+  // which get their own deterministic Timeline triggers -- Chronicles/
+  // Log dates via Trigger 1/3, never this manual opt-in). Off by default,
+  // per the scope doc's "off for plain content Regenerates" default --
+  // a DM checks it only when this regenerate represents a real in-world
+  // state change (a death, a territory change) worth a Timeline entry.
+  const offersTimelineToggle = data.mode === "regenerate" && data.category !== "logs" && data.category !== "session-packets";
+  const timelineToggleHtml = offersTimelineToggle ? `
+    <div style="padding:16px 28px; border-top:1px solid var(--border-line-soft); background:var(--bg-panel-raised);">
+      <label style="display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:0.8rem; color:var(--ink);">
+        <input type="checkbox" id="regen-timeline-toggle"> Log this to the Timeline?
+      </label>
+      <div id="regen-timeline-fields" style="display:none; margin-top:10px;">
+        ${efField("What happened, in one line", "regen-timeline-summary", "", { placeholder: "e.g. Died in the reactor collapse" })}
+        <div id="regen-timeline-date"></div>
+      </div>
+    </div>` : "";
+
   const overlay = document.createElement("div");
   overlay.id = "regen-preview-overlay";
   overlay.style.cssText = "position:fixed; inset:0; background:rgba(10,11,13,0.92); z-index:1000; overflow:auto; padding:40px 20px;";
@@ -916,6 +936,7 @@ function showRegeneratePreview(data) {
           <div>${data.newBodyHtmlPreview}</div>
         </div>
       </div>
+      ${timelineToggleHtml}
       <div style="padding:20px 28px; border-top:1px solid var(--border-line-soft); display:flex; gap:12px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
         <p id="regen-status" style="font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-faint); margin:0; display:none;"></p>
         <button id="regen-discard" type="button" style="background:var(--bg-panel-raised); border:1px solid var(--border-line); color:var(--ink-dim); padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer;">Discard</button>
@@ -924,6 +945,13 @@ function showRegeneratePreview(data) {
     </div>
   `;
   document.body.appendChild(overlay);
+
+  if (offersTimelineToggle) {
+    document.getElementById("regen-timeline-date").innerHTML = efWorldDateField("Date of this event", "regen-timeline-worlddate", null);
+    document.getElementById("regen-timeline-toggle").addEventListener("change", (e) => {
+      document.getElementById("regen-timeline-fields").style.display = e.target.checked ? "block" : "none";
+    });
+  }
 
   const close = () => overlay.remove();
   document.getElementById("regen-discard").onclick = close;
@@ -936,10 +964,14 @@ function showRegeneratePreview(data) {
     status.style.display = "block";
     status.textContent = "Writing to the archive…";
     try {
+      const timelineToggle = document.getElementById("regen-timeline-toggle");
+      const timelineEvent = (timelineToggle && timelineToggle.checked)
+        ? { summary: document.getElementById("regen-timeline-summary").value, worldDate: readWorldDateField("regen-timeline-worlddate") }
+        : undefined;
       const res = await authFetch("/api/confirm-entry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: data.category, entry: data.entry })
+        body: JSON.stringify({ category: data.category, entry: data.entry, timelineEvent })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || result.error || "Save failed");
