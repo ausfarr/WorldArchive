@@ -1242,6 +1242,44 @@ function efSelect(label, id, optionsHtml) {
     </div>`;
 }
 
+// Session Prep Companion, Phase 3 -- a WorldDate field editor
+// ({ year, monthIndex, day } or null), reused across every category's
+// edit form that got a new date field this phase (Factions/NPCs/PCs/
+// Items/Logs). Three plain number inputs rather than a calendar picker
+// widget -- this world's own month names/lengths live in calendar_config,
+// not in this file, and building a full date-picker component against
+// per-world calendar data is out of scope for what's otherwise a single
+// optional flavor field; a DM who cares about exact placement can always
+// cross-reference the Settings-page calendar editor (Phase 2).
+// idPrefix becomes "${idPrefix}-year"/"-month"/"-day" input ids; readWorldDateField
+// reads them back, returning null if the year field was left blank
+// (the field is optional everywhere it's used) or any value fails to parse.
+function efWorldDateField(label, idPrefix, date) {
+  const style = "background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 100px;";
+  const y = date && Number.isInteger(date.year) ? date.year : "";
+  const m = date && Number.isInteger(date.monthIndex) ? date.monthIndex : "";
+  const d = date && Number.isInteger(date.day) ? date.day : "";
+  return `
+    <div style="margin-bottom: 14px;">
+      <label style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label} <span style="text-transform:none; letter-spacing:normal;">(optional -- Year / Month index / Day, per this world's calendar)</span></label>
+      <div style="display:flex; gap:8px;">
+        <input id="${idPrefix}-year" type="number" placeholder="Year" value="${y}" style="${style}">
+        <input id="${idPrefix}-month" type="number" placeholder="Month #" min="0" value="${m}" style="${style}">
+        <input id="${idPrefix}-day" type="number" placeholder="Day" min="1" value="${d}" style="${style}">
+      </div>
+    </div>`;
+}
+
+function readWorldDateField(idPrefix) {
+  const yearEl = document.getElementById(`${idPrefix}-year`);
+  if (!yearEl || yearEl.value === "") return null;
+  const year = parseInt(yearEl.value, 10);
+  const monthIndex = parseInt(document.getElementById(`${idPrefix}-month`).value, 10);
+  const day = parseInt(document.getElementById(`${idPrefix}-day`).value, 10);
+  if (!Number.isInteger(year) || !Number.isInteger(monthIndex) || !Number.isInteger(day)) return null;
+  return { year, monthIndex, day };
+}
+
 // v0.9 Manual Mode, Piece 2 -- "✨ Help me" wiring. A single delegated
 // listener on `document` (registered once, at script load, below)
 // rather than per-overlay wiring, so it works for every edit overlay
@@ -1420,6 +1458,7 @@ function showFactionEditForm(entry) {
         ${field("Nickname / Epithet", "ef-nickname", raw.nickname)}
         ${field("Overview Quote", "ef-overviewQuote", raw.overviewQuote, { textarea: true, rows: 2 })}
         ${field("Core Philosophy", "ef-corePhilosophy", raw.corePhilosophy, { textarea: true, rows: 2 })}
+        ${efWorldDateField("Founding Date", "ef-foundingDate", raw.foundingDate)}
         ${field("Origin", "ef-origin", raw.origin, { textarea: true })}
         ${field("Structure &amp; Hierarchy", "ef-structureHierarchy", raw.structureHierarchy, { textarea: true })}
         ${field("Territory", "ef-territory", raw.territory, { textarea: true })}
@@ -1512,6 +1551,7 @@ function showFactionEditForm(entry) {
       factionKey: raw.factionKey,
       name: val("ef-name"),
       nickname: val("ef-nickname"),
+      foundingDate: readWorldDateField("ef-foundingDate"),
       overviewQuote: val("ef-overviewQuote"),
       corePhilosophy: val("ef-corePhilosophy"),
       origin: val("ef-origin"),
@@ -1642,6 +1682,9 @@ function showNpcEditForm(entry) {
     ${efSelect("Role Archetype", "ef-roleArchetype", NPC_ROLE_ARCHETYPES.map((r) => `<option value="${r}" ${r === raw.roleArchetype ? "selected" : ""}>${r}</option>`).join(""))}
     <div id="ef-faction-wrap"></div>
     ${efField("Age", "ef-age", raw.age, { type: "number" })}
+    ${efWorldDateField("Birth Date", "ef-birthDate", raw.birthDate)}
+    ${efWorldDateField("Appointed Date", "ef-appointedDate", raw.appointedDate)}
+    ${efWorldDateField("Death Date", "ef-deathDate", raw.deathDate)}
     ${efField("Signature Quote", "ef-signatureQuote", raw.signatureQuote, { textarea: true, rows: 2 })}
     ${efField("Physical Description", "ef-physicalDescription", raw.physicalDescription, { textarea: true })}
     ${efField("Traits (comma-separated)", "ef-traits", (raw.traits || []).join(", "))}
@@ -1683,6 +1726,9 @@ function showNpcEditForm(entry) {
       roleArchetype: val("ef-roleArchetype"),
       faction: val("ef-faction"),
       age: val("ef-age") ? Number(val("ef-age")) : raw.age,
+      birthDate: readWorldDateField("ef-birthDate"),
+      appointedDate: readWorldDateField("ef-appointedDate"),
+      deathDate: readWorldDateField("ef-deathDate"),
       signatureQuote: val("ef-signatureQuote"),
       physicalDescription: val("ef-physicalDescription"),
       traits: val("ef-traits").split(",").map((t) => t.trim()).filter(Boolean),
@@ -1932,6 +1978,7 @@ function showLogEditForm(entry) {
     ${efField("Context", "ef-context", raw.context, { textarea: true, rows: 2 })}
     ${efField("Body Text", "ef-bodyText", raw.bodyText, { textarea: true, rows: 10 })}
     <div id="ef-faction-wrap"></div>
+    ${efWorldDateField("Resolved In-World Date", "ef-resolvedDate", raw.resolvedDate)}
     ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
   `;
 
@@ -1948,6 +1995,7 @@ function showLogEditForm(entry) {
       context: val("ef-context"),
       bodyText: val("ef-bodyText"),
       faction: val("ef-faction") || null,
+      resolvedDate: readWorldDateField("ef-resolvedDate"),
       designNotes: val("ef-designNotes")
     };
 
@@ -2361,6 +2409,8 @@ function showItemEditForm(entry) {
       <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Quest Item</h3>
       ${efField("Where Found / Why It Matters", "ef-whereFoundWhyMatters", raw.whereFoundWhyMatters, { textarea: true })}
       <div id="ef-foundAtLocationId-wrap"></div>
+      ${efWorldDateField("Created Date", "ef-createdDate", raw.createdDate)}
+      ${efWorldDateField("Discovered Date", "ef-discoveredDate", raw.discoveredDate)}
     </div>
     ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
   `;
@@ -2387,6 +2437,8 @@ function showItemEditForm(entry) {
       effect: category === "Consumable" ? val("ef-effect") : null,
       whereFoundWhyMatters: category === "QuestItem" ? val("ef-whereFoundWhyMatters") : null,
       foundAtLocationId: category === "QuestItem" ? (val("ef-foundAtLocationId") || null) : null,
+      createdDate: category === "QuestItem" ? readWorldDateField("ef-createdDate") : null,
+      discoveredDate: category === "QuestItem" ? readWorldDateField("ef-discoveredDate") : null,
       designNotes: val("ef-designNotes")
     };
 
@@ -2474,6 +2526,9 @@ function showSurvivorEditForm(entry) {
       ${efField("Sanity", "ef-attr-sanity", attrs.sanity, { type: "number" })}
       ${efField("Fate", "ef-attr-fate", attrs.fate, { type: "number" })}
     </div>
+    ${efWorldDateField("Birth Date", "ef-birthDate", raw.birthDate)}
+    ${efWorldDateField("Appointed Date", "ef-appointedDate", raw.appointedDate)}
+    ${efWorldDateField("Death Date", "ef-deathDate", raw.deathDate)}
     ${efField("Backstory", "ef-backstory", raw.backstory, { textarea: true })}
     <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Personality</h3>
     ${efField("Trait", "ef-personality-trait", personality.trait)}
@@ -2509,6 +2564,9 @@ function showSurvivorEditForm(entry) {
       playerName: val("ef-playerName") || null,
       faction: val("ef-faction"),
       className: val("ef-className"),
+      birthDate: readWorldDateField("ef-birthDate"),
+      appointedDate: readWorldDateField("ef-appointedDate"),
+      deathDate: readWorldDateField("ef-deathDate"),
       attributes: {
         body: Number(val("ef-attr-body")) || 0,
         reflex: Number(val("ef-attr-reflex")) || 0,

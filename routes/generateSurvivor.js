@@ -58,6 +58,8 @@ const { computeDerivedStats } = require("../lib/rulesets/generic/statFormulas");
 const { buildHomebrewSurvivorSystemPrompt: buildHomebrewGenericSurvivorSystemPrompt } = require("../prompts/rulesets/generic/survivorContentPrompt");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { getCalendarConfig } = require("../lib/worldConfigRepo");
+const { formatCalendarContextForPrompt, resolveRegeneratedDate } = require("../lib/calendar");
 
 const router = express.Router();
 
@@ -122,12 +124,14 @@ async function handleEchoesSurvivorGenerate(req, res) {
   const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
   const fieldSkillsText = formatFieldSkillsForPrompt(await getSkillSystem(worldId));
   const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+  const calendarConfig = await getCalendarConfig(worldId);
 
   const contentSystemPrompt = buildSurvivorContentSystemPrompt({
     settingContext, loreContext, statLabelsText, fieldSkillsText, factionOptionsText,
     rosterContext, availableClasses, name, className, faction,
     existingContent: priorRaw,
-    importSourceText: (!fillExistingId && importText && importText.trim()) ? importText.trim() : undefined
+    importSourceText: (!fillExistingId && importText && importText.trim()) ? importText.trim() : undefined,
+    calendarContext: formatCalendarContextForPrompt(calendarConfig)
   });
   let survivor = await callClaudeExpectingJson({
     systemPrompt: contentSystemPrompt,
@@ -138,13 +142,19 @@ async function handleEchoesSurvivorGenerate(req, res) {
   if (fillExistingId) survivor.id = fillExistingId;
   if (existingEntry) survivor.name = existingEntry.name;
   if (faction) survivor.faction = faction;
+  // Session Prep Companion, Phase 3 -- model proposes, code validates; a
+  // regenerate falls back to whatever was already set if this revision
+  // omits/garbles it.
+  survivor.birthDate = resolveRegeneratedDate(survivor.birthDate, calendarConfig, priorRaw && priorRaw.birthDate);
+  survivor.appointedDate = resolveRegeneratedDate(survivor.appointedDate, calendarConfig, priorRaw && priorRaw.appointedDate);
+  survivor.deathDate = resolveRegeneratedDate(survivor.deathDate, calendarConfig, priorRaw && priorRaw.deathDate);
 
   const echoesLinkResult = await resolveReferencesForEntry(worldId, "survivors", survivor);
   survivor = echoesLinkResult.raw;
 
   if (mode === "regenerate") {
     const statLabels = await getStatLabels(worldId);
-    const newBodyHtmlPreview = buildSurvivorBodyHtml(survivor, null, null, statLabels);
+    const newBodyHtmlPreview = buildSurvivorBodyHtml(survivor, null, null, statLabels, calendarConfig);
     return res.json({
       preview: true,
       mode: "regenerate",

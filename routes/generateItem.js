@@ -30,6 +30,8 @@ const { buildItemBodyHtml: buildItemBodyHtmlGeneric } = require("../lib/rulesets
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 const { generateHomebrewGenericItem } = require("../lib/rulesets/generic/homebrewItemGenerator");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { getCalendarConfig } = require("../lib/worldConfigRepo");
+const { formatCalendarContextForPrompt, resolveRegeneratedDate } = require("../lib/calendar");
 
 const router = express.Router();
 
@@ -112,8 +114,9 @@ async function handleEchoesItemGenerate(req, res) {
   const statLabelsText = formatStatLabelsForPrompt(await getStatLabels(worldId));
   const skillSystem = await getSkillSystem(worldId);
   const weaponSkillsText = formatWeaponSkillsForPrompt(skillSystem);
+  const calendarConfig = await getCalendarConfig(worldId);
 
-  const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent: priorRaw });
+  const contentSystemPrompt = buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent: priorRaw, calendarContext: formatCalendarContextForPrompt(calendarConfig) });
   let item = await callClaudeExpectingJson({
     systemPrompt: contentSystemPrompt,
     userMessage: "Generate the item now.",
@@ -121,6 +124,17 @@ async function handleEchoesItemGenerate(req, res) {
   });
   item.id = fillExistingId || item.id || slugify(item.name);
   if (existingEntry) item.name = existingEntry.name;
+
+  // Session Prep Companion, Phase 3 -- QuestItem sub-type only, per the
+  // scope doc's explicit "not routine gear" scoping; every other category
+  // is forced null regardless of what the model returned.
+  if (item.category === "QuestItem") {
+    item.createdDate = resolveRegeneratedDate(item.createdDate, calendarConfig, priorRaw && priorRaw.createdDate);
+    item.discoveredDate = resolveRegeneratedDate(item.discoveredDate, calendarConfig, priorRaw && priorRaw.discoveredDate);
+  } else {
+    item.createdDate = null;
+    item.discoveredDate = null;
+  }
 
   // Defensive clamp - model occasionally drifts slightly outside the stated range
   if (item.category === "Weapon" && item.weaponSkill && item.damageMin != null && item.damageMax != null) {
@@ -142,7 +156,7 @@ async function handleEchoesItemGenerate(req, res) {
   item = echoesLinkResult.raw;
 
   if (mode === "regenerate") {
-    const newBodyHtmlPreview = buildItemBodyHtml(item);
+    const newBodyHtmlPreview = buildItemBodyHtml(item, null, calendarConfig);
     return res.json({
       preview: true,
       mode: "regenerate",

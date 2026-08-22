@@ -47,7 +47,9 @@ const SCHEMA_DESCRIPTION = `{
   "effect": "plain description of what it does — Consumable category only, else null",
   "whereFoundWhyMatters": "2-3 sentences: location/context and narrative significance — QuestItem category only, else null",
   "foundAtLocationId": "an id from LOCATIONS below if an already-archived Location genuinely matches where this was found, else null -- do not invent one; fine and expected to be null if nothing fits or none archived yet — QuestItem category only, else null",
-  "designNotes": "1 sentence: how this avoids duplicating a named item, Legendary effect, or quest item already generated"
+  "designNotes": "1 sentence: how this avoids duplicating a named item, Legendary effect, or quest item already generated",
+  "createdDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- QuestItem category ONLY, and only if this item was crafted/made rather than found -- when it was created, if that's meaningful to the item's story; else null. Always null for Weapon/Armor/Consumable.",
+  "discoveredDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- QuestItem category ONLY, and only if whereFoundWhyMatters implies a specific discovery date worth recording; else null. Always null for Weapon/Armor/Consumable."
 }`;
 
 const WEAPON_ROLL_RANGES_TEXT = `| Weapon Skill | Example Types | WEAPON_ROLL range |
@@ -85,7 +87,7 @@ ARMOR (Armor category only): pick an effectorTier 1 (light) to 4 (heavy) reflect
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent, campaignContext }) {
+function buildItemContentSystemPrompt({ settingContext, loreContext, statLabelsText, weaponSkillsText, rosterContext, locationRosterText, name, category, rarity, existingContent, campaignContext, calendarContext }) {
   const regenerateBlock = existingContent
     ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
     : "";
@@ -108,6 +110,9 @@ ${loreContext || "(no lore saved yet for this world — invent details consisten
 ${regenerateBlock}
 EXISTING ROSTER (avoid repeating a named item, and ESPECIALLY avoid repeating a Legendary unique effect already used):
 ${rosterContext}
+
+CALENDAR (for createdDate/discoveredDate -- QuestItem category only):
+${calendarContext || "(this world has no calendar configured yet -- return null for both date fields rather than inventing year/month numbers)"}
 
 USER INPUT:
 Name: ${name || "generate one fitting the category/rarity"}

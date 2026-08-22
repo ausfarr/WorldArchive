@@ -6,6 +6,7 @@ const { generateFactionDeepLore, createNewFaction, syncReciprocalRelationships }
 const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 const { saveFactionEntry } = require("../lib/fileWriter");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { getCalendarConfig } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
@@ -30,7 +31,8 @@ router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforce
       let { faction, roundupRows, priorBodyHtml } = await generateFactionDeepLore(worldId, fillExistingId);
       const linkResult = await resolveReferencesForEntry(worldId, "factions", faction);
       faction = linkResult.raw;
-      const newBodyHtmlPreview = buildFactionBodyHtml(faction, roundupRows);
+      const calendarConfig = await getCalendarConfig(worldId);
+      const newBodyHtmlPreview = buildFactionBodyHtml(faction, roundupRows, calendarConfig);
 
       return res.json({
         preview: true,

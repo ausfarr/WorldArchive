@@ -11,7 +11,8 @@ const { saveNpcEntry, saveImage } = require("../lib/fileWriter");
 const { slugify, buildBodyHtml } = require("../lib/entryTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, getFactionAccent } = require("../lib/worldFlavor");
-const { getStyleGuide, getRuleset } = require("../lib/worldConfigRepo");
+const { getStyleGuide, getRuleset, getCalendarConfig } = require("../lib/worldConfigRepo");
+const { formatCalendarContextForPrompt, resolveRegeneratedDate } = require("../lib/calendar");
 const { createNewNpc } = require("../lib/campaignEntryGenerators");
 const { DEFAULT_NPC_COMBAT_PROFILE } = require("../lib/rulesets/5e/npcCombatDefaults");
 const { buildDefaultCombatProfile: buildDefaultGenericCombatProfile } = require("../lib/rulesets/generic/npcCombatDefaults");
@@ -47,9 +48,11 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       const loreContext = await getLoreContext(worldId, { category: "npcs", faction });
       const settingContext = await getSettingContext(worldId);
       const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+      const calendarConfig = await getCalendarConfig(worldId);
       const contentSystemPrompt = buildNpcContentSystemPrompt({
         settingContext, loreContext, factionOptionsText, rosterContext,
-        name, role, faction, importSourceText: importText.trim()
+        name, role, faction, importSourceText: importText.trim(),
+        calendarContext: formatCalendarContextForPrompt(calendarConfig)
       });
       let npc = await callClaudeExpectingJson({
         systemPrompt: contentSystemPrompt,
@@ -58,6 +61,10 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
       });
       npc.id = npc.id || slugify(npc.name);
       if (faction) npc.faction = faction;
+      // Session Prep Companion, Phase 3 -- model proposes, code validates.
+      npc.birthDate = resolveRegeneratedDate(npc.birthDate, calendarConfig);
+      npc.appointedDate = resolveRegeneratedDate(npc.appointedDate, calendarConfig);
+      npc.deathDate = resolveRegeneratedDate(npc.deathDate, calendarConfig);
       // Phase 7 (multi-ruleset genericization): see
       // lib/campaignEntryGenerators.js's createNewNpc for the full
       // reasoning -- this import path bypasses that helper (needs
@@ -125,9 +132,10 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     const loreContext = await getLoreContext(worldId, { category: "npcs", faction });
     const settingContext = await getSettingContext(worldId);
     const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+    const calendarConfig = await getCalendarConfig(worldId);
 
     // Step 2: content generation
-    const contentSystemPrompt = buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent: priorRaw });
+    const contentSystemPrompt = buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent: priorRaw, calendarContext: formatCalendarContextForPrompt(calendarConfig) });
     let npc = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the NPC now.",
@@ -137,6 +145,13 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     // (other pages may already link to this id/display this name).
     npc.id = fillExistingId || npc.id || slugify(npc.name);
     if (existingEntry) npc.name = existingEntry.name;
+
+    // Session Prep Companion, Phase 3 -- model proposes, code validates;
+    // a regenerate that omits/garbles a previously-set date falls back to
+    // what was already there rather than silently wiping it.
+    npc.birthDate = resolveRegeneratedDate(npc.birthDate, calendarConfig, priorRaw && priorRaw.birthDate);
+    npc.appointedDate = resolveRegeneratedDate(npc.appointedDate, calendarConfig, priorRaw && priorRaw.appointedDate);
+    npc.deathDate = resolveRegeneratedDate(npc.deathDate, calendarConfig, priorRaw && priorRaw.deathDate);
 
     // A specific faction chosen by the user (dropdown selection, or an
     // existing entry being filled/regenerated) is a known fact, not a
@@ -177,7 +192,7 @@ router.post("/generate-npc", requireAiEnabled, enforceGenerationCap, enforceEntr
     npc = fillLinkResult.raw;
 
     if (mode === "regenerate") {
-      const newBodyHtmlPreview = buildBodyHtml(npc);
+      const newBodyHtmlPreview = buildBodyHtml(npc, null, calendarConfig);
       return res.json({
         preview: true,
         mode: "regenerate",

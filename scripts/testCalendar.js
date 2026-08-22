@@ -7,7 +7,7 @@
 //
 // Run with: node scripts/testCalendar.js
 
-const { formatWorldDate, validateWorldDate } = require("../lib/calendar");
+const { formatWorldDate, validateWorldDate, proposeAndValidateDate, formatCalendarContextForPrompt } = require("../lib/calendar");
 
 const failures = [];
 function check(label, condition) {
@@ -71,6 +71,22 @@ check("every rejection includes a human-readable reason", (() => {
   const r = validateWorldDate({ year: 812, monthIndex: 3, day: 1 }, calendarConfig);
   return r.valid === false && typeof r.reason === "string" && r.reason.length > 0;
 })());
+
+console.log("\nproposeAndValidateDate (Phase 3's model-proposes/code-validates helper):");
+check("passes through a valid proposed date unchanged", (() => {
+  const d = proposeAndValidateDate({ year: 812, monthIndex: 1, day: 15 }, calendarConfig);
+  return d && d.year === 812 && d.monthIndex === 1 && d.day === 15;
+})());
+check("drops an invalid proposed date to null rather than throwing", proposeAndValidateDate({ year: 812, monthIndex: 9, day: 1 }, calendarConfig) === null);
+check("passes through null as null", proposeAndValidateDate(null, calendarConfig) === null);
+check("drops a date when no calendar is configured", proposeAndValidateDate({ year: 1, monthIndex: 0, day: 1 }, null) === null);
+
+console.log("\nformatCalendarContextForPrompt:");
+check("includes era name and current date for a configured calendar", (() => {
+  const text = formatCalendarContextForPrompt(calendarConfig);
+  return text.includes("Age of Ash") && text.includes("Ashfall");
+})());
+check("tells the model to return null when no calendar exists yet", formatCalendarContextForPrompt(null).toLowerCase().includes("null"));
 
 console.log("\n== Result ==");
 if (failures.length === 0) {

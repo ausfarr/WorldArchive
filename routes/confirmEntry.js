@@ -15,7 +15,8 @@ const { syncReciprocalRelationships } = require("../lib/factionDeepLore");
 const { getEntry } = require("../lib/entriesRepo");
 const { checkEntryCap } = require("../middleware/enforceEntryCap");
 const { withLock } = require("../lib/asyncLock");
-const { getRuleset } = require("../lib/worldConfigRepo");
+const { getRuleset, getCalendarConfig } = require("../lib/worldConfigRepo");
+const { sanitizeEntryDateFields } = require("../lib/calendar");
 const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
 const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
 const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
@@ -27,16 +28,22 @@ const { saveGenericSurvivorEntry } = require("../lib/rulesets/generic/survivorRe
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { maybeCreateDateSuggestion, validateResolvedDateSubject } = require("../lib/logDateSuggestions");
 
 const router = express.Router();
 
 // Entry cross-linking (Phase 2) -- see lib/entryLinker.js. Called after
 // every successful save below (manual create, edit, and regenerate-
-// confirm all land here -- the single shared write path).
-async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+// confirm all land here -- the single shared write path). Also handles
+// Session Prep Companion, Phase 3, Section 6a's cross-entry date
+// suggestion for logs -- see lib/logDateSuggestions.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts, calendarConfig) {
   await backfillReferencesFromNewEntry(worldId, category, savedContent);
   for (const ghost of unresolvedGhosts || []) {
     await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+  if (category === "logs") {
+    await maybeCreateDateSuggestion(worldId, savedContent, calendarConfig);
   }
 }
 
@@ -89,7 +96,20 @@ router.post("/confirm-entry", async (req, res) => {
     // references that are now resolvable against the archive even if
     // they weren't at the original /generate-X call (see lib/entryLinker.js).
     const linkResult = await resolveReferencesForEntry(worldId, category, rawEntry);
-    const entry = linkResult.raw;
+    // Session Prep Companion, Phase 3 -- code validates before write on
+    // EVERY path that reaches this shared endpoint (regenerate-confirm,
+    // manual edit, manual create), not just at generation time -- see
+    // lib/calendar.js's sanitizeEntryDateFields for why this is the one
+    // place that guarantee can be made for all three uniformly.
+    const calendarConfig = await getCalendarConfig(worldId);
+    const entry = sanitizeEntryDateFields(category, linkResult.raw, calendarConfig);
+    // resolvedDateSubject isn't a date-shaped field itself (sanitizeEntryDateFields
+    // only cleans entry.resolvedDate above) -- validate it separately against
+    // the real archive so a hand-edited/malformed subject can't reach
+    // lib/logDateSuggestions.js's afterSave hook below.
+    if (category === "logs") {
+      entry.resolvedDateSubject = entry.resolvedDate ? (await validateResolvedDateSubject(worldId, entry.resolvedDateSubject) ? entry.resolvedDateSubject : null) : null;
+    }
 
     // v0.9 Manual Mode: this endpoint is now the creation point for
     // manually-made entries (see archive/js/render.js's
@@ -135,7 +155,7 @@ router.post("/confirm-entry", async (req, res) => {
         const roundupRows = await buildFactionRoundup(worldId, entry.factionKey);
         await saveFactionEntry(worldId, entry, roundupRows);
         await syncReciprocalRelationships(worldId, entry);
-        await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
+        await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig);
         return { status: 200, body: { saved: true, id: entry.id, category } };
       }
 
@@ -158,7 +178,7 @@ router.post("/confirm-entry", async (req, res) => {
           // so it's called directly here instead of assigned to `writer`.
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericEnemyEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -171,7 +191,7 @@ router.post("/confirm-entry", async (req, res) => {
           // to resolve keyAttribute's display label.
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericClassEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -181,7 +201,7 @@ router.post("/confirm-entry", async (req, res) => {
         else if (ruleset === "generic") {
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericItemEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -191,7 +211,7 @@ router.post("/confirm-entry", async (req, res) => {
         else if (ruleset === "generic") {
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericSurvivorEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -201,7 +221,7 @@ router.post("/confirm-entry", async (req, res) => {
 
       const imageUrl = HAS_PORTRAIT[category] ? getPortraitUrl(worldId, entry.id) : undefined;
       await writer(worldId, entry, imageUrl);
-      await afterSave(worldId, category, entry, linkResult.unresolvedGhosts);
+      await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig);
       return { status: 200, body: { saved: true, id: entry.id, category } };
     };
 
