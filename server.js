@@ -43,6 +43,7 @@ const adminWorldsRoute = require("./routes/adminWorlds");
 const adminIngestSrdRoute = require("./routes/adminIngestSrd");
 const adminIngestSrdFullRoute = require("./routes/adminIngestSrdFull");
 const adminIngestSrdOriginsRoute = require("./routes/adminIngestSrdOrigins");
+const adminSessionPrepRoute = require("./routes/adminSessionPrep"); // Session Prep Companion, Phase 1 -- admin sanity-check for lib/sessionAssembly.js
 const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
 const demoRoute = require("./routes/demo"); // unauthenticated demo generator -- see session_addendum_demo_mode_scope.md
@@ -194,6 +195,7 @@ app.use("/api", adminWorldsRoute);
 app.use("/api", adminIngestSrdRoute);
 app.use("/api", adminIngestSrdFullRoute);
 app.use("/api", adminIngestSrdOriginsRoute);
+app.use("/api", adminSessionPrepRoute);
 app.use("/api", debugCompareTextModelsRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 
