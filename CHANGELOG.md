@@ -21,6 +21,21 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fixed a shipped-but-incomplete fix: `searchEntries()` (`lib/entriesRepo.js`)
+  was still missing the `locked: false` filter.** `session_addendum_bug_audit_fixes_shipped.md`
+  documents "pushed `locked: false` into the query" for both `listEntries`
+  and `searchEntries`, but only `listEntries` actually got it — `searchEntries`
+  only received the `SEARCH_RESULT_LIMIT` cap from that same pass. Locked
+  rows are ghost placeholder stubs `lib/entryLinker.js`'s
+  `ensureGhostPlaceholder()` auto-creates whenever generated content
+  references an NPC/Location/etc. that doesn't exist yet — real `name`,
+  null `bodyHtml`/`subtitle`. Typing a referenced-but-never-generated
+  entry's name into the Archive-wide search bar surfaced it as a normal
+  result; clicking through landed on a blank dossier page, since
+  `renderDossier()` (`archive/js/render.js`) has no locked-entry handling
+  at all (unlike category grid pages, which render a "Fill In" card for
+  the same locked state). Now excluded, matching `listEntries`,
+  `countEntries`, and every `buildXRosterContext` in `lib/roster.js`.
 - **🔥 Production outage, fixed same-day: every generation for a subscribed
   account was 500ing with "Internal server error."** Traced via live
   Supabase logs to `check_and_spend_subscription_generation` throwing
