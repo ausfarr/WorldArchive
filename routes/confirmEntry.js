@@ -8,6 +8,7 @@ const {
   saveClassEntry,
   saveFactionEntry,
   saveLocationEntry,
+  saveSessionPacketEntry,
   getPortraitUrl
 } = require("../lib/fileWriter");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
@@ -58,6 +59,8 @@ const WRITERS = {
   logs: saveLogEntry,
   classes: saveClassEntry,
   locations: saveLocationEntry,
+  // Session Prep Companion, Phase 4 -- see routes/generateSessionPacket.js.
+  "session-packets": saveSessionPacketEntry,
   // "spells" -- only 5e has a `spells` registry entry today. Echoes/
   // generic worlds can never reach this writer since
   // requireCategoryAvailable already turned their /generate-spell

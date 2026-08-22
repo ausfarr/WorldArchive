@@ -22,7 +22,8 @@ const CATEGORY_LABELS = {
   spells: "Spells",
   logs: "Logs",
   survivors: "PCs",
-  locations: "Locations"
+  locations: "Locations",
+  "session-packets": "Session Packets"
 };
 
 // Shows the nav-spells link only for rulesets that actually have a
@@ -3423,6 +3424,12 @@ function renderWorldStatusPanel(manifests) {
 
   const enabledMap = getEnabledCategoriesFromCache();
   const rows = Object.keys(CATEGORY_LABELS)
+    // Session Packets (Session Prep Companion) isn't narrative worldbuilding
+    // content the way the other 8 categories are -- there's no sensible
+    // "target" count for it, and it shouldn't factor into "how complete is
+    // my world" the same way NPCs/Items/etc. do. Excluded here rather than
+    // given an arbitrary CATEGORY_TARGETS entry.
+    .filter((cat) => cat !== "session-packets")
     .filter((cat) => !enabledMap || enabledMap[cat] !== false)
     .map((cat) => {
       const list = (manifests[cat] || []).filter((e) => !e.locked);
