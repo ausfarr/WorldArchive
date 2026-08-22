@@ -17,7 +17,7 @@ What it actually does:
 - Everything gets auto-filed into a real browsable archive for your world — no manual wiki page setup, no copy-pasting into a doc.
 - AI portraits get generated to match, so entries aren't just text blocks.
 
-It's in beta and I'm still actively building it (one-person side project), so bugs happen and I'd genuinely rather hear about them than not. There's a free tier to try it (10 generations, no card) before any of that matters.
+It just hit v1.0 and I'm still actively building it (one-person side project), so bugs happen and I'd genuinely rather hear about them than not. There's a free tier to try it (10 generations, no card) before any of that matters.
 
 Happy to answer questions about how the consistency-grounding actually works under the hood if anyone's curious, or just show more examples — this sub is the reason I know what "internally consistent worldbuilding" actually has to mean in practice.
 
