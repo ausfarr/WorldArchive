@@ -33,6 +33,7 @@ const reference5eRoute = require("./routes/reference5e"); // R4 Phase 5 -- stati
 const wizardGenericSystemRoute = require("./routes/wizardGenericSystem");
 const wizardStyleGuideRoute = require("./routes/wizardStyleGuide");
 const wizardCategoryConfigRoute = require("./routes/wizardCategoryConfig");
+const wizardCalendarRoute = require("./routes/wizardCalendar"); // Session Prep Companion, Phase 2 -- minimal calendar
 const wizardReviewRoute = require("./routes/wizardReview");
 const entriesRoute = require("./routes/entries");
 const exportRoute = require("./routes/export");
@@ -184,6 +185,7 @@ app.use("/api", reference5eRoute);
 app.use("/api", wizardGenericSystemRoute);
 app.use("/api", wizardStyleGuideRoute);
 app.use("/api", wizardCategoryConfigRoute);
+app.use("/api", wizardCalendarRoute);
 app.use("/api", wizardReviewRoute);
 app.use("/api", entriesRoute);
 app.use("/api", exportRoute);
