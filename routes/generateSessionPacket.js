@@ -29,7 +29,7 @@ const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { enforceEntryCapOnGenerate } = require("../middleware/enforceEntryCap");
 const { callClaudeExpectingJson } = require("../lib/claude");
 const { getEntry } = require("../lib/entriesRepo");
-const { assembleSessionContext } = require("../lib/sessionAssembly");
+const { assembleSessionContext, formatRosterContextText } = require("../lib/sessionAssembly");
 const { buildSessionPacketSystemPrompt } = require("../prompts/sessionPacketPrompt");
 const { buildSessionPacketBodyHtml, slugify } = require("../lib/sessionPacketTemplate");
 const { getSettingContext } = require("../lib/worldFlavor");
@@ -57,18 +57,6 @@ function buildRosterLookup(context) {
     }
   }
   return lookup;
-}
-
-function buildRosterContextText(context) {
-  const lines = [];
-  for (const q of context.quests) {
-    if (context.quests.length > 1) lines.push(`-- Quest: ${q.quest.name} --`);
-    for (const ref of q.resolvedEntries) {
-      lines.push(`- id: ${ref.entryId} | ${ref.entry.name} (${ref.category})${ref.role ? ` — ${ref.role}` : ""}${ref.note ? `: ${ref.note}` : ""}`);
-    }
-  }
-  if (!lines.length) return "(this Quest/Campaign has no entries referenced yet -- the packet can only use general setting/lore context, not any tagged roster entries)";
-  return lines.join("\n");
 }
 
 function buildMapContextText(context) {
@@ -133,7 +121,7 @@ async function buildContextAndPrompt(worldId, { questId, campaignId, concept }) 
 
   const settingContext = await getSettingContext(worldId);
   const loreContext = await getLoreContext(worldId, {});
-  const rosterContext = buildRosterContextText(context);
+  const rosterContext = formatRosterContextText(context);
   const mapContext = buildMapContextText(context);
   const priorChroniclesContext = buildPriorChroniclesContextText(context, calendarConfig);
 
