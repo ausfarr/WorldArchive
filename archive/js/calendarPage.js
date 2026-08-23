@@ -94,7 +94,7 @@ function calTimelineEntryLink(ref) {
   return `<a href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}">${escapeHtmlForSearch(ref.category)}: ${escapeHtmlForSearch(ref.entryId)}</a>`;
 }
 
-const CAL_SOURCE_LABELS = { chronicle: "Session Chronicle", log_date: "Log", regenerate: "Regenerate" };
+const CAL_SOURCE_LABELS = { chronicle: "Session Chronicle", log_date: "Log", regenerate: "Regenerate", entry_date: "Entry Date" };
 
 function calShowDayDetail(monthIndex, day, dayIndex) {
   const hit = dayIndex[`${monthIndex}-${day}`] || { events: [], notableDates: [] };

@@ -18,7 +18,8 @@ function compareWorldDates(a, b) {
 const SOURCE_LABELS = {
   chronicle: "Session Chronicle",
   log_date: "Log",
-  regenerate: "Regenerate"
+  regenerate: "Regenerate",
+  entry_date: "Entry Date"
 };
 
 function timelineEntryLink(ref) {
