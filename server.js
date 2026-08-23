@@ -12,6 +12,11 @@ const generateClassRoute = require("./routes/generateClass");
 const generateFactionRoute = require("./routes/generateFaction");
 const generateLocationRoute = require("./routes/generateLocation");
 const generateProceduralRoute = require("./routes/generateProcedural");
+const generateSessionPacketRoute = require("./routes/generateSessionPacket"); // Session Prep Companion, Phase 4
+const generateSessionChronicleRoute = require("./routes/generateSessionChronicle"); // Session Prep Companion, Phase 5
+const timelineRoute = require("./routes/timeline"); // Session Prep Companion, Phase 6
+const pendingUpdatesRoute = require("./routes/pendingUpdates"); // Session Prep Companion, Phase 7
+const calendarNotableDatesRoute = require("./routes/calendarNotableDates"); // Session Prep Companion, Phase 8
 const generateEntryImageRoute = require("./routes/generateEntryImage");
 const generateSpellRoute = require("./routes/generateSpell"); // multi-ruleset genericization, Phase 4 -- 5e-only category, no Echoes equivalent
 const npcCombatantRoute = require("./routes/npcCombatant"); // multi-ruleset genericization, Phase 7 -- NPC "Combatant" upgrade
@@ -33,6 +38,7 @@ const reference5eRoute = require("./routes/reference5e"); // R4 Phase 5 -- stati
 const wizardGenericSystemRoute = require("./routes/wizardGenericSystem");
 const wizardStyleGuideRoute = require("./routes/wizardStyleGuide");
 const wizardCategoryConfigRoute = require("./routes/wizardCategoryConfig");
+const wizardCalendarRoute = require("./routes/wizardCalendar"); // Session Prep Companion, Phase 2 -- minimal calendar
 const wizardReviewRoute = require("./routes/wizardReview");
 const entriesRoute = require("./routes/entries");
 const exportRoute = require("./routes/export");
@@ -43,6 +49,7 @@ const adminWorldsRoute = require("./routes/adminWorlds");
 const adminIngestSrdRoute = require("./routes/adminIngestSrd");
 const adminIngestSrdFullRoute = require("./routes/adminIngestSrdFull");
 const adminIngestSrdOriginsRoute = require("./routes/adminIngestSrdOrigins");
+const adminSessionPrepRoute = require("./routes/adminSessionPrep"); // Session Prep Companion, Phase 1 -- admin sanity-check for lib/sessionAssembly.js
 const debugCompareTextModelsRoute = require("./routes/debugCompareTextModels");
 const waitlistRoute = require("./routes/waitlist");
 const stripeWebhookRoute = require("./routes/stripeWebhook");
@@ -159,6 +166,11 @@ app.use("/api", generateClassRoute);
 app.use("/api", generateFactionRoute);
 app.use("/api", generateLocationRoute);
 app.use("/api", generateProceduralRoute);
+app.use("/api", generateSessionPacketRoute);
+app.use("/api", generateSessionChronicleRoute);
+app.use("/api", timelineRoute);
+app.use("/api", pendingUpdatesRoute);
+app.use("/api", calendarNotableDatesRoute);
 app.use("/api", generateEntryImageRoute);
 app.use("/api", generateSpellRoute);
 app.use("/api", npcCombatantRoute);
@@ -180,6 +192,7 @@ app.use("/api", reference5eRoute);
 app.use("/api", wizardGenericSystemRoute);
 app.use("/api", wizardStyleGuideRoute);
 app.use("/api", wizardCategoryConfigRoute);
+app.use("/api", wizardCalendarRoute);
 app.use("/api", wizardReviewRoute);
 app.use("/api", entriesRoute);
 app.use("/api", exportRoute);
@@ -191,6 +204,7 @@ app.use("/api", adminWorldsRoute);
 app.use("/api", adminIngestSrdRoute);
 app.use("/api", adminIngestSrdFullRoute);
 app.use("/api", adminIngestSrdOriginsRoute);
+app.use("/api", adminSessionPrepRoute);
 app.use("/api", debugCompareTextModelsRoute);
 app.use(express.static(path.join(__dirname, "archive")));
 

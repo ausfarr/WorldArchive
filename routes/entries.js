@@ -19,7 +19,10 @@ const router = express.Router();
 // whether any given world's UI actually shows a Spells nav link -- that
 // frontend piece is Phase 11 scope, same as the 5e Bestiary's own
 // three-tier UI (see session_addendum_ruleset_genericization.md).
-const VALID_CATEGORIES = new Set(["factions", "npcs", "enemies", "classes", "items", "logs", "survivors", "locations", "spells"]);
+// "session-packets" added for the Session Prep Companion (Phase 4) --
+// browsable the same way every other category is, see
+// lib/sessionPacketTemplate.js/routes/generateSessionPacket.js.
+const VALID_CATEGORIES = new Set(["factions", "npcs", "enemies", "classes", "items", "logs", "survivors", "locations", "spells", "session-packets"]);
 
 function requireValidCategory(req, res, next) {
   if (!VALID_CATEGORIES.has(req.params.category)) {

@@ -11,15 +11,25 @@ const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
 const { createNewLog } = require("../lib/campaignEntryGenerators");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { getCalendarConfig } = require("../lib/worldConfigRepo");
+const { formatCalendarContextForPrompt, resolveRegeneratedDate } = require("../lib/calendar");
+const { buildKnownDatesContext } = require("../lib/dateContext");
+const { maybeCreateDateSuggestion, validateResolvedDateSubject } = require("../lib/logDateSuggestions");
 const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
-// Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
-async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
+// Entry cross-linking (Phase 2) -- see lib/entryLinker.js. Also creates a
+// suggested-update candidate when this Log resolved a NEW canonical date
+// for a specific existing entry (Session Prep Companion, Phase 3, Section
+// 6a) -- see lib/logDateSuggestions.js.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts, calendarConfig) {
   await backfillReferencesFromNewEntry(worldId, category, savedContent);
   for (const ghost of unresolvedGhosts || []) {
     await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
+  }
+  if (category === "logs") {
+    await maybeCreateDateSuggestion(worldId, savedContent, calendarConfig);
   }
 }
 
@@ -78,8 +88,10 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
     const loreContext = await getLoreContext(worldId, { category: "logs" });
     const settingContext = await getSettingContext(worldId);
     const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
+    const calendarConfig = await getCalendarConfig(worldId);
+    const knownDatesContext = await buildKnownDatesContext(worldId, calendarConfig);
 
-    const contentSystemPrompt = buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, locationRosterText, name, logType, existingContent: priorRaw });
+    const contentSystemPrompt = buildLogContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, locationRosterText, name, logType, existingContent: priorRaw, calendarContext: formatCalendarContextForPrompt(calendarConfig), knownDatesContext });
     let log = await callClaudeExpectingJson({
       systemPrompt: contentSystemPrompt,
       userMessage: "Generate the log now.",
@@ -88,11 +100,17 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
     log.id = fillExistingId || log.id || slugify(log.name);
     if (existingEntry) log.name = existingEntry.name;
 
+    // Session Prep Companion, Phase 3 -- model proposes, code validates.
+    // A regenerate that omits/garbles the date falls back to what was
+    // already resolved rather than silently wiping it.
+    log.resolvedDate = resolveRegeneratedDate(log.resolvedDate, calendarConfig, priorRaw && priorRaw.resolvedDate);
+    log.resolvedDateSubject = log.resolvedDate ? (await validateResolvedDateSubject(worldId, log.resolvedDateSubject) ? log.resolvedDateSubject : null) : null;
+
     const linkResult = await resolveReferencesForEntry(worldId, "logs", log);
     log = linkResult.raw;
 
     if (mode === "regenerate") {
-      const newBodyHtmlPreview = buildLogBodyHtml(log);
+      const newBodyHtmlPreview = buildLogBodyHtml(log, calendarConfig);
       return res.json({
         preview: true,
         mode: "regenerate",
@@ -107,7 +125,7 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
 
     // No image step - logs are text-only artifacts, no portrait in the real archive.
     await saveLogEntry(worldId, log);
-    await afterSave(worldId, "logs", log, linkResult.unresolvedGhosts);
+    await afterSave(worldId, "logs", log, linkResult.unresolvedGhosts, calendarConfig);
 
     res.json({
       preview: false,

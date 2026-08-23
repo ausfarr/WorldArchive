@@ -21,6 +21,25 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Session Prep Companion: a full pre-session-prep / post-session-recap
+  loop.** A real in-world calendar (minimal setup during World Setup,
+  plus a browsable month-grid Calendar page overlaying Timeline events
+  and DM-added recurring notable dates), generated Session Packets (Tier
+  B prep documents — scene beats, NPC voice reminders, a complications
+  deck) and Session Chronicles (in-setting recap journal entries, reusing
+  the Logs category), a world-wide deterministic Timeline of Events, a
+  persisted "Suggested Updates" queue surfacing narrative drift a
+  Chronicle implies but the archive hasn't caught up to yet, entry-level
+  status fields (alive/dead/active, carried forward automatically on
+  regenerate), and quota/billing wiring for both new generation routes
+  (a Chronicle bundles into the Packet it followed's charge when one
+  exists, standalone otherwise). Full detail, per-phase breakdown, and
+  what's still untested against a live world/live Supabase in
+  `session_addendum_session_prep_companion_shipped.md`. Six new
+  migrations (030-035, renumbered from 029-034 during merge with main —
+  see that addendum's note — to make room for main's own new
+  `migrations/029_split_generation_quotas.sql`) need to be applied by
+  hand before this goes live.
 - **Fixed a shipped-but-incomplete fix: `searchEntries()` (`lib/entriesRepo.js`)
   was still missing the `locked: false` filter.** `session_addendum_bug_audit_fixes_shipped.md`
   documents "pushed `locked: false` into the query" for both `listEntries`

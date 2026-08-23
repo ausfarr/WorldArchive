@@ -39,7 +39,8 @@ const SCHEMA_DESCRIPTION = `{
     { "faction": "name of another faction in this world", "stance": "e.g. Rivalry, Uneasy alliance, Open war, Trade partner", "why": "one concrete sentence" }
   ],
   "economyResources": "1 paragraph: how this faction sustains itself materially",
-  "joining": "1 paragraph: what it takes for an outsider to join or be absorbed, if that's even possible"
+  "joining": "1 paragraph: what it takes for an outsider to join or be absorbed, if that's even possible",
+  "foundingDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- a plausible in-world date this faction was founded, consistent with the calendar and world lore below (factions often predate the current campaign by years or decades -- that's expected and fine), or null if pinning down an exact date doesn't make sense for this faction's origin"
 }`;
 
 // STATIC — identical for every call, every world. Cached.
@@ -56,9 +57,13 @@ ${SCHEMA_DESCRIPTION}`;
 // economy/military/tensions, formatted as plain text — the equivalent of
 // the old hardcoded FACTION_SEEDS entry, but sourced from the world's own
 // data instead of Austin's hand-written Echoes seeds.
-function buildFactionContentSystemPrompt({ factionName, seedText, loreContext, roundupContext, otherFactionNames, existingContent }) {
+function buildFactionContentSystemPrompt({ factionName, seedText, loreContext, roundupContext, otherFactionNames, existingContent, calendarContext, revisionNote }) {
+  // Session Prep Companion, Phase 7 -- see npcContentPrompt.js's identical comment.
+  const revisionBlock = revisionNote
+    ? `\nSPECIFIC REQUESTED UPDATE -- address this explicitly in your revision:\n${revisionNote}\n`
+    : "";
   const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roundup/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roundup/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n${revisionBlock}`
     : "";
 
   const factionListBlock = (otherFactionNames || []).length
@@ -79,6 +84,9 @@ ${loreContext || "(no lore saved yet for this world — invent details consisten
 
 ROUNDUP — EVERYTHING ALREADY ARCHIVED FOR THIS FACTION (build around these, especially any named Faction Leader — never invent a competing leader):
 ${roundupContext}
+
+CALENDAR (for the foundingDate field):
+${calendarContext || "(this world has no calendar configured yet -- return null for foundingDate rather than inventing year/month numbers)"}
 ${regenerateBlock}`;
 
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);

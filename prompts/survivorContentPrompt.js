@@ -58,7 +58,10 @@ const SCHEMA_DESCRIPTION = `{
   "relationships": [
     { "type": "faction allegiance | rivalry/grudge | debt/obligation | historical connection | found-family, etc.", "toId": "an id from FACTIONS below, or an existing NPC/enemy/class/survivor id from the roster", "toCategory": "factions | npcs | enemies | classes | survivors", "toLabel": "the display name of that entry", "why": "one concrete sentence" }
   ],
-  "designNotes": "1 sentence: how this avoids repeating a Name+Class combo already in the roster"
+  "designNotes": "1 sentence: how this avoids repeating a Name+Class combo already in the roster",
+  "birthDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- ONLY if the backstory makes a specific birth year meaningful to pin down (most don't); null otherwise",
+  "appointedDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- ONLY if this PC holds a formally-appointed role (rare for a PC); null otherwise, which is the normal case",
+  "deathDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- ONLY if this PC is established as deceased (e.g. regenerating to reflect an in-fiction death); null for a currently-active PC, the normal/expected case"
 }`;
 
 // STATIC — identical for every call, every world. Cached.
@@ -81,9 +84,13 @@ RELATIONSHIPS: at minimum, state a faction allegiance (or explicit "unaligned").
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, factionOptionsText, rosterContext, availableClasses, name, className, faction, existingContent, importSourceText }) {
+function buildSurvivorContentSystemPrompt({ settingContext, loreContext, statLabelsText, fieldSkillsText, factionOptionsText, rosterContext, availableClasses, name, className, faction, existingContent, importSourceText, calendarContext, revisionNote }) {
+  // Session Prep Companion, Phase 7 -- see npcContentPrompt.js's identical comment.
+  const revisionBlock = revisionNote
+    ? `\nSPECIFIC REQUESTED UPDATE -- address this explicitly in your revision:\n${revisionNote}\n`
+    : "";
   const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n${revisionBlock}`
     : "";
 
   // Import path — same principle as prompts/npcContentPrompt.js's
@@ -115,6 +122,9 @@ ${loreContext || "(no lore saved yet for this world — invent details consisten
 ${regenerateBlock}${importBlock}
 EXISTING ROSTER (the same Name+Class pairing must not repeat — change the name or the class if it would collide; also avoid reusing a Bond; these are the only NPC/enemy/class/PC ids you may reference in relationships):
 ${rosterContext}
+
+CALENDAR (for birthDate/appointedDate/deathDate -- most PCs need none of these):
+${calendarContext || "(this world has no calendar configured yet -- return null for every date field rather than inventing year/month numbers)"}
 
 USER INPUT:
 Name: ${name || (importSourceText ? "use the name given in the source text above" : "generate one fitting the naming conventions")}

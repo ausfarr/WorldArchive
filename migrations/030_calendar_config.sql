@@ -1,0 +1,28 @@
+-- 030_calendar_config.sql
+--
+-- Session Prep Companion, Phase 2 -- minimal calendar (see
+-- session_prep_companion_scope.md Section 4a-i). Same home/pattern as
+-- stat_system_json/style_guide_json: a JSON column on world_config,
+-- read/written via lib/worldConfigRepo.js's
+-- getCalendarConfig/saveCalendarConfig.
+--
+-- Shape (all set together via the settings-page save action, see
+-- routes/wizardCalendar.js):
+--   {
+--     months: [{ name: string, days: number }, ...],
+--     days_per_week: number,
+--     weekday_names: [string, ...] | null,
+--     era_name: string,
+--     current_date: { year: number, month_index: number, day: number }
+--   }
+--
+-- null on every existing world until it's set (no backfill) -- every
+-- reader (lib/calendar.js's formatWorldDate/validateWorldDate) already
+-- treats a missing/malformed calendar_config as "not configured yet"
+-- rather than assuming a default shape.
+--
+-- APPLY BY HAND: no migration runner in this project -- run this against
+-- the Supabase project via the SQL Editor (or CLI) before this phase's
+-- code goes live.
+
+alter table world_config add column if not exists calendar_config jsonb;

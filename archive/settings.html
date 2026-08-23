@@ -25,6 +25,11 @@
       <a href="locations/index.html" id="nav-locations">Locations</a>
       <a href="campaigns/index.html" id="nav-quests">Quests</a>
       <a href="campaign-arcs/index.html" id="nav-campaign-arcs">Campaigns</a>
+      <a href="session-packets/index.html" id="nav-session-packets">Session Packets</a>
+      <a href="session-recap/index.html" id="nav-session-recap">Recap</a>
+      <a href="timeline/index.html" id="nav-timeline">Timeline</a>
+      <a href="pending-updates/index.html" id="nav-pending-updates">Suggestions</a>
+      <a href="calendar/index.html" id="nav-calendar">Calendar</a>
       <a href="map.html" id="nav-map">Map</a>
       <a href="world-info.html" id="nav-world-info">World Info</a>
       <a href="settings.html" id="nav-settings">Settings</a>
@@ -68,6 +73,54 @@
       </label>
     </div>
     <div id="export-world-status" style="margin-top: 10px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint);"></div>
+  </div>
+
+  <div class="info-section">
+    <h2>World Calendar</h2>
+    <p class="info-row">Used to date Session Chronicles and the Timeline of Events (Session Prep Companion). Set it up once -- generate a calendar fitting your world's tone, or enter your own.</p>
+    <div id="calendar-loading" class="info-row">Loading…</div>
+    <div id="calendar-editor" style="display:none;">
+      <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
+        <label style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim);">
+          Era name<br>
+          <input type="text" id="cal-era-name" placeholder="e.g. Age of Ash" style="margin-top:4px; background: var(--bg-void); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px; width: 220px;">
+        </label>
+        <label style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim);">
+          Days per week<br>
+          <input type="number" id="cal-days-per-week" min="1" max="20" style="margin-top:4px; background: var(--bg-void); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px; width: 100px;">
+        </label>
+        <label style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim); flex: 1; min-width: 220px;">
+          Weekday names (comma-separated, optional)<br>
+          <input type="text" id="cal-weekday-names" placeholder="e.g. Emberday, Ashday, ..." style="margin-top:4px; background: var(--bg-void); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px; width: 100%;">
+        </label>
+      </div>
+
+      <h3 style="font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; color: var(--ink-dim); margin: 20px 0 8px;">Months</h3>
+      <div id="cal-months-list"></div>
+      <button id="cal-add-month-btn" type="button" style="margin-top:8px; background: transparent; color: var(--ink-dim); border: 1px dashed var(--border-line); padding: 6px 12px; font-family: var(--font-mono); font-size: 0.78rem; cursor: pointer;">+ Add Month</button>
+
+      <h3 style="font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; color: var(--ink-dim); margin: 20px 0 8px;">Current World Date</h3>
+      <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end;">
+        <label style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim);">
+          Year<br>
+          <input type="number" id="cal-current-year" style="margin-top:4px; background: var(--bg-void); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px; width: 100px;">
+        </label>
+        <label style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim);">
+          Month<br>
+          <select id="cal-current-month" style="margin-top:4px; background: var(--bg-void); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px;"></select>
+        </label>
+        <label style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim);">
+          Day<br>
+          <input type="number" id="cal-current-day" min="1" style="margin-top:4px; background: var(--bg-void); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px; width: 100px;">
+        </label>
+      </div>
+
+      <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+        <button id="cal-generate-btn" style="background: transparent; color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer;">Generate For Me</button>
+        <button id="cal-save-btn" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer; font-weight: 600;">Save Calendar</button>
+      </div>
+      <div id="calendar-status" style="margin-top: 10px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint);"></div>
+    </div>
   </div>
 
   <div class="info-section" style="border-color: var(--danger, #c0392b);">
@@ -329,6 +382,163 @@ async function loadUsage() {
   window.history.replaceState({}, "", window.location.pathname);
 })();
 
+// ---------- World Calendar (Session Prep Companion, Phase 2) ----------
+// Escape-and-verify note: every value rendered back into innerHTML below
+// is either a fixed template string or a number formatted by this code
+// (String(index), a clamped integer) -- never a raw model/user string
+// interpolated into markup. Month/era/weekday NAMES are read back out of
+// <input>.value (never re-inserted as HTML), same discipline as every
+// other free-text field on this page.
+function renderMonthRow(index, month) {
+  const row = document.createElement("div");
+  row.style.cssText = "display:flex; gap:8px; align-items:center; margin-bottom:6px;";
+  row.dataset.index = String(index);
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.className = "cal-month-name";
+  nameInput.value = month.name || "";
+  nameInput.placeholder = "Month name";
+  nameInput.style.cssText = "background: var(--bg-void); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px; width: 220px;";
+  const daysInput = document.createElement("input");
+  daysInput.type = "number";
+  daysInput.className = "cal-month-days";
+  daysInput.min = "1";
+  daysInput.value = month.days || 30;
+  daysInput.style.cssText = "background: var(--bg-void); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 8px; width: 80px;";
+  const daysLabel = document.createElement("span");
+  daysLabel.style.cssText = "font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint);";
+  daysLabel.textContent = "days";
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.textContent = "Remove";
+  removeBtn.style.cssText = "background: transparent; color: var(--danger, #c0392b); border: 1px solid var(--border-line); padding: 5px 10px; font-family: var(--font-mono); font-size: 0.72rem; cursor: pointer;";
+  removeBtn.addEventListener("click", () => {
+    row.remove();
+    refreshCalMonthSelect();
+  });
+  row.appendChild(nameInput);
+  row.appendChild(daysInput);
+  row.appendChild(daysLabel);
+  row.appendChild(removeBtn);
+  return row;
+}
+
+function readMonthsFromEditor() {
+  return Array.from(document.querySelectorAll("#cal-months-list > div")).map((row) => ({
+    name: row.querySelector(".cal-month-name").value.trim() || "Unnamed Month",
+    days: parseInt(row.querySelector(".cal-month-days").value, 10) || 30
+  }));
+}
+
+function refreshCalMonthSelect() {
+  const select = document.getElementById("cal-current-month");
+  const prevValue = select.value;
+  select.innerHTML = "";
+  readMonthsFromEditor().forEach((m, i) => {
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = m.name;
+    select.appendChild(opt);
+  });
+  if (prevValue && Number(prevValue) < select.options.length) select.value = prevValue;
+}
+
+function populateCalendarEditor(calendarConfig) {
+  const cfg = calendarConfig || { months: [{ name: "Firstmonth", days: 30 }], days_per_week: 7, weekday_names: null, era_name: "", current_date: { year: 1, month_index: 0, day: 1 } };
+  document.getElementById("cal-era-name").value = cfg.era_name || "";
+  document.getElementById("cal-days-per-week").value = cfg.days_per_week || 7;
+  document.getElementById("cal-weekday-names").value = (cfg.weekday_names || []).join(", ");
+
+  const monthsList = document.getElementById("cal-months-list");
+  monthsList.innerHTML = "";
+  (cfg.months || []).forEach((m, i) => monthsList.appendChild(renderMonthRow(i, m)));
+  refreshCalMonthSelect();
+
+  const cd = cfg.current_date || { year: 1, month_index: 0, day: 1 };
+  document.getElementById("cal-current-year").value = cd.year;
+  document.getElementById("cal-current-month").value = String(cd.month_index || 0);
+  document.getElementById("cal-current-day").value = cd.day || 1;
+}
+
+function collectCalendarConfigFromEditor() {
+  const weekdayNamesRaw = document.getElementById("cal-weekday-names").value.trim();
+  const weekdayNames = weekdayNamesRaw ? weekdayNamesRaw.split(",").map((s) => s.trim()).filter(Boolean) : null;
+  return {
+    months: readMonthsFromEditor(),
+    days_per_week: parseInt(document.getElementById("cal-days-per-week").value, 10) || 7,
+    weekday_names: weekdayNames,
+    era_name: document.getElementById("cal-era-name").value.trim(),
+    current_date: {
+      year: parseInt(document.getElementById("cal-current-year").value, 10) || 1,
+      month_index: parseInt(document.getElementById("cal-current-month").value, 10) || 0,
+      day: parseInt(document.getElementById("cal-current-day").value, 10) || 1
+    }
+  };
+}
+
+async function initCalendarSection() {
+  const status = document.getElementById("calendar-status");
+  try {
+    const res = await authFetch("/api/wizard/calendar-config");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Could not load calendar.");
+    populateCalendarEditor(data.calendarConfig);
+  } catch (err) {
+    console.error("Loading calendar config failed:", err);
+    populateCalendarEditor(null);
+  } finally {
+    document.getElementById("calendar-loading").style.display = "none";
+    document.getElementById("calendar-editor").style.display = "block";
+  }
+
+  document.getElementById("cal-add-month-btn").addEventListener("click", () => {
+    const monthsList = document.getElementById("cal-months-list");
+    monthsList.appendChild(renderMonthRow(monthsList.children.length, { name: "", days: 30 }));
+    refreshCalMonthSelect();
+  });
+
+  document.getElementById("cal-generate-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("cal-generate-btn");
+    btn.disabled = true;
+    status.textContent = "Generating…";
+    try {
+      const res = await authFetch("/api/wizard/generate-calendar", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generation failed.");
+      populateCalendarEditor(data.calendarConfig);
+      status.textContent = "Generated -- review and Save Calendar to keep it.";
+    } catch (err) {
+      console.error("Calendar generation failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("cal-save-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("cal-save-btn");
+    btn.disabled = true;
+    status.textContent = "Saving…";
+    try {
+      const calendarConfig = collectCalendarConfigFromEditor();
+      const res = await authFetch("/api/wizard/save-calendar-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ calendarConfig })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Save failed.");
+      populateCalendarEditor(data.calendarConfig);
+      status.textContent = "Saved.";
+    } catch (err) {
+      console.error("Saving calendar failed:", err);
+      status.textContent = "Something went wrong: " + err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
 async function init() {
   const session = await requireAuth();
   if (!session) return;
@@ -338,6 +548,7 @@ async function init() {
   applySiteTheme();
   loadUsage();
   wireWorldExportButton();
+  initCalendarSection();
 
   document.getElementById("delete-world-btn").addEventListener("click", async () => {
     const confirmed = window.confirm(

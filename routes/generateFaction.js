@@ -6,6 +6,7 @@ const { generateFactionDeepLore, createNewFaction, syncReciprocalRelationships }
 const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 const { saveFactionEntry } = require("../lib/fileWriter");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
@@ -21,7 +22,7 @@ async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
 router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, async (req, res) => {
   try {
     const worldId = req.worldId;
-    const { fillExistingId, name, concept } = req.body || {};
+    const { fillExistingId, name, concept, revisionNote } = req.body || {};
 
     if (fillExistingId) {
       // Existing faction -- expand/revise its Deep Lore. This always
@@ -35,10 +36,11 @@ router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforce
         if (req.refundGeneration) await req.refundGeneration();
         return res.status(403).json(gate.body);
       }
-      let { faction, roundupRows, priorBodyHtml } = await generateFactionDeepLore(worldId, fillExistingId);
+      let { faction, roundupRows, priorBodyHtml } = await generateFactionDeepLore(worldId, fillExistingId, revisionNote);
       const linkResult = await resolveReferencesForEntry(worldId, "factions", faction);
       faction = linkResult.raw;
-      const newBodyHtmlPreview = buildFactionBodyHtml(faction, roundupRows);
+      const calendarConfig = await getCalendarConfig(worldId);
+      const newBodyHtmlPreview = buildFactionBodyHtml(faction, roundupRows, calendarConfig);
 
       return res.json({
         preview: true,

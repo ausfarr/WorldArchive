@@ -22,7 +22,8 @@ const CATEGORY_LABELS = {
   spells: "Spells",
   logs: "Logs",
   survivors: "PCs",
-  locations: "Locations"
+  locations: "Locations",
+  "session-packets": "Session Packets"
 };
 
 // Shows the nav-spells link only for rulesets that actually have a
@@ -896,6 +897,26 @@ function showRegeneratePreview(data) {
     ? data.oldBodyHtmlPreview
     : `<p style="color: var(--ink-faint); font-style: italic;">No prior structured content on record for this entry (it predates the regenerate feature) — only the new version is shown below.</p>`;
 
+  // Session Prep Companion, Phase 6, Section 5a -- "log this to the
+  // Timeline?" toggle. Only offered for an actual Regenerate of an
+  // EXISTING entry (not a brand-new entry, and not logs/session-packets,
+  // which get their own deterministic Timeline triggers -- Chronicles/
+  // Log dates via Trigger 1/3, never this manual opt-in). Off by default,
+  // per the scope doc's "off for plain content Regenerates" default --
+  // a DM checks it only when this regenerate represents a real in-world
+  // state change (a death, a territory change) worth a Timeline entry.
+  const offersTimelineToggle = data.mode === "regenerate" && data.category !== "logs" && data.category !== "session-packets";
+  const timelineToggleHtml = offersTimelineToggle ? `
+    <div style="padding:16px 28px; border-top:1px solid var(--border-line-soft); background:var(--bg-panel-raised);">
+      <label style="display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:0.8rem; color:var(--ink);">
+        <input type="checkbox" id="regen-timeline-toggle"> Log this to the Timeline?
+      </label>
+      <div id="regen-timeline-fields" style="display:none; margin-top:10px;">
+        ${efField("What happened, in one line", "regen-timeline-summary", "", { placeholder: "e.g. Died in the reactor collapse" })}
+        <div id="regen-timeline-date"></div>
+      </div>
+    </div>` : "";
+
   const overlay = document.createElement("div");
   overlay.id = "regen-preview-overlay";
   overlay.style.cssText = "position:fixed; inset:0; background:rgba(10,11,13,0.92); z-index:1000; overflow:auto; padding:40px 20px;";
@@ -915,6 +936,7 @@ function showRegeneratePreview(data) {
           <div>${data.newBodyHtmlPreview}</div>
         </div>
       </div>
+      ${timelineToggleHtml}
       <div style="padding:20px 28px; border-top:1px solid var(--border-line-soft); display:flex; gap:12px; justify-content:flex-end; align-items:center; flex-wrap:wrap;">
         <p id="regen-status" style="font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-faint); margin:0; display:none;"></p>
         <button id="regen-discard" type="button" style="background:var(--bg-panel-raised); border:1px solid var(--border-line); color:var(--ink-dim); padding:10px 20px; font-family:var(--font-display); text-transform:uppercase; letter-spacing:0.04em; cursor:pointer;">Discard</button>
@@ -923,6 +945,13 @@ function showRegeneratePreview(data) {
     </div>
   `;
   document.body.appendChild(overlay);
+
+  if (offersTimelineToggle) {
+    document.getElementById("regen-timeline-date").innerHTML = efWorldDateField("Date of this event", "regen-timeline-worlddate", null);
+    document.getElementById("regen-timeline-toggle").addEventListener("change", (e) => {
+      document.getElementById("regen-timeline-fields").style.display = e.target.checked ? "block" : "none";
+    });
+  }
 
   const close = () => overlay.remove();
   document.getElementById("regen-discard").onclick = close;
@@ -935,10 +964,14 @@ function showRegeneratePreview(data) {
     status.style.display = "block";
     status.textContent = "Writing to the archive…";
     try {
+      const timelineToggle = document.getElementById("regen-timeline-toggle");
+      const timelineEvent = (timelineToggle && timelineToggle.checked)
+        ? { summary: document.getElementById("regen-timeline-summary").value, worldDate: readWorldDateField("regen-timeline-worlddate") }
+        : undefined;
       const res = await authFetch("/api/confirm-entry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: data.category, entry: data.entry })
+        body: JSON.stringify({ category: data.category, entry: data.entry, timelineEvent })
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || result.error || "Save failed");
@@ -1242,6 +1275,44 @@ function efSelect(label, id, optionsHtml) {
     </div>`;
 }
 
+// Session Prep Companion, Phase 3 -- a WorldDate field editor
+// ({ year, monthIndex, day } or null), reused across every category's
+// edit form that got a new date field this phase (Factions/NPCs/PCs/
+// Items/Logs). Three plain number inputs rather than a calendar picker
+// widget -- this world's own month names/lengths live in calendar_config,
+// not in this file, and building a full date-picker component against
+// per-world calendar data is out of scope for what's otherwise a single
+// optional flavor field; a DM who cares about exact placement can always
+// cross-reference the Settings-page calendar editor (Phase 2).
+// idPrefix becomes "${idPrefix}-year"/"-month"/"-day" input ids; readWorldDateField
+// reads them back, returning null if the year field was left blank
+// (the field is optional everywhere it's used) or any value fails to parse.
+function efWorldDateField(label, idPrefix, date) {
+  const style = "background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 100px;";
+  const y = date && Number.isInteger(date.year) ? date.year : "";
+  const m = date && Number.isInteger(date.monthIndex) ? date.monthIndex : "";
+  const d = date && Number.isInteger(date.day) ? date.day : "";
+  return `
+    <div style="margin-bottom: 14px;">
+      <label style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label} <span style="text-transform:none; letter-spacing:normal;">(optional -- Year / Month index / Day, per this world's calendar)</span></label>
+      <div style="display:flex; gap:8px;">
+        <input id="${idPrefix}-year" type="number" placeholder="Year" value="${y}" style="${style}">
+        <input id="${idPrefix}-month" type="number" placeholder="Month #" min="0" value="${m}" style="${style}">
+        <input id="${idPrefix}-day" type="number" placeholder="Day" min="1" value="${d}" style="${style}">
+      </div>
+    </div>`;
+}
+
+function readWorldDateField(idPrefix) {
+  const yearEl = document.getElementById(`${idPrefix}-year`);
+  if (!yearEl || yearEl.value === "") return null;
+  const year = parseInt(yearEl.value, 10);
+  const monthIndex = parseInt(document.getElementById(`${idPrefix}-month`).value, 10);
+  const day = parseInt(document.getElementById(`${idPrefix}-day`).value, 10);
+  if (!Number.isInteger(year) || !Number.isInteger(monthIndex) || !Number.isInteger(day)) return null;
+  return { year, monthIndex, day };
+}
+
 // v0.9 Manual Mode, Piece 2 -- "✨ Help me" wiring. A single delegated
 // listener on `document` (registered once, at script load, below)
 // rather than per-overlay wiring, so it works for every edit overlay
@@ -1417,9 +1488,11 @@ function showFactionEditForm(entry) {
       </div>
       <div style="padding:24px 28px;">
         ${field("Name", "ef-name", raw.name)}
+        ${field("Status (optional)", "ef-status", raw.status, { placeholder: "e.g. active, collapsed, allied, hostile" })}
         ${field("Nickname / Epithet", "ef-nickname", raw.nickname)}
         ${field("Overview Quote", "ef-overviewQuote", raw.overviewQuote, { textarea: true, rows: 2 })}
         ${field("Core Philosophy", "ef-corePhilosophy", raw.corePhilosophy, { textarea: true, rows: 2 })}
+        ${efWorldDateField("Founding Date", "ef-foundingDate", raw.foundingDate)}
         ${field("Origin", "ef-origin", raw.origin, { textarea: true })}
         ${field("Structure &amp; Hierarchy", "ef-structureHierarchy", raw.structureHierarchy, { textarea: true })}
         ${field("Territory", "ef-territory", raw.territory, { textarea: true })}
@@ -1511,7 +1584,9 @@ function showFactionEditForm(entry) {
       id: raw.id,
       factionKey: raw.factionKey,
       name: val("ef-name"),
+      status: val("ef-status") || null,
       nickname: val("ef-nickname"),
+      foundingDate: readWorldDateField("ef-foundingDate"),
       overviewQuote: val("ef-overviewQuote"),
       corePhilosophy: val("ef-corePhilosophy"),
       origin: val("ef-origin"),
@@ -1642,6 +1717,10 @@ function showNpcEditForm(entry) {
     ${efSelect("Role Archetype", "ef-roleArchetype", NPC_ROLE_ARCHETYPES.map((r) => `<option value="${r}" ${r === raw.roleArchetype ? "selected" : ""}>${r}</option>`).join(""))}
     <div id="ef-faction-wrap"></div>
     ${efField("Age", "ef-age", raw.age, { type: "number" })}
+    ${efField("Status (optional)", "ef-status", raw.status, { placeholder: "e.g. alive, dead, missing" })}
+    ${efWorldDateField("Birth Date", "ef-birthDate", raw.birthDate)}
+    ${efWorldDateField("Appointed Date", "ef-appointedDate", raw.appointedDate)}
+    ${efWorldDateField("Death Date", "ef-deathDate", raw.deathDate)}
     ${efField("Signature Quote", "ef-signatureQuote", raw.signatureQuote, { textarea: true, rows: 2 })}
     ${efField("Physical Description", "ef-physicalDescription", raw.physicalDescription, { textarea: true })}
     ${efField("Traits (comma-separated)", "ef-traits", (raw.traits || []).join(", "))}
@@ -1683,6 +1762,10 @@ function showNpcEditForm(entry) {
       roleArchetype: val("ef-roleArchetype"),
       faction: val("ef-faction"),
       age: val("ef-age") ? Number(val("ef-age")) : raw.age,
+      status: val("ef-status") || null,
+      birthDate: readWorldDateField("ef-birthDate"),
+      appointedDate: readWorldDateField("ef-appointedDate"),
+      deathDate: readWorldDateField("ef-deathDate"),
       signatureQuote: val("ef-signatureQuote"),
       physicalDescription: val("ef-physicalDescription"),
       traits: val("ef-traits").split(",").map((t) => t.trim()).filter(Boolean),
@@ -1819,6 +1902,7 @@ function showEnemyEditForm(entry) {
     ${efField("Name", "ef-name", raw.name)}
     <div id="ef-faction-wrap"></div>
     ${efSelect("Tier", "ef-tier", ENEMY_TIERS.map((t) => `<option value="${t}" ${t === raw.tier ? "selected" : ""}>${t}</option>`).join(""))}
+    ${efField("Status (Boss tier only)", "ef-status", raw.status, { placeholder: "e.g. active, defeated, fled" })}
     ${efField("Role", "ef-role", raw.role)}
     ${efField("Signature Quote (leave blank for Trash tier)", "ef-signatureQuote", raw.signatureQuote, { textarea: true, rows: 2 })}
     ${efField("Flavor", "ef-flavor", raw.flavor, { textarea: true })}
@@ -1854,6 +1938,7 @@ function showEnemyEditForm(entry) {
       name: val("ef-name"),
       faction: val("ef-faction") || null,
       tier: val("ef-tier"),
+      status: val("ef-tier") === "Boss" ? (val("ef-status") || null) : null,
       role: val("ef-role"),
       signatureQuote: val("ef-signatureQuote") || null,
       flavor: val("ef-flavor"),
@@ -1932,6 +2017,7 @@ function showLogEditForm(entry) {
     ${efField("Context", "ef-context", raw.context, { textarea: true, rows: 2 })}
     ${efField("Body Text", "ef-bodyText", raw.bodyText, { textarea: true, rows: 10 })}
     <div id="ef-faction-wrap"></div>
+    ${efWorldDateField("Resolved In-World Date", "ef-resolvedDate", raw.resolvedDate)}
     ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
   `;
 
@@ -1948,6 +2034,7 @@ function showLogEditForm(entry) {
       context: val("ef-context"),
       bodyText: val("ef-bodyText"),
       faction: val("ef-faction") || null,
+      resolvedDate: readWorldDateField("ef-resolvedDate"),
       designNotes: val("ef-designNotes")
     };
 
@@ -2361,6 +2448,9 @@ function showItemEditForm(entry) {
       <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Quest Item</h3>
       ${efField("Where Found / Why It Matters", "ef-whereFoundWhyMatters", raw.whereFoundWhyMatters, { textarea: true })}
       <div id="ef-foundAtLocationId-wrap"></div>
+      ${efField("Status (optional)", "ef-status", raw.status, { placeholder: "e.g. intact, consumed, lost" })}
+      ${efWorldDateField("Created Date", "ef-createdDate", raw.createdDate)}
+      ${efWorldDateField("Discovered Date", "ef-discoveredDate", raw.discoveredDate)}
     </div>
     ${efField("Design Notes", "ef-designNotes", raw.designNotes, { textarea: true })}
   `;
@@ -2387,6 +2477,9 @@ function showItemEditForm(entry) {
       effect: category === "Consumable" ? val("ef-effect") : null,
       whereFoundWhyMatters: category === "QuestItem" ? val("ef-whereFoundWhyMatters") : null,
       foundAtLocationId: category === "QuestItem" ? (val("ef-foundAtLocationId") || null) : null,
+      status: category === "QuestItem" ? (val("ef-status") || null) : null,
+      createdDate: category === "QuestItem" ? readWorldDateField("ef-createdDate") : null,
+      discoveredDate: category === "QuestItem" ? readWorldDateField("ef-discoveredDate") : null,
       designNotes: val("ef-designNotes")
     };
 
@@ -2474,6 +2567,10 @@ function showSurvivorEditForm(entry) {
       ${efField("Sanity", "ef-attr-sanity", attrs.sanity, { type: "number" })}
       ${efField("Fate", "ef-attr-fate", attrs.fate, { type: "number" })}
     </div>
+    ${efField("Status (optional)", "ef-status", raw.status, { placeholder: "e.g. alive, dead, missing" })}
+    ${efWorldDateField("Birth Date", "ef-birthDate", raw.birthDate)}
+    ${efWorldDateField("Appointed Date", "ef-appointedDate", raw.appointedDate)}
+    ${efWorldDateField("Death Date", "ef-deathDate", raw.deathDate)}
     ${efField("Backstory", "ef-backstory", raw.backstory, { textarea: true })}
     <h3 style="font-family:var(--font-display); text-transform:uppercase; font-size:0.9rem; margin:20px 0 10px;">Personality</h3>
     ${efField("Trait", "ef-personality-trait", personality.trait)}
@@ -2509,6 +2606,10 @@ function showSurvivorEditForm(entry) {
       playerName: val("ef-playerName") || null,
       faction: val("ef-faction"),
       className: val("ef-className"),
+      status: val("ef-status") || null,
+      birthDate: readWorldDateField("ef-birthDate"),
+      appointedDate: readWorldDateField("ef-appointedDate"),
+      deathDate: readWorldDateField("ef-deathDate"),
       attributes: {
         body: Number(val("ef-attr-body")) || 0,
         reflex: Number(val("ef-attr-reflex")) || 0,
@@ -3365,6 +3466,12 @@ function renderWorldStatusPanel(manifests) {
 
   const enabledMap = getEnabledCategoriesFromCache();
   const rows = Object.keys(CATEGORY_LABELS)
+    // Session Packets (Session Prep Companion) isn't narrative worldbuilding
+    // content the way the other 8 categories are -- there's no sensible
+    // "target" count for it, and it shouldn't factor into "how complete is
+    // my world" the same way NPCs/Items/etc. do. Excluded here rather than
+    // given an arbitrary CATEGORY_TARGETS entry.
+    .filter((cat) => cat !== "session-packets")
     .filter((cat) => !enabledMap || enabledMap[cat] !== false)
     .map((cat) => {
       const list = (manifests[cat] || []).filter((e) => !e.locked);

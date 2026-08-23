@@ -45,7 +45,10 @@ const SCHEMA_DESCRIPTION = `{
     "branches": [ { "toneLabel": "If you respond respectfully — \\"...\\"", "reply": "..." } ]
   },
   "questHook": "1-2 sentences, or null if not a quest-giver",
-  "designNotes": "how this avoids repeating an existing role/faction/contradiction/tic combo"
+  "designNotes": "how this avoids repeating an existing role/faction/contradiction/tic combo",
+  "birthDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- ONLY if this character's age/backstory makes a specific birth year meaningful to pin down (most don't); null otherwise -- don't force one just because the field exists",
+  "appointedDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- ONLY for a Faction Leader (or similar formally-appointed role) where a specific appointment date is meaningful; null for every other role, and null even for a Faction Leader if no such date is implied",
+  "deathDate": "{ \\"year\\": integer, \\"monthIndex\\": integer, \\"day\\": integer } -- ONLY if this character is established as already deceased (e.g. a historical figure referenced in lore, or being regenerated to reflect an in-fiction death); null for a currently-living character, which is the normal/expected case"
 }`;
 
 // STATIC — identical for every call, every world. Cached.
@@ -78,9 +81,17 @@ QUEST HOOK: only if the archetype is Quest-Giver, or a hook falls out naturally 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent, campaignContext, importSourceText }) {
+function buildNpcContentSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, role, faction, existingContent, campaignContext, importSourceText, calendarContext, revisionNote }) {
+  // revisionNote: Session Prep Companion, Phase 7 -- a DM acting on a
+  // suggested update (lib/logDateSuggestions.js/lib/sessionChronicleSuggestions.js)
+  // pre-fills this regenerate with the suggestion's own delta_text, so
+  // the model addresses that specific implied change rather than just
+  // doing a generic freshen-up pass.
+  const revisionBlock = revisionNote
+    ? `\nSPECIFIC REQUESTED UPDATE -- address this explicitly in your revision:\n${revisionNote}\n`
+    : "";
   const regenerateBlock = existingContent
-    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n`
+    ? `\n\nEXISTING ENTRY — THIS IS A REGENERATE (revise this content: keep what already works, update anything stale, incorporate any new roster/lore context below, don't rewrite from scratch unless something is genuinely wrong):\n${JSON.stringify(existingContent, null, 2)}\n${revisionBlock}`
     : "";
 
   // Import path: the user already has a character written up somewhere
@@ -109,6 +120,9 @@ ${loreContext || "(no lore saved yet for this world — invent details consisten
 ${regenerateBlock}${importBlock}
 EXISTING ROSTER (avoid repeating a role+faction combo, contradiction, or tic already used; these are the only NPC/enemy/class/survivor ids you may reference in relationships):
 ${rosterContext}
+
+CALENDAR (for birthDate/appointedDate/deathDate -- most NPCs need none of these; only fill one in when it's genuinely meaningful, per each field's own guidance above):
+${calendarContext || "(this world has no calendar configured yet -- return null for every date field rather than inventing year/month numbers)"}
 
 USER INPUT:
 Name: ${name || (importSourceText ? "use the name given in the source text above" : "generate one fitting the faction/role")}
