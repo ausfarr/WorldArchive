@@ -4,17 +4,17 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
-**Status as of 2026-08-22 (automated check-in, Day 6):** Austin confirmed the r/rpg_generators post is live — `https://www.reddit.com/r/rpg_generators/comments/1vtquiw/chronicled_is_out_of_beta_v100_is_live/` — and said explicitly to stop blocking on verification and keep moving forward. This environment still can't fetch reddit.com in any form (confirmed again, sixth day running, tried the direct page, old.reddit.com, and the `.json` API) — that's now treated as a permanent tooling limitation, not a daily to-do. **Consider #1/#1a/#2a below closed** — the one open thread is #3 (comment replies), which only Austin can do since he's the one who can see/reply to the post. Also fixed this session: the stale "it's in beta" line in `drafts/reddit_post_worldbuilding.md` now reads "it just hit v1.0" (the live rpg_generators post already used out-of-beta framing on its own, so this only mattered for the worldbuilding draft, which has no confirmed URL yet).
+**Status as of 2026-08-23 (automated check-in, Day 7):** No change from Day 6 — no commits or new info from Austin's side since `73660b0`. This environment still can't fetch reddit.com in any form (confirmed again, seventh day running) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged from yesterday, carried forward rather than re-derived.
 
 ---
 
-## What to do today (2026-08-22)
+## What to do today (2026-08-23)
 
-1. **Reply to comments on the live r/rpg_generators post** if you haven't already (#3 below) — still the single highest-leverage personal-time item, and the post's been up long enough that a late reply is better than none.
+1. **Reply to comments on the live r/rpg_generators post** if you haven't already (#3 below) — still the single highest-leverage personal-time item; carried forward unchanged from Day 6, no confirmation either way yet.
 2. **Optional, low-effort:** paste the post's actual score/comment count (or a screenshot) into `DAILY_LOG.md` next time you're already looking at it — not urgent, just makes future check-ins substantive instead of a fetch-fails-again loop.
-3. **Was r/worldbuilding ever posted?** No URL for it has ever been logged, and the live rpg_generators post's title suggests you may have posted a different v1.0-launch framing instead of running the original two-draft A/B test as designed. If it's still open, `drafts/reddit_post_worldbuilding.md` is ready (now with the beta line fixed) — if you'd rather treat that plan as superseded by what you already posted, that's a fine call too, just say so so this stops resurfacing.
+3. **Was r/worldbuilding ever posted?** Still no URL logged for it. If it's still open, `drafts/reddit_post_worldbuilding.md` is ready — if you'd rather treat that plan as superseded by what you already posted, that's a fine call too, just say so so this stops resurfacing.
 4. **#8 (AI-directory submissions)** is still the quickest guaranteed-real win if you have 10 minutes — free, no public post required, doesn't depend on Reddit at all.
-5. **#4 (DMAcademy self-promo rules)** — checkbox says done, but confirm you actually have the format (megathread vs. flair vs. banned) before using `drafts/reddit_post_dmacademy.md`, since a wrong-format post there gets removed outright.
+5. **#4 (DMAcademy self-promo rules)** — checkbox says done, but confirm you actually have the format (megathread vs. flair vs. banned) before using `drafts/reddit_post_dmacademy.md`. Today's research turned up a third-party guide claiming the sub gates links behind ~10 prior comments of participation, but that's not r/DMAcademy's own rule page — worth checking the actual sidebar/wiki yourself before relying on it.
 
 ## This week
 
