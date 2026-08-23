@@ -105,6 +105,16 @@ Also still on watch, lower priority: **DunMax** (mobile D&D world builder, AI NP
 
 **No material change from World Anvil this session** — no new pricing or feature signal found beyond what's already logged.
 
+## 🆕 2026-08-23 update — CharGen adds homebrew classes; two low-relevance names found (generic app builder, blockchain/NFT platform); no new direct competitor
+
+**CharGen:** one small, previously-unlisted confirmed feature — homebrew classes and subclasses shipped July 23, 2026 (you can now build the class itself in CharGen, not just characters who play it). Minor scope addition to the character generator; doesn't change the World Codex wedge or the Campaign Studio expansion already logged 2026-08-21.
+
+**New, low-relevance (not real competitors): Taskade Genesis and LoreSync.** **Taskade Genesis** is a generic AI app-builder (prompt-to-webapp, not TTRPG-specific) that publishes its own "12 Best AI Worldbuilding Generators" blog post ranking itself first — another instance of the self-published-roundup content-marketing tactic already flagged 2026-08-19 (CharGen, Friends & Fables do the same), not a product competitor. **LoreSync** combines AI lore generation with blockchain-based IP tokenization — mint characters/universes as NFTs on a Layer-1 chain — and lists "tabletop RPG creators" as one of several target audiences. NFT/IP-monetization is a poor fit for what GMs actually want (playable content for their table, not tokenized IP); logged as a curiosity to watch, not a threat.
+
+**World Anvil:** August 2026 newsletter (still egress-blocked to direct fetch; search-indexed summary only) matches what's already logged — professional article settings ported to the new editor, a Reading Challenge, Summer Camp merch, a September flash-fiction event teased. No pricing or AI-feature change.
+
+**No change to the "lean on real differentiators" recommendation.** Reality Forge and Friends & Fables remain fully egress-blocked and unverified on pricing/scope — still on the "Watch for" list below, not added to `marketing/compare.html` for the same reason (writing a comparison row from unverified data would break the page's own honesty framing).
+
 ## Chronicled's current position vs. primary competitors
 
 World Anvil, Kanka, and LegendKeeper: still no native AI generation as of this check; World Anvil's August 2026 update was UI/community-event only (professional settings ported to the new editor, a reading challenge) — no pricing or AI change. Chronicled at $5/mo for 25 generations/month (plus a no-card 10-generation trial) still undercuts Grandmaster ($8.25/mo) and LegendKeeper Pro ($9/mo) while including generation.
