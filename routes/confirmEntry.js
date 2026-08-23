@@ -32,6 +32,7 @@ const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPl
 const { maybeCreateDateSuggestion, validateResolvedDateSubject } = require("../lib/logDateSuggestions");
 const { createChronicleEvent, createLogDateEvent, createRegenerateEvent, createEntryDateEvents } = require("../lib/timelineEvents");
 const { createSuggestionsFromChronicle } = require("../lib/sessionChronicleSuggestions");
+const { getNextSessionNumber } = require("../lib/sessionChronicle");
 
 const router = express.Router();
 
@@ -189,6 +190,33 @@ router.post("/confirm-entry", async (req, res) => {
     const effectiveTimelineOptIn = timelineOptIn || (isRealStatusFlip
       ? { summary: `Status changed: ${priorStatus} → ${entry.status}`, worldDate: null }
       : undefined);
+
+    // Manual Mode -- Session Packets/Chronicles (follow-up to Session
+    // Prep Companion). Both categories always need a home Quest/Campaign
+    // (routes/generateSessionPacket.js and generateSessionChronicle.js
+    // already validate this at generation time), but a manually-created
+    // one skips that route entirely and lands straight here -- this is
+    // the one place that guarantee can be made to hold for AI-generated
+    // and manually-authored entries alike, same reasoning as every other
+    // centralized check in this handler.
+    if (category === "session-packets" && !entry.questId && !entry.campaignId) {
+      return res.status(400).json({ error: "A Session Packet needs a Quest or Campaign." });
+    }
+    if (category === "logs" && entry.sessionChronicle && !entry.sessionChronicle.questId && !entry.sessionChronicle.campaignId) {
+      return res.status(400).json({ error: "A Session Chronicle needs a Quest or Campaign." });
+    }
+    // Session numbering is global and code-assigned, never DM-typed or
+    // model-proposed (lib/sessionChronicle.js's getNextSessionNumber) --
+    // routes/generateSessionChronicle.js already assigns it before this
+    // endpoint ever sees an AI-generated Chronicle, but a manually-
+    // created one has no such route to pass through, so a brand-new
+    // manual Chronicle with no sessionNumber yet gets one assigned here.
+    // Regenerating/editing an EXISTING Chronicle never reassigns one --
+    // it keeps whatever it already had, same as the generate route's own
+    // "keep the prior Chronicle's own number" rule.
+    if (category === "logs" && entry.sessionChronicle && !alreadyExists && !entry.sessionChronicle.sessionNumber) {
+      entry.sessionChronicle.sessionNumber = await getNextSessionNumber(worldId);
+    }
 
     const doConfirm = async () => {
       if (!alreadyExists) {

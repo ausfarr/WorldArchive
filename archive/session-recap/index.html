@@ -60,8 +60,9 @@
       Recap notes -- rough, bulleted, whatever you've got<br>
       <textarea id="sr-notes-input" rows="8" placeholder="e.g. Party met Miller Thom, he explained the wheel was sabotaged. They found tracks leading to the old grain silo. Fought off two scavengers guarding it. Didn't find the culprit yet." style="margin-top:6px; width:100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 10px; font-family: var(--font-body); resize: vertical;"></textarea>
     </label>
-    <div style="margin-top:14px;">
-      <button id="sr-generate-btn" type="button" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer; font-weight: 600;">Generate Chronicle</button>
+    <div style="margin-top:14px; display:flex; gap:12px; flex-wrap:wrap;">
+      <button id="sr-generate-btn" type="button" class="ai-generate-entry-btn" style="background: var(--neon-primary); color: var(--bg-void); border: none; padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer; font-weight: 600;">Generate Chronicle</button>
+      <button id="sr-manual-btn" type="button" style="background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 10px 20px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.85rem; cursor: pointer; font-weight: 600;">Enter Manually</button>
     </div>
     <p id="sr-no-targets" style="display:none; color: var(--ink-faint); font-size: 0.85rem; margin-top: 12px;">No Quests or Campaigns exist yet -- build one first from the Quests or Campaigns page.</p>
     <p id="sr-generate-status" style="margin-top: 12px; font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint);"></p>
