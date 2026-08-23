@@ -4,16 +4,17 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
-**Status as of 2026-08-21 (automated check-in, Day 5):** #1, #2, #4, #5, #6, and the optional tester DM got checked off yesterday (commit `e63f9cf`, Thu Aug 20 14:01 EDT) — first movement in five check-ins. But that commit only flipped checkboxes: no post URLs, no numbers, and nothing new landed in `DAILY_LOG.md` despite #6 saying it should. This session searched for both drafts' exact title phrasing and found zero trace anywhere (reddit.com itself is still unfetchable from here) — could mean the posts just aren't search-indexed yet, or could mean they're not actually up. **Only Austin can resolve this** — see #1a/#2a below. Also worth knowing: v1.0.0 shipped this week and beta framing was dropped site-wide, but both drafts' body copy still says *"it's in beta"* — fix that before either draft goes out for real (or is reposted).
+**Status as of 2026-08-22 (automated check-in, Day 6):** Austin confirmed the r/rpg_generators post is live — `https://www.reddit.com/r/rpg_generators/comments/1vtquiw/chronicled_is_out_of_beta_v100_is_live/` — and said explicitly to stop blocking on verification and keep moving forward. This environment still can't fetch reddit.com in any form (confirmed again, sixth day running, tried the direct page, old.reddit.com, and the `.json` API) — that's now treated as a permanent tooling limitation, not a daily to-do. **Consider #1/#1a/#2a below closed** — the one open thread is #3 (comment replies), which only Austin can do since he's the one who can see/reply to the post. Also fixed this session: the stale "it's in beta" line in `drafts/reddit_post_worldbuilding.md` now reads "it just hit v1.0" (the live rpg_generators post already used out-of-beta framing on its own, so this only mattered for the worldbuilding draft, which has no confirmed URL yet).
 
 ---
 
-## What to do today (2026-08-21)
+## What to do today (2026-08-22)
 
-1. **Confirm #1 and #2 actually happened.** Paste the live post URLs into `DAILY_LOG.md` (or reply here so the next check-in has them). If they're genuinely up, this stops being a guessing game every day. If they're *not* actually up yet — the checkboxes just got ahead of the action — see #1a below before posting.
-2. **1a. If not yet posted: update the "it's in beta" line in both drafts first.** `drafts/reddit_post_worldbuilding.md` and `drafts/reddit_post_rpg_generators.md` both describe Chronicled as beta/still-building, but the product shipped v1.0.0 and dropped beta framing across the site this week (see `marketing/index.html`, `marketing/pricing.html`). A stale "beta" line undersells a shipped v1.0 product — swap it for something reflecting the actual launch state before posting.
-3. **Once URLs exist: block 20–30 min to reply to early comments (#3, still unchecked).** This is the one item from yesterday's batch that wasn't checked off — and it's the highest-leverage one. A post with numbers but no OP replies is a half-finished action, not a done one.
-4. If Reddit posting is still the actual sticking point behind the ambiguity above: **#8 (AI-directory submissions)** remains a smaller, guaranteed-real step forward today.
+1. **Reply to comments on the live r/rpg_generators post** if you haven't already (#3 below) — still the single highest-leverage personal-time item, and the post's been up long enough that a late reply is better than none.
+2. **Optional, low-effort:** paste the post's actual score/comment count (or a screenshot) into `DAILY_LOG.md` next time you're already looking at it — not urgent, just makes future check-ins substantive instead of a fetch-fails-again loop.
+3. **Was r/worldbuilding ever posted?** No URL for it has ever been logged, and the live rpg_generators post's title suggests you may have posted a different v1.0-launch framing instead of running the original two-draft A/B test as designed. If it's still open, `drafts/reddit_post_worldbuilding.md` is ready (now with the beta line fixed) — if you'd rather treat that plan as superseded by what you already posted, that's a fine call too, just say so so this stops resurfacing.
+4. **#8 (AI-directory submissions)** is still the quickest guaranteed-real win if you have 10 minutes — free, no public post required, doesn't depend on Reddit at all.
+5. **#4 (DMAcademy self-promo rules)** — checkbox says done, but confirm you actually have the format (megathread vs. flair vs. banned) before using `drafts/reddit_post_dmacademy.md`, since a wrong-format post there gets removed outright.
 
 ## This week
 
