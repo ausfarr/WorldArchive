@@ -31,9 +31,21 @@ across the same row:
   mismatch predates this change and wasn't touched: `id="nav-quests"`
   shows label "Quests" and links to `campaigns/index.html`; `id="nav-campaign-arcs"`
   shows label "Campaigns" and links to `campaign-arcs/index.html`.)
+- **"Locations ▾"** — Locations, Map. Added as a follow-up once the
+  shared-header mechanism above was in place. `locations/index.html` is an
+  ordinary worldbuilding category page (entry grid of Location dossiers,
+  same `entriesRepo.js`-backed pattern as every other category);
+  `map.html` is a distinct interactive world-overview visualization
+  (Leaflet.js, `mapLayout.js`) that *consumes* Location entries as pins
+  and links each one back to its dossier — related, one-directional, but
+  not two views of the same page. (There's also a separate per-location
+  "Battle Map" / dungeon-compositor feature living on the Location dossier
+  page itself — a VTT-style grid image for combat — unrelated to this
+  top-level Map tab.) Grouping them reflects that Map is a supplementary
+  view built on top of Location data, not a peer category.
 
-The 9 core content categories (Factions/NPCs/Bestiary/Classes/Items/Spells/
-Logs/PCs/Locations) and Map/World Info/Settings stay flat, unchanged.
+The 8 remaining core content categories (Factions/NPCs/Bestiary/Classes/
+Items/Spells/Logs/PCs) and World Info/Settings stay flat, unchanged.
 
 **De-duplication.** The header is now a single shared script,
 `archive/js/siteHeader.js`, injected via a script tag placed exactly where
@@ -123,7 +135,15 @@ browser):
   on outside click.
 - Active-page highlighting confirmed correct: `/session-recap/index.html`
   highlights both "Sessions ▾" and "Recap"; `/campaigns/index.html`
-  highlights both "Campaigns ▾" and "Quests".
+  highlights both "Campaigns ▾" and "Quests"; `/map.html` highlights
+  "Locations ▾" and "Map", `/locations/index.html` highlights
+  "Locations ▾" and "Locations".
+- Confirmed the Locations ▾ group was a pure one-file edit to
+  `archive/js/siteHeader.js` with zero changes needed to any of the 23
+  pages or to the CSS — the de-duplication paid off immediately on the
+  very next nav change.
+- Confirmed opening one dropdown closes any other open one (mutual
+  exclusivity across all three groups).
 - No JS errors attributable to the header change — the only console errors
   seen were pre-existing Supabase/network failures from this sandbox
   having no real credentials or network access to Supabase, unrelated to

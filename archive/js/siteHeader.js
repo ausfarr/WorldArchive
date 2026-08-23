@@ -40,7 +40,13 @@
           '<a href="/spells/index.html" id="nav-spells" style="display:none;">Spells</a>' +
           '<a href="/logs/index.html" id="nav-logs">Logs</a>' +
           '<a href="/survivors/index.html" id="nav-survivors">PCs</a>' +
-          '<a href="/locations/index.html" id="nav-locations">Locations</a>' +
+          '<div class="nav-group" id="nav-group-locations">' +
+            '<button type="button" class="nav-group-toggle" aria-expanded="false">Locations ▾</button>' +
+            '<div class="nav-group-menu">' +
+              '<a href="/locations/index.html" id="nav-locations">Locations</a>' +
+              '<a href="/map.html" id="nav-map">Map</a>' +
+            '</div>' +
+          '</div>' +
           '<div class="nav-group" id="nav-group-campaigns">' +
             '<button type="button" class="nav-group-toggle" aria-expanded="false">Campaigns ▾</button>' +
             '<div class="nav-group-menu">' +
@@ -58,7 +64,6 @@
               '<a href="/pending-updates/index.html" id="nav-pending-updates">Suggestions</a>' +
             '</div>' +
           '</div>' +
-          '<a href="/map.html" id="nav-map">Map</a>' +
           '<a href="/world-info.html" id="nav-world-info">World Info</a>' +
           '<a href="/settings.html" id="nav-settings">Settings</a>' +
           '<div class="site-search">' +
