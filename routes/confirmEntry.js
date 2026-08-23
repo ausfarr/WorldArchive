@@ -30,7 +30,7 @@ const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 const { maybeCreateDateSuggestion, validateResolvedDateSubject } = require("../lib/logDateSuggestions");
-const { createChronicleEvent, createLogDateEvent, createRegenerateEvent } = require("../lib/timelineEvents");
+const { createChronicleEvent, createLogDateEvent, createRegenerateEvent, createEntryDateEvents } = require("../lib/timelineEvents");
 const { createSuggestionsFromChronicle } = require("../lib/sessionChronicleSuggestions");
 
 const router = express.Router();
@@ -39,11 +39,16 @@ const router = express.Router();
 // every successful save below (manual create, edit, and regenerate-
 // confirm all land here -- the single shared write path). Also handles
 // Session Prep Companion, Phase 3, Section 6a's cross-entry date
-// suggestion for logs (lib/logDateSuggestions.js), and Phase 6's three
+// suggestion for logs (lib/logDateSuggestions.js), and now all four
 // Timeline triggers (lib/timelineEvents.js) -- Triggers 1/3 only apply
 // to logs, Trigger 2 (timelineOptIn) applies to any category since a
-// Regenerate/status-flip can happen on any of them.
-async function afterSave(worldId, category, savedContent, unresolvedGhosts, calendarConfig, timelineOptIn) {
+// Regenerate/status-flip can happen on any of them, and Trigger 4
+// (entry-level structured dates -- foundingDate/birthDate/etc.) applies
+// to every category that has date fields other than logs (which keeps
+// its own Trigger 3). priorEntry is the entry's raw content before this
+// save (null for a brand-new entry) -- Trigger 4 needs it to detect
+// whether a date field actually changed.
+async function afterSave(worldId, category, savedContent, unresolvedGhosts, calendarConfig, timelineOptIn, priorEntry) {
   await backfillReferencesFromNewEntry(worldId, category, savedContent);
   for (const ghost of unresolvedGhosts || []) {
     await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
@@ -55,6 +60,7 @@ async function afterSave(worldId, category, savedContent, unresolvedGhosts, cale
     await createSuggestionsFromChronicle(worldId, savedContent);
   }
   await createRegenerateEvent(worldId, category, savedContent, timelineOptIn, calendarConfig);
+  await createEntryDateEvents(worldId, category, savedContent, priorEntry, calendarConfig);
 }
 
 // Shared write path for every "regenerate" preview across all categories
@@ -153,8 +159,13 @@ router.post("/confirm-entry", async (req, res) => {
     // already had unless the DM's own edit explicitly set a new value
     // (entry.status !== undefined -- e.g. from the edit form's Status
     // field, or a suggestion-apply status flip).
+    // priorRaw: this entry's raw content before this save (null for a
+    // brand-new entry) -- reused below for both the status-flip check
+    // and Timeline Trigger 4's "did a date field actually change" check
+    // (lib/timelineEvents.js's createEntryDateEvents).
+    const priorRaw = alreadyExists ? alreadyExists.raw : null;
     const STATUS_DEFAULTS = { npcs: "alive", factions: "active", survivors: "alive" };
-    const priorStatus = alreadyExists && alreadyExists.raw ? alreadyExists.raw.status : undefined;
+    const priorStatus = priorRaw ? priorRaw.status : undefined;
     if (entry.status === undefined) {
       entry.status = priorStatus !== undefined ? priorStatus : (STATUS_DEFAULTS[category] || null);
     }
@@ -207,7 +218,7 @@ router.post("/confirm-entry", async (req, res) => {
         const roundupRows = await buildFactionRoundup(worldId, entry.factionKey);
         await saveFactionEntry(worldId, entry, roundupRows);
         await syncReciprocalRelationships(worldId, entry);
-        await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn);
+        await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
         return { status: 200, body: { saved: true, id: entry.id, category } };
       }
 
@@ -230,7 +241,7 @@ router.post("/confirm-entry", async (req, res) => {
           // so it's called directly here instead of assigned to `writer`.
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericEnemyEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -243,7 +254,7 @@ router.post("/confirm-entry", async (req, res) => {
           // to resolve keyAttribute's display label.
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericClassEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -253,7 +264,7 @@ router.post("/confirm-entry", async (req, res) => {
         else if (ruleset === "generic") {
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericItemEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -263,7 +274,7 @@ router.post("/confirm-entry", async (req, res) => {
         else if (ruleset === "generic") {
           const genericSystem = await getGenericSystem(worldId);
           await saveGenericSurvivorEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn);
+          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
           return { status: 200, body: { saved: true, id: entry.id, category } };
         }
       }
@@ -273,7 +284,7 @@ router.post("/confirm-entry", async (req, res) => {
 
       const imageUrl = HAS_PORTRAIT[category] ? getPortraitUrl(worldId, entry.id) : undefined;
       await writer(worldId, entry, imageUrl);
-      await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn);
+      await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
       return { status: 200, body: { saved: true, id: entry.id, category } };
     };
 

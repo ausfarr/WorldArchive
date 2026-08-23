@@ -21,6 +21,15 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Header nav cleanup: grouped Sessions and Campaigns into dropdowns, and
+  de-duplicated the header markup across all 23 pages into one shared
+  script.** The flat nav had grown to 19 tabs after Session Prep Companion
+  landed and was already overflowing its own container width. Session
+  Packets/Recap/Timeline/Calendar/Suggestions now collapse into one
+  "Sessions ▾" dropdown, and Quests/Campaigns into "Campaigns ▾"; every
+  page now injects the header via `archive/js/siteHeader.js` instead of
+  carrying its own copy. Full detail in
+  `session_addendum_header_nav_grouping_shipped.md`.
 - **Session Prep Companion: a full pre-session-prep / post-session-recap
   loop.** A real in-world calendar (minimal setup during World Setup,
   plus a browsable month-grid Calendar page overlaying Timeline events
