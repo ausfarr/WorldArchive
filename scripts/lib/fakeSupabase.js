@@ -209,6 +209,33 @@ const fakeSupabase = {
         }
       }
     };
+  },
+  // Minimal stub for lib/fileWriter.js's portrait storage calls
+  // (getPortraitUrl/deleteAllPortraits) -- previously missing entirely,
+  // which forced every test through HAS_PORTRAIT categories (npcs,
+  // enemies, items, survivors, classes, locations -- see routes/
+  // confirmEntry.js) to retarget onto a non-portrait category (factions/
+  // logs) just to dodge a "Cannot read properties of undefined (reading
+  // 'from')" crash on supabase.storage. getPublicUrl is real Supabase's
+  // pure URL-construction call (no network round trip even for the real
+  // client), so faking it deterministically is faithful, not a
+  // simplification; list/remove are unused by any current test but
+  // stubbed for the same reason deleteAllPortraits might otherwise crash
+  // a future one.
+  storage: {
+    from(bucket) {
+      return {
+        getPublicUrl(path) {
+          return { data: { publicUrl: `https://fake-storage.test/${bucket}/${path}` } };
+        },
+        list() {
+          return Promise.resolve({ data: [], error: null });
+        },
+        remove() {
+          return Promise.resolve({ data: null, error: null });
+        }
+      };
+    }
   }
 };
 
