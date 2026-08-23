@@ -36,6 +36,7 @@ const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { validateWorldDate } = require("../lib/calendar");
 const { resolveReferencesForEntry } = require("../lib/entryLinker");
 const { validateImpliedUpdates } = require("../lib/sessionChronicleSuggestions");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -68,6 +69,19 @@ router.post("/generate-session-chronicle", requireAiEnabled, async (req, res) =>
       const prior = await getEntry(worldId, "logs", fillExistingId);
       if (!prior || !prior.raw || !prior.raw.sessionChronicle) {
         return res.status(404).json({ error: `No existing Session Chronicle found with id '${fillExistingId}'` });
+      }
+      // v1.1 split-quota pricing (lib/regenerateGate.js) -- regenerating
+      // an already-generated Chronicle is the same "revising existing
+      // content" action as any other category's Regenerate, so it gets
+      // the same subscriber-only gate (a no-op while BILLING_ENABLED is
+      // off). Checked here, before the bundled/standalone points charge
+      // below, so a blocked regenerate never charges points it would
+      // then need to refund. A brand-new Chronicle ("new", no
+      // fillExistingId) is unaffected.
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
       }
       priorRaw = prior.raw;
       priorBodyHtml = prior.bodyHtml;

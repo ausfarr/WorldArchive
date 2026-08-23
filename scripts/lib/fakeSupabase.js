@@ -20,7 +20,7 @@
 // require.cache for "../lib/supabaseClient" relative to itself, i.e.
 // ../../lib/supabaseClient from here) -- see each call site.
 
-const db = { entries: [], world_config: [], user_settings: [] };
+const db = { entries: [], world_config: [], user_settings: [], subscriptions: [] };
 
 function matches(row, filters) {
   return filters.every(([col, val]) => row[col] === val);
@@ -141,9 +141,17 @@ class FakeQuery {
 // regardless of BILLING_ENABLED -- see scripts/testEntriesPurchasedIncrement.js)
 // -- all real Postgres functions with no query-builder equivalent, so they
 // need their own hand-rolled semantics rather than falling out of
-// FakeQuery generically. billingRepo.js's own RPCs (subscription/credit
-// path) are deliberately NOT covered here -- BILLING_ENABLED is off by
-// default, so that branch never runs in this sandbox and doesn't need a fake.
+// FakeQuery generically. billingRepo.js's own subscription-quota RPCs
+// (check_and_spend_subscription_generation/refund_subscription_generation)
+// and reset_free_cycle_if_elapsed were added once a BILLING_ENABLED=true
+// test actually needed them (scripts/testSessionPrepRegenerateGate.js) --
+// simplified versions of their real migrations/012+015/029 SQL: no
+// credit_ledger fallback (nothing in this repo's tests exercises that
+// path yet), and reset_free_cycle_if_elapsed is a pure no-op since no
+// test needs actual cycle-rollover behavior, just for the call not to
+// throw. image-quota RPCs (check_and_increment_image_generation_count/
+// refund_image_generation_count) are still NOT covered -- no test in this
+// repo exercises image generation under fakeSupabase yet.
 function fakeRpc(fn, params) {
   if (fn === "check_and_increment_generation_count") {
     const row = db.world_config.find((r) => r.world_id === params.p_world_id);
@@ -162,6 +170,26 @@ function fakeRpc(fn, params) {
     if (!row) return { data: null, error: { message: `world_config row for world_id ${params.p_world_id} does not exist` } };
     row.entries_purchased = (row.entries_purchased || 0) + params.p_amount;
     return { data: row.entries_purchased, error: null };
+  }
+  if (fn === "reset_free_cycle_if_elapsed") {
+    return { data: null, error: null };
+  }
+  if (fn === "check_and_spend_subscription_generation") {
+    const sub = db.subscriptions.find((s) => s.user_id === params.p_user_id);
+    if (!sub) return { data: null, error: { message: `no subscription row for user_id ${params.p_user_id}` } };
+    const amount = params.p_amount || 1;
+    const quota = sub.status === "active" ? (sub.monthly_quota || 0) : 0;
+    const used = sub.used_this_cycle || 0;
+    if (used + amount <= quota) {
+      sub.used_this_cycle = used + amount;
+      return { data: [{ allowed: true, used_this_cycle: sub.used_this_cycle, credit_balance: 0, source: "quota" }], error: null };
+    }
+    return { data: [{ allowed: false, used_this_cycle: used, credit_balance: 0, source: "none" }], error: null };
+  }
+  if (fn === "refund_subscription_generation") {
+    const sub = db.subscriptions.find((s) => s.user_id === params.p_user_id);
+    if (sub) sub.used_this_cycle = Math.max(0, (sub.used_this_cycle || 0) - params.p_amount);
+    return { data: null, error: null };
   }
   return { data: null, error: { message: `fakeSupabase: unhandled rpc "${fn}"` } };
 }
