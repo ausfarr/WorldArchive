@@ -91,7 +91,7 @@ campaignId})` resolves a Quest or Campaign's full roster, prior
 Chronicles, and dungeon maps into one shape every later phase builds on.
 Admin-gated test endpoint only — no real UI caller until Phase 4.
 
-**Phase 2 — Minimal Calendar** (`migrations/029`, `lib/calendar.js`,
+**Phase 2 — Minimal Calendar** (`migrations/030`, `lib/calendar.js`,
 `routes/wizardCalendar.js`, `archive/settings.html`). New
 `world_config.calendar_config` jsonb column — months, days/week, era
 name, current date. Settings-page editor with a "Generate for me" AI
@@ -99,7 +99,7 @@ assist, same pattern as Stat System/Style Guide.
 
 **Phase 3 — Entry-level structured dates** (`lib/calendar.js` extended,
 `lib/dateContext.js`, `lib/logDateSuggestions.js`,
-`lib/pendingEntryUpdatesRepo.js` stub, `migrations/030`). Founding/birth/
+`lib/pendingEntryUpdatesRepo.js` stub, `migrations/031`). Founding/birth/
 appointed/death/created/discovered/resolved date fields added to
 Factions, NPCs, Survivors, Items, Logs — model-proposed, code-validated,
 sanitized on every write path including manual edit (`routes/
@@ -107,7 +107,7 @@ confirmEntry.js`). A Log that's the "first mention" of an undated fact
 creates a reviewable suggestion rather than silently backfilling another
 entry's date.
 
-**Phase 4 — Session Packet generation (Tier B)** (`migrations/031`,
+**Phase 4 — Session Packet generation (Tier B)** (`migrations/032`,
 `prompts/sessionPacketPrompt.js`, `lib/sessionPacketTemplate.js`,
 `routes/generateSessionPacket.js`, `archive/session-packets/`). Full
 generative prep document — opening read-aloud, scene beats tagged to
@@ -128,7 +128,7 @@ category. Session numbering is global (one running count across the
 whole world, not per-Quest/Campaign). Date defaults to the world's
 `current_date` but is fully DM-editable before confirming.
 
-**Phase 6 — Timeline of Events** (`migrations/032`, `lib/timelineRepo.js`,
+**Phase 6 — Timeline of Events** (`migrations/033`, `lib/timelineRepo.js`,
 `lib/timelineEvents.js`, `archive/timeline/`). Three deterministic
 trigger sources: every confirmed Chronicle (Trigger 1), a Log's resolved
 date when it isn't a Chronicle (Trigger 3 — "canonical date wins," so a
@@ -137,7 +137,7 @@ Regenerate (Trigger 2). Never AI-generated — pure aggregation of data
 that already exists.
 
 **Phase 7 — Entry drift suggestions, status fields, persisted queue**
-(`migrations/033`, `lib/pendingEntryUpdatesRepo.js` formalized,
+(`migrations/034`, `lib/pendingEntryUpdatesRepo.js` formalized,
 `lib/sessionChronicleSuggestions.js`, `routes/pendingUpdates.js`,
 `archive/pending-updates/`). A Chronicle can propose `impliedUpdates` —
 narrative implications for already-archived entries (an NPC's status
@@ -153,7 +153,7 @@ never auto-applies: it pre-fills the suggestion's text into the normal
 DM-reviewed regenerate/confirm flow via a new `revisionNote` parameter
 threaded into 4 prompt builders' existing `regenerateBlock`.
 
-**Phase 8 — Full Calendar Page** (`migrations/034`,
+**Phase 8 — Full Calendar Page** (`migrations/035`,
 `lib/calendarNotableDatesRepo.js`, `archive/calendar/`). Year-at-a-glance
 month grid built from `calendar_config`, overlaying Timeline events (a
 different *view* of Phase 6's data, not a new source) plus DM-added
@@ -175,14 +175,26 @@ contract.
 
 No migration runner in this project — apply each against the Supabase
 project via the SQL Editor (or CLI), in this numeric order, before this
-code goes live:
+code goes live. **Renumbered from 029-034 to 030-035** while merging
+this branch with `main` (PR #48): main had independently landed its own
+`migrations/029_split_generation_quotas.sql` in the time this feature
+was being built, so this feature's original 029 (`calendar_config.sql`)
+collided with it. Renumbered this feature's six migrations up by one to
+resolve the collision — no other migration on `main` overlaps with this
+range, and none of these six migrations execution-order-depend on
+`029_split_generation_quotas.sql` or vice versa (different tables/
+columns entirely), so the renumbering is purely cosmetic/ordering, not a
+functional change. If `029_split_generation_quotas.sql` was already
+applied against the live Supabase project before these six are applied,
+that's fine — apply this feature's six in order starting from 030
+regardless of what's already there.
 
-- `029_calendar_config.sql` — `world_config.calendar_config` jsonb column
-- `030_pending_entry_updates.sql` — `pending_entry_updates` table (Phase 3 stub)
-- `031_session_packets_category.sql` — adds `'session-packets'` to `entries.category`'s CHECK constraint
-- `032_timeline_events.sql` — `timeline_events` table
-- `033_pending_entry_updates_payload.sql` — adds `payload` jsonb column to `pending_entry_updates`
-- `034_calendar_notable_dates.sql` — `calendar_notable_dates` table
+- `030_calendar_config.sql` — `world_config.calendar_config` jsonb column
+- `031_pending_entry_updates.sql` — `pending_entry_updates` table (Phase 3 stub)
+- `032_session_packets_category.sql` — adds `'session-packets'` to `entries.category`'s CHECK constraint
+- `033_timeline_events.sql` — `timeline_events` table
+- `034_pending_entry_updates_payload.sql` — adds `payload` jsonb column to `pending_entry_updates`
+- `035_calendar_notable_dates.sql` — `calendar_notable_dates` table
 
 ## What's untested against a live world (explicit, per the working norms)
 

@@ -1,4 +1,4 @@
--- 030_pending_entry_updates.sql
+-- 031_pending_entry_updates.sql
 --
 -- Session Prep Companion, Phase 3 -- stub table for Section 6a's
 -- suggested-update queue: when a Log resolves an in-world date for

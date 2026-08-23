@@ -1,7 +1,7 @@
--- 033_pending_entry_updates_payload.sql
+-- 034_pending_entry_updates_payload.sql
 --
 -- Session Prep Companion, Phase 7 -- formalizes the pending_entry_updates
--- stub table from Phase 3 (migrations/030) into the real suggestion
+-- stub table from Phase 3 (migrations/031) into the real suggestion
 -- queue. Adds one column: a `payload` jsonb blob for suggestion-type-
 -- specific structured data that doesn't fit `delta_text` (currently only
 -- used by suggestion_type='status_flip' rows, which need a real

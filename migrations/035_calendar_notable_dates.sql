@@ -1,4 +1,4 @@
--- 034_calendar_notable_dates.sql
+-- 035_calendar_notable_dates.sql
 --
 -- Session Prep Companion, Phase 8 -- DM-added recurring notable dates
 -- (holidays, a faction's founding day, an annual festival) for the Full
@@ -15,7 +15,7 @@
 -- Recurring by design -- month_index/day only, no year, since these are
 -- yearly-repeating dates (a harvest festival happens every year on the
 -- same day), not one-off events. One-off in-world happenings already
--- have a home: timeline_events (migrations/032), sourced from actual
+-- have a home: timeline_events (migrations/033), sourced from actual
 -- play (Chronicles, Log dates, opted-in Regenerates).
 --
 -- APPLY BY HAND: no migration runner in this project -- run this against

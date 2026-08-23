@@ -1,4 +1,4 @@
--- 031_session_packets_category.sql
+-- 032_session_packets_category.sql
 --
 -- Session Prep Companion, Phase 4 -- adds 'session-packets' to
 -- entries.category's CHECK constraint (see migrations/024_spells_

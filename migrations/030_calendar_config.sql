@@ -1,4 +1,4 @@
--- 029_calendar_config.sql
+-- 030_calendar_config.sql
 --
 -- Session Prep Companion, Phase 2 -- minimal calendar (see
 -- session_prep_companion_scope.md Section 4a-i). Same home/pattern as

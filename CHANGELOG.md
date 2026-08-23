@@ -36,7 +36,10 @@ entry from here forward gets both a real date and a version at write time.
   exists, standalone otherwise). Full detail, per-phase breakdown, and
   what's still untested against a live world/live Supabase in
   `session_addendum_session_prep_companion_shipped.md`. Six new
-  migrations (029-034) need to be applied by hand before this goes live.
+  migrations (030-035, renumbered from 029-034 during merge with main —
+  see that addendum's note — to make room for main's own new
+  `migrations/029_split_generation_quotas.sql`) need to be applied by
+  hand before this goes live.
 - **🔥 Production outage, fixed same-day: every generation for a subscribed
   account was 500ing with "Internal server error."** Traced via live
   Supabase logs to `check_and_spend_subscription_generation` throwing
