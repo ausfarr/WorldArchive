@@ -34,8 +34,7 @@ const CACHE_BUSTED_SCRIPTS = [
   "auth",
   "wizardSession",
   "themeBootstrap",
-  "rulesetManualForms",
-  "demoGenerator"
+  "rulesetManualForms"
 ];
 
 const fs = require("fs");

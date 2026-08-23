@@ -80,6 +80,63 @@ function renderAdminViewBanner() {
   };
 }
 
+// --- Cloudflare Turnstile (anonymous-signup abuse guard) -------------------
+//
+// signInAnonymously() below has zero friction (no email, no verification),
+// so a scripted actor could loop it to farm unlimited free-tier
+// allowances. Turnstile guards that one call. Loaded lazily -- only the
+// moment requireAuth() actually needs to mint a fresh anonymous session,
+// not on every page load -- and runs invisibly for the large majority of
+// real visitors; only suspicious traffic sees an interactive challenge.
+// window.TURNSTILE_CONFIG comes from /config.js (server.js), same pattern
+// as window.SUPABASE_CONFIG. Missing site key (local dev without
+// Turnstile configured yet) just means no client-side token is sent --
+// Supabase's own CAPTCHA requirement, once enabled in the dashboard, is
+// the real enforcement point, so this never silently bypasses protection,
+// it just means that request gets rejected server-side with a clear error
+// instead.
+let _turnstileLoadPromise = null;
+
+function loadTurnstileScript() {
+  if (window.turnstile) return Promise.resolve();
+  if (_turnstileLoadPromise) return _turnstileLoadPromise;
+  _turnstileLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = "https://challenge.cloudflare.com/turnstile/v0/api.js";
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Could not load Turnstile."));
+    document.head.appendChild(script);
+  });
+  return _turnstileLoadPromise;
+}
+
+async function getTurnstileToken() {
+  const siteKey = window.TURNSTILE_CONFIG && window.TURNSTILE_CONFIG.siteKey;
+  if (!siteKey) return null;
+  await loadTurnstileScript();
+  return new Promise((resolve, reject) => {
+    // Off-screen, not display:none -- Turnstile needs the widget to
+    // actually render (even invisibly-styled) to run its checks; a
+    // display:none container never executes.
+    const container = document.createElement("div");
+    container.style.cssText = "position:fixed; left:-9999px; top:-9999px;";
+    document.body.appendChild(container);
+    window.turnstile.render(container, {
+      sitekey: siteKey,
+      callback: (token) => {
+        container.remove();
+        resolve(token);
+      },
+      "error-callback": () => {
+        container.remove();
+        reject(new Error("Turnstile verification failed."));
+      }
+    });
+  });
+}
+
 let _supabaseClient = null;
 
 function getSupabaseClient() {
@@ -115,21 +172,84 @@ async function signIn(email, password) {
   return data;
 }
 
+// Converts the CURRENT anonymous session into a permanent one in place --
+// same user id, same world, same everything already generated. This is
+// Supabase's documented anonymous-to-permanent upgrade path
+// (auth.updateUser), distinct from signUp() above, which would create an
+// unrelated second account and orphan the anonymous work.
+async function upgradeAnonymousAccount(email, password) {
+  const { data, error } = await getSupabaseClient().auth.updateUser({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+// Links an OAuth identity to the CURRENT anonymous session in place, same
+// upgrade-not-replace reasoning as upgradeAnonymousAccount() above --
+// distinct from signInWithOAuth() below, which starts a brand new
+// identity/session instead of upgrading the current one.
+async function linkOAuthIdentity(provider) {
+  const { error } = await getSupabaseClient().auth.linkIdentity({
+    provider,
+    options: { redirectTo: window.location.origin + "/login.html" }
+  });
+  if (error) throw error;
+}
+
+// One-click OAuth sign-in/sign-up (same Supabase Auth user record either
+// way -- Supabase treats "sign in" and "sign up" as the same call for
+// OAuth providers, unlike the email/password form above which has two
+// distinct methods). This does a full-page redirect to the provider and
+// back to redirectTo, so there's nothing to return here -- the caller's
+// code after this call never runs. On return, Supabase JS's default
+// detectSessionInUrl behavior parses the auth response from the URL and
+// populates getSession() before any of this page's own JS runs its
+// getCurrentSession() check, so no extra callback-handling code is needed
+// beyond what login.html already does.
+async function signInWithOAuth(provider) {
+  const { error } = await getSupabaseClient().auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: window.location.origin + "/login.html" }
+  });
+  if (error) throw error;
+}
+
 async function signOut() {
   await getSupabaseClient().auth.signOut();
   window.location.href = "/login.html";
 }
 
-// Redirects to the login page if there's no active session. Call at the
-// top of any page that requires auth. Returns the session so callers
-// don't need a second lookup.
+// Anonymous-by-default access (v1.1): every authenticated page already
+// calls this once at load, so this is the single choke point that makes
+// the whole app work for a brand-new visitor with no signup screen at
+// all. If there's no session yet, silently mint a real (not fake,
+// client-side-only) anonymous Supabase session via signInAnonymously()
+// instead of redirecting to /login.html -- middleware/resolveTenant.js
+// treats it exactly like any other session (real worldId, real persisted
+// entries, the free-tier quota applies identically). Turnstile
+// (getTurnstileToken above) guards this call against scripted abuse.
+//
+// Deliberately does NOT change authFetch()'s behavior below on a
+// missing/expired session -- that path fires when a session EXPIRES
+// mid-use, not on first visit, and silently minting a fresh anonymous
+// session there would risk quietly dropping a real subscriber into a
+// brand-new empty anonymous world on token expiry. Only this "no session
+// at all yet" case is handled here.
 async function requireAuth() {
   const session = await getCurrentSession();
-  if (!session) {
+  if (session) return session;
+
+  try {
+    const captchaToken = await getTurnstileToken();
+    const { data, error } = await getSupabaseClient().auth.signInAnonymously(
+      captchaToken ? { options: { captchaToken } } : undefined
+    );
+    if (error) throw error;
+    return data.session;
+  } catch (err) {
+    console.error("Could not start an anonymous session:", err);
     window.location.href = "/login.html";
     return null;
   }
-  return session;
 }
 
 // Drop-in replacement for fetch() that attaches the current session's
@@ -196,8 +316,13 @@ async function renderAuthStatus() {
   const el = document.getElementById("auth-status");
   if (!el) return;
   const session = await getCurrentSession();
-  if (!session) {
-    el.innerHTML = `<a href="/login.html">Log In</a>`;
+  if (!session || (session.user && session.user.is_anonymous)) {
+    // No session, or an anonymous one that hasn't been secured with an
+    // email/password or OAuth identity yet -- "Sign Out" would be a trap
+    // here (there's no credential to sign back INTO, so it would just
+    // strand the visitor's own free-tier work), so point at login.html's
+    // upgrade flow instead of the normal signed-in state.
+    el.innerHTML = `<a href="/login.html">Save Your World</a>`;
     return;
   }
   const email = (session.user && session.user.email) || "account";

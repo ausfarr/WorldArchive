@@ -23,16 +23,13 @@
 // artPromptPrompt.js's CHARACTER/OBJECT/ENVIRONMENT category framing,
 // which only covers the same 6 categories.
 //
-// /generate-image now runs behind enforceGenerationCap, same as the 7
-// content-generation routes -- resolved the gap flagged in this file's
-// prior version, where portrait regeneration was real Claude+Gemini
-// spend with no limit at all, independent of plan/trial/credits. Shares
-// the SAME pool rather than getting its own separate cap: simplest
-// option, avoids a second quota concept to explain to users, and
-// consistent with "a generation is a generation" regardless of whether
-// it's text or a portrait. Revisit as a split cap later if real usage
-// data shows portraits are disproportionately expensive relative to
-// text content.
+// /generate-image now runs behind enforceImageGenerationCap, a SEPARATE
+// quota from the 7 text-generation routes (migrations/029_split_generation_quotas.sql,
+// v1.1 split-quota pricing) -- images cost ~10x more per unit than a text
+// generation ($0.08 vs $0.008), so "a generation is a generation"
+// (this route's original reasoning, when it first got capped) no longer
+// holds now that free/subscription tiers need independently-sized
+// allowances for each.
 //
 // /upload-image is NOT capped -- it's a user's own file with no AI
 // spend, nothing to protect against.
@@ -53,7 +50,7 @@ const {
 } = require("../lib/fileWriter");
 const { getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide, getRuleset, getGenericSystem } = require("../lib/worldConfigRepo");
-const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { enforceImageGenerationCap } = require("../middleware/enforceGenerationCap");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
 const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
@@ -143,12 +140,12 @@ async function loadEntryOrRespondError(req, res) {
 // Generates a brand-new (or regenerated) portrait from the entry's
 // existing content via the art-prompt-writer -> Gemini pipeline, same
 // as entry creation used to do inline.
-router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceGenerationCap, async (req, res) => {
+router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceImageGenerationCap, async (req, res) => {
   try {
     const { category, id } = req.params;
     const loaded = await loadEntryOrRespondError(req, res);
     if (!loaded) {
-      if (req.refundGeneration) await req.refundGeneration();
+      if (req.refundImageGeneration) await req.refundImageGeneration();
       return;
     }
     const { saveFn, subjectJson } = loaded;
@@ -170,7 +167,7 @@ router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceGe
     res.json({ imageUrl });
   } catch (err) {
     console.error("Portrait generation failed:", err);
-    if (req.refundGeneration) await req.refundGeneration();
+    if (req.refundImageGeneration) await req.refundImageGeneration();
     res.status(500).json({ error: err.message });
   }
 });
