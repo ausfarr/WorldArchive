@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Log In — Chronicled</title>
+<title>Save Your World — Chronicled</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,8 +16,8 @@
 
 <div class="wrap" style="max-width: 420px; padding-top: 60px;">
   <div class="sheet" style="padding: 32px;">
-    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;" id="form-title">Log In</h1>
-    <p style="color: var(--ink-dim); font-size: 0.88rem; margin: 0 0 24px;" id="form-sub">Access your Chronicled account.</p>
+    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;" id="form-title">Save Your World</h1>
+    <p style="color: var(--ink-dim); font-size: 0.88rem; margin: 0 0 24px;" id="form-sub">Add an email and password so you don't lose access — free either way.</p>
 
     <form id="auth-form">
       <label for="email" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">EMAIL</label>
@@ -26,22 +26,27 @@
       <label for="password" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">PASSWORD</label>
       <input id="password" type="password" required autocomplete="current-password" minlength="6" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 10px 12px; font-family: var(--font-body); margin-bottom: 20px;">
 
-      <button type="submit" id="submit-btn" style="width: 100%; background: var(--neon-primary); color: var(--bg-void); border: none; padding: 12px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Log In</button>
+      <button type="submit" id="submit-btn" style="width: 100%; background: var(--neon-primary); color: var(--bg-void); border: none; padding: 12px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Save</button>
     </form>
 
     <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 16px 0 0; display: none;"></p>
 
-    <p style="font-size: 0.85rem; color: var(--ink-dim); margin: 20px 0 0; text-align: center;">
-      <span id="toggle-mode-prompt">Don't have an account?</span>
-      <a href="#" id="toggle-mode">Sign up</a>
-    </p>
+    <div style="display:flex; align-items:center; gap:12px; margin: 20px 0;">
+      <div style="flex:1; height:1px; background: var(--border-line);"></div>
+      <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint);">OR</span>
+      <div style="flex:1; height:1px; background: var(--border-line);"></div>
+    </div>
 
-    <!-- Unauthenticated demo generator (session_addendum_demo_mode_scope.md)
-         -- the whole point is letting a visitor see real generated
-         content before hitting this signup wall, so it needs to be
-         reachable from here. -->
-    <p style="font-size: 0.85rem; color: var(--ink-dim); margin: 12px 0 0; text-align: center;">
-      <a href="demo.html">Try it without an account first →</a>
+    <!-- One-click OAuth, alongside (not instead of) email+password. v1.1:
+         whether this links the current anonymous session in place or
+         starts a brand-new sign-in is decided at click time -- see
+         handleOAuthClick() below. -->
+    <button type="button" id="oauth-google-btn" style="width:100%; background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 12px; font-family: var(--font-body); cursor: pointer; margin-bottom: 10px;">Continue with Google</button>
+    <button type="button" id="oauth-discord-btn" style="width:100%; background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 12px; font-family: var(--font-body); cursor: pointer;">Continue with Discord</button>
+
+    <p style="font-size: 0.85rem; color: var(--ink-dim); margin: 20px 0 0; text-align: center;">
+      <span id="toggle-mode-prompt">Already have an account?</span>
+      <a href="#" id="toggle-mode">Log in</a>
     </p>
   </div>
 </div>
@@ -60,33 +65,73 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.0.0"></script>
+<script src="/js/auth.js?v=v1.1.0"></script>
 <script>
-let mode = "signin"; // "signin" | "signup"
+// v1.1 anonymous-by-default access: by the time anyone reaches this page
+// they'll almost always already have a real (not fake) anonymous Supabase
+// session, established silently by requireAuth() the moment they first
+// used the app (see archive/js/auth.js). So this page's job shifted from
+// "the mandatory gate to enter the app" to "save your progress or log
+// into an existing account" -- "save" mode upgrades the CURRENT session
+// in place (same world, same everything already generated) rather than
+// creating an unrelated second account.
+let mode = "save"; // "save" | "signin"
 
-function applyMode(isSignup) {
-  mode = isSignup ? "signup" : "signin";
-  document.getElementById("form-title").textContent = isSignup ? "Sign Up" : "Log In";
-  document.getElementById("form-sub").textContent = isSignup
-    ? "Create a new Chronicled account."
+function applyMode(isSave) {
+  mode = isSave ? "save" : "signin";
+  document.getElementById("form-title").textContent = isSave ? "Save Your World" : "Log In";
+  document.getElementById("form-sub").textContent = isSave
+    ? "Add an email and password so you don't lose access — free either way."
     : "Access your Chronicled account.";
-  document.getElementById("submit-btn").textContent = isSignup ? "Sign Up" : "Log In";
-  document.getElementById("toggle-mode-prompt").textContent = isSignup
+  document.getElementById("submit-btn").textContent = isSave ? "Save" : "Log In";
+  document.getElementById("toggle-mode-prompt").textContent = isSave
     ? "Already have an account?"
-    : "Don't have an account?";
-  document.getElementById("toggle-mode").textContent = isSignup ? "Log in" : "Sign up";
+    : "Don't have an account yet?";
+  document.getElementById("toggle-mode").textContent = isSave ? "Log in" : "Save your world";
 }
 
 document.getElementById("toggle-mode").addEventListener("click", (e) => {
   e.preventDefault();
-  applyMode(mode !== "signup");
+  applyMode(mode !== "save");
 });
 
-// ?mode=signup lands directly in signup mode -- marketing site CTAs link
-// here instead of the old waitlist form (see session_addendum_v1_launch_cleanup.md).
-if (new URLSearchParams(window.location.search).get("mode") === "signup") {
-  applyMode(true);
+// Sync the DOM to the "save" default above -- the static markup still
+// shows "Log In" copy, so this has to run unconditionally on load, not
+// just behind the ?mode= check below (that was the actual v1.1 default
+// change; the query param is now a no-op kept only for marketing links
+// that still pass it).
+applyMode(mode === "save");
+
+// ?mode=signin lands directly in signin mode instead of the default
+// (e.g. for a future "Log In" link that specifically wants that, unlike
+// today's marketing CTAs, which all point at the app root now).
+if (new URLSearchParams(window.location.search).get("mode") === "signin") {
+  applyMode(false);
 }
+
+// Links the OAuth identity to the CURRENT anonymous session in place when
+// one exists (the common case), or falls back to a normal OAuth sign-in
+// otherwise -- see archive/js/auth.js's linkOAuthIdentity()/
+// signInWithOAuth() for the distinction. Both do a full-page redirect, so
+// nothing after the await runs in the success case.
+async function handleOAuthClick(provider, label) {
+  const status = document.getElementById("status");
+  status.style.display = "block";
+  status.textContent = `Redirecting to ${label}…`;
+  try {
+    const session = await getCurrentSession();
+    if (session && session.user.is_anonymous) {
+      await linkOAuthIdentity(provider);
+    } else {
+      await signInWithOAuth(provider);
+    }
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  }
+}
+
+document.getElementById("oauth-google-btn").addEventListener("click", () => handleOAuthClick("google", "Google"));
+document.getElementById("oauth-discord-btn").addEventListener("click", () => handleOAuthClick("discord", "Discord"));
 
 document.getElementById("auth-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -96,18 +141,18 @@ document.getElementById("auth-form").addEventListener("submit", async (e) => {
   const status = document.getElementById("status");
   btn.disabled = true;
   status.style.display = "block";
-  status.textContent = mode === "signup" ? "Creating account…" : "Logging in…";
+  status.textContent = mode === "save" ? "Saving…" : "Logging in…";
   try {
-    if (mode === "signup") {
-      await signUp(email, password);
-      status.textContent = "Account created. If email confirmation is required, check your inbox — otherwise you're logged in.";
-      // If Supabase's project settings don't require email confirmation,
-      // signUp() already returns an active session, so this redirect
-      // works immediately. If confirmation IS required, the session will
-      // be null and the user lands back here after confirming — no
-      // special-casing needed beyond this message.
+    if (mode === "save") {
       const session = await getCurrentSession();
-      if (session) window.location.href = await getPostLoginDestination();
+      if (session && session.user.is_anonymous) {
+        await upgradeAnonymousAccount(email, password);
+        status.textContent = "Saved — check your inbox to confirm your email if asked. Your world stays exactly as it is.";
+      } else {
+        await signUp(email, password);
+        status.textContent = "Account created. Check your inbox to confirm your email if asked.";
+      }
+      window.location.href = await getPostLoginDestination();
     } else {
       await signIn(email, password);
       window.location.href = await getPostLoginDestination();
@@ -118,10 +163,12 @@ document.getElementById("auth-form").addEventListener("submit", async (e) => {
   }
 });
 
-// If already logged in, skip straight past the login page.
+// Skip straight past this page only for an already-permanent account --
+// an anonymous session should still see the save/upgrade form, not get
+// redirected away from the one place that lets them secure it.
 (async () => {
   const session = await getCurrentSession();
-  if (session) window.location.href = await getPostLoginDestination();
+  if (session && !session.user.is_anonymous) window.location.href = await getPostLoginDestination();
 })();
 </script>
 

@@ -9,8 +9,11 @@
 
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
-const { getPlan, getSubscription, getCreditBalance, DEFAULT_PLAN_ID, TRIAL_CAP } = require("../lib/billingRepo");
-const { getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP, POINTS_PER_GENERATION } = require("../lib/worldConfigRepo");
+const { getPlan, getSubscription, getCreditBalance, DEFAULT_PLAN_ID } = require("../lib/billingRepo");
+const {
+  getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP, POINTS_PER_GENERATION,
+  FREE_MONTHLY_GENERATION_CAP, FREE_MONTHLY_IMAGE_CAP, resetFreeCycleIfElapsed, getFullConfig
+} = require("../lib/worldConfigRepo");
 const { countEntries } = require("../lib/entriesRepo");
 const { getAiEnabled, setAiEnabled } = require("../lib/userSettingsRepo");
 
@@ -95,14 +98,27 @@ router.get("/billing/status", async (req, res) => {
     const subscriptionActive = !!(subscription && subscription.status === "active");
 
     if (!subscription) {
-      const trialUsedPoints = await getGenerationCount(req.worldId);
+      // v1.1 split-quota pricing -- a genuinely recurring monthly free
+      // allowance for signed-up accounts (migrations/029), replacing the
+      // old one-time TRIAL_CAP. Reset first so this status read always
+      // reflects the current cycle, same as every cap-check call site.
+      await resetFreeCycleIfElapsed(req.worldId);
+      const config = await getFullConfig(req.worldId);
+      const freeUsedPoints = config.generation_count || 0;
+      const freeImageUsed = config.image_generation_count || 0;
+      const nextResetAt = new Date(config.free_cycle_reset_at);
+      nextResetAt.setMonth(nextResetAt.getMonth() + 1);
       return res.json({
-        state: "trial",
-        trialUsed: pointsToGenerations(trialUsedPoints),
-        trialCap: pointsToGenerations(TRIAL_CAP),
-        trialRemaining: pointsToGenerations(Math.max(0, TRIAL_CAP - trialUsedPoints)),
+        state: "free",
+        freeUsed: pointsToGenerations(freeUsedPoints),
+        freeCap: pointsToGenerations(FREE_MONTHLY_GENERATION_CAP),
+        freeRemaining: pointsToGenerations(Math.max(0, FREE_MONTHLY_GENERATION_CAP - freeUsedPoints)),
+        freeImageUsed,
+        freeImageCap: FREE_MONTHLY_IMAGE_CAP,
+        freeImageRemaining: Math.max(0, FREE_MONTHLY_IMAGE_CAP - freeImageUsed),
+        nextResetAt: nextResetAt.toISOString(),
         creditBalance: pointsToGenerations(creditBalancePoints),
-        fieldAssistsRemaining: Math.max(0, TRIAL_CAP - trialUsedPoints) + creditBalancePoints,
+        fieldAssistsRemaining: Math.max(0, FREE_MONTHLY_GENERATION_CAP - freeUsedPoints) + creditBalancePoints,
         entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive),
         aiEnabled
       });
@@ -110,6 +126,8 @@ router.get("/billing/status", async (req, res) => {
 
     const plan = await getPlan(subscription.plan_id);
     const remainingThisCyclePoints = Math.max(0, plan.monthly_quota - subscription.used_this_cycle);
+    const usedImagesThisCycle = subscription.used_images_this_cycle || 0;
+    const monthlyQuotaImages = plan.monthly_quota_images || 0;
     res.json({
       state: "subscribed",
       status: subscription.status,
@@ -117,6 +135,9 @@ router.get("/billing/status", async (req, res) => {
       monthlyQuota: pointsToGenerations(plan.monthly_quota),
       usedThisCycle: pointsToGenerations(subscription.used_this_cycle),
       remainingThisCycle: pointsToGenerations(remainingThisCyclePoints),
+      monthlyQuotaImages,
+      usedImagesThisCycle,
+      remainingImagesThisCycle: Math.max(0, monthlyQuotaImages - usedImagesThisCycle),
       currentPeriodEnd: subscription.current_period_end,
       creditBalance: pointsToGenerations(creditBalancePoints),
       fieldAssistsRemaining: remainingThisCyclePoints + creditBalancePoints,
@@ -147,6 +168,20 @@ router.patch("/settings/ai-toggle", async (req, res) => {
   }
 });
 
+// v1.1 anonymous-by-default access: an anonymous Supabase session has no
+// email at all (req.userEmail is undefined), and Stripe Checkout needs a
+// real one to create a customer/send receipts. Shared across all three
+// checkout routes below rather than duplicated -- the only thing that
+// differs per route is the message.
+function requireRealEmail(req, res) {
+  if (req.userEmail) return true;
+  res.status(400).json({
+    error: "email_required",
+    message: "Add an email to your account first (Save Your World, from the account menu), then try again."
+  });
+  return false;
+}
+
 // Kicks off a Stripe Checkout Session for the single subscription plan.
 // Returns a URL the frontend redirects the browser to -- Stripe hosts
 // the actual payment form, nothing card-related ever touches our server.
@@ -154,6 +189,7 @@ router.post("/billing/checkout/subscribe", async (req, res) => {
   if (!BILLING_ENABLED) {
     return res.status(403).json({ error: "Billing isn't turned on yet." });
   }
+  if (!requireRealEmail(req, res)) return;
   try {
     const plan = await getPlan(DEFAULT_PLAN_ID);
     const existing = await getSubscription(req.userId);
@@ -181,6 +217,7 @@ router.post("/billing/checkout/credits", async (req, res) => {
   if (!BILLING_ENABLED) {
     return res.status(403).json({ error: "Billing isn't turned on yet." });
   }
+  if (!requireRealEmail(req, res)) return;
   try {
     const packs = parseInt(req.body.packs, 10);
     if (!Number.isInteger(packs) || packs < 1) {
@@ -220,6 +257,7 @@ router.post("/billing/checkout/entries", async (req, res) => {
   if (!BILLING_ENABLED) {
     return res.status(403).json({ error: "Billing isn't turned on yet." });
   }
+  if (!requireRealEmail(req, res)) return;
   try {
     const packs = parseInt(req.body.packs, 10);
     if (!Number.isInteger(packs) || packs < 1) {

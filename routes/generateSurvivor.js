@@ -58,6 +58,7 @@ const { computeDerivedStats } = require("../lib/rulesets/generic/statFormulas");
 const { buildHomebrewSurvivorSystemPrompt: buildHomebrewGenericSurvivorSystemPrompt } = require("../prompts/rulesets/generic/survivorContentPrompt");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -107,6 +108,11 @@ async function handleEchoesSurvivorGenerate(req, res) {
     // fresh generation, per scope doc) — so any existing id here is
     // always a regenerate, never a "fill."
     mode = "regenerate";
+    const gate = await requireSubscriptionToRegenerate(req);
+    if (!gate.allowed) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(403).json(gate.body);
+    }
     const prior = await readSurvivorEntry(worldId, fillExistingId);
     priorRaw = prior && prior.raw ? prior.raw : null;
     priorBodyHtml = prior ? prior.bodyHtml : null;
@@ -192,6 +198,11 @@ async function handle5eSurvivorGenerate(req, res) {
     const full = await getEntry(worldId, "survivors", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = true; // PCs have no locked placeholders, same as Echoes -- any existing id is always a regenerate
+    const gate = await requireSubscriptionToRegenerate(req);
+    if (!gate.allowed) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(403).json(gate.body);
+    }
   }
 
   const classEntries = await listEntries(worldId, "classes", { locked: false });
@@ -371,6 +382,11 @@ async function handleGenericSurvivorGenerate(req, res) {
     const full = await getEntry(worldId, "survivors", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = true; // PCs have no locked placeholders, same as every other ruleset
+    const gate = await requireSubscriptionToRegenerate(req);
+    if (!gate.allowed) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(403).json(gate.body);
+    }
   }
 
   const classEntries = await listEntries(worldId, "classes", { locked: false });
