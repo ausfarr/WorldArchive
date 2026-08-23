@@ -72,6 +72,28 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); out
   color: var(--ink-dim);
 }
 .site-nav a:hover { color: var(--neon-cyan); text-decoration: none; }
+.site-nav a.active { color: var(--neon-cyan); }
+
+/* Nav dropdown groups (Campaigns, Sessions) -- same popup-panel language
+   as .site-search-results below (dark panel, border, box-shadow) since
+   that's the only existing precedent for a floating panel in this app. */
+.nav-group { position: relative; }
+.nav-group-toggle {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.nav-group-toggle:hover { color: var(--neon-cyan); }
+.nav-group-toggle.active { color: var(--neon-cyan); }
+.nav-group-menu {
+  display: none; position: absolute; top: calc(100% + 10px); left: 0; min-width: 160px;
+  background: var(--bg-panel-raised); border: 1px solid var(--border-line);
+  border-radius: 4px; padding: 8px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  flex-direction: column; gap: 10px;
+}
+.nav-group.open .nav-group-menu { display: flex; }
+.nav-group-menu a { white-space: nowrap; }
 
 /* ---------- Breadcrumb ---------- */
 .crumb {
