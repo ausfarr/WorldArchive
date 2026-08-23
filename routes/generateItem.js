@@ -32,6 +32,7 @@ const { generateHomebrewGenericItem } = require("../lib/rulesets/generic/homebre
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { formatCalendarContextForPrompt, resolveRegeneratedDate } = require("../lib/calendar");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -97,6 +98,11 @@ async function handleEchoesItemGenerate(req, res) {
     }
     mode = existingEntry.locked ? "fill" : "regenerate";
     if (mode === "regenerate") {
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
+      }
       const prior = await readItemEntry(worldId, fillExistingId);
       priorRaw = prior && prior.raw ? prior.raw : null;
       priorBodyHtml = prior ? prior.bodyHtml : null;
@@ -228,6 +234,13 @@ async function handle5eItemGenerate(req, res) {
     const full = await getEntry(worldId, "items", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    if (isRegenerate) {
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
+      }
+    }
   }
 
   const effectiveMode = mode || (existingEntry && existingEntry.raw && existingEntry.raw.sourceMode) || "homebrew";
@@ -356,6 +369,13 @@ async function handleGenericItemGenerate(req, res) {
     const full = await getEntry(worldId, "items", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    if (isRegenerate) {
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
+      }
+    }
   }
 
   // Extracted to lib/rulesets/generic/homebrewItemGenerator.js's

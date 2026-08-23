@@ -15,6 +15,7 @@ const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { formatCalendarContextForPrompt, resolveRegeneratedDate } = require("../lib/calendar");
 const { buildKnownDatesContext } = require("../lib/dateContext");
 const { maybeCreateDateSuggestion, validateResolvedDateSubject } = require("../lib/logDateSuggestions");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -55,6 +56,11 @@ router.post("/generate-log", requireAiEnabled, enforceGenerationCap, enforceEntr
       }
       mode = existingEntry.locked ? "fill" : "regenerate";
       if (mode === "regenerate") {
+        const gate = await requireSubscriptionToRegenerate(req);
+        if (!gate.allowed) {
+          if (req.refundGeneration) await req.refundGeneration();
+          return res.status(403).json(gate.body);
+        }
         const prior = await readLogEntry(worldId, fillExistingId);
         priorRaw = prior && prior.raw ? prior.raw : null;
         priorBodyHtml = prior ? prior.bodyHtml : null;

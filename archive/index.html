@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Archive</title>
 <link rel="stylesheet" href="css/style.css">
-<script src="js/themeBootstrap.js?v=v1.0.0"></script>
+<script src="js/themeBootstrap.js?v=v1.1.0"></script>
 
 </head>
 <body>
@@ -196,23 +196,16 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.0.0"></script>
-<script src="js/render.js?v=v1.0.0"></script>
+<script src="/js/auth.js?v=v1.1.0"></script>
+<script src="js/render.js?v=v1.1.0"></script>
 <script>
-  // Deliberately NOT requireAuth() here (that redirects straight to
-  // /login.html) -- a signed-out visitor landing on the app root should
-  // see the unauthenticated demo generator first (archive/demo.html,
-  // session_addendum_demo_mode_scope.md), with the signup wall reached
-  // FROM there, not before it. Every other authenticated page still uses
-  // requireAuth() unchanged -- this special-cases only the root landing
-  // page, not the shared auth gate (an expired session mid-flow on e.g.
-  // dossier.html should still go to /login.html, not back to the demo).
+  // v1.1 anonymous-by-default access: requireAuth() silently mints a
+  // real anonymous session for a brand-new visitor (see
+  // archive/js/auth.js) instead of gating entry behind /login.html, so
+  // the root landing page uses the exact same pattern every other
+  // authenticated page already does -- no special-casing needed anymore.
   (async () => {
-    const session = await getCurrentSession();
-    if (!session) {
-      window.location.href = "/demo.html";
-      return;
-    }
+    await requireAuth();
     // Safety net for anyone landing here directly (bookmark, back
     // button) whose world hasn't finished setup yet -- a blank homepage
     // with no world info is a bad thing for a new tester to hit.

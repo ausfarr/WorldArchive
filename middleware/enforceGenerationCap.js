@@ -43,8 +43,15 @@
 // image generation) fails. Without this, a failed generation permanently
 // burned the point/cap/credit already deducted for zero output. See
 // migrations/018_generation_refund.sql.
-const { checkAndIncrementGenerationCount, refundGenerationCount, GENERATION_CAP, POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
-const { getSubscription, spendSubscriptionGeneration, refundSubscriptionGeneration, TRIAL_CAP } = require("../lib/billingRepo");
+const {
+  checkAndIncrementGenerationCount, refundGenerationCount, GENERATION_CAP, POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST,
+  FREE_MONTHLY_GENERATION_CAP, FREE_MONTHLY_IMAGE_CAP, resetFreeCycleIfElapsed,
+  checkAndIncrementImageGenerationCount, refundImageGenerationCount
+} = require("../lib/worldConfigRepo");
+const {
+  getSubscription, spendSubscriptionGeneration, refundSubscriptionGeneration,
+  spendSubscriptionImageGeneration, refundSubscriptionImageGeneration
+} = require("../lib/billingRepo");
 
 const CONTACT_EMAIL = "ausfarr@gmail.com";
 
@@ -96,21 +103,81 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
       return next();
     }
 
-    // No subscriptions row -- trial user.
-    const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, TRIAL_CAP, amount);
+    // No subscriptions row -- free account. v1.1 split-quota pricing: this
+    // is a genuinely recurring MONTHLY allowance (migrations/029), not the
+    // old one-time TRIAL_CAP -- reset first so a request right after the
+    // cycle rolls over sees a clean slate before the check below.
+    await resetFreeCycleIfElapsed(req.worldId);
+    const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, FREE_MONTHLY_GENERATION_CAP, amount);
     if (!allowed) {
-      const remainingPoints = Math.max(0, TRIAL_CAP - count);
+      const remainingPoints = Math.max(0, FREE_MONTHLY_GENERATION_CAP - count);
       const partialNote = (amount === POINTS_PER_GENERATION && remainingPoints > 0)
         ? ` You do still have enough left for ${remainingPoints} more field assist${remainingPoints === 1 ? "" : "s"}, if that helps.`
         : "";
       return res.status(403).json({
-        error: "trial_cap_reached",
-        message: `You've used all ${Math.floor(TRIAL_CAP / POINTS_PER_GENERATION)} free trial generations.${partialNote} Subscribe to keep creating, or email ${CONTACT_EMAIL} with questions.`,
-        cap: TRIAL_CAP
+        error: "free_cap_reached",
+        message: `You've used all ${Math.floor(FREE_MONTHLY_GENERATION_CAP / POINTS_PER_GENERATION)} free generations this month.${partialNote} Subscribe to keep creating, or email ${CONTACT_EMAIL} with questions.`,
+        cap: FREE_MONTHLY_GENERATION_CAP
       });
     }
     req.generationCount = count;
     req.refundGeneration = makeRefundOnce((amt) => refundGenerationCount(req.worldId, amt), amount);
+    next();
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Image-quota counterpart to enforceGenerationCap -- guards
+// routes/generateEntryImage.js and routes/dungeonMap.js instead of the 7
+// text-generation routes. Same three-tier shape, but images are tracked
+// as a separate, plain-count quota (see migrations/029_split_generation_quotas.sql)
+// rather than drawing from the shared points pool -- images cost ~10x
+// more per unit than a text generation, so a subscriber's "50 generations
+// + 10 images/month" can't be expressed as one pool. `amount` is always 1
+// in practice (one portrait or one battle-map bake); no field-assist
+// equivalent exists for images.
+//
+// Legacy (BILLING_ENABLED unset) intentionally does NOT get a separate
+// image pool -- that fallback is dead in production and not worth
+// splitting; images there still draw from the same GENERATION_CAP pool
+// as text, exactly as before this migration.
+async function enforceImageGenerationCap(req, res, next, amount = 1) {
+  try {
+    if (!BILLING_ENABLED) {
+      return enforceGenerationCap(req, res, next, POINTS_PER_GENERATION * amount);
+    }
+
+    const subscription = await getSubscription(req.userId);
+
+    if (subscription) {
+      const result = await spendSubscriptionImageGeneration(req.userId, amount);
+      if (!result.allowed) {
+        return res.status(403).json({
+          error: "image_limit_reached",
+          message: "You've used this cycle's included images. Wait for your plan to renew, or email " + CONTACT_EMAIL + " with questions.",
+          usedImagesThisCycle: result.usedImagesThisCycle
+        });
+      }
+      req.refundImageGeneration = makeRefundOnce((amt) => refundSubscriptionImageGeneration(req.userId, amt), amount);
+      return next();
+    }
+
+    // No subscriptions row -- free account's recurring monthly image
+    // allowance (FREE_MONTHLY_IMAGE_CAP). Same reset call as the text
+    // path -- both counters live on the same world_config row and reset
+    // together.
+    await resetFreeCycleIfElapsed(req.worldId);
+    const { allowed, count } = await checkAndIncrementImageGenerationCount(req.worldId, FREE_MONTHLY_IMAGE_CAP, amount);
+    if (!allowed) {
+      return res.status(403).json({
+        error: "free_image_cap_reached",
+        message: `You've used your ${FREE_MONTHLY_IMAGE_CAP} free image${FREE_MONTHLY_IMAGE_CAP === 1 ? "" : "s"} this month. Subscribe to keep generating images, or email ${CONTACT_EMAIL} with questions.`,
+        cap: FREE_MONTHLY_IMAGE_CAP
+      });
+    }
+    req.imageGenerationCount = count;
+    req.refundImageGeneration = makeRefundOnce((amt) => refundImageGenerationCount(req.worldId, amt), amount);
     next();
   } catch (err) {
     next(err);
@@ -168,4 +235,4 @@ function enforceFieldAssist(req, res, next) {
 // (checkAndIncrementGenerationCount, getSubscription, etc.) to exercise
 // end-to-end, but the refund-amount bookkeeping itself is pure and
 // worth testing directly against a fake doRefund callback.
-module.exports = { enforceGenerationCap, enforceFieldAssist, makeRefundOnce, BILLING_ENABLED };
+module.exports = { enforceGenerationCap, enforceFieldAssist, enforceImageGenerationCap, makeRefundOnce, BILLING_ENABLED };

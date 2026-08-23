@@ -7,6 +7,7 @@ const { buildFactionBodyHtml } = require("../lib/factionTemplate");
 const { saveFactionEntry } = require("../lib/fileWriter");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
 const { getCalendarConfig } = require("../lib/worldConfigRepo");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -27,7 +28,14 @@ router.post("/generate-faction", requireAiEnabled, enforceGenerationCap, enforce
       // Existing faction -- expand/revise its Deep Lore. This always
       // goes through preview/confirm (routes/confirmEntry.js), same as
       // every other category's regenerate, since it's replacing content
-      // a person may already be looking at.
+      // a person may already be looking at. Factions have no locked-
+      // placeholder concept (every fillExistingId call is a real
+      // revision), so this is unconditionally the regenerate gate.
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
+      }
       let { faction, roundupRows, priorBodyHtml } = await generateFactionDeepLore(worldId, fillExistingId, revisionNote);
       const linkResult = await resolveReferencesForEntry(worldId, "factions", faction);
       faction = linkResult.raw;

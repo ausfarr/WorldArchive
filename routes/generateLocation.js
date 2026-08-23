@@ -14,6 +14,7 @@ const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt, get
 const { getStyleGuide } = require("../lib/worldConfigRepo");
 const { createNewLocation } = require("../lib/campaignEntryGenerators");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -48,6 +49,11 @@ router.post("/generate-location", requireAiEnabled, enforceGenerationCap, enforc
       }
       mode = existingEntry.locked ? "fill" : "regenerate";
       if (mode === "regenerate") {
+        const gate = await requireSubscriptionToRegenerate(req);
+        if (!gate.allowed) {
+          if (req.refundGeneration) await req.refundGeneration();
+          return res.status(403).json(gate.body);
+        }
         const prior = await readLocationEntry(worldId, fillExistingId);
         priorRaw = prior && prior.raw ? prior.raw : null;
         priorBodyHtml = prior ? prior.bodyHtml : null;

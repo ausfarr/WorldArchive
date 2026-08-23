@@ -23,8 +23,10 @@
 // storage rearchitecture, since patchEntryMeta() doesn't care what shape
 // lives inside the key it merges.
 //
-// Cap: gated by enforceGenerationCap, same as every other repeatable
-// per-action AI/image generation call in the app.
+// Cap: gated by enforceImageGenerationCap -- the separate image quota
+// (migrations/029_split_generation_quotas.sql, v1.1 split-quota pricing),
+// not the shared text-generation pool, since a battle-map bake is a real
+// image-gen call (~$0.08) just like a portrait.
 
 const express = require("express");
 const { callClaude, HAIKU_MODEL } = require("../lib/claude");
@@ -35,7 +37,7 @@ const { getEntry, patchEntryMeta } = require("../lib/entriesRepo");
 const { saveDungeonMapImage } = require("../lib/fileWriter");
 const { getFactionAccent } = require("../lib/worldFlavor");
 const { getStyleGuide } = require("../lib/worldConfigRepo");
-const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
+const { enforceImageGenerationCap } = require("../middleware/enforceGenerationCap");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
@@ -51,12 +53,12 @@ const DEFAULT_GRID_SIZE = 20;
 // (see middleware/requireAiEnabled.js) -- an account with AI Features off
 // shouldn't reach the points check at all, let alone the real Claude+
 // Gemini calls below.
-router.post("/entries/locations/:id/dungeon-map/generate", requireAiEnabled, enforceGenerationCap, async (req, res) => {
+router.post("/entries/locations/:id/dungeon-map/generate", requireAiEnabled, enforceImageGenerationCap, async (req, res) => {
   try {
     const { id } = req.params;
     const entry = await getEntry(req.worldId, "locations", id);
     if (!entry) {
-      if (req.refundGeneration) await req.refundGeneration();
+      if (req.refundImageGeneration) await req.refundImageGeneration();
       return res.status(404).json({ error: "Location not found." });
     }
     const location = entry.raw || entry;
@@ -83,7 +85,7 @@ router.post("/entries/locations/:id/dungeon-map/generate", requireAiEnabled, enf
     res.json({ dungeonMap });
   } catch (err) {
     console.error("Dungeon map generation failed:", err);
-    if (req.refundGeneration) await req.refundGeneration();
+    if (req.refundImageGeneration) await req.refundImageGeneration();
     res.status(500).json({ error: err.message });
   }
 });

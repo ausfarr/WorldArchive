@@ -32,6 +32,7 @@ const { slugify: slugifyGeneric, buildClassBodyHtml: buildClassBodyHtmlGeneric }
 const { buildHomebrewClassSystemPrompt: buildHomebrewGenericClassSystemPrompt } = require("../prompts/rulesets/generic/classContentPrompt");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
 const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -81,6 +82,11 @@ async function handleEchoesClassGenerate(req, res) {
     }
     mode = existingEntry.locked ? "fill" : "regenerate";
     if (mode === "regenerate") {
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
+      }
       const prior = await readClassEntry(worldId, fillExistingId);
       priorRaw = prior && prior.raw ? prior.raw : null;
       priorBodyHtml = prior ? prior.bodyHtml : null;
@@ -176,6 +182,13 @@ async function handle5eClassGenerate(req, res) {
     const full = await getEntry(worldId, "classes", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    if (isRegenerate) {
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
+      }
+    }
   }
 
   const effectiveMode = mode || (existingEntry && existingEntry.raw && existingEntry.raw.sourceMode) || "homebrew";
@@ -353,6 +366,13 @@ async function handleGenericClassGenerate(req, res) {
     const full = await getEntry(worldId, "classes", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    if (isRegenerate) {
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
+      }
+    }
   }
 
   const settingContext = await getSettingContext(worldId);
