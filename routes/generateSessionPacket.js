@@ -39,6 +39,7 @@ const { getSettingContext } = require("../lib/worldFlavor");
 const { getLoreContext } = require("../lib/loreContext");
 const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { formatWorldDate } = require("../lib/calendar");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 
 const router = express.Router();
 
@@ -147,6 +148,18 @@ router.post("/generate-session-packet", requireAiEnabled, enforceGenerationCap, 
       const prior = await getEntry(worldId, "session-packets", fillExistingId);
       if (!prior) {
         return res.status(404).json({ error: `No existing session packet found with id '${fillExistingId}'` });
+      }
+      // v1.1 split-quota pricing (lib/regenerateGate.js) -- regenerating
+      // an already-generated Session Packet is the same "revising
+      // existing content" action as any other category's Regenerate, so
+      // it gets the same subscriber-only gate (a no-op while
+      // BILLING_ENABLED is off). A brand-new Packet ("new", no
+      // fillExistingId) is unaffected -- that's the free/trial-eligible
+      // path, same as a first-time NPC/Item/etc. generation.
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
       }
       priorRaw = prior.raw || null;
       priorBodyHtml = prior.bodyHtml;
