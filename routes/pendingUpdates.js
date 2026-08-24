@@ -42,7 +42,22 @@ router.get("/pending-updates", async (req, res) => {
 
 router.post("/pending-updates/:id/dismiss", async (req, res) => {
   try {
-    const updated = await setPendingUpdateStatus(req.worldId, req.params.id, "dismissed");
+    const worldId = req.worldId;
+    const suggestion = await getPendingUpdate(worldId, req.params.id);
+    if (!suggestion) return res.status(404).json({ error: "Suggestion not found." });
+    // Same "already acted on" guard /apply already has -- without it, a
+    // suggestion that was just applied (wrote a real status flip + fired a
+    // Timeline event, see below) could be dismissed right after, silently
+    // flipping its recorded status from 'applied' to 'dismissed' with no
+    // error. That's misleading: the row is supposed to be an audit trail
+    // of what was surfaced and what happened to it (see this file's header
+    // comment / pendingEntryUpdatesRepo.js's), and "dismissed" reads as
+    // "nothing happened" even though the entry write and Timeline event
+    // both already did.
+    if (suggestion.status !== "pending") {
+      return res.status(400).json({ error: `This suggestion was already ${suggestion.status}.` });
+    }
+    const updated = await setPendingUpdateStatus(worldId, req.params.id, "dismissed");
     res.json({ update: updated });
   } catch (err) {
     console.error("Dismissing pending update failed:", err);
