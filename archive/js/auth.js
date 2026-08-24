@@ -80,21 +80,26 @@ function renderAdminViewBanner() {
   };
 }
 
-// --- Cloudflare Turnstile (anonymous-signup abuse guard) -------------------
+// --- Cloudflare Turnstile (auth abuse guard) --------------------------------
 //
 // signInAnonymously() below has zero friction (no email, no verification),
 // so a scripted actor could loop it to farm unlimited free-tier
-// allowances. Turnstile guards that one call. Loaded lazily -- only the
-// moment requireAuth() actually needs to mint a fresh anonymous session,
-// not on every page load -- and runs invisibly for the large majority of
-// real visitors; only suspicious traffic sees an interactive challenge.
-// window.TURNSTILE_CONFIG comes from /config.js (server.js), same pattern
-// as window.SUPABASE_CONFIG. Missing site key (local dev without
-// Turnstile configured yet) just means no client-side token is sent --
-// Supabase's own CAPTCHA requirement, once enabled in the dashboard, is
-// the real enforcement point, so this never silently bypasses protection,
-// it just means that request gets rejected server-side with a clear error
-// instead.
+// allowances -- the original reason this was added. But Supabase's
+// dashboard-side CAPTCHA requirement (Authentication -> Attack Protection),
+// once enabled, applies to every GoTrue call, not just that one, so
+// getTurnstileToken() is also called from signUp()/signIn() below --
+// otherwise password auth gets rejected with "captcha protection: request
+// disallowed (no captcha_token found)" the moment that dashboard setting
+// is turned on. Loaded lazily -- only the moment one of these calls
+// actually needs a fresh token, not on every page load -- and runs
+// invisibly for the large majority of real visitors; only suspicious
+// traffic sees an interactive challenge. window.TURNSTILE_CONFIG comes
+// from /config.js (server.js), same pattern as window.SUPABASE_CONFIG.
+// Missing site key (local dev without Turnstile configured yet) just
+// means no client-side token is sent -- Supabase's own CAPTCHA
+// requirement, once enabled in the dashboard, is the real enforcement
+// point, so this never silently bypasses protection, it just means that
+// request gets rejected server-side with a clear error instead.
 let _turnstileLoadPromise = null;
 
 function loadTurnstileScript() {
@@ -160,14 +165,29 @@ async function getCurrentSession() {
   return data.session;
 }
 
+// Supabase's dashboard-side CAPTCHA requirement (Authentication -> Attack
+// Protection), once enabled, applies to every GoTrue auth call -- not just
+// signInAnonymously() above -- so email/password signup and sign-in need
+// the same Turnstile token or they get rejected server-side with
+// "captcha protection: request disallowed (no captcha_token found)".
 async function signUp(email, password) {
-  const { data, error } = await getSupabaseClient().auth.signUp({ email, password });
+  const captchaToken = await getTurnstileToken();
+  const { data, error } = await getSupabaseClient().auth.signUp({
+    email,
+    password,
+    options: captchaToken ? { captchaToken } : undefined
+  });
   if (error) throw error;
   return data;
 }
 
 async function signIn(email, password) {
-  const { data, error } = await getSupabaseClient().auth.signInWithPassword({ email, password });
+  const captchaToken = await getTurnstileToken();
+  const { data, error } = await getSupabaseClient().auth.signInWithPassword({
+    email,
+    password,
+    options: captchaToken ? { captchaToken } : undefined
+  });
   if (error) throw error;
   return data;
 }
