@@ -21,6 +21,14 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: email/password login and signup broken by Supabase CAPTCHA
+  protection.** `archive/js/auth.js`'s Turnstile guard (see
+  `session_addendum_anonymous_access_shipped.md`) was only wired into
+  `signInAnonymously()`, but Supabase's dashboard-side CAPTCHA requirement
+  applies to every GoTrue call once enabled — so `signIn()`/`signUp()`
+  started failing with "captcha protection: request disallowed (no
+  captcha_token found)" as soon as that dashboard setting was turned on.
+  Both now fetch and pass a Turnstile token the same way.
 - **Two Suggested Updates queue bugs fixed: duplicate suggestions on
   regenerate, and a silent status-overwrite on dismiss.** (1)
   `createSuggestionsFromChronicle`/`maybeCreateDateSuggestion`
