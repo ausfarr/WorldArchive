@@ -29,6 +29,27 @@ entry from here forward gets both a real date and a version at write time.
   started failing with "captcha protection: request disallowed (no
   captcha_token found)" as soon as that dashboard setting was turned on.
   Both now fetch and pass a Turnstile token the same way.
+- **Two Suggested Updates queue bugs fixed: duplicate suggestions on
+  regenerate, and a silent status-overwrite on dismiss.** (1)
+  `createSuggestionsFromChronicle`/`maybeCreateDateSuggestion`
+  (`lib/sessionChronicleSuggestions.js`, `lib/logDateSuggestions.js`) fire
+  from `routes/confirmEntry.js`'s shared `afterSave()` hook on *every*
+  confirm of a Chronicle/Log, not just its first — regenerating a
+  Chronicle's prose (revised wording, same underlying facts) and
+  confirming again re-created an identical `pending_entry_updates` row
+  each time, since nothing checked whether a suggestion for the same
+  `(source, entry, field)` already existed. Added
+  `pendingEntryUpdatesRepo.js#findExistingUpdate()` and gated both
+  triggers on it. (2) `POST /api/pending-updates/:id/dismiss`
+  (`routes/pendingUpdates.js`) was missing the "already acted on" guard
+  its sibling `/apply` route already has — dismissing a suggestion that
+  was already `applied` (and had already patched the entry + fired a
+  Timeline event) silently overwrote its recorded status to `dismissed`
+  with no error, corrupting the row's own audit trail
+  (`pendingEntryUpdatesRepo.js`'s header comment: "there's always a
+  record of what was surfaced"). Both fixed, with two new regression
+  cases in `scripts/testEntryDriftSuggestions.js` (Tests 7–8) — verified
+  they fail against the pre-fix code and pass against the fix.
 - **Header nav cleanup: grouped Sessions, Campaigns, and Locations into
   dropdowns, and de-duplicated the header markup across all 23 pages into
   one shared script.** The flat nav had grown to 19 tabs after Session
