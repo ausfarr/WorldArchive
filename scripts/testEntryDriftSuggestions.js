@@ -175,6 +175,24 @@ async function main() {
     });
     const factionAfterRegen = await getEntry(WORLD_ID, "factions", "the-ashen-hand");
     check("confirming that regenerate carries the status forward to the saved entry", factionAfterRegen.raw.status === "active");
+
+    console.log("\nTest 7: re-confirming the same Chronicle doesn't duplicate its suggestions");
+    // Simulates a DM regenerating the Chronicle's prose (same underlying
+    // impliedUpdates) and confirming again -- afterSave's
+    // createSuggestionsFromChronicle trigger re-fires on every confirm of
+    // a logs-category entry with a sessionChronicle, not just the first.
+    await fetch("http://localhost:4325/api/confirm-entry", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category: "logs", entry: chronicleGen.entry })
+    });
+    const allSuggestions = await (await fetch("http://localhost:4325/api/pending-updates")).json();
+    const fromThisChronicle = allSuggestions.updates.filter((u) => u.source === `chronicle:${chronicleGen.entry.id}`);
+    check("still exactly 2 suggestions from this Chronicle, not 4, after re-confirming it", fromThisChronicle.length === 2);
+
+    console.log("\nTest 8: dismissing an already-applied suggestion is rejected");
+    const dismissAppliedRes = await fetch(`http://localhost:4325/api/pending-updates/${statusFlipSuggestion.id}/dismiss`, { method: "POST" });
+    check("dismissing an already-applied suggestion is rejected (400)", dismissAppliedRes.status === 400);
+    const statusFlipStillApplied = await (await fetch("http://localhost:4325/api/pending-updates?status=applied")).json();
+    check("the already-applied suggestion's status wasn't overwritten to 'dismissed'", statusFlipStillApplied.updates.some((u) => u.id === statusFlipSuggestion.id));
   } finally {
     server.close();
   }
