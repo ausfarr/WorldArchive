@@ -21,6 +21,16 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: Turnstile script URL typo broke CAPTCHA entirely (`challenge.cloudflare.com`
+  instead of `challenges.cloudflare.com`).** `archive/js/auth.js`'s
+  `loadTurnstileScript()` pointed at a hostname that doesn't resolve in DNS
+  at all — a one-character typo (missing the "s") that made every call to
+  `getTurnstileToken()` fail with "Could not load Turnstile.", 100% of the
+  time, for every visitor, regardless of browser or network. This had been
+  silently swallowed on the anonymous-signup path (`requireAuth()`'s
+  try/catch just redirects to `/login.html` on any failure) since v1.1.0,
+  and only surfaced as a hard login blocker once the previous fix below
+  wired the same helper into `signIn()`/`signUp()`.
 - **Fix: email/password login and signup broken by Supabase CAPTCHA
   protection.** `archive/js/auth.js`'s Turnstile guard (see
   `session_addendum_anonymous_access_shipped.md`) was only wired into
