@@ -57,7 +57,15 @@ router.post("/pending-updates/:id/dismiss", async (req, res) => {
     if (suggestion.status !== "pending") {
       return res.status(400).json({ error: `This suggestion was already ${suggestion.status}.` });
     }
-    const updated = await setPendingUpdateStatus(worldId, req.params.id, "dismissed");
+    // fromStatus: "pending" makes the write itself the real guard (atomic
+    // UPDATE ... WHERE status = 'pending'), not just the read above --
+    // see setPendingUpdateStatus's comment for the race the read alone
+    // couldn't close.
+    const updated = await setPendingUpdateStatus(worldId, req.params.id, "dismissed", "pending");
+    if (!updated) {
+      const current = await getPendingUpdate(worldId, req.params.id);
+      return res.status(409).json({ error: `This suggestion was already ${current ? current.status : "acted on"}.` });
+    }
     res.json({ update: updated });
   } catch (err) {
     console.error("Dismissing pending update failed:", err);
@@ -111,12 +119,20 @@ router.post("/pending-updates/:id/apply", async (req, res) => {
         }
       }
 
-      const updated = await setPendingUpdateStatus(worldId, req.params.id, "applied");
+      const updated = await setPendingUpdateStatus(worldId, req.params.id, "applied", "pending");
+      if (!updated) {
+        const current = await getPendingUpdate(worldId, req.params.id);
+        return res.status(409).json({ error: `This suggestion was already ${current ? current.status : "acted on"}.` });
+      }
       return res.json({ update: updated, applied: "status_flip" });
     }
 
     // suggestionType === "regenerate" -- no write here, see header comment.
-    const updated = await setPendingUpdateStatus(worldId, req.params.id, "applied");
+    const updated = await setPendingUpdateStatus(worldId, req.params.id, "applied", "pending");
+    if (!updated) {
+      const current = await getPendingUpdate(worldId, req.params.id);
+      return res.status(409).json({ error: `This suggestion was already ${current ? current.status : "acted on"}.` });
+    }
     res.json({ update: updated, applied: "regenerate", category: suggestion.category, entryId: suggestion.entryId, deltaText: suggestion.deltaText });
   } catch (err) {
     console.error("Applying pending update failed:", err);

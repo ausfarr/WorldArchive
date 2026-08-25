@@ -21,6 +21,20 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: Suggested Updates dismiss/apply guard had a check-then-act race.**
+  `routes/pendingUpdates.js`'s "already acted on" guards (added in the fix
+  just above this one) read the suggestion's status, branched in JS, and
+  only then wrote the new status — two concurrent requests for the same
+  suggestion (double-click, two open tabs) could both pass the read before
+  either write landed, letting the loser silently overwrite the winner's
+  status. `lib/pendingEntryUpdatesRepo.js#setPendingUpdateStatus()` now
+  takes an optional `fromStatus` and folds it into the `UPDATE`'s `WHERE`
+  clause (`.eq("status", fromStatus)`), making the transition itself
+  atomic — a losing request gets back `null` instead of clobbering the
+  row, and both routes now report a 409 in that case. `scripts/
+  testEntryDriftSuggestions.js`'s existing dismiss/apply-guard tests
+  (7-8) still pass unchanged, since the read-based fast path is untouched
+  for the non-racing case.
 - **Fix: Turnstile script URL typo broke CAPTCHA entirely (`challenge.cloudflare.com`
   instead of `challenges.cloudflare.com`).** `archive/js/auth.js`'s
   `loadTurnstileScript()` pointed at a hostname that doesn't resolve in DNS
