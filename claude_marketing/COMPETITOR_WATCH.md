@@ -129,10 +129,22 @@ Also still on watch, lower priority: **DunMax** (mobile D&D world builder, AI NP
 
 **No change to the "lean on real differentiators" recommendation.** CharGen's Session Prep V3 is worth Austin's awareness (it's the most-resourced competitor narrowing the gap on "output that reads like it belongs together"), but Chronicled's actual remaining differentiators — private per-user archive, world-specific stat/skill system, preview-then-confirm regenerate, PDF/VTT export — are unaffected by anything found today.
 
+## 🆕 2026-08-25 update — CharGen ships real Foundry VTT integration, a genuine gap-widener on export; no new direct competitor
+
+**CharGen — Foundry VTT integration is real and materially deeper than a file download.** Per CharGen's own changelog (search-indexed, char-gen.com still egress-blocked to direct fetch this session), the export menu on any entity now offers "Foundry VTT (.json)" — opening the file in Foundry VTT drops it in as a real, ready-to-use document, not a flattened image or generic file. Coverage spans individual NPCs/characters/monsters/items/journal-style records, gallery images as a "Foundry Scene" JSON built around that map, and whole campaigns or session-prep bundles as a bulk "Export to Foundry (.zip)". This is a genuinely deeper VTT integration than anything else logged in this competitive set so far.
+
+**Why this matters:** Chronicled's own "why switch" copy has listed "PDF/VTT-ready export" as one of four standing differentiators since 2026-08-18. Chronicled's actual export is a print-ready PDF with baked-in battle-map grids (per-category/per-entry/whole-world/Quest/Campaign) — genuinely useful at a physical table or as a droppable map image in any VTT, but not a native-format document a VTT like Foundry ingests as a structured actor/journal entry the way CharGen's now does. The gap between "VTT-ready" (loose, image-based) and "Foundry-native" (structured, ready-to-use) is real and CharGen just built the second one. Checked `marketing/compare.html` and both drafted Reddit posts this session: none currently overclaim "VTT-ready" verbatim — `compare.html`'s row is already accurately scoped as "PDF export for the table" — so no urgent copy fix is needed, but any future comparison-page update or new outreach copy should not narrow that gap in Chronicled's own favor. Recommendation logged in `GROWTH_STRATEGY.md` §2e.
+
+**World Anvil:** re-checked, no material pricing or AI-feature change beyond what's already on record (Freeman-tier QoL features, community newsletter content).
+
+**Storyflow's free-tier live-status ambiguity (flagged 2026-08-24) is still unresolved** — storyflow.so remains egress-blocked to this session, same as every prior attempt.
+
+**Reality Forge and Friends & Fables:** both re-checked, both still fully egress-blocked. Unchanged from every prior check-in.
+
 ## Chronicled's current position vs. primary competitors
 
 World Anvil, Kanka, and LegendKeeper: still no native AI generation as of this check; World Anvil's August 2026 update was UI/community-event only (professional settings ported to the new editor, a reading challenge) — no pricing or AI change. Chronicled at $5/mo for 25 generations/month (plus a no-card 10-generation trial) still undercuts Grandmaster ($8.25/mo) and LegendKeeper Pro ($9/mo) while including generation.
 
 **The "no direct AI-native competitor" wedge is gone — CharGen confirmed, Friends & Fables newly added.** Stop using it in any copy, drafted or future. See `GROWTH_STRATEGY.md` §2 for what to lean on instead.
 
-**Watch for:** a real (non-blocked) look at fables.gg's actual grounding behavior, whether Storyflow's free tier is actually live (currently ambiguous), and whether CharGen or Friends & Fables notice Chronicled once outreach posts go out. Check this section first on every re-check.
+**Watch for:** a real (non-blocked) look at fables.gg's actual grounding behavior, whether Storyflow's free tier is actually live (currently ambiguous), whether CharGen or Friends & Fables notice Chronicled once outreach posts go out, and whether Chronicled ever adds its own native VTT (e.g. Foundry) export to close the gap CharGen just opened (2026-08-25). Check this section first on every re-check.
