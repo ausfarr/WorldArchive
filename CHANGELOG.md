@@ -21,6 +21,24 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: `appendQuestToArc()` had a check-then-act race, same shape as the
+  Suggested Updates one below.** `lib/campaignArcRepo.js`'s
+  `appendQuestToArc()` (called from `POST /campaign-arcs/:id/append-quest`
+  whenever a DM saves a new Quest created from a Campaign Arc's unmatched
+  stage) read the arc, computed a single-item `questIds`/`pendingStages`
+  patch in JS from that snapshot, then wrote it back with a plain
+  `.update()` — no guard against another write landing in between. Two
+  Quests created off the same arc in quick succession (double-click, two
+  open tabs) could both read the same `questIds` snapshot and each write
+  back a different one-item patch; the second write wins outright, so the
+  first Quest's link back to its arc silently disappears (and/or its
+  `pendingStages` entry never clears, so "still needs a Quest" never
+  resolves for a stage that already has one). Wrapped the read+write in
+  `withLock()` (`lib/asyncLock.js` — the same in-process mutex
+  `routes/confirmEntry.js`, `routes/worldArt.js`, `routes/map.js`, and
+  `middleware/enforceEntryCap.js` already use for this exact shape of
+  race), keyed per `worldId:arcId` so the second call's read only happens
+  after the first call's write has landed.
 - **Fix: Suggested Updates dismiss/apply guard had a check-then-act race.**
   `routes/pendingUpdates.js`'s "already acted on" guards (added in the fix
   just above this one) read the suggestion's status, branched in JS, and
