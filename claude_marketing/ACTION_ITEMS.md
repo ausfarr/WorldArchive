@@ -4,18 +4,18 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
-**Status as of 2026-08-25 (automated check-in, Day 9):** No change from Day 8 — no commits or new info from Austin's side since `326273d`. This environment still can't fetch reddit.com in any form (confirmed again, ninth day running) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged from yesterday, carried forward rather than re-derived. One new context item: CharGen shipped real Foundry VTT integration (native per-entity/scene/campaign export) — see `DAILY_LOG.md`/`GROWTH_STRATEGY.md` §2e/`COMPETITOR_WATCH.md`, background awareness only, no urgent copy fix needed (checked: current site/drafts don't overclaim "VTT-ready").
+**Status as of 2026-08-26 (automated check-in, Day 10):** No change from Day 9 — no commits or new info from Austin's side since `130f755`. This environment still can't fetch reddit.com in any form (confirmed again, tenth day running) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged from yesterday, carried forward rather than re-derived. No new competitive or opportunity findings today — see `DAILY_LOG.md`'s 2026-08-26 entry.
 
 ---
 
-## What to do today (2026-08-25)
+## What to do today (2026-08-26)
 
 1. **Reply to comments on the live r/rpg_generators post** if you haven't already (#3 below) — still the single highest-leverage personal-time item; carried forward unchanged since Day 6, no confirmation either way yet.
 2. **Optional, low-effort:** paste the post's actual score/comment count (or a screenshot) into `DAILY_LOG.md` next time you're already looking at it — not urgent, just makes future check-ins substantive instead of a fetch-fails-again loop.
 3. **Was r/worldbuilding ever posted?** Still no URL logged for it. If it's still open, `drafts/reddit_post_worldbuilding.md` is ready — if you'd rather treat that plan as superseded by what you already posted, that's a fine call too, just say so so this stops resurfacing.
-4. **#8 (AI-directory submissions)** is still the quickest guaranteed-real win if you have 10 minutes — free, no public post required, doesn't depend on Reddit at all.
-5. **#4 (DMAcademy self-promo rules)** — checkbox says done, but confirm you actually have the format (megathread vs. flair vs. banned) before using `drafts/reddit_post_dmacademy.md`. A second independent third-party guide now corroborates the ~10-comments-of-participation claim and adds that Resources posts must be "a completed tool" (mod-approved otherwise) — two sources agreeing raises confidence slightly, but neither is the sub's own rule page, so still worth your own 5-minute look before relying on it.
-6. **New, 2026-08-25 — no action needed today, but worth knowing:** CharGen now has native Foundry VTT export (entities/scenes/campaigns import as ready-to-use Foundry documents). Chronicled's own "PDF/VTT-ready export" pitch is still accurate as written (current copy says "PDF export for the table," not "VTT-ready"), but if a future comparison post or reply ever reaches for VTT-integration language, don't overclaim past what Chronicled actually does (print-ready PDF with baked map grids, not a structured Foundry import). Purely a heads-up for whenever product-side bandwidth allows revisiting export options — not this week's job.
+4. **#8 (AI-directory submissions)** is still the quickest guaranteed-real win if you have 10 minutes — free, no public post required, doesn't depend on Reddit at all. Confirmed again this session: Chronicled is still not listed on theresanaiforthat.com's Worldbuilding category, so this one is genuinely still undone, not just unconfirmed.
+5. **#4 (DMAcademy self-promo rules)** — checkbox says done, but confirm you actually have the format (megathread vs. flair vs. banned) before using `drafts/reddit_post_dmacademy.md`. Two independent third-party guides now corroborate the ~10-comments-of-participation claim and that Resources posts must be "a completed tool" (mod-approved otherwise) — still worth your own 5-minute look before relying on it, since neither is the sub's own rule page.
+6. **Carried forward from Day 9, no update:** CharGen's native Foundry VTT export (entities/scenes/campaigns import as ready-to-use Foundry documents) is still the most recent competitive move on record — nothing newer surfaced today. Chronicled's own "PDF/VTT-ready export" pitch is still accurate as written. No action needed.
 
 ## This week
 
