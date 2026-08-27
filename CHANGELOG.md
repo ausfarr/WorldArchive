@@ -21,6 +21,32 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: `POST /pending-updates/:id/apply`'s status_flip branch ran its side
+  effects before the atomic status claim, same shape of gap the previous
+  two fixes below closed elsewhere.** The `fromStatus`-guarded write at the
+  bottom of `routes/pendingUpdates.js`'s `/apply` handler made the *status
+  transition* itself race-safe, but the entry patch (`patchEntryMeta`) and
+  Timeline event creation (`createTimelineEvent`) above it still ran off a
+  plain, unguarded read of `suggestion.status`. Two concurrent `/apply`
+  calls on the same suggestion (double-click, two open tabs) could both
+  pass that read, both patch the entry, and both fire a Timeline event --
+  only the atomic write at the end would correctly reject the loser with a
+  409, by which point the duplicate side effects had already landed.
+  Wrapped the whole handler body in `withLock()` (`lib/asyncLock.js`, same
+  pattern as `appendQuestToArc()`'s fix just below), keyed per
+  `worldId:suggestionId`, so a losing concurrent call's initial status
+  check now runs after the winner's full apply -- side effects included --
+  has finished, and correctly reports "already applied" instead of
+  redoing the work. Also fixed `scripts/lib/fakeSupabase.js`'s query/RPC
+  thenables to resolve on a real `setImmediate` tick instead of
+  synchronously off a resolved promise -- without a genuine macrotask
+  yield, two concurrent HTTP requests against a test server backed by this
+  fake could never actually interleave, so no test using it could ever
+  observe this class of race in the first place (a regression test could
+  pass against pre-fix code for the wrong reason). New Test 9 in
+  `scripts/testEntryDriftSuggestions.js` verified this fails against the
+  pre-fix route and passes against the fix; all 17 other scripts using the
+  shared fake still pass unchanged.
 - **Fix: `appendQuestToArc()` had a check-then-act race, same shape as the
   Suggested Updates one below.** `lib/campaignArcRepo.js`'s
   `appendQuestToArc()` (called from `POST /campaign-arcs/:id/append-quest`

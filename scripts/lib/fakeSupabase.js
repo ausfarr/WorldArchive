@@ -126,12 +126,29 @@ class FakeQuery {
     return { data: filtered, error: null };
   }
 
+  // Resolves on a real macrotask (setImmediate), not a microtask, so this
+  // fake actually behaves like the network round trip it's standing in for.
+  // Before this, `resolve(this._run())` ran synchronously off a resolved
+  // promise -- every awaited call anywhere in a request handler drained via
+  // the microtask queue without ever yielding back to the event loop, so
+  // two concurrent HTTP requests to a test server backed by this fake could
+  // never actually interleave: request 1's whole handler (however many
+  // awaited Supabase calls it makes) would finish before request 2's
+  // handler got a turn. That made this fake structurally unable to
+  // reproduce the check-then-act races this codebase has repeatedly fixed
+  // (lib/asyncLock.js's withLock() call sites) -- a regression test for one
+  // of those fixes could pass against the pre-fix code for the wrong
+  // reason (no real race ever occurred), not because the fix worked. See
+  // scripts/testEntryDriftSuggestions.js's Test 9 for the case that flagged
+  // this gap.
   then(resolve, reject) {
-    try {
-      resolve(this._run());
-    } catch (err) {
-      reject(err);
-    }
+    setImmediate(() => {
+      try {
+        resolve(this._run());
+      } catch (err) {
+        reject(err);
+      }
+    });
   }
 }
 
@@ -201,12 +218,17 @@ const fakeSupabase = {
   },
   rpc(fn, params) {
     return {
+      // Same real-macrotask-yield reasoning as FakeQuery.prototype.then
+      // above -- this backs the generation-cap/entry-cap RPCs, which is
+      // exactly the code enforceEntryCap.js's own withLock() fix guards.
       then(resolve, reject) {
-        try {
-          resolve(fakeRpc(fn, params));
-        } catch (err) {
-          reject(err);
-        }
+        setImmediate(() => {
+          try {
+            resolve(fakeRpc(fn, params));
+          } catch (err) {
+            reject(err);
+          }
+        });
       }
     };
   },

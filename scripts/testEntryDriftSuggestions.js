@@ -21,6 +21,9 @@
 //   6. POST .../apply for a regenerate suggestion does NOT write
 //      anything itself -- just returns enough for the frontend to open
 //      the normal regenerate flow with the suggestion's delta_text.
+//   7. Two concurrent .../apply calls on the same status_flip suggestion
+//      only run its side effects (entry patch + Timeline event) once --
+//      regression test for the withLock() fix in routes/pendingUpdates.js.
 //
 // Run with: node scripts/testEntryDriftSuggestions.js
 
@@ -80,6 +83,7 @@ const generateFactionRoute = require("../routes/generateFaction");
 const confirmEntryRoute = require("../routes/confirmEntry");
 const pendingUpdatesRoute = require("../routes/pendingUpdates");
 const { listTimelineEvents } = require("../lib/timelineRepo");
+const { createPendingUpdate } = require("../lib/pendingEntryUpdatesRepo");
 
 const WORLD_ID = "test-world";
 const failures = [];
@@ -193,6 +197,31 @@ async function main() {
     check("dismissing an already-applied suggestion is rejected (400)", dismissAppliedRes.status === 400);
     const statusFlipStillApplied = await (await fetch("http://localhost:4325/api/pending-updates?status=applied")).json();
     check("the already-applied suggestion's status wasn't overwritten to 'dismissed'", statusFlipStillApplied.updates.some((u) => u.id === statusFlipSuggestion.id));
+
+    console.log("\nTest 9: two concurrent /apply calls on the same status_flip suggestion don't double up its side effects");
+    // Regression test for the race routes/pendingUpdates.js's /apply used to
+    // have: patchEntryMeta + createTimelineEvent ran before the atomic
+    // pending->applied claim, so two near-simultaneous calls (double-click,
+    // two open tabs) could both pass the initial status check and both fire
+    // a Timeline event before only one of them won the final status write.
+    // Fresh NPC + suggestion here (miller-thom/statusFlipSuggestion are
+    // already consumed by Test 4) so this exercises a clean race.
+    await upsertEntry(WORLD_ID, "npcs", { id: "race-target-npc", name: "Race Target", subtitle: "test", faction: null, tags: [], bodyHtml: "<p>t</p>", raw: { roleArchetype: "bystander" } });
+    const raceSuggestion = await createPendingUpdate(WORLD_ID, {
+      entryId: "race-target-npc", category: "npcs", suggestionType: "status_flip",
+      deltaText: "Died in the concurrent-apply test.", source: "test:race", payload: { targetStatus: "dead" }
+    });
+    const raceEventsBefore = (await listTimelineEvents(WORLD_ID)).length;
+    const [raceRes1, raceRes2] = await Promise.all([
+      fetch(`http://localhost:4325/api/pending-updates/${raceSuggestion.id}/apply`, { method: "POST" }),
+      fetch(`http://localhost:4325/api/pending-updates/${raceSuggestion.id}/apply`, { method: "POST" })
+    ]);
+    const raceStatuses = [raceRes1.status, raceRes2.status].sort();
+    check("exactly one of the two concurrent applies succeeded (200) and the other was rejected (400 or 409)", raceStatuses[0] === 200 ? [400, 409].includes(raceStatuses[1]) : false);
+    const raceEventsAfter = await listTimelineEvents(WORLD_ID);
+    check("only one Timeline event was created despite two concurrent applies", raceEventsAfter.length === raceEventsBefore + 1);
+    const raceNpcAfter = await getEntry(WORLD_ID, "npcs", "race-target-npc");
+    check("the NPC's status was flipped exactly once", raceNpcAfter.raw.status === "dead");
   } finally {
     server.close();
   }
