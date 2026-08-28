@@ -21,6 +21,29 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: Campaign Arc / Quest cleanup helpers had the same check-then-act
+  race already fixed for `appendQuestToArc()` and Suggested Updates
+  apply/dismiss.** `lib/campaignArcRepo.js#removeQuestFromAllCampaignArcs()`
+  (deletes a Quest -> strips its id from every Campaign Arc's `questIds`)
+  and `lib/campaignModuleRepo.js#removeEntryFromAllCampaignModules()`
+  (deletes an entry -> strips it from every Quest's `entries`) each read a
+  row, computed a filtered array in JS, and wrote it back with a plain
+  `.update()` -- no guard against `appendQuestToArc()` (already locked) or
+  another concurrent cleanup call landing in between. Two Quests deleted
+  off the same Arc in quick succession, or a Quest-delete racing a new
+  Quest being created from that Arc's unmatched stage, could silently lose
+  one side's change the same way the already-fixed races did. Both now
+  wrap their per-row read+write in `withLock()` keyed per
+  `campaign-arc:${worldId}:${arcId}` / `campaign-module:${worldId}:${moduleId}`
+  -- the same keys `appendQuestToArc()` already used, so the cleanup
+  functions now serialize against it too, not just against themselves.
+  `routes/campaignArc.js`'s and `routes/campaignModule.js`'s `PATCH`
+  handlers (client-driven full `questIds`/`entries` replace) now acquire
+  the same lock before writing, so they can't land between a cleanup
+  call's read and write either. New `scripts/testCampaignStructureRaces.js`
+  -- verified all three cases fail against the pre-fix code and pass
+  against the fix; `testEntryDriftSuggestions.js`, `testPipeline.js`, and
+  `testEnemyPipeline.js` still pass unchanged.
 - **Fix: `POST /pending-updates/:id/apply`'s status_flip branch ran its side
   effects before the atomic status claim, same shape of gap the previous
   two fixes below closed elsewhere.** The `fromStatus`-guarded write at the

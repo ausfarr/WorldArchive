@@ -47,6 +47,7 @@ const {
   deleteCampaignModule
 } = require("../lib/campaignModuleRepo");
 const { removeQuestFromAllCampaignArcs } = require("../lib/campaignArcRepo");
+const { withLock } = require("../lib/asyncLock");
 
 const router = express.Router();
 
@@ -242,7 +243,15 @@ router.patch("/campaign-modules/:id", async (req, res) => {
         .filter((e) => e && e.entryId && VALID_ENTRY_CATEGORIES.has(e.category))
         .map((e) => ({ category: e.category, entryId: e.entryId, role: e.role || "", note: e.note || "" }));
     }
-    const mod = await updateCampaignModule(req.worldId, req.params.id, patch);
+    // Same `campaign-module:${worldId}:${moduleId}` key
+    // lib/campaignModuleRepo.js's removeEntryFromAllCampaignModules()
+    // locks on -- this route's `entries` patch is a client-driven full
+    // replace, so without sharing the lock it could still land between
+    // that cleanup function's read and write and get silently clobbered
+    // (or vice versa) even though each individually is now race-safe.
+    const mod = await withLock(`campaign-module:${req.worldId}:${req.params.id}`, () =>
+      updateCampaignModule(req.worldId, req.params.id, patch)
+    );
     res.json({ module: mod });
   } catch (err) {
     console.error("Updating campaign module failed:", err);
