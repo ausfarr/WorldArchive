@@ -28,6 +28,7 @@ const {
 } = require("../lib/campaignArcRepo");
 const { enforceGenerationCap } = require("../middleware/enforceGenerationCap");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
+const { withLock } = require("../lib/asyncLock");
 
 const router = express.Router();
 
@@ -145,7 +146,14 @@ router.patch("/campaign-arcs/:id", async (req, res) => {
         ? pendingStages.filter((s) => s && s.id).map((s) => ({ id: s.id, title: s.title || "", concept: s.concept || "" }))
         : [];
     }
-    const arc = await updateCampaignArc(req.worldId, req.params.id, patch);
+    // Same `campaign-arc:${worldId}:${arcId}` key
+    // lib/campaignArcRepo.js's appendQuestToArc/removeQuestFromAllCampaignArcs
+    // lock on -- this route's questIds/pendingStages patch is a
+    // client-driven full replace of the same fields those functions
+    // read-modify-write, so it needs to serialize against them too.
+    const arc = await withLock(`campaign-arc:${req.worldId}:${req.params.id}`, () =>
+      updateCampaignArc(req.worldId, req.params.id, patch)
+    );
     res.json({ arc });
   } catch (err) {
     console.error("Updating campaign failed:", err);
