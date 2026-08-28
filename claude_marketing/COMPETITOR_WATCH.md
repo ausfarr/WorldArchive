@@ -155,6 +155,12 @@ Also still on watch, lower priority: **DunMax** (mobile D&D world builder, AI NP
 
 **No change to the "lean on real differentiators" recommendation** — but Craft's custom-file-type worldbuilding is the first competitor move that brushes up against the *stat/skill system* differentiator specifically (as opposed to the archive/consistency/export ones already being chipped at), worth flagging for whoever next revisits `GROWTH_STRATEGY.md` §2's differentiator list.
 
+## 🆕 2026-08-28 update — Craft's "free to start" homepage copy doesn't match its beta terms; no new direct competitor
+
+**Craft (craftrpgs.com) — clarification, not a reversal, of the 2026-08-27 entry.** Craft's own homepage now markets itself as "open beta, free to start," which reads like a free-tier launch. A third-party discussion thread (Tildes) and pricing trackers (Capterra, AISO Tools) checked this session both confirm the opposite in the fine print: during the beta period there is **no free tier** — Friends & Fables subscribers get a one-month promo code as their only no-cost path in, everyone else is on the paid Starter tier (~$20/mo, ~100 images/day or ~50–100 AI-GM turns/day). So "free to start" is beta-onboarding marketing language, not an actual free plan available today. This doesn't change the 08-27 read (adjacent, not direct; watch since it touches the stat/skill-system differentiator) — just confirms it wasn't already stale, and flags the homepage copy as a trap for a future session skimming too quickly.
+
+**CharGen, World Anvil, Reality Forge, Friends & Fables:** all re-checked, no material change from any of them this session. No new direct competitor found.
+
 ## Chronicled's current position vs. primary competitors
 
 World Anvil, Kanka, and LegendKeeper: still no native AI generation as of this check; World Anvil's August 2026 update was UI/community-event only (professional settings ported to the new editor, a reading challenge) — no pricing or AI change. Chronicled at $5/mo for 25 generations/month (plus a no-card 10-generation trial) still undercuts Grandmaster ($8.25/mo) and LegendKeeper Pro ($9/mo) while including generation.
