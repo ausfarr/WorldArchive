@@ -21,6 +21,27 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: PDF export (category and whole-world scope) leaked locked
+  ghost-placeholder entries onto exported pages.** `lib/pdfExport.js`'s
+  `buildExportHtml()` called `listEntries(worldId, category)` with no
+  options at both its `category`- and `world`-scope call sites, which
+  returns every row in that category including locked ghost-placeholder
+  stubs -- `lib/entryLinker.js#ensureGhostPlaceholder()` auto-creates one
+  (real `name`, null `bodyHtml`/`subtitle`) any time generated content
+  references an NPC/Location/etc. that hasn't been generated yet, which is
+  a routine, common occurrence, not an edge case. Every other reader of the
+  `entries` table already excludes these (`lib/roster.js`'s roster-context
+  builders, `lib/factionRoundup.js`, the category grid page's client-side
+  `.filter(e => !e.locked)`) -- PDF export was the one place that didn't,
+  so downloading a category or whole-world PDF produced a near-blank sheet
+  (title, no content) for every such reference, surfacing content the user
+  never actually generated into a document meant to only cover what they
+  have. Both call sites now pass `{ locked: false }`, matching every other
+  consumer. New `scripts/testPdfExportLockedFilter.js` -- verified it fails
+  against the pre-fix code and passes against the fix; `testPipeline.js`,
+  `testEnemyPipeline.js`, `testCampaignStructureRaces.js`,
+  `testEntryDriftSuggestions.js`, `testEntryLinker.js`, and
+  `testSessionAssembly.js` still pass unchanged.
 - **Fix: Campaign Arc / Quest cleanup helpers had the same check-then-act
   race already fixed for `appendQuestToArc()` and Suggested Updates
   apply/dismiss.** `lib/campaignArcRepo.js#removeQuestFromAllCampaignArcs()`
