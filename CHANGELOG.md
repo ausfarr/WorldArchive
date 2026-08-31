@@ -42,6 +42,42 @@ entry from here forward gets both a real date and a version at write time.
   `testEnemyPipeline.js`, `testCampaignStructureRaces.js`,
   `testEntryDriftSuggestions.js`, `testEntryLinker.js`, and
   `testSessionAssembly.js` still pass unchanged.
+- **Fix: `entriesRepo.js#patchEntryMeta()` and `entryLinker.js`'s backfill
+  rebake path had the same unguarded check-then-act race already fixed
+  elsewhere for Campaign Arc/Quest cleanup and Suggested Updates.**
+  `patchEntryMeta()` -- the one shared function every entry-metadata patch
+  goes through (dungeonMap's map-bake save, the dossier map-pin drag,
+  faction banner/accent-color saves, the wizard's faction accent-color
+  step, Suggested Updates' status flip) -- read a row, merged `patch` into
+  its `raw_json` in JS, and wrote it back with a plain `.update()`, no
+  lock. Two patches to the same entry landing close together (baking a
+  Location's battle map in one tab while dragging its map pin in another,
+  say) each read the same pre-patch state and each write back a merge
+  that silently drops the other's change. Separately,
+  `entryLinker.js#backfillReferencesFromNewEntry()`'s rebake step (fires
+  after every confirm-entry save, resolving any now-linkable name
+  references onto other rows) had the same shape of bug: it read a bulk
+  `listEntries()` snapshot, mutated a matched row's content in JS, and
+  rebaked (a full raw_json rewrite) off that possibly-stale snapshot --
+  two new entries confirmed seconds apart that both name-reference the
+  same not-yet-linked NPC could each resolve only their own reference and
+  clobber the other's on rebake. Both now share one lock
+  (`lib/asyncLock.js`, keyed `entry:${worldId}:${category}:${entryId}`):
+  `patchEntryMeta()` wraps its whole read+merge+write in it, and the
+  backfill rebake step re-reads the row fresh *inside* the same lock
+  right before writing instead of trusting its earlier bulk-listed copy.
+  Known remaining gap, documented in both files' comments rather than
+  silently left to be rediscovered: a rebake is a full content-only
+  rewrite with no idea a patch-only field (dungeonMap, accentColor,
+  manualMapPosition) even exists, so a rebake that lands *after* a patch
+  still drops that field -- the lock stops corrupted/interleaved writes,
+  it doesn't turn rebake into a merge. New
+  `scripts/testEntryMetaPatchRace.js` -- verified all three cases (two
+  concurrent patches, two concurrent backfill rebakes, and the documented
+  gap) against both the pre-fix and post-fix code;
+  `scripts/testEntryLinker.js`, `testCampaignStructureRaces.js`,
+  `testEntryDriftSuggestions.js`, `testSessionAssembly.js`, `testPipeline.js`,
+  and `testEnemyPipeline.js` still pass unchanged.
 - **Fix: Campaign Arc / Quest cleanup helpers had the same check-then-act
   race already fixed for `appendQuestToArc()` and Suggested Updates
   apply/dismiss.** `lib/campaignArcRepo.js#removeQuestFromAllCampaignArcs()`
