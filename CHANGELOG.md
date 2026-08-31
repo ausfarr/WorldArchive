@@ -21,6 +21,30 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: PDF export never learned about two categories added after it was
+  written -- Session Packets couldn't be exported at all, and Spells was
+  silently dropped from whole-world export.** `routes/export.js` keeps its
+  own `VALID_CATEGORIES` set (duplicated from `routes/entries.js`'s, per
+  that file's own comment on why) and it was simply never updated when
+  Session Packets shipped -- so `GET /api/export/entry/session-packets/:id`
+  and `GET /api/export/category/session-packets` both 400'd with "Unknown
+  category," meaning the dossier page's generic "Download PDF" button (see
+  `archive/js/render.js#wireEntryExportButton`, driven off `entry.category`
+  for any category) failed on every click for a Session Packet. Separately,
+  `lib/pdfExport.js`'s `CATEGORY_ORDER` (what the "Download Whole World"
+  export actually loops over) never got `spells` or `session-packets`
+  added either, even though `buildExportHtml()`'s entry rendering is
+  already fully generic per category -- both were silently missing from
+  every whole-world export. Fixed by adding `session-packets` to
+  `routes/export.js`'s set, and both `spells`/`session-packets` to
+  `CATEGORY_ORDER` and `DEFAULT_CATEGORY_LABELS` (the latter so a
+  world without a custom category label falls back to "Session Packets"/
+  "Spells" instead of rendering the raw internal category key). New
+  `scripts/testPdfExportCategoryCoverage.js` -- verified it fails against
+  the pre-fix code (10 failing checks) and passes against the fix; full
+  existing suite (`testPipeline.js`, `testEnemyPipeline.js`,
+  `testEntryDriftSuggestions.js`, `testCampaignStructureRaces.js`,
+  `testSessionAssembly.js`) still passes unchanged.
 - **Fix: Campaign Arc / Quest cleanup helpers had the same check-then-act
   race already fixed for `appendQuestToArc()` and Suggested Updates
   apply/dismiss.** `lib/campaignArcRepo.js#removeQuestFromAllCampaignArcs()`

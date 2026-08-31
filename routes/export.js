@@ -6,7 +6,13 @@ const router = express.Router();
 // Kept in sync with entries.js's VALID_CATEGORIES -- duplicated rather
 // than imported since entries.js doesn't currently export it; worth
 // hoisting both into a shared constants module if a third route ever
-// needs this list.
+// needs this list. "session-packets" was missing here even though
+// entries.js already recognized it (Session Prep Companion, Phase 4) --
+// every dossier page wires its "Download PDF" button generically off
+// entry.category (see archive/js/render.js's wireEntryExportButton), so
+// a Session Packet's dossier page 400'd on every click since that
+// feature shipped, since buildExportHtml() itself never checks category
+// against anything -- this Set was the only thing blocking it.
 const VALID_CATEGORIES = new Set([
   "factions",
   "npcs",
@@ -16,7 +22,8 @@ const VALID_CATEGORIES = new Set([
   "logs",
   "survivors",
   "locations",
-  "spells" // multi-ruleset genericization -- see entries.js's matching comment
+  "spells", // multi-ruleset genericization -- see entries.js's matching comment
+  "session-packets"
 ]);
 
 // Query param default is "include images" -- matches the checked-by-
