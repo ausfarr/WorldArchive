@@ -4,6 +4,19 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-01 (automated check-in, Day 16):** No commits or new info from Austin's side since `0e4afc2` (the 08-31 check-in). This environment still can't fetch reddit.com in any form (confirmed again, sixteenth day running) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged, carried forward rather than re-derived — every one of them (#3 comment-reply, #8 directory submission, #9 EN World post, #4's DMAcademy post itself) is now over two weeks undone despite being flagged repeatedly as low-effort and independent of the Reddit fetch block. New today: one adjacent competitor found (Saga20, a session-recap/auto-wiki tool — see `DAILY_LOG.md`'s 2026-09-01 entry and `COMPETITOR_WATCH.md`), no new direct competitor, no new product idea beyond what's already logged in item 7 below.
+
+---
+
+## What to do today (2026-09-01)
+
+1. **#8 (AI-directory submissions) is the single easiest concrete win still sitting untouched — now over two weeks undone.** ~10 min, free, no public post, zero dependency on the Reddit blocker or anything else stalled. Start with theresanaiforthat.com's Worldbuilding category (confirmed again this session: Chronicled still isn't listed).
+2. **#9 — Post to EN World's "Promotions" sub-forum** (enworld.org) — no comment-history gate, `drafts/reddit_post_worldbuilding.md`'s copy adapts directly. Still untried, ~15 min.
+3. **Reply to comments on the live r/rpg_generators post** if you haven't already (#3 below) — still the single highest-leverage personal-time item, unconfirmed since Day 6.
+4. **Was r/worldbuilding ever posted?** Still no URL logged. `drafts/reddit_post_worldbuilding.md` is ready if not; say so if that plan's been superseded so this stops resurfacing daily.
+5. **#4 (DMAcademy)** — checkbox says done, but the sub's actual current self-promo mechanism (megathread vs. flair vs. outright restriction) still hasn't been confirmed with your own eyes, only third-party guides (now three independent ones agreeing: ~10 comments of participation, only DMing Questions/Advice/Resources post types, Resources must be "a completed tool"). 5 minutes before using `drafts/reddit_post_dmacademy.md`.
+6. **Product-side ideas, standing and unshipped (not this thread's call, flagged for the dev workstream):** (a) visual entity-relationship-graph view — now a 3-for-3 pattern across CharGen/Reality Forge/Grimoire, Chronicled already has the underlying data; (b) crop-to-VTT-token tool (browser-side, no AI cost); (c) native VTT (Foundry-style) export to close the gap CharGen opened 2026-08-25. Checked `CHANGELOG.md` this session — none of the three have shipped yet.
+
 **Status as of 2026-08-31 (automated check-in, Day 13):** First check-in after a three-calendar-day gap (last one was Day 12, 2026-08-28) — no commits or new info from Austin's side since `6c2011f`. This environment still can't fetch reddit.com in any form (confirmed again) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged, carried forward rather than re-derived. New today: CharGen shipped portrait-editing tools (face swap, inpaint, background removal, reusable character likeness) — a concrete, low-cost product idea added to item 7 below; a search snippet suggesting Chronicled's site still says "beta" was checked directly against the repo and turned out to be stale/cached, not real — no action needed. See `DAILY_LOG.md`'s 2026-08-31 entry.
 
 ---
