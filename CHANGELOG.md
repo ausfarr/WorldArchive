@@ -21,6 +21,29 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: imported World Bible lore never grounded Location or Spell
+  generation -- same category-list drift bug as the PDF export fix below,
+  in a different file.** `lib/loreParsing.js`'s `ALL_CATEGORIES` (the
+  Wizard's "import an existing doc" category-tagging list, used both as
+  the "unmatched section title" fallback and inside several
+  `TOPIC_CATEGORY_MAP` keyword rows) was missing `"locations"` and
+  `"spells"` entirely -- both real generator categories that call
+  `getLoreContext(worldId, { category })` (`routes/generateLocation.js`,
+  `routes/generateSpell.js`), just added after this file was written.
+  Since `lib/loreContext.js`'s `getRelevantLoreSections()` only includes a
+  non-core section when its `categoryTags` include the requested category,
+  every non-core section of an uploaded World Bible -- resource/economy,
+  culture, history, faction/politics, and (for Spells specifically) the
+  `technolog|magic|supernatural|power system` row, whose own "magic"
+  keyword is the single most relevant signal for Spell grounding -- was
+  silently invisible to both categories; only the three `core: true` rows
+  (geography/overview/glossary) got through, since core sections bypass
+  category filtering entirely. Fixed by bringing `ALL_CATEGORIES` in line
+  with `lib/entryLinker.js`'s own canonical `ALL_CATEGORIES` (which was
+  already correct) and adding `"spells"` to the magic/technology row. New
+  `scripts/testLoreCategoryTagCoverage.js` -- verified it fails against
+  the pre-fix code (7 failing checks) and passes against the fix; full
+  existing suite still passes unchanged.
 - **Fix: PDF export never learned about two categories added after it was
   written -- Session Packets couldn't be exported at all, and Spells was
   silently dropped from whole-world export.** `routes/export.js` keeps its
