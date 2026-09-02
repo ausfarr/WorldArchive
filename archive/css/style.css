@@ -354,6 +354,23 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); out
   display: block;
 }
 
+.portrait-token-btn {
+  display: block;
+  width: 100%;
+  background: var(--bg-panel-raised);
+  color: var(--ink-dim);
+  border: 1px solid var(--border-line);
+  padding: 8px 16px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  margin: -18px 0 24px;
+}
+.portrait-token-btn:hover { border-color: var(--fac-color, var(--neon-primary)); color: var(--ink); }
+.portrait-token-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 table.stat-table, table.derived-table {
   width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.85rem;
   margin-bottom: 18px;
