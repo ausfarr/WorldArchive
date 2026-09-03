@@ -383,6 +383,19 @@ table.derived-table td.formula { color: var(--ink-faint); font-size: 0.78rem; }
 .rel-table th, .rel-table td { border-bottom: 1px solid var(--border-line-soft); padding: 10px 8px; text-align: left; vertical-align: top; }
 .rel-table th { color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
+/* Faction relationship graph (lib/factionTemplate.js#buildRelationshipGraphSvg) --
+   the SVG itself carries all its own node/edge styling inline (colors need
+   to reach into --fac-color, which only exists as an inline style on the
+   .sheet element render.js sets per-entry, not as a class this stylesheet
+   can select), so this just bounds the wrapper's size/centering and styles
+   the text labels the SVG references by class. */
+.rel-graph { display: flex; justify-content: center; margin: 4px 0 18px; }
+.rel-graph svg { width: 100%; max-width: 480px; height: auto; }
+.rel-graph-label { font-family: var(--font-body); font-size: 13px; fill: var(--ink-dim); }
+.rel-graph-label-center { fill: var(--ink); font-weight: 600; }
+.rel-graph a { cursor: pointer; }
+.rel-graph a:hover .rel-graph-label { fill: var(--neon-cyan); }
+
 .sheet-footer {
   border-top: 1px solid var(--border-line-soft);
   padding: 16px 32px;

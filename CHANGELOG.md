@@ -21,6 +21,28 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Feature (v1.2): Faction dossiers now render a visual relationship graph,
+  not just a table.** A radial SVG diagram (this faction at the center,
+  related factions around it, edges colored by stance -- war/hostile red,
+  alliance/trade cyan, rivalry/tension amber, everything else neutral gray)
+  above the existing relationships table on every faction dossier page.
+  Competitor-analysis check-ins (`claude_marketing/COMPETITOR_WATCH.md`,
+  2026-08-19/08-30) flagged a visual entity-relationship graph as a pattern
+  now shared by CharGen, Reality Forge, and Grimoire -- this ships the
+  smallest real slice of that: factions are the one category whose
+  relationships are already structured data (`toId`/`stance`/`why`, see
+  `lib/entryLinkRegistry.js`) rather than prose, so the graph is pure
+  presentation over data that already existed -- no new AI calls, no new
+  fields, no migration. Nodes with a resolved `toId` are clickable through to
+  that faction's own dossier. Since it's baked into `body_html` at generation
+  time (`lib/factionTemplate.js#buildRelationshipGraphSvg`), it also shows up
+  automatically in PDF export with zero extra work.  New
+  `scripts/testFactionRelationshipGraph.js` -- pure-function unit tests
+  (no DB/API needed) covering the empty case, stance-color bucketing
+  (including the "uneasy alliance" ordering trap), the `toId` link, the
+  12-node overflow cap, and HTML-escaping of model-authored faction/stance/
+  why text (caught a real unescaped-name bug in the center label during
+  review). Full detail in `session_addendum_faction_relationship_graph_shipped.md`.
 - **Fix: PDF export never learned about two categories added after it was
   written -- Session Packets couldn't be exported at all, and Spells was
   silently dropped from whole-world export.** `routes/export.js` keeps its
