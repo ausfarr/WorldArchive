@@ -6,6 +6,8 @@ Update this file's checkboxes as you go — future sessions (including this one,
 
 **Status as of 2026-08-31 (automated check-in, Day 13):** First check-in after a three-calendar-day gap (last one was Day 12, 2026-08-28) — no commits or new info from Austin's side since `6c2011f`. This environment still can't fetch reddit.com in any form (confirmed again) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged, carried forward rather than re-derived. New today: CharGen shipped portrait-editing tools (face swap, inpaint, background removal, reusable character likeness) — a concrete, low-cost product idea added to item 7 below; a search snippet suggesting Chronicled's site still says "beta" was checked directly against the repo and turned out to be stale/cached, not real — no action needed. See `DAILY_LOG.md`'s 2026-08-31 entry.
 
+**Dev-side note, 2026-09-03 (separate workstream, not a marketing check-in):** the "visual entity relationship graph" product idea repeatedly flagged below and in `COMPETITOR_WATCH.md` (2026-08-27, reinforced 2026-08-30 as a "3-for-3 pattern" across CharGen/Reality Forge/Grimoire) has shipped, scoped to Factions — the one category whose relationships are already structured data rather than prose. See `CHANGELOG.md`'s Unreleased section and `session_addendum_faction_relationship_graph_shipped.md`. A world-wide, multi-category graph (what Grimoire actually ships) is still open — future check-ins can keep flagging that larger version, but the "Chronicled has no visual relationship view at all" framing is no longer accurate.
+
 ---
 
 ## What to do today (2026-08-31)
