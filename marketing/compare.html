@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chronicled vs. World Anvil, CharGen, Campfire &amp; Chronicler — Comparison</title>
-<meta name="description" content="How Chronicled compares to World Anvil, CharGen, Campfire, and Chronicler: an honest look at AI-generated, lore-grounded content vs. manual worldbuilding wikis, a rival AI generator, and offline note tools.">
+<title>Chronicled vs. World Anvil, CharGen, Grimoire, Campfire &amp; Chronicler — Comparison</title>
+<meta name="description" content="How Chronicled compares to World Anvil, CharGen, Grimoire, Campfire, and Chronicler: an honest look at AI-generated, lore-grounded content vs. manual worldbuilding wikis, a rival AI generator, a bring-your-own-AI knowledge graph, and offline note tools.">
 <link rel="canonical" href="https://chronicled.world/compare.html">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://chronicled.world/compare.html">
-<meta property="og:title" content="Chronicled vs. World Anvil, CharGen, Campfire &amp; Chronicler">
-<meta property="og:description" content="An honest comparison: where Chronicled's AI-generation-first, lore-grounded archive fits next to manual worldbuilding wikis, a rival AI generator, and offline note tools.">
+<meta property="og:title" content="Chronicled vs. World Anvil, CharGen, Grimoire, Campfire &amp; Chronicler">
+<meta property="og:description" content="An honest comparison: where Chronicled's AI-generation-first, lore-grounded archive fits next to manual worldbuilding wikis, a rival AI generator, a bring-your-own-AI knowledge graph, and offline note tools.">
 <meta property="og:image" content="https://chronicled.world/images/og-cover.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:site_name" content="Chronicled">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Chronicled vs. World Anvil, CharGen, Campfire &amp; Chronicler">
-<meta name="twitter:description" content="An honest comparison: where Chronicled's AI-generation-first, lore-grounded archive fits next to manual worldbuilding wikis, a rival AI generator, and offline note tools.">
+<meta name="twitter:title" content="Chronicled vs. World Anvil, CharGen, Grimoire, Campfire &amp; Chronicler">
+<meta name="twitter:description" content="An honest comparison: where Chronicled's AI-generation-first, lore-grounded archive fits next to manual worldbuilding wikis, a rival AI generator, a bring-your-own-AI knowledge graph, and offline note tools.">
 <meta name="twitter:image" content="https://chronicled.world/images/og-cover.jpg">
 
 <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
@@ -54,7 +54,7 @@
 
 <div class="wrap">
   <div class="honest-note reveal" style="margin-top:36px;">
-    <strong>Methodology note:</strong> Chronicled's row below is accurate as of this writing (we built it). World Anvil and Campfire's rows describe their well-known core model — manual, template-driven worldbuilding wikis — to the best of our knowledge; both are mature products that add features over time, so if something here is stale, <a href="mailto:ausfarr@gmail.com">let us know</a>. CharGen is the closest thing Chronicled has to a direct competitor — it also generates cross-linked world content rather than just hosting a wiki — and its row is built from its own public changelog/feature pages; a couple of rows are marked "not confirmed" where we couldn't verify a specific capability. Chronicler (chronicler.pro) is a different kind of tool entirely — an offline, local-storage worldbuilding notebook — and isn't really a competitor so much as a different answer to a different problem; it's included because people researching this space tend to ask about it.
+    <strong>Methodology note:</strong> Chronicled's row below is accurate as of this writing (we built it). World Anvil and Campfire's rows describe their well-known core model — manual, template-driven worldbuilding wikis — to the best of our knowledge; both are mature products that add features over time, so if something here is stale, <a href="mailto:ausfarr@gmail.com">let us know</a>. CharGen is the closest thing Chronicled has to a direct competitor — it also generates cross-linked world content rather than just hosting a wiki — and its row is built from its own public changelog/feature pages; a couple of rows are marked "not confirmed" where we couldn't verify a specific capability. Grimoire (ttrpg.bot) takes a different approach worth knowing about: it's a structured campaign database with a real visual knowledge-graph view, but it's explicitly bring-your-own-AI — you connect your own Claude/ChatGPT/Cursor client via its MCP server, and that client does any writing; Grimoire itself doesn't generate content for you. Chronicler (chronicler.pro) is a different kind of tool entirely — an offline, local-storage worldbuilding notebook — and isn't really a competitor so much as a different answer to a different problem; it's included because people researching this space tend to ask about it.
   </div>
 
   <div class="compare-table-wrap reveal">
@@ -64,6 +64,7 @@
         <th class="col-us">Chronicled</th>
         <th>World Anvil</th>
         <th>CharGen</th>
+        <th>Grimoire</th>
         <th>Campfire</th>
         <th>Chronicler (chronicler.pro)</th>
       </tr>
@@ -72,6 +73,7 @@
         <td class="col-us">AI generates content on demand, grounded in your world's own established lore</td>
         <td>Manual entry into structured templates (Codex articles, family trees, maps)</td>
         <td>AI generates a cross-linked "World Codex" — NPCs, factions, settlements, regions, and more, linked via a relationship graph</td>
+        <td>A typed campaign database + knowledge graph — you bring your own AI client (via MCP) to read/write it</td>
         <td>Manual entry across modular worldbuilding tools (characters, locations, timelines, encyclopedia)</td>
         <td>Manual notes, offline, stored locally on your device</td>
       </tr>
@@ -80,6 +82,7 @@
         <td class="col-us">Cloud, multi-device, per-user account</td>
         <td>Cloud, browser-based</td>
         <td>Cloud, browser-based + mobile</td>
+        <td>Cloud, browser-based; connects to Claude/ChatGPT/Cursor via MCP</td>
         <td>Desktop app + cloud sync (module-dependent)</td>
         <td>Local-only — offline, browser storage on one device</td>
       </tr>
@@ -88,6 +91,7 @@
         <td class="col-us"><span class="compare-yes">Core of the product</span> — NPCs, monsters, items, factions, locations, classes, and more, generated grounded in your world</td>
         <td>Not the core model; a manual wiki first</td>
         <td><span class="compare-yes">Core of the product</span> — but priced as a gold-credit system shared with art generation, not per-text-generation</td>
+        <td><span class="compare-no">None built in</span> — explicitly AI-optional; generation happens in whatever outside AI client you connect, not in Grimoire itself</td>
         <td>Not the core model; a manual toolkit first</td>
         <td><span class="compare-no">None</span> — by design, it's a private offline notebook</td>
       </tr>
@@ -96,6 +100,7 @@
         <td class="col-us"><span class="compare-yes">Yes</span> — matching art generated per entry, per your world's style</td>
         <td>Upload your own images/art</td>
         <td><span class="compare-yes">Yes</span> — plus editing tools (face swap, inpainting, background removal) and VTT token export</td>
+        <td>Not part of the product</td>
         <td>Upload your own images/art</td>
         <td>Upload your own images/art</td>
       </tr>
@@ -104,6 +109,7 @@
         <td class="col-us">Generation is grounded in what already exists in your archive — factions, NPCs, and items referenced, never invented from nothing</td>
         <td>Consistency is on you — it's your wiki, your cross-links</td>
         <td>Cross-linked via a relationship graph — click a faction, see its region and members</td>
+        <td>Structured typed data + a visual knowledge-graph view, but whether a new entry stays consistent depends on the outside AI client you're using</td>
         <td>Consistency is on you — it's your wiki, your cross-links</td>
         <td>Consistency is on you — it's your notebook</td>
       </tr>
@@ -112,6 +118,7 @@
         <td class="col-us"><span class="compare-yes">Yes</span> — derived stats computed by real formulas, not free text</td>
         <td>Free-text / template fields</td>
         <td>Not confirmed</td>
+        <td>Free-text / typed fields</td>
         <td>Free-text / template fields</td>
         <td>Free-text fields</td>
       </tr>
@@ -119,6 +126,7 @@
         <td><strong>PDF export for the table</strong></td>
         <td class="col-us"><span class="compare-yes">Yes</span> — whole-world, per-category, per-entry, per-Quest, per-Campaign</td>
         <td>Limited/varies by plan</td>
+        <td>Not confirmed</td>
         <td>Not confirmed</td>
         <td>Limited/varies by plan</td>
         <td>Not applicable (local notebook)</td>
@@ -128,12 +136,13 @@
         <td class="col-us">You want new content generated fast, in your world's voice, without writing every article by hand</td>
         <td>You want to hand-write a deep, browsable wiki and enjoy the writing itself</td>
         <td>You want the broadest generator catalogue and full session-prep tooling, and don't mind a shared/public-style codex model</td>
+        <td>You already pay for Claude/ChatGPT/Cursor and want a structured database it can read/write to, and don't need it to generate anything on its own</td>
         <td>You want structured manual worldbuilding tools without the wiki-website feel</td>
         <td>You want a private, offline scratchpad with zero cloud dependency</td>
       </tr>
     </table>
   </div>
-  <p class="compare-note reveal">Pricing not included above — see <a href="pricing.html">Chronicled's pricing plan</a>. World Anvil, CharGen, Campfire, and Chronicler each set and change their own pricing independently; check their sites directly for current numbers.</p>
+  <p class="compare-note reveal">Pricing not included above — see <a href="pricing.html">Chronicled's pricing plan</a>. World Anvil, CharGen, Grimoire, Campfire, and Chronicler each set and change their own pricing independently; check their sites directly for current numbers.</p>
 
   <div class="compare-callouts reveal">
     <div class="compare-callout">
