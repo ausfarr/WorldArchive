@@ -21,6 +21,33 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Cost: homebrew Spell generation's roster context was the one category
+  that never got the MAX_FULL_ROSTER_LINES cap.** `routes/generateSpell.js`
+  built its roster-overlap context inline with a raw, uncapped
+  `listEntries(worldId, "spells")` map/join instead of going through
+  `lib/roster.js` like every sibling category (NPCs, Enemies, Items,
+  Classes, Survivors, Logs, Locations) -- a leftover from Spells being a
+  brand-new category (multi-ruleset genericization, Phase 4) with no
+  established roster-builder pattern to copy at the time. That meant a
+  world's homebrew Spell generation was the one prompt whose cost grew
+  unboundedly with its own history instead of being bounded at 60 entries
+  like everything else (see `lib/roster.js`'s header comment on why that
+  cap exists -- a category's roster context alone crosses 100% of a
+  typical generation call's cost around ~390 entries without it). Added
+  `buildSpellRosterContext()`/`readSpellManifest()` to `lib/roster.js`
+  (same `splitRosterForCap()`/`plainOverflowNote()` shape as
+  Classes/Survivors/Logs) and routed `generateSpell.js`'s homebrew path
+  through it. New `scripts/testSpellRosterCap.js` -- verified it fails
+  against the pre-fix code (the function it tests didn't exist yet) and
+  passes against the fix, covering the empty-world fallback, under-cap
+  (all listed), and over-cap (75 seeded spells -> capped at 60 lines +
+  overflow note) cases; full existing offline suite
+  (`testPipeline.js`, `testEnemyPipeline.js`, `testEntryLinker.js`,
+  `testCampaignStructureRaces.js`, `testEntryDriftSuggestions.js`,
+  `testSessionAssembly.js`, `testPdfExportCategoryCoverage.js`,
+  `testPdfExportLockedFilter.js`, `testEntryMetaPatchRace.js`, and every
+  other `scripts/test*.js` except `testTenantIsolation.js`) still passes
+  unchanged.
 - **Fix: PDF export never learned about two categories added after it was
   written -- Session Packets couldn't be exported at all, and Spells was
   silently dropped from whole-world export.** `routes/export.js` keeps its
