@@ -4,6 +4,19 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-04 (automated check-in, Day 14):** Second check-in in a row after a multi-day scheduling gap (this one four days, since 2026-08-31) — no commits or new info from Austin's side since `0e4afc2`. This environment still can't fetch reddit.com in any form (confirmed again), and `chronicled.world` itself is now also blocked to direct fetch (doesn't matter — site checks go through the repo directly) — permanent tooling limitations, not daily to-dos. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. New today: **Craft's long-standing free-tier ambiguity is resolved (it does have one now)** — awareness only, no action needed; **Summon Worlds shipped a visible entity-relationship feature**, making it the fourth competitor (after CharGen/Reality Forge/Grimoire) to converge on this — the visual-relationship-graph product idea (item 7 below) is now the strongest-validated idea in the whole backlog. See `DAILY_LOG.md`'s 2026-09-04 entry.
+
+---
+
+## What to do today (2026-09-04)
+
+1. **Still the highest-value product-side idea, now with a fourth data point: a visual entity-relationship view.** Four separate competitors (CharGen, Reality Forge, Grimoire, and as of today Summon Worlds) have all independently shipped some form of "show connections between entities visibly," not just in prose. Chronicled already has the underlying data (faction Roundups, tags, `raw_json`) — the gap is presentation only. Worth raising with the dev thread next time it has bandwidth; nothing else in the backlog has this much independent validation.
+2. **Reply to comments on the live r/rpg_generators post** if you haven't already — still the single highest-leverage personal-time item, carried forward unchanged for weeks, no confirmation either way yet.
+3. **#8 (AI-directory submissions)** is still the quickest guaranteed-real win if you have 10 minutes — free, no public post required, doesn't depend on Reddit at all. Confirmed again this session that Chronicled is genuinely not listed on theresanaiforthat.com yet.
+4. **Was r/worldbuilding ever posted?** Still no URL logged for it. `drafts/reddit_post_worldbuilding.md` is ready if it's still open — or say the plan's superseded so this stops resurfacing.
+5. **#9 (EN World's Promotions sub-forum)** — still untried, still a same-day-doable, zero-gate alternative to the stalled Reddit drafts (`drafts/reddit_post_worldbuilding.md` copy adapts directly).
+6. **Optional, low-effort:** paste the live post's actual score/comment count (or a screenshot) into `DAILY_LOG.md` next time you're already looking at it — not urgent, just makes future check-ins substantive instead of a fetch-fails-again loop.
+7. **Nothing urgent competitively.** Craft's confusing free-tier situation is now resolved (it has one) — awareness only. No new direct competitor found today.
 **Status as of 2026-08-31 (automated check-in, Day 13):** First check-in after a three-calendar-day gap (last one was Day 12, 2026-08-28) — no commits or new info from Austin's side since `6c2011f`. This environment still can't fetch reddit.com in any form (confirmed again) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged, carried forward rather than re-derived. New today: CharGen shipped portrait-editing tools (face swap, inpaint, background removal, reusable character likeness) — a concrete, low-cost product idea added to item 7 below; a search snippet suggesting Chronicled's site still says "beta" was checked directly against the repo and turned out to be stale/cached, not real — no action needed. See `DAILY_LOG.md`'s 2026-08-31 entry.
 
 ---
