@@ -21,6 +21,37 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix (v1.3): the homepage World Status Panel silently broke for every
+  5e-ruleset world once Spells shipped -- same category-list-drift bug
+  class as the PDF export and World Bible lore fixes below, this time in
+  `archive/js/render.js`.** `renderWorldStatusPanel()`'s `CATEGORY_TARGETS`
+  object (the per-category "what counts as a decent start" denominator
+  for the progress bar) was never given a `spells` entry, so
+  `Math.min(count / CATEGORY_TARGETS["spells"], 1)` computed as
+  `Math.min(count / undefined, 1)` = `NaN` for that row. One `NaN` in the
+  per-category list poisons `overallPct` (a plain sum/divide across every
+  row), which broke two things on every affected homepage at once: the
+  progress bar rendered an invalid `width:NaN%` (silently dropped by the
+  browser, so the bar looked permanently stuck), and the `overallPct >= 1`
+  "World fully archived — nice." congratulations state could never
+  trigger again, since a `NaN` comparison is always `false`. Non-5e
+  (Echoes/generic) worlds were unaffected -- their `category_config_json`
+  already marks `spells.enabled: false` (see `archive/wizard-categories.html`),
+  which excludes the row entirely -- but any 5e-ruleset world hit this on
+  every single homepage load. Fixed by adding `spells: 3` to
+  `CATEGORY_TARGETS`, matching the target already used for the other
+  single-entity-at-a-time categories (Items/NPCs/Enemies/Survivors/Logs).
+  New `scripts/testWorldStatusPanelCategoryTargets.js` -- loads the real
+  `archive/js/render.js` into a Node `vm` context (a minimal `document`/
+  `localStorage` stub, since this file has no module.exports or existing
+  Node test harness) and calls `renderWorldStatusPanel()` for real;
+  verified it fails against the pre-fix code (NaN in the rendered HTML,
+  "fully archived" state unreachable) and passes against the fix. Full
+  existing offline suite (every `scripts/test*.js` except
+  `testTenantIsolation.js`) still passes unchanged; `npm start` boots
+  cleanly. Not click-through-verified in an actual browser this session
+  (no live Supabase-backed 5e world available here) -- worth a real
+  homepage check on a 5e-ruleset world next session that has one.
 - **Fix: PDF export never learned about two categories added after it was
   written -- Session Packets couldn't be exported at all, and Spells was
   silently dropped from whole-world export.** `routes/export.js` keeps its
