@@ -3431,7 +3431,20 @@ function renderHomepageCounts(manifests) {
 // a world with 3 factions and a world with 8 should both read as
 // complete once none are locked, not be judged against someone else's
 // count.
-const CATEGORY_TARGETS = { npcs: 3, enemies: 3, items: 3, classes: 2, logs: 3, survivors: 3, locations: 3 };
+// "spells" was missing here even though it's been a real CATEGORY_LABELS
+// entry (and thus a real row below) since 5e-ruleset support shipped --
+// CATEGORY_TARGETS[cat] came back `undefined` for it, so `pct` computed
+// as `Math.min(count / undefined, 1)` = NaN for every 5e-ruleset world
+// (the only worlds where the row isn't filtered out by the enabled-
+// category check below). One NaN in `rows` poisons `overallPct` (a
+// plain sum/divide over every row), which breaks two things at once on
+// every affected homepage: the progress bar renders `width:NaN%` (the
+// browser just drops the invalid declaration, so the bar shows whatever
+// width it last had -- effectively stuck), and the `overallPct >= 1`
+// "World fully archived" congratulations state can never trigger again,
+// since NaN >= 1 is always false. Given the same target as the other
+// single-entity-at-a-time categories (Items/NPCs/Enemies/Survivors/Logs).
+const CATEGORY_TARGETS = { npcs: 3, enemies: 3, items: 3, classes: 2, logs: 3, survivors: 3, locations: 3, spells: 3 };
 const WORLD_STATUS_DISMISS_KEY = "worldforge_hide_status_panel";
 
 function getEnabledCategoriesFromCache() {
