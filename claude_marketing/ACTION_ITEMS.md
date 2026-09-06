@@ -4,6 +4,20 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-06 (automated check-in, Day 21):** Six-calendar-day gap since the last check-in (2026-08-31) — the longest yet. No commits or new info from Austin's side in that window. This environment still can't fetch reddit.com in any form (confirmed again, three-plus weeks running) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. Nothing urgent found today: CharGen shipped a minor UI refresh, and an early-stage solo-dev hobby project (WorldFoundry) surfaced on EN World's forums — logged for awareness only, see `DAILY_LOG.md`'s 2026-09-06 entry and `COMPETITOR_WATCH.md`. No open items below have changed in substance since Day 13; they're carried forward, not re-derived.
+
+---
+
+## What to do today (2026-09-06)
+
+1. **Still the single highest-leverage thing on your side: reply to comments on the live r/rpg_generators post**, if you haven't already — carried forward unchanged since Day 6 (2026-08-22), over two weeks ago now, no confirmation either way yet.
+2. **#8 (AI-directory submissions) is still the quickest guaranteed-real win** — ~10 minutes, free, no public post required, doesn't touch Reddit at all. Re-confirmed again today (direct `site:theresanaiforthat.com chronicled` search) that Chronicled is genuinely not listed there.
+3. **#9 (EN World's "Promotions" sub-forum)** is worth trying if the Reddit posting blocker itself is what's been stalling this for three weeks — today's session found a live, current example (an indie dev's WorldFoundry project) of EN World's forums actually being used for exactly this kind of post, right now, reinforcing that this channel is real and low-friction, not just a theory. `drafts/reddit_post_worldbuilding.md`'s copy adapts directly; ~15 min.
+4. **Optional, low-effort:** paste the live post's actual score/comment count (or a screenshot) into `DAILY_LOG.md` next time you're already looking at it — not urgent, just makes future check-ins substantive instead of a fetch-fails-again loop.
+5. **Was r/worldbuilding ever posted?** Still no URL logged for it. If it's still open, `drafts/reddit_post_worldbuilding.md` is ready — if you'd rather treat that plan as superseded by what you already posted, that's a fine call too, just say so so this stops resurfacing.
+6. **#4 (DMAcademy self-promo rules)** — checkbox says done, but confirm you actually have the format (megathread vs. flair vs. banned) before using `drafts/reddit_post_dmacademy.md`. Still can't independently confirm the sub's current mechanism from this environment.
+7. **Product-side ideas (not outreach tasks, not actioned here):** unchanged from prior sessions — (a) a visual "entity relationship graph" view, now a 3-for-3 pattern across CharGen/Reality Forge/Grimoire; (b) crop-to-VTT-token utility (browser-side, no AI cost, CharGen already has this as "Token Maker"); (c) a "keep this portrait's likeness" option on regenerate. All flagged for the dev thread, not this one.
+
 **Status as of 2026-09-05 (automated check-in, Day 14):** First check-in after a five-calendar-day gap (last one was Day 13, 2026-08-31) — the longest gap yet. Git history confirms zero commits anywhere in the repo, marketing or product, in that window. This environment still can't fetch reddit.com in any form (confirmed again, fourteenth check-in) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged, carried forward rather than re-derived — every single one has now been open for two-plus weeks with zero movement. New today: no new direct competitor; a minor curiosity that three unrelated TTRPG products now share some form of the name "Grimoire"; a new AI-tool-roundup site (Tabletop Arc, tabletoparc.com) found but not yet verified as submission-based. See `DAILY_LOG.md`'s 2026-09-05 entry.
 
 ---
