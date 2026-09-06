@@ -354,6 +354,51 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--neon-cyan); out
   display: block;
 }
 
+/* Hover-revealed "Regenerate" control wrapped around an ALREADY-rendered
+   portrait (see archive/js/portraitActions.js's initExistingPortraitControls) --
+   distinct from .portrait-slot above, which only ever shows when a
+   portrait is MISSING. */
+.portrait-wrap { position: relative; margin: 0 0 24px; }
+.portrait-wrap .portrait-img { margin: 0; }
+.portrait-regen-overlay {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.portrait-wrap:hover .portrait-regen-overlay,
+.portrait-wrap:focus-within .portrait-regen-overlay,
+.portrait-regen-overlay.is-busy { opacity: 1; }
+.portrait-regen-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.portrait-regen-btn {
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  padding: 6px 12px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.portrait-regen-btn:hover { border-color: var(--fac-color, var(--neon-primary)); }
+.portrait-regen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 table.stat-table, table.derived-table {
   width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 0.85rem;
   margin-bottom: 18px;

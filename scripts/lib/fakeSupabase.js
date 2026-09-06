@@ -247,6 +247,15 @@ const fakeSupabase = {
   storage: {
     from(bucket) {
       return {
+        // Added for scripts/testKeepLikenessPortrait.js, the first test to
+        // exercise lib/fileWriter.js's saveImage() under this fake --
+        // upload() itself is a pure side effect in the real client (the
+        // object becomes fetchable at getPublicUrl's URL afterward), so a
+        // no-op success is faithful here; nothing currently reads the
+        // uploaded bytes back out of this fake storage.
+        upload(path) {
+          return Promise.resolve({ data: { path }, error: null });
+        },
         getPublicUrl(path) {
           return { data: { publicUrl: `https://fake-storage.test/${bucket}/${path}` } };
         },
