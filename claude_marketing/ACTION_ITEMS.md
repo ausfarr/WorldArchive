@@ -4,6 +4,20 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-07 (automated check-in, Day 22):** Big finding this session, not a new task exactly: six daily check-ins from 2026-09-01 through 09-06 ran on branches that never got merged or PR'd, so a week of real research (and one real site fix, Grimoire on `marketing/compare.html`) sat invisible until this session went and found it. Nothing was lost — recovered and folded into today's `DAILY_LOG.md`/`GROWTH_STRATEGY.md`/`COMPETITOR_WATCH.md` entries — but see new **Action Item #10** below, since this is a pipeline problem, not a one-off. Competitively: Craft's free tier is now confirmed real, Summon Worlds resolved as collaborative/multiplayer (not a strict rival), no new direct competitor. Also worth a direct look: three separate product PRs (#79 relationship graph, #78 VTT token export, #82 portrait keep-likeness) already answer three items this list has been flagging for weeks — they're just sitting unmerged. Still no commits, comment-reply confirmation, or post URL from Austin's side. Reddit fetch still permanently blocked, unchanged. See `DAILY_LOG.md`'s 2026-09-07 entry for full detail.
+
+---
+
+## What to do today (2026-09-07)
+
+1. **New, top priority: sort out why marketing check-in branches aren't getting merged/PR'd.** Six branches (2026-09-01 through 09-06) sat orphaned for a week — see Action Item #10 below. This is a bigger deal than any single day's competitive finding: it means this whole file, `DAILY_LOG.md`, and `GROWTH_STRATEGY.md` can silently go stale on `main` even while sessions keep running and doing real work.
+2. **New, concrete and fast: merge PRs #79, #78, and #82** (relationship graph, VTT token download, portrait keep-likeness) if you've had a chance to look at them — these are already-built answers to the top three items this list has flagged repeatedly since late August, not new asks.
+3. **Reply to comments on the live r/rpg_generators post** if you haven't already — still the single highest-leverage personal-time item, carried forward unchanged for weeks now, no confirmation either way yet.
+4. **#8 (AI-directory submissions)** — still the quickest guaranteed-real win, ~10 minutes, free, no dependency on Reddit or anything else stalled. Confirmed again this session Chronicled is genuinely not listed on theresanaiforthat.com.
+5. **New, same-day-doable: try EN World's "Promotions" sub-forum** (enworld.org) as a lower-friction alternative to the still-unposted r/worldbuilding draft — this session found a live example (a solo dev's "WorldFoundry" post) confirming the forum is real and active for exactly this kind of tool. Disclose AI usage with their required thread prefix and don't lead with "AI" — that community skews AI-skeptical, per the 2026-09-03 finding.
+6. **Was r/worldbuilding ever posted?** Still no URL logged anywhere. `drafts/reddit_post_worldbuilding.md` is ready if not.
+7. **#4 (DMAcademy self-promo rules)** — still needs your own 5-minute look at the sub's actual current rules before `drafts/reddit_post_dmacademy.md` goes out; only third-party guides have been available to this session.
+
 **Status as of 2026-09-06 (automated check-in, Day 21):** Six-calendar-day gap since the last check-in (2026-08-31) — the longest yet. No commits or new info from Austin's side in that window. This environment still can't fetch reddit.com in any form (confirmed again, three-plus weeks running) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. Nothing urgent found today: CharGen shipped a minor UI refresh, and an early-stage solo-dev hobby project (WorldFoundry) surfaced on EN World's forums — logged for awareness only, see `DAILY_LOG.md`'s 2026-09-06 entry and `COMPETITOR_WATCH.md`. No open items below have changed in substance since Day 13; they're carried forward, not re-derived.
 
 ---
