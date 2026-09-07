@@ -13,13 +13,19 @@ const router = express.Router();
 // regardless of category, same convention as world_bible_sections.json's
 // core:true sections). Mirrors loreParsing.js's TOPIC_CATEGORY_MAP but
 // hardcoded here since we control the generated schema directly.
+//
+// "locations" was missing from every non-core entry's categoryTags below
+// until this list was audited against loreParsing.js's own (also-fixed)
+// drift -- see that file's ALL_CATEGORIES comment for the full bug this
+// caused: a Location generation never got grounded in Resources/Culture/
+// Technology/History lore since nothing ever tagged a section "locations".
 const GENERATED_SECTION_META = {
-  geography: { title: "Geography", categoryTags: ["factions", "npcs", "enemies", "classes", "items", "logs", "survivors"], core: true },
+  geography: { title: "Geography", categoryTags: ["factions", "npcs", "enemies", "classes", "items", "logs", "survivors", "locations"], core: true },
   peoples: { title: "Peoples", categoryTags: ["npcs", "survivors", "enemies"], core: true },
-  resources: { title: "Resources", categoryTags: ["factions", "items"], core: false },
-  culture: { title: "Culture", categoryTags: ["npcs", "survivors", "factions"], core: false },
-  technologyOrSupernatural: { title: "Technology / Supernatural System", categoryTags: ["items", "classes", "enemies"], core: false },
-  history: { title: "History", categoryTags: ["factions", "npcs"], core: false }
+  resources: { title: "Resources", categoryTags: ["factions", "items", "locations"], core: false },
+  culture: { title: "Culture", categoryTags: ["npcs", "survivors", "factions", "locations"], core: false },
+  technologyOrSupernatural: { title: "Technology / Supernatural System", categoryTags: ["items", "classes", "enemies", "locations"], core: false },
+  history: { title: "History", categoryTags: ["factions", "npcs", "locations"], core: false }
 };
 
 router.get("/wizard/lore", async (req, res) => {
@@ -111,4 +117,10 @@ router.post("/wizard/save-lore-sections", async (req, res) => {
   }
 });
 
+// Exported alongside the router (harmless -- Express routers are plain
+// functions, so attaching a property doesn't change how server.js mounts
+// this file) purely so scripts/testLocationLoreGrounding.js can assert
+// against the real object instead of duplicating it -- this constant is
+// exactly the kind of drift-prone data the regression test exists to catch.
 module.exports = router;
+module.exports.GENERATED_SECTION_META = GENERATED_SECTION_META;

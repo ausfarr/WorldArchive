@@ -21,6 +21,32 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: Location generation never grounded on History, Faction/Politics,
+  Culture, Resources, or Technology/Magic lore -- only ever saw the
+  handful of "core" sections.** Same category-list-drift bug class as the
+  PDF export, World Status Panel, and Spell roster-cap fixes elsewhere in
+  this file: `routes/generateLocation.js` grounds itself via
+  `getLoreContext(worldId, { category: "locations" })`, but neither of
+  the two hand-maintained lists that decide which non-core lore sections
+  get tagged `category: "locations"` (`lib/loreParsing.js`'s
+  `ALL_CATEGORIES`/`TOPIC_CATEGORY_MAP`, used when a DM imports an
+  existing lore doc; `routes/wizardLore.js`'s `GENERATED_SECTION_META`,
+  used when the wizard generates lore fresh) had ever been updated to
+  include it. `lib/loreContext.js#getRelevantLoreSections` only includes
+  a non-core section when its `category_tags` includes the requested
+  category, so a Location entry could only ever ground on `core:true`
+  sections (Overview/Geography/Peoples/Glossary) -- a lore doc's
+  History/Founding, Faction/Politics, Culture, Resources, and
+  Technology/Magic sections silently never reached a Location generation
+  prompt, for every world, on both the generate-fresh and import-a-doc
+  paths. Fixed by adding `"locations"` to both lists' relevant entries.
+  Full detail in `session_addendum_location_lore_grounding_shipped.md`.
+  New `scripts/testLocationLoreGrounding.js` -- verified it fails against
+  the pre-fix code (both the direct category-tag assertions and a hard
+  crash importing the now-exported `GENERATED_SECTION_META`, which didn't
+  exist as an export pre-fix) and passes against the fix; full existing
+  offline suite (every `scripts/test*.js` except `testTenantIsolation.js`)
+  still passes unchanged. `npm start` boots cleanly.
 - **Fix: PDF export never learned about two categories added after it was
   written -- Session Packets couldn't be exported at all, and Spells was
   silently dropped from whole-world export.** `routes/export.js` keeps its
