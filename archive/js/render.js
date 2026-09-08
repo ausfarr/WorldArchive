@@ -2848,6 +2848,7 @@ function renderDossier(entry, factionLookup) {
 
   wireDeleteEntryButton(entry);
   wireEntryExportButton(entry);
+  wireVttTokenTool(entry);
   renderLocationBattleMap(entry);
 }
 

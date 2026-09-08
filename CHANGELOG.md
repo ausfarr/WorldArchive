@@ -21,6 +21,21 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **New: "Make VTT Token" — crop any generated portrait into a
+  circle/rounded-square/hex/shield token, entirely client-side, zero AI
+  cost.** `archive/js/vttToken.js`, wired into every dossier page next to
+  Download PDF. Ships in response to a competitive-watch finding tracked
+  in `claude_marketing/ACTION_ITEMS.md`/`COMPETITOR_WATCH.md` since
+  2026-08-27 and repeated almost every check-in since: CharGen's free,
+  no-signup "Token Maker" does the same crop, and Chronicled already
+  generates a portrait for every NPC/Enemy/Class/Item/Survivor/Location
+  but had no way to turn one into a droppable VTT token. Pure `<canvas>`
+  work — no new route, no Gemini spend, reuses art the world already
+  paid generation points for. `v1.1.2`; see
+  `session_addendum_vtt_token_maker_shipped.md` for the implementation
+  notes (cover-fit cropping, the tainted-canvas fallback, why border
+  color defaults to a neutral brass tone instead of the faction accent
+  color).
 - **Fix: PDF export never learned about two categories added after it was
   written -- Session Packets couldn't be exported at all, and Spells was
   silently dropped from whole-world export.** `routes/export.js` keeps its

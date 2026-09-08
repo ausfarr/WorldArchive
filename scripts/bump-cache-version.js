@@ -35,7 +35,8 @@ const CACHE_BUSTED_SCRIPTS = [
   "wizardSession",
   "themeBootstrap",
   "rulesetManualForms",
-  "siteHeader"
+  "siteHeader",
+  "vttToken"
 ];
 
 const fs = require("fs");
