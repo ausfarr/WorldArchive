@@ -4,6 +4,20 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-08 (automated check-in, Day 14):** First check-in after an eight-calendar-day gap (last one was Day 13, 2026-08-31) — zero commits anywhere in the repo in that window, marketing or product side. This environment still can't fetch reddit.com in any form (confirmed again) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. No new competitor or opportunity found this session — the open items below are unchanged, carried forward rather than re-derived. See `DAILY_LOG.md`'s 2026-09-08 entry.
+
+---
+
+## What to do today (2026-09-08)
+
+1. **Reply to comments on the live r/rpg_generators post** if you haven't already (#3 below) — still the single highest-leverage personal-time item, unconfirmed either way since Day 6.
+2. **Optional, low-effort:** paste the post's actual score/comment count (or a screenshot) into `DAILY_LOG.md` next time you're already looking at it.
+3. **Was r/worldbuilding ever posted?** Still no URL logged for it. `drafts/reddit_post_worldbuilding.md` is ready if it's still open — or say the word if that plan's superseded so it stops resurfacing.
+4. **#8 (AI-directory submissions)** — still the quickest guaranteed-real win, ~10 minutes, free, no public post required. Confirmed again Chronicled is genuinely not listed on theresanaiforthat.com yet.
+5. **#9 (EN World Promotions forum)** — still untried, no comment-history gate, same-day-doable. `drafts/reddit_post_worldbuilding.md`'s copy adapts directly.
+6. **#4 (DMAcademy self-promo rules)** — checkbox says done, but confirm the actual current format (megathread vs. flair vs. ban) before using `drafts/reddit_post_dmacademy.md` — still only third-party guides, never the sub's own rule page, across every session that's checked.
+7. **Product-side ideas (not outreach tasks, not actioned here):** (a) a visual "entity relationship graph" view — a 3-for-3 pattern across CharGen/Reality Forge/Grimoire, the highest-priority idea on this list, and Chronicled already has the underlying relationship data; (b) a browser-side crop-to-VTT-token tool (circle/hex/shield) using portraits Chronicled already generates, zero new AI cost; (c) a "keep this portrait's likeness on regenerate" option (bigger lift — would feed the existing image back into the Gemini imagegen call as a reference). All three flagged for the dev thread, not this one.
+
 **Status as of 2026-09-07 (automated check-in, Day 22):** Big finding this session, not a new task exactly: six daily check-ins from 2026-09-01 through 09-06 ran on branches that never got merged or PR'd, so a week of real research (and one real site fix, Grimoire on `marketing/compare.html`) sat invisible until this session went and found it. Nothing was lost — recovered and folded into today's `DAILY_LOG.md`/`GROWTH_STRATEGY.md`/`COMPETITOR_WATCH.md` entries — but see new **Action Item #10** below, since this is a pipeline problem, not a one-off. Competitively: Craft's free tier is now confirmed real, Summon Worlds resolved as collaborative/multiplayer (not a strict rival), no new direct competitor. Also worth a direct look: three separate product PRs (#79 relationship graph, #78 VTT token export, #82 portrait keep-likeness) already answer three items this list has been flagging for weeks — they're just sitting unmerged. Still no commits, comment-reply confirmation, or post URL from Austin's side. Reddit fetch still permanently blocked, unchanged. See `DAILY_LOG.md`'s 2026-09-07 entry for full detail.
 
 ---
