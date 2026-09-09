@@ -21,6 +21,27 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: `worldConfigRepo.js#saveDraftStep()` had the same unguarded
+  check-then-act race already fixed for `patchEntryMeta()`/entry-linker
+  rebake and the Campaign Arc/Quest cleanup helpers.** `routes/wizard.js`'s
+  `POST /wizard/save-draft` autosaves on every field blur/change (not
+  debounced or serialized client-side) -- tabbing through several fields on
+  one wizard step fires several `saveDraftStep()` calls back to back.
+  Each one read `world_config.draft_json`, shallow-merged its own field
+  into a JS copy, and wrote the whole column back with a plain `.update()`,
+  no lock -- two calls landing close together could both read the same
+  pre-write `draft_json` and each write back a merge that silently drops
+  the other's field (and since every step's fields live in the same
+  `draft_json` column, this could clobber across steps too, not just
+  within one). Now wrapped in `lib/asyncLock.js`'s `withLock()`, keyed
+  `wizard-draft:${worldId}`, same pattern as the other three fixes. New
+  `scripts/testWizardDraftSaveRace.js` -- verified it fails against the
+  pre-fix code (two of three checks) and passes against the fix; full
+  existing suite (`testPipeline.js`, `testEnemyPipeline.js`,
+  `testEntryDriftSuggestions.js`, `testCampaignStructureRaces.js`,
+  `testSessionAssembly.js`, `testEntryMetaPatchRace.js`, `testEntryLinker.js`,
+  `testPdfExportCategoryCoverage.js`, `testPdfExportLockedFilter.js`) still
+  passes unchanged.
 - **Fix: PDF export never learned about two categories added after it was
   written -- Session Packets couldn't be exported at all, and Spells was
   silently dropped from whole-world export.** `routes/export.js` keeps its
