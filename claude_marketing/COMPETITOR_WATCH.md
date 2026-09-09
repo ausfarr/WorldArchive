@@ -301,6 +301,24 @@ World Anvil, Kanka, and LegendKeeper: still no native AI generation as of this c
 **Naming curiosity, not a competitor:** search surfaced **grimoirevtt.com** ("Grimoire" — a system-agnostic virtual tabletop, currently invite-only beta) — a completely different product from the already-tracked **Grimoire (ttrpg.bot)** campaign-database/knowledge-graph tool (2026-08-30 entry). Same name, unrelated teams/products, both TTRPG-adjacent. Worth Austin's awareness only in case "Grimoire" comes up in a comment thread and it's unclear which one is meant — not a new entry to track independently, and not a competitor to Chronicled either way (grimoirevtt.com is a VTT, not a content generator).
 
 theresanaiforthat.com still has no Chronicled listing (checked again). No change to channel priority or messaging.
+
+## 🆕 2026-09-09 update — Craft and Summon Worlds resolved (recovered from a week and a half of orphaned check-in branches, see `DAILY_LOG.md`); no new direct competitor since Grimoire (2026-08-30)
+
+**Craft's free-tier status is resolved: real.** Open beta since 2026-07-31, ten free build/play slots per side, paid "energy" for extra play with partial rollover — settles the contradiction flagged 2026-08-28/29, independently re-confirmed again this session.
+
+**Summon Worlds is resolved as adjacent, not a direct competitor.** Its actual current positioning centers on real-time multiplayer/collaborative worldbuilding — a different shape from Chronicled's private single-world archive, not the closer head-to-head the 2026-08-30 "probable direct competitor" flag suggested. It did ship a Character Relationships view (friendship/rivalry/family/alliance tracking) — the fourth competitor, after CharGen/Reality Forge/Grimoire, with some form of visible entity-relationship graph; that 4-for-4 pattern is now well past "someday feature" territory for Chronicled's own product side.
+
+**Grimoire is now represented on `marketing/compare.html`** (landed by an earlier, since-recovered check-in; re-verified this session — pricing/features unchanged).
+
+**Two adjacent, non-threatening names:** WorldFoundry (a solo dev's pre-commercial "AI-Assisted World Curation Wiki," posted to EN World's AI/LLMs sub-forum — confirms that forum is a real, active venue for exactly this kind of tool) and Saga20 (saga20.com, AI session-recap platform, same bucket as Archivist AI).
+
+**CharGen:** a September 4 UI refresh (new character landing page, redesigned prompt bar, character-sheet import) — polish, not new capability. Its Gold rollover cap drops from 6 months to 3, effective December 1 — monetization tightening, not a messaging concern.
+
+**World Anvil:** a Dictionary feature (Language article template) graduated out of Alchemist testing to all users — routine, no pricing or AI change.
+
+No new direct competitor found. theresanaiforthat.com still doesn't list Chronicled — Action Item #8 remains undone, now over three weeks.
+
+**Watch for (consolidated — this replaces the three stale duplicate "Watch for" lines that had accumulated above):** a real (non-blocked) look at fables.gg's actual grounding behavior; whether Storyflow's free tier is actually live; whether any tracked competitor notices Chronicled once outreach posts finally go out; whether Chronicled adds native VTT (Foundry-style) export to close the gap CharGen opened 2026-08-25; whether Craft's custom-file-type worldbuilding matures into a real alternative to Chronicled's stat/skill system; and whether the now-4-for-4 visual-relationship-graph pattern (CharGen/Reality Forge/Grimoire/Summon Worlds) gets picked up on Chronicled's product side — PR #79 already built one, still unmerged as of this check. Check this section first on every re-check.
 ## Watch for (current, 2026-09-03)
 
 A real (non-blocked) look at fables.gg's actual grounding behavior; whether Storyflow's free tier is actually live; whether CharGen or Friends & Fables notice Chronicled once outreach posts go out; whether Chronicled ever adds its own native VTT (e.g. Foundry) export to close the gap CharGen opened 2026-08-25; whether Craft's custom-file-type worldbuilding matures into a real alternative to Chronicled's world-specific stat/skill system; a full pricing verification pass on Summon Worlds now that its collaborative-multiplayer positioning is confirmed; whether Grimoire's knowledge-graph view (a 3-for-3 pattern with CharGen/Reality Forge) finally makes a visual relationship-graph feature worth prioritizing product-side; and whether Craft's ToS "Free Tier Access" language ever gets confirmed against an actual pricing page. Check this section first on every re-check — older dated "Watch for" lines below are historical, kept for the record, not the current list.

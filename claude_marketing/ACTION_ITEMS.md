@@ -4,6 +4,20 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-09 (automated check-in):** The headline is a pipeline problem, not a competitor — see new **Action Item #10** at the top of the list below. Every `claude/eager-mendel-*` check-in branch since 2026-08-31 (nine of them) has done real work and never gotten a PR merged, including the 2026-09-07 session that already flagged this exact gap; the fix didn't hold. Nothing lost (recovered off each orphaned branch), but `main` was stuck at the 08-31 state until this session. Separately: nine product PRs (#77–#85) are open and unreviewed, three of them (#78/#84, #79, #82) shipped answers to standing product ideas here — worth ten minutes deciding whether to merge. Competitively: Craft's free tier is confirmed real, Summon Worlds resolved as adjacent (not direct), no new direct competitor since Grimoire (2026-08-30). Still no commits, comment-reply confirmation, or post URL from Austin's side; Reddit fetch still permanently blocked. See `DAILY_LOG.md`'s 2026-09-09 entry for full detail.
+
+---
+
+## What to do today (2026-09-09)
+
+1. **New, top priority, carried forward from 2026-09-07 because it didn't get fixed: figure out why `claude/eager-mendel-*` check-in branches never get a PR opened.** Nine straight days now (09-01 through 09-09) of real check-in work stranding itself on an unmerged branch — this is a scheduling/pipeline issue outside this session's own control, not something another daily flag can resolve. If you own the scheduled-task config for this thread, that's where to look; if not, worth a message to whoever does.
+2. **New, concrete and fast: review and merge PRs #78/#84 (VTT token export — check whether #84 duplicates #78 before merging both), #79 (visual relationship graph), and #82 (portrait keep-likeness on regenerate).** All three are finished answers to product ideas this list has flagged since late August, sitting open for up to a week.
+3. **Reply to comments on the live r/rpg_generators post** if you haven't already — still the single highest-leverage personal-time item, unconfirmed either way for weeks now.
+4. **#8 (AI-directory submissions)** — still the quickest guaranteed-real win, ~10 minutes, free. Confirmed again this session Chronicled is genuinely not listed on theresanaiforthat.com.
+5. **#9 (EN World Promotions forum)** — still untried, no comment-history gate, same-day-doable; this session found a live example (WorldFoundry) confirming the forum is real and active for exactly this kind of post.
+6. **Was r/worldbuilding ever posted?** Still no URL logged for it. `drafts/reddit_post_worldbuilding.md` is ready if it's still open.
+7. **#4 (DMAcademy self-promo rules)** — checkbox says done, but still needs your own 5-minute look at the sub's actual current rules before `drafts/reddit_post_dmacademy.md` goes out; only third-party guides available so far.
+
 **Status as of 2026-09-08 (automated check-in, Day 14):** First check-in after an eight-calendar-day gap (last one was Day 13, 2026-08-31) — zero commits anywhere in the repo in that window, marketing or product side. This environment still can't fetch reddit.com in any form (confirmed again) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. No new competitor or opportunity found this session — the open items below are unchanged, carried forward rather than re-derived. See `DAILY_LOG.md`'s 2026-09-08 entry.
 
 ---
