@@ -4,6 +4,18 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-10 (automated check-in):** First check-in after a **ten-calendar-day gap** (last one was 2026-08-31) — no commits anywhere in the repo, on any branch, in that window; the longest gap this check-in has hit. This environment still can't fetch reddit.com in any form (confirmed again) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. New today: Craft's free-tier ambiguity is resolved (it's a real free tier, open beta); **LoreKeeper.ai** is a new direct competitor at $4.99/mo with unlimited free player-sharing; Grimoire's free tier is set to tighten October 5; and a well-evidenced product gap surfaced — five competitors now offer some form of player-facing sharing, Chronicled offers none. See `DAILY_LOG.md`'s 2026-09-10 entry.
+
+---
+
+## What to do today (2026-09-10)
+
+1. **Nothing urgent — this is mostly awareness, not action.** Ten days of full silence (repo-wide, not just this thread) is the main operational fact from this session; no specific fix needed from you, just worth knowing the gap happened.
+2. **New competitive context, 5 min read:** `DAILY_LOG.md`'s 2026-09-10 entry — Craft's free-tier question is resolved, LoreKeeper.ai is a new $4.99/mo competitor, and Grimoire's free tier shrinks October 5. Nothing here needs a copy change today.
+3. **New product-side idea worth more weight than the graph-view one:** a "share my Archive with my players" feature — five competitors (World Anvil, LegendKeeper, LoreKeeper.ai, Grimoire, Summon Worlds) now have some version of this; Chronicled has none. Bigger lift than the graph view (touches the tenant/auth model), but flag it for the dev thread's backlog next time there's bandwidth for a scoping conversation.
+4. **Still the quickest guaranteed-real win — #8, AI-directory submissions.** Confirmed again this session that Chronicled is genuinely not listed on theresanaiforthat.com. ~10 min, free, doesn't depend on Reddit.
+5. **Still open, unchanged:** reply to comments on the live r/rpg_generators post if you haven't (#3); confirm r/DMAcademy's actual self-promo mechanism before using that draft (#4 checkbox says done but the format still isn't independently confirmed); post to EN World's Promotions forum (#9) as a same-day-doable alternative to the stalled Reddit posts; was r/worldbuilding ever actually posted (still no URL logged)?
+
 **Status as of 2026-09-09 (automated check-in):** The headline is a pipeline problem, not a competitor — see new **Action Item #10** at the top of the list below. Every `claude/eager-mendel-*` check-in branch since 2026-08-31 (nine of them) has done real work and never gotten a PR merged, including the 2026-09-07 session that already flagged this exact gap; the fix didn't hold. Nothing lost (recovered off each orphaned branch), but `main` was stuck at the 08-31 state until this session. Separately: nine product PRs (#77–#85) are open and unreviewed, three of them (#78/#84, #79, #82) shipped answers to standing product ideas here — worth ten minutes deciding whether to merge. Competitively: Craft's free tier is confirmed real, Summon Worlds resolved as adjacent (not direct), no new direct competitor since Grimoire (2026-08-30). Still no commits, comment-reply confirmation, or post URL from Austin's side; Reddit fetch still permanently blocked. See `DAILY_LOG.md`'s 2026-09-09 entry for full detail.
 
 ---
