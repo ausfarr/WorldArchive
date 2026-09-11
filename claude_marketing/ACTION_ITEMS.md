@@ -4,6 +4,21 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-11 (automated check-in, Day 14):** Eleven-calendar-day gap since the last check-in (Day 13, 2026-08-31) — the longest gap yet — no commits or new info from Austin's side since `0e4afc2`. This environment still can't fetch reddit.com in any form (confirmed again, two independent layers this session: reddit.com directly, and a third-party read-proxy tried as a new workaround, also blocked) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. New today: **Craft's free-tier status — an open question in this log since 2026-08-28 — is now resolved: it's real**, as of Craft's July 31 open-beta launch (see `GROWTH_STRATEGY.md` §2h / `COMPETITOR_WATCH.md`'s 2026-09-11 entry); a new adjacent tool, **Tabletop Arc** (session-memory + free generators), was also found. See `DAILY_LOG.md`'s 2026-09-11 entry for full detail.
+
+---
+
+## What to do today (2026-09-11)
+
+1. **New, highest-value 2-minute read: skim `GROWTH_STRATEGY.md` §2h.** Craft's free tier is now confirmed real — it's the one competitor move that touches your world-specific stat/skill-system differentiator, and it just went from "beta-gated, easy to ignore" to "fully public." No copy needs to change today (nothing's posted yet), just useful awareness.
+2. **Still the single highest-leverage item if it hasn't happened yet: reply to comments on the live r/rpg_generators post** (#3 below) — carried forward unchanged since Day 6, no confirmation either way.
+3. **#8 (AI-directory submissions)** — still the quickest guaranteed-real win, ~10 minutes, free, doesn't depend on Reddit at all. Confirmed again this session Chronicled is genuinely not listed on theresanaiforthat.com — now over three weeks outstanding.
+4. **Optional, low-effort:** paste the live post's actual score/comment count (or a screenshot) into `DAILY_LOG.md` next time you're already looking at it.
+5. **Was r/worldbuilding ever posted?** Still no URL logged. `drafts/reddit_post_worldbuilding.md` is ready if it's still open — or just say the plan's superseded so this stops resurfacing.
+6. **#9 (EN World Promotions forum)** — still a same-day-doable, zero-gate alternative to the stalled Reddit drafts, unchanged since 2026-08-30.
+7. **#4 (DMAcademy self-promo rules)** — checkbox says done, but confirm you actually have the current format before using `drafts/reddit_post_dmacademy.md`.
+8. **Product-side ideas (not outreach tasks, not actioned here):** unchanged from prior sessions — (a) a visual "entity relationship graph" view (now 3-for-3 across CharGen/Reality Forge/Grimoire); (b) crop-to-VTT-token / portrait-likeness-lock (CharGen's Face Swap/Inpainting/Character Reference Workflow). Both flagged for the dev thread, not this one.
+
 **Status as of 2026-09-10 (automated check-in):** First check-in after a **ten-calendar-day gap** (last one was 2026-08-31) — no commits anywhere in the repo, on any branch, in that window; the longest gap this check-in has hit. This environment still can't fetch reddit.com in any form (confirmed again) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. New today: Craft's free-tier ambiguity is resolved (it's a real free tier, open beta); **LoreKeeper.ai** is a new direct competitor at $4.99/mo with unlimited free player-sharing; Grimoire's free tier is set to tighten October 5; and a well-evidenced product gap surfaced — five competitors now offer some form of player-facing sharing, Chronicled offers none. See `DAILY_LOG.md`'s 2026-09-10 entry.
 
 ---
