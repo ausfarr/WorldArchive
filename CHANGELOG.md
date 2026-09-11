@@ -19,6 +19,31 @@ entry from here forward gets both a real date and a version at write time.
 
 ---
 
+## v1.2.0 — 09/11/2026 — VTT Token Maker
+
+- **New: "Make VTT Token" button on every character-bearing dossier page
+  (NPCs, Bestiary, Survivors, Classes)** — crops a generated/uploaded
+  portrait into a circle/hex/shield token PNG entirely client-side (canvas
+  crop/pan/zoom, optional accent-color border ring, PNG download), no
+  server round-trip and no AI spend. This closes a specific, repeatedly-
+  flagged-but-unactioned gap: `claude_marketing/ACTION_ITEMS.md` has
+  carried CharGen's free browser-side "Token Maker" as a low-effort
+  product idea across multiple daily check-ins since 2026-08-29 (item 7b/8b),
+  on the observation that Chronicled already generates the raw portrait
+  art this needs — the gap was presentation only. New
+  `archive/js/tokenMaker.js`, wired into `dossier.html` after
+  `portraitActions.js`; scoped by each portrait's existing
+  `data-label="Character portrait"` attribute (set by
+  `lib/entryTemplate.js`/`enemyTemplate.js`/`survivorTemplate.js`/
+  `classTemplate.js`) rather than a hardcoded category list, so item
+  renders and location art — which don't read as VTT tokens — are
+  correctly excluded, and any future character-bearing category picks
+  this up automatically. Cache-busted via
+  `node scripts/bump-cache-version.js v1.2.0` (also added `tokenMaker` to
+  that script's tracked-file list, same class of gap the script's own
+  header comment already warns about for `worldArtActions.js`/
+  `campaignArc.js`/`campaignModule.js`).
+
 ## Unreleased
 
 - **Fix: PDF export never learned about two categories added after it was
