@@ -21,6 +21,15 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **New: "Download as VTT Token" button on any dossier page with a
+  generated/uploaded portrait.** Client-side only (canvas crop + a border
+  ring in the entry's own faction accent color, no server route, no AI
+  spend) -- crops the portrait to a circle and downloads it as a PNG
+  ready to drop into any VTT. Closes a small, repeatedly-flagged
+  competitive gap (CharGen's free "Token Maker") at near-zero cost since
+  Chronicled already generates the raw portraits. See
+  `session_addendum_vtt_token_export_shipped.md`.
+
 - **Fix: PDF export never learned about two categories added after it was
   written -- Session Packets couldn't be exported at all, and Spells was
   silently dropped from whole-world export.** `routes/export.js` keeps its

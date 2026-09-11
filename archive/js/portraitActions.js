@@ -121,4 +121,138 @@ function replacePortraitSlotWithImage(entryId, category, imageUrl) {
   img.dataset.entryId = entryId;
   img.setAttribute("onerror", "handlePortraitError(this)");
   slot.replaceWith(img);
+  wirePortraitTokenButton(entryId);
+}
+
+// ---------- VTT token export ----------
+//
+// CharGen's "Token Maker" (crop a portrait to a circle/hex/shield VTT
+// token, browser-side, no signup) kept coming up in competitor checks
+// as a small, low-cost gap: Chronicled already generates the raw
+// portrait for 6 categories, it just never turned that into a
+// drop-in-a-VTT token. This is the smallest shippable slice of that --
+// pure client-side canvas work, no server route, no AI spend, so it
+// carries none of the generation-cap/billing complexity a "keep this
+// face on regenerate" feature (the harder half of that same competitor
+// gap) would.
+//
+// Called once per dossier render (see render.js#renderDossier) and again
+// after a Generate/Upload swaps a fresh <img> in above. Waits for the
+// image to actually finish loading before adding the button -- if it's
+// a broken/404 portrait, the existing onerror handler already replaces
+// the <img> with the pending-generation slot, so there's nothing to
+// wire and no orphan button left pointing at a dead image.
+function wirePortraitTokenButton(entryId) {
+  const img = document.getElementById(`portrait-img-${entryId}`);
+  if (!img) return;
+  const addIfLoaded = () => {
+    if (img.naturalWidth > 0) addTokenDownloadButton(img);
+  };
+  if (img.complete) {
+    addIfLoaded();
+  } else {
+    img.addEventListener("load", addIfLoaded, { once: true });
+  }
+}
+
+function addTokenDownloadButton(img) {
+  // Re-render (e.g. navigating back to the same dossier via history)
+  // can call this twice for the same <img> -- skip if already wired.
+  if (img.nextElementSibling && img.nextElementSibling.classList.contains("portrait-token-btn")) return;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "portrait-token-btn";
+  btn.textContent = "⬇ Download as VTT Token";
+  btn.addEventListener("click", () => downloadPortraitAsToken(img, btn));
+  img.insertAdjacentElement("afterend", btn);
+}
+
+async function downloadPortraitAsToken(img, btn) {
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Rendering token…";
+
+  let sourceObjectUrl = null;
+  let downloadObjectUrl = null;
+  try {
+    // Fetch-to-blob instead of drawing the <img> directly: the portrait
+    // is served from Supabase's public storage bucket (a different
+    // origin), and a canvas fed by a cross-origin <img> without an
+    // explicit crossorigin negotiation gets marked "tainted" -- toBlob()
+    // would throw a SecurityError even though the bucket is public. A
+    // same-origin blob: URL sidesteps that entirely.
+    const res = await fetch(img.src);
+    if (!res.ok) throw new Error("Could not fetch the portrait image.");
+    const sourceBlob = await res.blob();
+    sourceObjectUrl = URL.createObjectURL(sourceBlob);
+    const bitmap = await loadImageElement(sourceObjectUrl);
+
+    const SIZE = 512; // standard-enough resolution for a VTT token
+    const canvas = document.createElement("canvas");
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const ctx = canvas.getContext("2d");
+    const radius = SIZE / 2;
+    const borderWidth = Math.round(SIZE * 0.035);
+
+    // --fac-color is this entry's own faction accent (set on :root by
+    // render.js#renderDossier right before this runs) -- using it for
+    // the ring means a token exported from this world reads as "from
+    // this world" at a glance, same grounding idea the rest of the app
+    // leans on, instead of a generic default border color.
+    const facColor = getComputedStyle(document.documentElement).getPropertyValue("--fac-color").trim() || "#39ff88";
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(radius, radius, radius - borderWidth, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    const scale = Math.max(SIZE / bitmap.width, SIZE / bitmap.height);
+    const drawW = bitmap.width * scale;
+    const drawH = bitmap.height * scale;
+    ctx.drawImage(bitmap, (SIZE - drawW) / 2, (SIZE - drawH) / 2, drawW, drawH);
+    ctx.restore();
+
+    ctx.beginPath();
+    ctx.arc(radius, radius, radius - borderWidth / 2, 0, Math.PI * 2);
+    ctx.lineWidth = borderWidth;
+    ctx.strokeStyle = facColor;
+    ctx.stroke();
+
+    const pngBlob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!pngBlob) throw new Error("Could not render the token image.");
+
+    downloadObjectUrl = URL.createObjectURL(pngBlob);
+    const nameSource = document.getElementById("sheet-title");
+    const slug = slugifyForFilename(nameSource ? stripHtml(nameSource.innerHTML) : "token");
+    const a = document.createElement("a");
+    a.href = downloadObjectUrl;
+    a.download = `${slug}-token.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (err) {
+    console.error("VTT token export failed:", err);
+    alert(`Couldn't create a VTT token: ${err.message}`);
+  } finally {
+    if (sourceObjectUrl) URL.revokeObjectURL(sourceObjectUrl);
+    if (downloadObjectUrl) URL.revokeObjectURL(downloadObjectUrl);
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("Image failed to load."));
+    el.src = src;
+  });
+}
+
+function slugifyForFilename(name) {
+  const slug = (name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug || "token";
 }

@@ -4,6 +4,18 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Product-side update, 2026-09-02 (automated dev check-in):** shipped the
+crop-to-VTT-token piece of item 7(b)/(c) below (CharGen's "Token Maker" /
+portrait-editing toolkit gap) — a "Download as VTT Token" button on any
+dossier page with a generated portrait, pure client-side circle crop,
+no AI cost. See `CHANGELOG.md` Unreleased and
+`session_addendum_vtt_token_export_shipped.md` for detail, PR open
+against `main`. The "keep this face on regenerate" half of that same gap
+(feeding a saved portrait back into the Gemini imagegen call as a
+reference) is still unstarted — that one needs a real product decision
+on cost/cap implications, not a quick slice. Stop re-flagging the
+crop-to-token idea in future check-ins; it's done.
+
 **Status as of 2026-08-31 (automated check-in, Day 13):** First check-in after a three-calendar-day gap (last one was Day 12, 2026-08-28) — no commits or new info from Austin's side since `6c2011f`. This environment still can't fetch reddit.com in any form (confirmed again) — permanent tooling limitation, not a daily to-do. **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. The open items below are unchanged, carried forward rather than re-derived. New today: CharGen shipped portrait-editing tools (face swap, inpaint, background removal, reusable character likeness) — a concrete, low-cost product idea added to item 7 below; a search snippet suggesting Chronicled's site still says "beta" was checked directly against the repo and turned out to be stale/cached, not real — no action needed. See `DAILY_LOG.md`'s 2026-08-31 entry.
 
 ---

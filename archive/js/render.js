@@ -2849,6 +2849,10 @@ function renderDossier(entry, factionLookup) {
   wireDeleteEntryButton(entry);
   wireEntryExportButton(entry);
   renderLocationBattleMap(entry);
+  // portraitActions.js -- wires a "Download VTT Token" button onto this
+  // entry's portrait once it finishes loading (no-op for categories with
+  // no portrait, since #portrait-img-<id> won't exist).
+  if (typeof wirePortraitTokenButton === "function") wirePortraitTokenButton(entry.id);
 }
 
 // Multi-ruleset genericization, NPC "Combatant" upgrade UI (Phase 11
