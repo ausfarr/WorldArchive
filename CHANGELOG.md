@@ -21,6 +21,36 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: `lib/logDateSuggestions.js` and `lib/sessionChronicleSuggestions.js`
+  had the same check-then-act race already fixed elsewhere for Campaign
+  Arc/Quest cleanup, entry metadata patches, and Suggested Updates
+  apply/dismiss.** Both call the shared dedup guard in
+  `lib/pendingEntryUpdatesRepo.js` (`findExistingUpdate` + `createPendingUpdate`,
+  keyed on `source`/entry/category/suggestionType) before writing a new
+  `pending_entry_updates` row -- it's what stops a regenerate-confirm of
+  the same Log/Chronicle from inserting a fresh near-identical suggestion
+  on every confirm, not just the first. But the check and the write were
+  two separate, unguarded steps: two confirms of the same Log/Chronicle
+  landing close together (a double-click on Confirm, or the same dossier
+  open in two tabs) could each run the existence check before either
+  insert landed, both see "no existing row," and both insert -- leaving
+  the DM two near-identical suggestions for the same fact to dismiss/apply
+  separately instead of one. Fixed by adding
+  `pendingEntryUpdatesRepo.js#findOrCreatePendingUpdate()`, which wraps
+  the check and the insert in one `lib/asyncLock.js` lock (same in-process
+  pattern as the other fixes in this family) keyed on the same
+  (world, source, entry, category, suggestionType) tuple the dedup check
+  already uses -- the second caller's own existence check, re-run inside
+  the lock after the first caller's insert has landed, now sees that row
+  and skips the insert instead of racing it. Both call sites now go
+  through it instead of calling `findExistingUpdate`/`createPendingUpdate`
+  directly. New `scripts/testPendingUpdateDedupeRace.js` -- verified it
+  fails against the pre-fix code (2 duplicate rows in both the Log-date
+  and Chronicle-implied-update paths) and passes against the fix;
+  `testEntryDriftSuggestions.js`, `testPipeline.js`, `testEnemyPipeline.js`,
+  `testCampaignStructureRaces.js`, `testEntryMetaPatchRace.js`,
+  `testEntryLinker.js`, and `testSessionAssembly.js` still pass unchanged.
+
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI
