@@ -21,6 +21,21 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Feature: Session Chronicle's implied-update suggestions now cover
+  Locations, not just NPCs/Factions/Survivors/Items.** A Chronicle
+  (`prompts/sessionChroniclePrompt.js`) already had the whole Quest/
+  Campaign roster in context -- Locations included, since it's one of
+  the 5 core Quest-slot categories -- and the downstream regenerate/
+  status_flip machinery (`routes/pendingUpdates.js`,
+  `archive/js/render.js`'s `REGENERATE_ENDPOINTS`) was already fully
+  generic per category. `lib/sessionChronicleSuggestions.js`'s
+  `VALID_CATEGORIES` whitelist was the only thing stopping a session
+  recap that implies "the outpost was destroyed" or "the hideout was
+  discovered" from surfacing a Suggested Update the same way an NPC
+  dying or a faction losing territory already did. Added `locations`
+  to that whitelist and to the prompt's `impliedUpdates` schema/
+  instructions. Purely additive -- no schema, template, or UI change
+  needed since every layer downstream was category-agnostic already.
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI
