@@ -4,6 +4,14 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-15 (automated check-in, Day 16):** One-calendar-day gap since Day 15 (2026-09-14) — still no commits or new info from Austin's side since `0e4afc2` (over two weeks now). Direct reddit.com fetch is still permanently blocked (confirmed again). **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. **Item #0 below got worse, not better: the PR backlog is now 10 open (was 9 yesterday), a new one (`#88`) opened today, and zero merges happened in between.** `#77` is 14 days old. PR #79 (visual relationship graph) and #82 (portrait "keep likeness") are still the two fully-built, unmerged answers to standing product asks. Grimoire's 2026-10-05 free-tier cap is unchanged from yesterday, just re-confirmed. See `DAILY_LOG.md`'s 2026-09-15 entry for full detail.
+
+---
+
+## What to do today (2026-09-15)
+
+0. **Still the highest-priority item on this file, and it got worse overnight: the open PR backlog against `main` grew from 9 to 10 with zero merges.** Ten PRs are open (`#77` through `#88`, dated 2026-09-01 to 2026-09-15 — see the table in `DAILY_LOG.md`'s 2026-09-15 entry for the full list); a brand-new one (`#88`) opened today on top of yesterday's nine, none of which moved. **PR #79** (visual faction relationship graph) and **PR #82** (portrait regenerate + "keep likeness") are still the two fully-built, tested implementations of standing items on this list, both still showing merge conflicts, now 12 and 9 days unmerged. `#77`, the oldest, is 14 days old. This is a bigger, cheaper win than any outreach task below — the work is already done, it just needs review and a merge (with whatever conflict resolution that now takes). Not something this growth/marketing thread can safely do itself — resolving conflicts in product code is a call for whoever's driving the dev workstream — but at this point it's the single most valuable thing sitting untouched, two days running.
+
 **Status as of 2026-09-14 (automated check-in, Day 15):** Three-calendar-day gap since Day 14 (2026-09-11) — no commits or new info from Austin's side since `0e4afc2`. Direct reddit.com fetch is still permanently blocked (confirmed again). **#1/#1a/#2a remain closed** per Austin's 2026-08-22 "move on" instruction. **New today, and the most important item on this file: the dev workstream already built the two standing product asks below (item 8a/8b) — PR #79 (visual relationship graph) and PR #82 (portrait "keep likeness" on regenerate) — but neither is merged, and both now have real conflicts from sitting since 2026-09-03/06.** See new #0 below. Also new: Grimoire (ttrpg.bot) is capping its previously-unlimited free tier on 2026-10-05 (`GROWTH_STRATEGY.md` §2i). See `DAILY_LOG.md`'s 2026-09-14 entry for full detail.
 
 ---
