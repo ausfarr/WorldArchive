@@ -21,6 +21,33 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: wizard-generated (not imported) lore never grounded Spell
+  generation -- another instance of the category-list-drift bug class
+  already fixed for PDF export/World Status Panel/Location generation.**
+  `routes/wizardLore.js`'s `GENERATED_SECTION_META` (the table deciding
+  which `categoryTags` a wizard-generated-fresh lore section gets) never
+  listed `"spells"` anywhere, even though `routes/generateSpell.js` grounds
+  itself via `getLoreContext(worldId, { category: "spells" })` for every
+  5e-ruleset world. Since `lib/loreContext.js#getRelevantLoreSections` only
+  includes a non-core section when its `categoryTags` include the requested
+  category, a wizard-generated Resources/Culture/History section -- and
+  `technologyOrSupernatural` especially, whose own "magic" framing is the
+  single most Spell-relevant section in the schema -- silently never
+  reached a Spell generation prompt. Added `"spells"` to `resources`,
+  `culture`, `technologyOrSupernatural`, and `history`'s `categoryTags`
+  (plus `geography`, core, for display accuracy). This is the
+  generate-fresh counterpart to the *imported*-lore fix already open
+  against `lib/loreParsing.js` -- that file's `ALL_CATEGORIES` already
+  covers the import path for both Locations and Spells; this fixes the
+  other lore path for Spells specifically, the one gap neither of the two
+  open Locations-lore-grounding PRs touched. New
+  `scripts/testWizardLoreSpellsCategoryTag.js` -- verified it fails against
+  the pre-fix code (`GENERATED_SECTION_META` wasn't exported yet, so the
+  import crashes) and passes against the fix; full existing offline suite
+  (every `scripts/test*.js` except `testTenantIsolation.js`) still passes
+  unchanged. `npm start` boots cleanly. No UI-visible change (prompt-
+  grounding data only), so no `bump-cache-version.js` run needed.
+
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI
