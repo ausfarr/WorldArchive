@@ -54,7 +54,7 @@
 
 <div class="wrap">
   <div class="honest-note reveal" style="margin-top:36px;">
-    <strong>Methodology note:</strong> Chronicled's row below is accurate as of this writing (we built it). World Anvil and Campfire's rows describe their well-known core model — manual, template-driven worldbuilding wikis — to the best of our knowledge; both are mature products that add features over time, so if something here is stale, <a href="mailto:ausfarr@gmail.com">let us know</a>. CharGen is the closest thing Chronicled has to a direct competitor — it also generates cross-linked world content rather than just hosting a wiki — and its row is built from its own public changelog/feature pages; a couple of rows are marked "not confirmed" where we couldn't verify a specific capability. Grimoire (ttrpg.bot) takes a different approach worth knowing about: it's a structured campaign database with a real visual knowledge-graph view, but it's explicitly bring-your-own-AI — you connect your own Claude/ChatGPT/Cursor client via its MCP server, and that client does any writing; Grimoire itself doesn't generate content for you. Chronicler (chronicler.pro) is a different kind of tool entirely — an offline, local-storage worldbuilding notebook — and isn't really a competitor so much as a different answer to a different problem; it's included because people researching this space tend to ask about it.
+    <strong>Methodology note:</strong> Chronicled's row below is accurate as of this writing (we built it). World Anvil and Campfire's rows describe their well-known core model — manual, template-driven worldbuilding wikis — to the best of our knowledge; both are mature products that add features over time, so if something here is stale, <a href="mailto:ausfarr@gmail.com">let us know</a>. CharGen is the closest thing Chronicled has to a direct competitor — it also generates cross-linked world content rather than just hosting a wiki — and its row is built from its own public changelog/feature pages; a couple of rows are marked "not confirmed" where we couldn't verify a specific capability. Grimoire (ttrpg.bot) is a structured campaign database with a visual knowledge-graph view, built to be AI-optional — its own marketing argues against baking in generation, so it's a different kind of tool from Chronicled's generate-and-file model even though it targets the same GM; its row is built from its own public site and MCP docs, with a couple of rows marked "not confirmed." Chronicler (chronicler.pro) is a different kind of tool entirely — an offline, local-storage worldbuilding notebook — and isn't really a competitor so much as a different answer to a different problem; it's included because people researching this space tend to ask about it.
   </div>
 
   <div class="compare-table-wrap reveal">
@@ -73,7 +73,7 @@
         <td class="col-us">AI generates content on demand, grounded in your world's own established lore</td>
         <td>Manual entry into structured templates (Codex articles, family trees, maps)</td>
         <td>AI generates a cross-linked "World Codex" — NPCs, factions, settlements, regions, and more, linked via a relationship graph</td>
-        <td>A typed campaign database + knowledge graph — you bring your own AI client (via MCP) to read/write it</td>
+        <td>A typed campaign database (NPCs, factions, quests, items, and more) with a knowledge-graph view — AI-optional by design; you connect your own AI client via MCP to read/write it</td>
         <td>Manual entry across modular worldbuilding tools (characters, locations, timelines, encyclopedia)</td>
         <td>Manual notes, offline, stored locally on your device</td>
       </tr>
@@ -82,7 +82,7 @@
         <td class="col-us">Cloud, multi-device, per-user account</td>
         <td>Cloud, browser-based</td>
         <td>Cloud, browser-based + mobile</td>
-        <td>Cloud, browser-based; connects to Claude/ChatGPT/Cursor via MCP</td>
+        <td>Cloud, browser-based, with a shared player portal</td>
         <td>Desktop app + cloud sync (module-dependent)</td>
         <td>Local-only — offline, browser storage on one device</td>
       </tr>
@@ -91,7 +91,7 @@
         <td class="col-us"><span class="compare-yes">Core of the product</span> — NPCs, monsters, items, factions, locations, classes, and more, generated grounded in your world</td>
         <td>Not the core model; a manual wiki first</td>
         <td><span class="compare-yes">Core of the product</span> — but priced as a gold-credit system shared with art generation, not per-text-generation</td>
-        <td><span class="compare-no">None built in</span> — explicitly AI-optional; generation happens in whatever outside AI client you connect, not in Grimoire itself</td>
+        <td><span class="compare-no">None built in</span> — it's a database/graph an external AI client (Claude, ChatGPT, Cursor) reads and writes to over MCP; you supply and prompt the AI yourself</td>
         <td>Not the core model; a manual toolkit first</td>
         <td><span class="compare-no">None</span> — by design, it's a private offline notebook</td>
       </tr>
@@ -100,7 +100,7 @@
         <td class="col-us"><span class="compare-yes">Yes</span> — matching art generated per entry, per your world's style</td>
         <td>Upload your own images/art</td>
         <td><span class="compare-yes">Yes</span> — plus editing tools (face swap, inpainting, background removal) and VTT token export</td>
-        <td>Not part of the product</td>
+        <td>Not confirmed</td>
         <td>Upload your own images/art</td>
         <td>Upload your own images/art</td>
       </tr>
@@ -109,7 +109,7 @@
         <td class="col-us">Generation is grounded in what already exists in your archive — factions, NPCs, and items referenced, never invented from nothing</td>
         <td>Consistency is on you — it's your wiki, your cross-links</td>
         <td>Cross-linked via a relationship graph — click a faction, see its region and members</td>
-        <td>Structured typed data + a visual knowledge-graph view, but whether a new entry stays consistent depends on the outside AI client you're using</td>
+        <td>A real visual knowledge graph (political/geographic/timeline/custom projections) over its typed entities — but consistency of what gets written still depends on whatever AI client you bring and how you prompt it</td>
         <td>Consistency is on you — it's your wiki, your cross-links</td>
         <td>Consistency is on you — it's your notebook</td>
       </tr>
@@ -118,7 +118,7 @@
         <td class="col-us"><span class="compare-yes">Yes</span> — derived stats computed by real formulas, not free text</td>
         <td>Free-text / template fields</td>
         <td>Not confirmed</td>
-        <td>Free-text / typed fields</td>
+        <td>Not confirmed</td>
         <td>Free-text / template fields</td>
         <td>Free-text fields</td>
       </tr>
@@ -127,7 +127,7 @@
         <td class="col-us"><span class="compare-yes">Yes</span> — whole-world, per-category, per-entry, per-Quest, per-Campaign</td>
         <td>Limited/varies by plan</td>
         <td>Not confirmed</td>
-        <td>Not confirmed</td>
+        <td>Not confirmed; offers a general data-export option</td>
         <td>Limited/varies by plan</td>
         <td>Not applicable (local notebook)</td>
       </tr>
@@ -136,7 +136,7 @@
         <td class="col-us">You want new content generated fast, in your world's voice, without writing every article by hand</td>
         <td>You want to hand-write a deep, browsable wiki and enjoy the writing itself</td>
         <td>You want the broadest generator catalogue and full session-prep tooling, and don't mind a shared/public-style codex model</td>
-        <td>You already pay for Claude/ChatGPT/Cursor and want a structured database it can read/write to, and don't need it to generate anything on its own</td>
+        <td>You already pay for your own AI assistant and want a structured, queryable database with a visual graph for it to read and write — not a tool that writes content for you on its own</td>
         <td>You want structured manual worldbuilding tools without the wiki-website feel</td>
         <td>You want a private, offline scratchpad with zero cloud dependency</td>
       </tr>
