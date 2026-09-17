@@ -4,6 +4,18 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-17 (automated check-in, Day 14):** 17-day gap since the last marketing check-in (08-31) — the longest yet — and no commits of any kind (product or marketing) in the six days since 2026-09-11. Nothing below has moved. New this session: Grimoire (the $5/mo competitor) is cutting its own free tier effective 2026-10-05 — good messaging ammo, no action needed yet; a new competitor name, Tabletop Arc (session-recording-driven memory layer + generator suite, $19/mo Pro), added to the watch list; and a possible stale "beta" mention on the itch.io listing that this session couldn't confirm directly (itch.io is egress-blocked) — worth Austin's own glance since it's outside this repo. See `DAILY_LOG.md`'s 2026-09-17 entry for full detail.
+
+---
+
+## What to do today (2026-09-17)
+
+1. **If you're back after the gap, start here:** nothing is broken or urgent — the standing items below (#1/#2 posting, #8 directory submission) are exactly where they were three weeks ago. Pick one and it'll move the needle more than anything else on this list.
+2. **New, 2-minute check: glance at your itch.io listing** (`chronicled.itch.io/chronicled`) and confirm it doesn't still say "beta" — this session found a hint it might (via search, couldn't fetch itch.io directly to confirm), and it'd be stale now that v1.0.0 dropped beta framing back on 2026-08-20. If it does, it's a quick text edit on itch.io's own page, not a repo change.
+3. **Still the fastest guaranteed-real win: #8, submit to theresanaiforthat.com's Worldbuilding category** (~10 min, free, no public post required, still genuinely not done after a month of being flagged).
+4. **Still open: post the two ready Reddit drafts** (`drafts/reddit_post_worldbuilding.md`, `drafts/reddit_post_rpg_generators.md`) — or, if you've decided not to for now, just say so in this file so it stops resurfacing every check-in.
+5. **No urgency, just FYI:** Grimoire — the competitor that matched your $5/mo price — is cutting its own free tier on 2026-10-05. Worth a line in whatever you post next ("even the newest competitors cut their free tiers — ours hasn't").
+
 **Status as of 2026-09-16 (automated check-in, Day 14):** First check-in after a 16-day gap (previous one was Day 13, 2026-08-31) — nothing lost, no new commits or info from Austin's side in that window. Reddit fetch is still hard-blocked (confirmed again, fourteenth session running) — permanent limitation, not a daily to-do. **#1/#1a/#2a remain closed** per the 2026-08-22 "move on" instruction. New today: a new direct competitor (Tabletop Arc, "The AI Memory Layer for Tabletop Campaigns" — closest positioning match to Chronicled yet found), Grimoire is cutting its free tier Oct 5 (real messaging ammo), Craft's long-open free-tier question is resolved (it's real), and an actual industry publication's scored review confirms Chronicled's core wedge with real data. Added Grimoire to `marketing/compare.html` (a real site change, not just a note). See `DAILY_LOG.md`'s 2026-09-16 entry for full detail.
 
 ---
