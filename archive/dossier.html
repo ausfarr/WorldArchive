@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Archive</title>
 <link rel="stylesheet" href="css/style.css">
-<script src="js/themeBootstrap.js?v=v1.2"></script>
+<script src="js/themeBootstrap.js?v=v1.3"></script>
 
 </head>
 <body>
 
-<script src="/js/siteHeader.js?v=v1.2"></script>
+<script src="/js/siteHeader.js?v=v1.3"></script>
 
 <div class="wrap">
   <div class="crumb"><a href="index.html">Archive</a><span class="sep">/</span><a id="crumb-category" href="#"></a><span class="sep">/</span><span id="crumb-name"></span></div>
@@ -32,6 +32,8 @@
     <div class="sheet-footer" id="sheet-footer"></div>
 
     <div id="dungeon-map-zone" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-line-soft);"></div>
+
+    <div id="relationship-graph-zone" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-line-soft);"></div>
 
     <div id="entry-export-zone" style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-line-soft); display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
       <button id="export-entry-btn" style="background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 8px 16px; font-family: var(--font-display); text-transform: uppercase; font-size: 0.78rem; cursor: pointer;">Download PDF</button>
@@ -122,10 +124,10 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.2"></script>
-<script src="js/render.js?v=v1.2"></script>
-<script src="js/portraitActions.js?v=v1.2"></script>
-<script src="js/worldArtActions.js?v=v1.2"></script>
+<script src="/js/auth.js?v=v1.3"></script>
+<script src="js/render.js?v=v1.3"></script>
+<script src="js/portraitActions.js?v=v1.3"></script>
+<script src="js/worldArtActions.js?v=v1.3"></script>
 <script>
   requireAuth().then((session) => {
     if (!session) return;

@@ -21,6 +21,23 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **New: "Relationships" panel on every dossier page -- a one-hop visual
+  graph of an entry's cross-links (who it references, and who references
+  it back), not just prose.** Closes a repeatedly-flagged marketing gap
+  (`claude_marketing/COMPETITOR_WATCH.md`'s 2026-08-27/2026-08-30 entries:
+  CharGen, Reality Forge, and Grimoire have all shipped a visual entity
+  relationship graph; Chronicled already had the underlying data, just no
+  view of it). New `GET /api/entries/:category/:id/graph`
+  (`lib/relationshipGraph.js`) walks the exact same field registry
+  `lib/entryLinker.js` already uses to resolve/backfill cross-category
+  references (`lib/entryLinkRegistry.js`) -- no new fields, no schema
+  change, no AI calls, pure presentation over data that was already
+  there. Hand-rolled SVG radial layout in `archive/js/render.js`
+  (`renderRelationshipGraph()`), matching this codebase's no-build-step,
+  no-new-dependency convention. `v1.3` cache-version bump (UI-affecting).
+  New `scripts/testRelationshipGraph.js`. See
+  `session_addendum_relationship_graph_shipped.md`.
+
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI

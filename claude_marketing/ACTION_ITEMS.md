@@ -4,6 +4,22 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Product-side update, 2026-09-17 (automated dev check-in):** shipped the
+"visual entity relationship graph" idea first flagged 2026-08-27 and
+re-flagged 2026-08-30 when Grimoire made it a 3-for-3 pattern across
+CharGen/Reality Forge/Grimoire — a "Relationships" panel on every
+dossier page, a one-hop radial graph of that entry's cross-links (who it
+references, and who references it back), built entirely from data
+`lib/entryLinker.js` already resolves at generation time (no new
+fields). See `CHANGELOG.md` Unreleased and
+`session_addendum_relationship_graph_shipped.md` for detail, PR open
+against `main`. Scope note: this is a per-entry (one-hop) graph on the
+dossier page, not a whole-world graph view — that's a materially bigger
+layout problem, deliberately left for later. Stop re-flagging the
+entity-relationship-graph idea in future check-ins as a missing
+feature; the underlying idea is done. A whole-world graph view, if it's
+ever wanted, would be new scope, not a gap in this feature.
+
 **Product-side update, 2026-09-02 (automated dev check-in):** shipped the
 crop-to-VTT-token piece of item 7(b)/(c) below (CharGen's "Token Maker" /
 portrait-editing toolkit gap) — a "Download as VTT Token" button on any
