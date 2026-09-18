@@ -4,6 +4,18 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Status as of 2026-09-18 (automated check-in, after an 18-day gap):** No commits or new info from Austin's side since the 2026-08-31 check-in — 18 days, the longest gap yet, and a full month since #1/#2 were checked off with no URLs ever attached. Reddit fetch is still blocked, unchanged. Two real new items today: (1) the recurring "Chronicled is still in beta" search-snippet ghost most likely traces to the `chronicled.itch.io` listing, not a search cache — see new item #10 below, this one needs Austin directly since it's outside the repo; (2) Grimoire (ttrpg.bot) is capping its free tier at 100 entities/25MB starting 2026-10-05, and a new name (Tabletop Arc) was checked closely and ruled a non-threat (session-transcription tool, not a content generator) — see `DAILY_LOG.md`'s 2026-09-18 entry for full detail. The crop-to-VTT-token product idea shipped 2026-09-02 (noted above) — dropped from item 7 below.
+
+---
+
+## What to do today (2026-09-18)
+
+1. **New — check/update the `chronicled.itch.io/chronicled` listing.** This session traced the recurring "search results describe Chronicled as still in limited beta" issue (checked and ruled out against this repo's own site copy multiple times already) to that itch.io page specifically — it's outside this repo, so no automated session can fix it. Worth two minutes to open it directly and confirm/update the description now that v1.0.0 and billing have been live since August.
+2. **Still the top item, now a month overdue: post something.** #1/#2 were checked off 2026-08-20 with no URL ever logged, and nothing new has gone out anywhere since. Whatever the actual blocker is (time, a change of mind, technical issue posting), it'd help future check-ins to know what it is rather than keep re-surfacing the same unposted drafts.
+3. **#8 (AI-directory submissions)** — still the quickest guaranteed-real win, still free, still ~10 minutes, still confirmed not done after a month.
+4. **#9 (EN World Promotions forum)** — same-day-doable, zero-gate, still untried as far as this session can tell.
+5. **Optional, low-effort:** if #1/#2 did go out at some point in the last month and just never got logged, a link or even just "yes, both posted, here's roughly how they did" would let this thread stop guessing and start actually tracking real data.
+
 **Status as of 2026-09-17 (automated check-in, Day 14):** 17-day gap since the last marketing check-in (08-31) — the longest yet — and no commits of any kind (product or marketing) in the six days since 2026-09-11. Nothing below has moved. New this session: Grimoire (the $5/mo competitor) is cutting its own free tier effective 2026-10-05 — good messaging ammo, no action needed yet; a new competitor name, Tabletop Arc (session-recording-driven memory layer + generator suite, $19/mo Pro), added to the watch list; and a possible stale "beta" mention on the itch.io listing that this session couldn't confirm directly (itch.io is egress-blocked) — worth Austin's own glance since it's outside this repo. See `DAILY_LOG.md`'s 2026-09-17 entry for full detail.
 
 ---
