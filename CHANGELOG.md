@@ -21,6 +21,30 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: "Delete World" left three tables behind, so a fresh world (same
+  `world_id`) could still show old Timeline events, stale Suggested
+  Updates, and old Calendar dates from the world it was supposed to
+  replace.** `routes/deleteWorld.js` deliberately keeps the user's
+  `worlds` row intact ("start over, not delete the account" -- Austin's
+  call), so every world-scoped table's `world_id ... on delete cascade`
+  FK never fires; the route already knew this and explicitly deletes
+  `campaign_modules`/`campaign_arcs` for exactly that reason, but
+  `timeline_events` (Phase 6), `pending_entry_updates` (Phase 7), and
+  `calendar_notable_dates` (Phase 8) -- all added to the schema after
+  that comment was written -- never got the same treatment. Added
+  `deleteAllTimelineEvents`/`deleteAllPendingUpdates`/
+  `deleteAllNotableDates` to their respective repo files and wired them
+  into `POST /world/delete`, matching the existing Quest/Campaign
+  pattern exactly. New `scripts/testDeleteWorldTableCoverage.js` --
+  verified it fails against the pre-fix code (all three tables' rows
+  survive) and passes against the fix; `testPipeline.js`,
+  `testEnemyPipeline.js`, `testEntryDriftSuggestions.js`,
+  `testCampaignStructureRaces.js`, `testSessionAssembly.js`,
+  `testTimelineEvents.js`, `testTimelineEntryDateEvents.js`,
+  `testCalendar.js`, `testCalendarPage.js`, `testEntryLinker.js`,
+  `testEntryMetaPatchRace.js`, and `testSessionPrepDates.js` still pass
+  unchanged.
+
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI

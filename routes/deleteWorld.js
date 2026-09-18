@@ -5,6 +5,9 @@ const { deleteAllEntries } = require("../lib/entriesRepo");
 const { deleteAllCampaignModules } = require("../lib/campaignModuleRepo");
 const { deleteAllCampaignArcs } = require("../lib/campaignArcRepo");
 const { deleteAllPortraits, deleteMapBackdrop, deleteAllMapTiles, deleteAllWorldArt } = require("../lib/fileWriter");
+const { deleteAllTimelineEvents } = require("../lib/timelineRepo");
+const { deleteAllPendingUpdates } = require("../lib/pendingEntryUpdatesRepo");
+const { deleteAllNotableDates } = require("../lib/calendarNotableDatesRepo");
 
 const router = express.Router();
 
@@ -34,13 +37,18 @@ router.get("/generation-usage", async (req, res) => {
 // those are what the frontend checks to decide whether to redirect into
 // the wizard.
 //
-// Quests (campaign_modules) and Campaigns (campaign_arcs) both have an
-// ON DELETE CASCADE foreign key to worlds(id), but that constraint only
-// fires if the `worlds` row itself is deleted -- which this flow
-// deliberately never does. Without an explicit delete here, both tables
-// silently survived a "Delete World" while every other category of
-// content correctly disappeared -- same category of gap as
-// deleteAllEntries needing to exist explicitly at all.
+// Quests (campaign_modules), Campaigns (campaign_arcs), Timeline events,
+// Suggested Updates (pending_entry_updates), and Calendar notable dates
+// all have an ON DELETE CASCADE foreign key to worlds(id), but that
+// constraint only fires if the `worlds` row itself is deleted -- which
+// this flow deliberately never does. Without an explicit delete here,
+// each of these tables silently survived a "Delete World" while every
+// other category of content correctly disappeared -- same category of
+// gap as deleteAllEntries needing to exist explicitly at all. The latter
+// three (added in later Session Prep Companion phases, after this
+// comment was first written for Quests/Campaigns) had the same gap for
+// weeks before anyone noticed -- worth remembering the next time a new
+// world-scoped table is added.
 //
 // Deliberately does NOT touch generation_count (the beta usage cap in
 // worldConfigRepo.js / middleware/enforceGenerationCap.js). If it did,
@@ -56,6 +64,9 @@ router.post("/world/delete", async (req, res) => {
     await deleteAllEntries(worldId);
     await deleteAllCampaignModules(worldId);
     await deleteAllCampaignArcs(worldId);
+    await deleteAllTimelineEvents(worldId);
+    await deleteAllPendingUpdates(worldId);
+    await deleteAllNotableDates(worldId);
     await deleteAllPortraits(worldId);
     await deleteMapBackdrop(worldId);
     await deleteAllMapTiles(worldId);
