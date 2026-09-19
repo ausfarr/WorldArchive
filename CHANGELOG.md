@@ -21,6 +21,43 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: two faction-identity bugs -- ghost-placeholder factions leaking
+  into generation prompts as real choices, and a faction's real Roundup-
+  matching key getting silently overwritten by its dossier slug during
+  reciprocal-relationship sync.** `lib/roster.js#readFactionManifest()`
+  was the one `readXManifest()` in that file with no `locked` option to
+  even pass, so `lib/worldFlavor.js#getFactionOptions()` -- which feeds
+  the "pick one of these faction ids" enum into nearly every content-
+  generation prompt in the app (NPCs, enemies, items, locations, classes,
+  survivors, logs, spells, procedural faction-picking) -- always included
+  locked ghost-placeholder factions (`lib/entryLinker.js#ensureGhostPlaceholder()`
+  auto-creates one the moment any other generated entry name-references a
+  faction that doesn't exist yet). A generation could get told an empty,
+  never-generated faction stub was available and pick it, directly
+  contradicting `getFactionOptions()`'s own header comment. Same root
+  cause as the two locked-ghost-leak bugs already fixed for PDF export --
+  this was the one place still missing it. Separately,
+  `lib/factionDeepLore.js#syncReciprocalRelationships()` wrote
+  `factionKey: target.id` (the dossier slug) onto the faction it was
+  splicing a reciprocal relationship into, instead of `target.faction ||
+  target.id` (the real Roundup-matching key) -- the fallback every other
+  faction-key computation in that same file already uses. For any world
+  where those two values differ (a real, documented case for Austin's
+  migrated Echoes world: `ferro_kings` matching key vs. `the-ferro-kings`
+  slug), regenerating/confirming any faction with a relationship pointing
+  at such a faction silently corrupted the target's matching key --
+  the save succeeds with no error, but every entry already tagged with
+  the real key instantly drops out of that faction's Roundup and out of
+  faction-grounded generation context. New
+  `scripts/testFactionOptionsLockedFilter.js` and
+  `scripts/testSyncReciprocalRelationshipsFactionKey.js` -- both verified
+  to fail against the pre-fix code and pass against the fix; full existing
+  offline suite (`testPipeline.js`, `testEnemyPipeline.js`,
+  `testPdfExportLockedFilter.js`, `testEntryLinker.js`,
+  `testCampaignStructureRaces.js`, `testProceduralRulesetGenerators.js`,
+  and every other `scripts/test*.js`) still passes unchanged. See
+  `session_addendum_faction_identity_leak_fixes_shipped.md`.
+
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI
