@@ -21,6 +21,33 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: regenerating a Location or a Faction's Deep Lore (or an
+  entryLinker.js backfill rebake landing on either) silently deleted a
+  baked battle map, a dragged map pin, or a faction's AI-generated
+  banner.** `saveLocationEntry()`/`saveFactionEntry()` (`lib/fileWriter.js`)
+  each do a full `raw_json` overwrite built from that category's own
+  content object -- but `dungeonMap` (routes/dungeonMap.js's baked battle
+  map, real Gemini image spend) and `manualMapPosition` (routes/entries.js's
+  dragged world-map pin) live on Locations, and `bannerImageUrl`
+  (routes/worldArt.js's AI-generated faction banner) lives on Factions,
+  entirely outside those content objects -- all three are written via
+  `patchEntryMeta()` instead. `saveFactionEntry()` already carried
+  `accentColor` forward the same way for the same reason; this was a
+  documented, known-but-unfixed gap for the other three (see
+  `entriesRepo.js#patchEntryMeta()`'s and `entryLinker.js`'s own NOTE
+  comments) -- every Location regenerate-confirm or backfill rebake wiped
+  its map bake/pin, and every Faction Deep Lore regenerate wiped its
+  banner. Both writers now read the existing row first and carry these
+  fields forward, mirroring the `accentColor` precedent exactly. New
+  `scripts/testPatchOnlyFieldsSurviveRebake.js` -- verified it fails
+  against the pre-fix code (5 failing checks) and passes against the fix;
+  updated `scripts/testEntryMetaPatchRace.js`'s Test 3, which had
+  previously pinned the old buggy behavior as an explicit "KNOWN GAP"
+  assertion, to expect the now-fixed behavior instead; full existing
+  suite (`testPipeline.js`, `testEnemyPipeline.js`, `testEntryLinker.js`,
+  `testCampaignStructureRaces.js`, `testEntryDriftSuggestions.js`,
+  `testSessionAssembly.js`) still passes unchanged.
+
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI
