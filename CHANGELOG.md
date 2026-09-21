@@ -21,6 +21,32 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Fix: a regenerated Session Chronicle or Log that revised its underlying
+  facts (not just wording) left its Suggested Updates queue entry stale
+  forever instead of refreshing it.** `findExistingUpdate()`
+  (`lib/pendingEntryUpdatesRepo.js`) -- the dedup guard both
+  `lib/sessionChronicleSuggestions.js` and `lib/logDateSuggestions.js` call
+  on every regenerate-confirm of the same Chronicle/Log -- only ever
+  matched on `(source, entryId, category, suggestionType)`, never compared
+  the proposed content itself. A DM confirming a Chronicle that flips an
+  NPC to "wounded", then regenerating it with corrected notes that actually
+  flip the NPC to "dead," saw the suggestion queue keep showing "wounded"
+  indefinitely -- applying it later would have written the wrong status.
+  Same shape of gap in `logDateSuggestions.js` for a Log's resolved-date
+  suggestion. Fixed with a new `updatePendingUpdate()` -- when a still-
+  PENDING row already exists for that tuple and its `deltaText`/`payload`
+  has actually changed, it's refreshed in place instead of silently
+  skipped; an already-applied/dismissed row is left untouched either way
+  (the DM already acted on it), matching the dedup guard's existing "any
+  status" matching. New Tests 10/11 in
+  `scripts/testEntryDriftSuggestions.js` -- verified both the refresh-in-
+  place case and the leave-applied-rows-alone case; the full existing
+  suite (`testPipeline.js`, `testEnemyPipeline.js`, `testEntryLinker.js`,
+  `testCampaignStructureRaces.js`, `testSessionAssembly.js`,
+  `testEntryMetaPatchRace.js`, `testPdfExportCategoryCoverage.js`,
+  `testPdfExportLockedFilter.js`) still passes unchanged. See
+  `session_addendum_stale_suggestion_refresh_shipped.md`.
+
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI

@@ -24,6 +24,11 @@
 //   7. Two concurrent .../apply calls on the same status_flip suggestion
 //      only run its side effects (entry patch + Timeline event) once --
 //      regression test for the withLock() fix in routes/pendingUpdates.js.
+//   8. A regenerate-confirm that revises the underlying facts (not just
+//      wording) refreshes a still-PENDING suggestion's content in place
+//      instead of silently keeping the stale first draft forever.
+//   9. The same regenerate-confirm case, but for an already-APPLIED
+//      suggestion -- left untouched, no duplicate created either.
 //
 // Run with: node scripts/testEntryDriftSuggestions.js
 
@@ -43,6 +48,42 @@ global.fetch = async (url, opts) => {
     const body = JSON.parse(opts.body);
     const systemText = Array.isArray(body.system) ? body.system.map((b) => b.text).join("\n") : (body.system || "");
     if (systemText.includes("You are turning a DM's rough recap notes")) {
+      // Test 10/11 regression coverage for the stale-suggestion-content
+      // bug: these two markers let the same mocked route return genuinely
+      // different impliedUpdates depending on the (fake) recap notes, so
+      // a regenerate-confirm of the SAME log id can be asserted to either
+      // refresh a still-pending suggestion in place or leave an
+      // already-applied one untouched.
+      if (systemText.includes("SECOND-WITNESS-DEAD")) {
+        return jsonResponse({
+          id: "second-witness-chronicle", name: "The Mill's Silence, Session 2", locationContext: "The Old Mill", locationId: null,
+          characters: "Second Witness", context: "Corrected account.", bodyText: "Second Witness succumbed to the wound.",
+          faction: null, designNotes: "revised",
+          impliedUpdates: [
+            { category: "npcs", entryId: "second-witness", suggestionType: "status_flip", targetStatus: "dead", deltaText: "Succumbed to the wound from the mill raid (revised)." }
+          ]
+        });
+      }
+      if (systemText.includes("SECOND-WITNESS-WOUNDED")) {
+        return jsonResponse({
+          id: "second-witness-chronicle", name: "The Mill's Silence, Session 2", locationContext: "The Old Mill", locationId: null,
+          characters: "Second Witness", context: "A scribe's account.", bodyText: "Second Witness was wounded in the raid.",
+          faction: null, designNotes: "initial",
+          impliedUpdates: [
+            { category: "npcs", entryId: "second-witness", suggestionType: "status_flip", targetStatus: "wounded", deltaText: "Wounded in the mill raid." }
+          ]
+        });
+      }
+      if (systemText.includes("MILLER-THOM-REVISED")) {
+        return jsonResponse({
+          id: "mill-chronicle", name: "The Mill's Silence, Session 1", locationContext: "The Old Mill", locationId: null,
+          characters: "Miller Thom", context: "Revised account.", bodyText: "Thom was only wounded defending the wheel from raiders.",
+          faction: null, designNotes: "revised, contradicts the already-applied suggestion",
+          impliedUpdates: [
+            { category: "npcs", entryId: "miller-thom", suggestionType: "status_flip", targetStatus: "wounded", deltaText: "Actually just wounded, per revised notes." }
+          ]
+        });
+      }
       return jsonResponse({
         id: "mill-chronicle", name: "The Mill's Silence, Session 1", locationContext: "The Old Mill", locationId: null,
         characters: "Miller Thom", context: "A scribe's account.", bodyText: "Thom died defending the wheel from raiders.",
@@ -222,6 +263,67 @@ async function main() {
     check("only one Timeline event was created despite two concurrent applies", raceEventsAfter.length === raceEventsBefore + 1);
     const raceNpcAfter = await getEntry(WORLD_ID, "npcs", "race-target-npc");
     check("the NPC's status was flipped exactly once", raceNpcAfter.raw.status === "dead");
+
+    console.log("\nTest 10: regenerating a Chronicle with REVISED facts refreshes its still-pending suggestion in place, no stale duplicate");
+    // Distinct from Test 7 (same content, nothing to refresh) -- here the
+    // second generate-session-chronicle call for the SAME log id proposes
+    // genuinely different content (wounded -> dead), exactly the case
+    // findExistingUpdate's dedup used to silently eat: it only ever
+    // checked (source, entry, category, suggestionType), never whether
+    // deltaText/payload had actually changed, so a corrected recap kept
+    // showing the stale first-draft suggestion forever. See the
+    // updatePendingUpdate fix in pendingEntryUpdatesRepo.js/
+    // sessionChronicleSuggestions.js.
+    await upsertEntry(WORLD_ID, "npcs", { id: "second-witness", name: "Second Witness", subtitle: "test", faction: null, tags: [], bodyHtml: "<p>t</p>", raw: { roleArchetype: "bystander" } });
+
+    const firstGenRes = await fetch("http://localhost:4325/api/generate-session-chronicle", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questId: quest.id, recapNotes: "SECOND-WITNESS-WOUNDED: Second Witness took a nasty hit in the raid." })
+    });
+    const firstGen = await firstGenRes.json();
+    await fetch("http://localhost:4325/api/confirm-entry", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category: "logs", entry: firstGen.entry })
+    });
+    const afterFirst = await (await fetch("http://localhost:4325/api/pending-updates?status=pending")).json();
+    const witnessSuggestionV1 = afterFirst.updates.find((u) => u.entryId === "second-witness");
+    check("initial Chronicle confirm created a pending suggestion for the new NPC", witnessSuggestionV1 && witnessSuggestionV1.payload.targetStatus === "wounded");
+
+    const regenGenRes = await fetch("http://localhost:4325/api/generate-session-chronicle", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fillExistingId: firstGen.entry.id, recapNotes: "SECOND-WITNESS-DEAD: corrected notes -- Second Witness actually died from that wound." })
+    });
+    const regenGen = await regenGenRes.json();
+    await fetch("http://localhost:4325/api/confirm-entry", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category: "logs", entry: regenGen.entry })
+    });
+
+    const afterRegen = await (await fetch("http://localhost:4325/api/pending-updates?status=pending")).json();
+    const witnessSuggestionsAfterRegen = afterRegen.updates.filter((u) => u.entryId === "second-witness");
+    check("still exactly one pending suggestion for the NPC, not a stale duplicate", witnessSuggestionsAfterRegen.length === 1);
+    check("the suggestion's id is unchanged (updated in place, not a new row)", witnessSuggestionsAfterRegen[0] && witnessSuggestionsAfterRegen[0].id === witnessSuggestionV1.id);
+    check("the suggestion's payload was refreshed to the corrected status", witnessSuggestionsAfterRegen[0] && witnessSuggestionsAfterRegen[0].payload.targetStatus === "dead");
+    check("the suggestion's deltaText was refreshed too", witnessSuggestionsAfterRegen[0] && witnessSuggestionsAfterRegen[0].deltaText.includes("revised"));
+
+    console.log("\nTest 11: the same revised-regenerate case, but the existing suggestion is already APPLIED -- left untouched, no duplicate");
+    // miller-thom's status_flip suggestion (statusFlipSuggestion) was
+    // already applied back in Test 4. Regenerating the same Chronicle log
+    // with revised notes that now propose a DIFFERENT status for the same
+    // NPC must not silently overwrite the applied row's payload -- the DM
+    // already acted on what it said at confirm-apply time.
+    const revisedMillRes = await fetch("http://localhost:4325/api/generate-session-chronicle", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fillExistingId: chronicleGen.entry.id, recapNotes: "MILLER-THOM-REVISED: turns out Thom only took a bad wound, not a killing blow." })
+    });
+    const revisedMillGen = await revisedMillRes.json();
+    await fetch("http://localhost:4325/api/confirm-entry", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category: "logs", entry: revisedMillGen.entry })
+    });
+    const appliedAfterRevise = await (await fetch("http://localhost:4325/api/pending-updates?status=applied")).json();
+    const thomSuggestionsApplied = appliedAfterRevise.updates.filter((u) => u.entryId === "miller-thom");
+    check("still exactly one applied suggestion for miller-thom, no duplicate created", thomSuggestionsApplied.length === 1);
+    check("the already-applied suggestion's payload was NOT overwritten by the revised regenerate", thomSuggestionsApplied[0] && thomSuggestionsApplied[0].payload.targetStatus === "dead");
+    const npcStillDead = await getEntry(WORLD_ID, "npcs", "miller-thom");
+    check("the NPC entry itself is untouched by this (suggestions never auto-write)", npcStillDead.raw.status === "dead");
   } finally {
     server.close();
   }
