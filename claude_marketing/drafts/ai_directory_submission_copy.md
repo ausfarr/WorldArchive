@@ -66,3 +66,37 @@ all five.
 
 None of these have been confirmed submitted yet as of 2026-09-02 — this file
 just removes the writing step so whoever has 10 minutes can paste and go.
+
+
+---
+
+## Alternate draft (2026-09-21 check-in)
+
+_Written independently by the 2026-09-21 check-in, which never saw the 2026-09-02 draft above (it sat on an unmerged branch). Kept rather than discarded -- pick whichever wording you prefer when submitting._
+
+Ready-to-paste copy for submitting Chronicled to AI-tool directories (theresanaiforthat.com's "Worldbuilding"/"World-building" categories and similar sites — Futurepedia, AI Tool Guru, etc. use the same basic fields). This is the single lowest-effort, most-overdue open item in `ACTION_ITEMS.md` — flagged since 2026-08-19, still undone as of 2026-09-21 (confirmed again this session: no Chronicled listing found on theresanaiforthat.com). Needs Austin's own account/email to actually submit — Claude can't create the listing.
+
+**Tool name:** Chronicled
+
+**One-liner (≤60 chars, for list views):**
+AI worldbuilding archive for TTRPG campaigns
+
+**Short description (≤200 chars):**
+Chronicled generates NPCs, monsters, items, factions, and locations grounded in your own world's lore, then auto-files everything into a private, browsable wiki. No blank page, no contradictions.
+
+**Longer description (for a listing that allows one):**
+Chronicled turns your TTRPG campaign into a living archive. Describe your world once — lore, factions, a stat system, a visual style — and Chronicled generates lore-consistent NPCs, monsters, items, factions, and locations grounded in that world's own established facts, not a generic template. Every entry comes with matching portrait art and files itself automatically into a private, per-user browsable wiki (the Archive). Regenerate anything with a preview-then-confirm flow so nothing silently overwrites your world. Export whole-world, per-category, or per-entry PDFs (with baked-in battle-map grids) for the table. Free to start, no signup wall — 10 generations + 1 image every month, forever; $5/mo for more.
+
+**Category:** Worldbuilding / World-building (theresanaiforthat.com's existing categories — do not create a new one)
+
+**Tags/keywords:** worldbuilding, TTRPG, tabletop RPG, D&D, campaign wiki, NPC generator, lore generator, game master tools, AI worldbuilding, DM tools
+
+**URL:** https://chronicled.world
+
+**Pricing model to select (if the directory asks):** Freemium
+
+**Screenshot/asset note:** most of these directories want a screenshot or logo on submission — `marketing/images/` has the site's existing OG/social image (`og-cover.jpg`) as a fallback if nothing better is on hand; a real screenshot of a generated NPC dossier (with portrait) would land better if there's time to grab one before submitting.
+
+---
+
+*Drafted 2026-09-21. Once submitted, note the date and listing URL in `DAILY_LOG.md` so this stops being re-flagged as undone every session.*
