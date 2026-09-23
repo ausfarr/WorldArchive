@@ -101,15 +101,21 @@ function wireTokenMakerButton(entryId) {
 }
 
 function addTokenMakerButton(img) {
+  // portraitActions.js#attachRegenerateOverlay wraps an existing portrait
+  // in .portrait-wrap (for its hover "Regenerate" overlay) -- anchor the
+  // button below that wrapper, not inside it, whichever of the two runs
+  // first. If the wrap happens after this, img.replaceWith(wrap) keeps the
+  // wrapper in img's old position, so the button still ends up after it.
+  const anchor = img.closest(".portrait-wrap") || img;
   // A re-render (e.g. history navigation back to the same dossier) can
   // call this twice for the same <img> -- skip if already wired.
-  if (img.nextElementSibling && img.nextElementSibling.classList.contains("portrait-token-btn")) return;
+  if (anchor.nextElementSibling && anchor.nextElementSibling.classList.contains("portrait-token-btn")) return;
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "portrait-token-btn";
   btn.textContent = "Make VTT Token";
   btn.addEventListener("click", () => openTokenMaker(img, btn));
-  img.insertAdjacentElement("afterend", btn);
+  anchor.insertAdjacentElement("afterend", btn);
 }
 
 // Fetch-to-blob instead of drawing the page's <img> (or a fresh

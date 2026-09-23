@@ -117,6 +117,68 @@ async function resolveSaveFn(worldId, category) {
   return CATEGORY_SAVE_FN[category]; // echoes (or an unrecognized ruleset -- fail to the long-established default)
 }
 
+// Every category's bodyHtml builder (lib/*Template.js) renders exactly
+// one portrait <img> in this fixed attribute order (class, id, data-
+// category, data-entry-id, data-label, src, alt) -- see e.g.
+// lib/entryTemplate.js's portraitBlock. Extracting the URL out of the
+// rendered HTML rather than tracking it as its own field mirrors
+// lib/roster.js's buildEnemyRosterContext, which already scrapes ability
+// names out of bodyHtml the same way. When no portrait has ever been
+// generated, the template falls back to a relative `images/<id>.png`
+// path (see saveNpcEntry & co.'s imageUrl || fallback) -- filtered out
+// here since that path 404s and isn't a real image to use as a reference.
+function extractExistingPortraitUrl(bodyHtml) {
+  if (!bodyHtml) return null;
+  const match = bodyHtml.match(/<img class="portrait-img"[^>]*\ssrc="([^"]+)"/);
+  return match && /^https?:\/\//.test(match[1]) ? match[1] : null;
+}
+
+// Best-effort fetch of an entry's current portrait, for the keepLikeness
+// regenerate path below. A reference image is a quality nice-to-have, not
+// a hard requirement -- if this fails (network hiccup, the Storage object
+// unexpectedly gone), the caller falls through to a normal from-scratch
+// generation instead of failing the whole regenerate over it.
+//
+// Only ever fetches from this project's own public Storage path -- the URL
+// is regex-scraped out of stored bodyHtml, and a server-side fetch of an
+// arbitrary URL is a request-forgery primitive (internal hosts, cloud
+// metadata endpoints) if anything ever let a foreign <img src> into that
+// HTML. Today every portrait URL comes from lib/fileWriter.js's
+// getPublicUrl(), which always has this prefix, so this costs nothing.
+// The size cap keeps a surprise-huge object from being buffered into
+// memory and base64'd into a Gemini request.
+const REFERENCE_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+
+function isOwnStorageUrl(url) {
+  try {
+    const own = new URL(process.env.SUPABASE_URL);
+    const u = new URL(url);
+    return u.origin === own.origin && u.pathname.startsWith("/storage/v1/object/public/");
+  } catch (err) {
+    return false;
+  }
+}
+
+async function fetchReferenceImage(bodyHtml) {
+  const url = extractExistingPortraitUrl(bodyHtml);
+  if (!url) return null;
+  if (!isOwnStorageUrl(url)) {
+    console.error("keepLikeness: existing portrait isn't in this project's Storage, generating fresh instead");
+    return null;
+  }
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    if (Number(res.headers.get("content-length") || 0) > REFERENCE_IMAGE_MAX_BYTES) return null;
+    const buffer = Buffer.from(await res.arrayBuffer());
+    if (buffer.length > REFERENCE_IMAGE_MAX_BYTES) return null;
+    return { buffer, mimeType: res.headers.get("content-type") || "image/png" };
+  } catch (err) {
+    console.error("keepLikeness: fetching existing portrait failed, generating fresh instead:", err.message);
+    return null;
+  }
+}
+
 async function loadEntryOrRespondError(req, res) {
   const { category, id } = req.params;
   if (!CATEGORY_SAVE_FN[category]) {
@@ -140,15 +202,29 @@ async function loadEntryOrRespondError(req, res) {
 // Generates a brand-new (or regenerated) portrait from the entry's
 // existing content via the art-prompt-writer -> Gemini pipeline, same
 // as entry creation used to do inline.
+//
+// keepLikeness (optional, request body) -- when true AND this entry
+// already has a real portrait, that portrait is fetched and passed to
+// Gemini as a reference image (lib/imagegen.js's referenceImage option)
+// so the regenerate edits the existing character's face/identity rather
+// than inventing a new one. Answers a real, marketing-flagged gap: once
+// a GM regenerates an NPC's stats/lore (changing physicalDescription) or
+// just wants a different pose, there was previously no way to keep the
+// portrait that already existed for that character -- see
+// claude_marketing/ACTION_ITEMS.md's 2026-08-31 entry on CharGen's
+// "Character Reference Workflow." Silently has no effect if there's no
+// existing portrait to reuse (fetchReferenceImage returns null) -- this
+// route already covers that case fine as a plain from-scratch generation.
 router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceImageGenerationCap, async (req, res) => {
   try {
     const { category, id } = req.params;
+    const { keepLikeness } = req.body || {};
     const loaded = await loadEntryOrRespondError(req, res);
     if (!loaded) {
       if (req.refundImageGeneration) await req.refundImageGeneration();
       return;
     }
-    const { saveFn, subjectJson } = loaded;
+    const { saveFn, entry, subjectJson } = loaded;
 
     const styleGuide = await getStyleGuide(req.worldId);
     const factionAccent = await getFactionAccent(req.worldId, styleGuide, subjectJson.faction);
@@ -160,7 +236,12 @@ router.post("/entries/:category/:id/generate-image", requireAiEnabled, enforceIm
       model: HAIKU_MODEL
     });
 
-    const { buffer: imageBuffer, mimeType } = await generateImage(artPrompt.trim());
+    const referenceImage = keepLikeness ? await fetchReferenceImage(entry.bodyHtml) : null;
+    const finalPrompt = referenceImage
+      ? `${artPrompt.trim()}\n\nThe attached image is this exact character's established likeness -- edit it to match the description above rather than inventing a new face. Keep the same identity/facial features; only change what the description actually calls for (pose, framing, expression, setting details).`
+      : artPrompt.trim();
+
+    const { buffer: imageBuffer, mimeType } = await generateImage(finalPrompt, { referenceImage });
     const imageUrl = await saveImage(req.worldId, id, imageBuffer, mimeType);
     await saveFn(req.worldId, subjectJson, imageUrl);
 

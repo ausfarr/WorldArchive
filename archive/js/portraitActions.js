@@ -68,7 +68,15 @@ async function generatePortrait(category, entryId) {
   if (statusEl) statusEl.textContent = "Generating image — this can take up to 30 seconds…";
 
   try {
-    const res = await authFetch(`/api/entries/${category}/${entryId}/generate-image`, { method: "POST" });
+    // keepLikeness is always false here -- there's no existing portrait
+    // yet for this entry (that's why this pending-slot flow is showing at
+    // all), so there's nothing to reuse as a reference image. See
+    // regenerateExistingPortrait() below for the flow that actually uses it.
+    const res = await authFetch(`/api/entries/${category}/${entryId}/generate-image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keepLikeness: false })
+    });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Image generation failed.");
     replacePortraitSlotWithImage(entryId, category, data.imageUrl);
@@ -124,4 +132,106 @@ function replacePortraitSlotWithImage(entryId, category, imageUrl) {
   // tokenMaker.js -- the "Make VTT Token" button for the freshly swapped-in
   // portrait (guarded: tokenMaker.js is only loaded on dossier.html).
   if (typeof wireTokenMakerButton === "function") wireTokenMakerButton(entryId);
+
+  initExistingPortraitControls();
 }
+
+// Regenerate hook for a portrait that ALREADY exists -- rendered directly
+// by the server (lib/*Template.js's portraitBlock) and never routed
+// through handlePortraitError above, so until now there was no UI path to
+// a fresh portrait short of deleting the Storage object out from under
+// the entry and letting the resulting 404 fall through to the pending-
+// slot flow. "Keep likeness" (checked by default -- the common case is
+// wanting a tweak, not an unrelated new face) feeds the entry's CURRENT
+// portrait back to Gemini as a reference image (see routes/
+// generateEntryImage.js's keepLikeness option) so a stat/lore edit or a
+// "try a different pose" regenerate doesn't lose the character's
+// established look -- see claude_marketing/ACTION_ITEMS.md's 2026-08-31
+// entry on CharGen's "Character Reference Workflow" for the competitive
+// gap this closes.
+function initExistingPortraitControls() {
+  document.querySelectorAll("img.portrait-img[data-entry-id]").forEach((img) => {
+    if (img.dataset.regenWired) return;
+    img.dataset.regenWired = "1";
+    const attach = () => attachRegenerateOverlay(img);
+    // A portrait <img> already on the page when this script runs may or
+    // may not have finished loading yet -- .complete/.naturalWidth catches
+    // the already-loaded (or already-broken, handled by onerror separately)
+    // case; the load listener catches one still in flight.
+    if (img.complete && img.naturalWidth > 0) attach();
+    else img.addEventListener("load", attach, { once: true });
+  });
+}
+
+function attachRegenerateOverlay(img) {
+  // handlePortraitError() may have already swapped this exact <img> out
+  // for the pending slot by the time the load listener above fires (a
+  // portrait can load fine and still 404 a moment later from an unrelated
+  // cause) -- nothing to wrap onto a detached element.
+  if (!img.isConnected || img.closest(".portrait-wrap")) return;
+
+  const wrap = document.createElement("div");
+  wrap.className = "portrait-wrap";
+  img.replaceWith(wrap);
+  wrap.appendChild(img);
+
+  const overlay = document.createElement("div");
+  // ai-action (same class the Generate button above uses) is what
+  // body.ai-disabled targets in css/style.css to hide AI controls when
+  // the account has AI features turned off in Settings.
+  overlay.className = "portrait-regen-overlay ai-action";
+
+  const label = document.createElement("label");
+  label.className = "portrait-regen-label";
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = true;
+  label.appendChild(checkbox);
+  label.appendChild(document.createTextNode("Keep likeness"));
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "portrait-regen-btn";
+  btn.textContent = "⟳ Regenerate";
+  btn.addEventListener("click", () => regenerateExistingPortrait(img, overlay, btn, checkbox));
+
+  overlay.appendChild(label);
+  overlay.appendChild(btn);
+  wrap.appendChild(overlay);
+}
+
+async function regenerateExistingPortrait(img, overlay, btn, checkbox) {
+  const category = img.dataset.category;
+  const entryId = img.dataset.entryId;
+  const keepLikeness = checkbox.checked;
+  btn.disabled = true;
+  checkbox.disabled = true;
+  overlay.classList.add("is-busy");
+  const originalText = btn.textContent;
+  btn.textContent = "Generating…";
+  btn.title = "";
+
+  try {
+    const res = await authFetch(`/api/entries/${category}/${entryId}/generate-image`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keepLikeness })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Image generation failed.");
+    // Cache-bust: lib/fileWriter.js's saveImage() upserts the SAME Storage
+    // object path every time, so the browser's cached copy of the old
+    // image would otherwise stick around under the unchanged URL.
+    img.src = `${data.imageUrl}${data.imageUrl.includes("?") ? "&" : "?"}t=${Date.now()}`;
+  } catch (err) {
+    console.error("Portrait regeneration failed:", err);
+    btn.title = `Regeneration failed: ${err.message}`;
+  } finally {
+    btn.disabled = false;
+    checkbox.disabled = false;
+    overlay.classList.remove("is-busy");
+    btn.textContent = originalText;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", initExistingPortraitControls);
