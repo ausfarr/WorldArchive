@@ -108,11 +108,14 @@ async function testBackfillDoesntClobberConcurrentPatch() {
   console.log("\nTest 3: a patch that lands BEFORE a same-row backfill rebake survives it");
   resetDb();
   // The lock guarantees ordering (no corrupted interleaved read/write) --
-  // it does NOT make rebake() merge fields it doesn't know about (see the
-  // NOTE on patchEntryMeta and on this file's backfill lock comment). So
-  // this test only asserts the half that's actually guaranteed: a patch
-  // that completes first is visible to the backfill's own fresh re-read,
-  // and the backfill's resolution still lands correctly on top of it.
+  // that's this test's actual subject. Whether rebake() also PRESERVES a
+  // patch-only field it doesn't otherwise know about (manualMapPosition)
+  // used to be a separate, documented gap (see the old NOTE on
+  // patchEntryMeta) -- saveLocationEntry() (lib/fileWriter.js) now reads
+  // the existing row and carries that field forward itself, closing it.
+  // See scripts/testPatchOnlyFieldsSurviveRebake.js for the dedicated
+  // regression coverage of that fix; this test still checks both halves
+  // together since they're both exercised by the same call sequence.
   seedEntry("locations", {
     id: "signal-tower",
     name: "Signal Tower",
@@ -128,10 +131,7 @@ async function testBackfillDoesntClobberConcurrentPatch() {
 
   const entry = await getEntry(WORLD, "locations", "signal-tower");
   check("backfill resolved the reference", entry.raw.notableNpcs[0].toId === "odalys-kess");
-  // Documents the known, separate gap called out in patchEntryMeta's NOTE --
-  // not something this lock fixes, just pinning today's actual behavior so
-  // a future change to how rebake() writes doesn't silently go unnoticed.
-  check("KNOWN GAP: rebake still drops the earlier patch-only field (manualMapPosition)", entry.manualMapPosition === undefined);
+  check("rebake preserves the earlier patch-only field (manualMapPosition)", entry.manualMapPosition && entry.manualMapPosition.x === 5, JSON.stringify(entry.manualMapPosition));
 }
 
 async function main() {

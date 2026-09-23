@@ -13,13 +13,36 @@ const router = express.Router();
 // regardless of category, same convention as world_bible_sections.json's
 // core:true sections). Mirrors loreParsing.js's TOPIC_CATEGORY_MAP but
 // hardcoded here since we control the generated schema directly.
+//
+// "spells" was missing from every entry below even though
+// routes/generateSpell.js has called getLoreContext(worldId, { category:
+// "spells" }) since 5e-ruleset support shipped -- this list was written
+// before Spells existed as a category and never revisited, the same
+// category-list-drift bug class already fixed for routes/export.js's
+// VALID_CATEGORIES, lib/pdfExport.js's CATEGORY_ORDER, and (for the
+// import-lore path specifically) lib/loreParsing.js's ALL_CATEGORIES.
+// Since lib/loreContext.js#getRelevantLoreSections only includes a
+// non-core section when its categoryTags include the requested category,
+// a wizard-generated (not imported) lore doc's Resources/Culture/History
+// sections -- and technologyOrSupernatural especially, whose own "magic"
+// framing is the single most Spell-relevant section in this schema --
+// silently never reached a Spell generation prompt for any 5e-ruleset
+// world. geography (core, so it doesn't affect filtering) also gets
+// "spells" added for display accuracy, matching the other core entry's
+// treatment in the analogous locations fix.
+//
+// "locations" was missing from every non-core entry's categoryTags too,
+// fixed independently (hopeful-rubin-fe49ni) -- same bug, same shape: a
+// Location generation never got grounded in Resources/Culture/
+// Technology/History lore since nothing ever tagged a section
+// "locations". Both fixes kept here as a union.
 const GENERATED_SECTION_META = {
-  geography: { title: "Geography", categoryTags: ["factions", "npcs", "enemies", "classes", "items", "logs", "survivors"], core: true },
+  geography: { title: "Geography", categoryTags: ["factions", "npcs", "enemies", "classes", "items", "logs", "survivors", "spells", "locations"], core: true },
   peoples: { title: "Peoples", categoryTags: ["npcs", "survivors", "enemies"], core: true },
-  resources: { title: "Resources", categoryTags: ["factions", "items"], core: false },
-  culture: { title: "Culture", categoryTags: ["npcs", "survivors", "factions"], core: false },
-  technologyOrSupernatural: { title: "Technology / Supernatural System", categoryTags: ["items", "classes", "enemies"], core: false },
-  history: { title: "History", categoryTags: ["factions", "npcs"], core: false }
+  resources: { title: "Resources", categoryTags: ["factions", "items", "spells", "locations"], core: false },
+  culture: { title: "Culture", categoryTags: ["npcs", "survivors", "factions", "spells", "locations"], core: false },
+  technologyOrSupernatural: { title: "Technology / Supernatural System", categoryTags: ["items", "classes", "enemies", "spells", "locations"], core: false },
+  history: { title: "History", categoryTags: ["factions", "npcs", "spells", "locations"], core: false }
 };
 
 router.get("/wizard/lore", async (req, res) => {
@@ -111,4 +134,11 @@ router.post("/wizard/save-lore-sections", async (req, res) => {
   }
 });
 
+// Exported alongside the router (harmless -- Express routers are plain
+// functions, so attaching a property doesn't change how server.js mounts
+// this file) purely so scripts/testWizardLoreSpellsCategoryTag.js and
+// scripts/testLocationLoreGrounding.js can assert against the real object
+// instead of duplicating it -- this constant is exactly the kind of
+// drift-prone data those regression tests exist to catch.
 module.exports = router;
+module.exports.GENERATED_SECTION_META = GENERATED_SECTION_META;

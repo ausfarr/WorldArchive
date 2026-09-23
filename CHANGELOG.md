@@ -21,6 +21,368 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Backlog reconciliation (2026-09-23): 12 fix branches from the
+  unattended Sept 1-21 scheduled runs merged together.** The entries
+  below were each written against a `main` that never saw the others, so
+  two pairs needed real reconciliation rather than a plain merge:
+  `findOrCreatePendingUpdate()`'s lock (dedupe race fix) and
+  `updatePendingUpdate()`'s refresh-in-place (stale-suggestion fix) were
+  built in parallel against the same unlocked find-then-create step --
+  each would have silently undone the other as written, so the refresh
+  now happens *inside* the lock (new Tests 3-4 in
+  `scripts/testPendingUpdateDedupeRace.js` cover the concurrent-revised-
+  confirm case neither branch tested, and fail against either fix
+  alone). And the two independent lore category-drift fixes (imported
+  World Bible -> Locations/Spells; Location grounding on non-core
+  sections) were merged as a union in both `lib/loreParsing.js` and
+  `routes/wizardLore.js`, so Locations and Spells each get tagged on
+  every relevant section instead of whichever branch landed last.
+  APP_VERSION bumped to v1.3 once for the batch (render.js changed).
+
+- **Fix: "Delete World" left three tables behind, so a fresh world (same
+  `world_id`) could still show old Timeline events, stale Suggested
+  Updates, and old Calendar dates from the world it was supposed to
+  replace.** `routes/deleteWorld.js` deliberately keeps the user's
+  `worlds` row intact ("start over, not delete the account" -- Austin's
+  call), so every world-scoped table's `world_id ... on delete cascade`
+  FK never fires; the route already knew this and explicitly deletes
+  `campaign_modules`/`campaign_arcs` for exactly that reason, but
+  `timeline_events` (Phase 6), `pending_entry_updates` (Phase 7), and
+  `calendar_notable_dates` (Phase 8) -- all added to the schema after
+  that comment was written -- never got the same treatment. Added
+  `deleteAllTimelineEvents`/`deleteAllPendingUpdates`/
+  `deleteAllNotableDates` to their respective repo files and wired them
+  into `POST /world/delete`, matching the existing Quest/Campaign
+  pattern exactly. New `scripts/testDeleteWorldTableCoverage.js` --
+  verified it fails against the pre-fix code (all three tables' rows
+  survive) and passes against the fix; `testPipeline.js`,
+  `testEnemyPipeline.js`, `testEntryDriftSuggestions.js`,
+  `testCampaignStructureRaces.js`, `testSessionAssembly.js`,
+  `testTimelineEvents.js`, `testTimelineEntryDateEvents.js`,
+  `testCalendar.js`, `testCalendarPage.js`, `testEntryLinker.js`,
+  `testEntryMetaPatchRace.js`, and `testSessionPrepDates.js` still pass
+  unchanged.
+
+- **Fix: two faction-identity bugs -- ghost-placeholder factions leaking
+  into generation prompts as real choices, and a faction's real Roundup-
+  matching key getting silently overwritten by its dossier slug during
+  reciprocal-relationship sync.** `lib/roster.js#readFactionManifest()`
+  was the one `readXManifest()` in that file with no `locked` option to
+  even pass, so `lib/worldFlavor.js#getFactionOptions()` -- which feeds
+  the "pick one of these faction ids" enum into nearly every content-
+  generation prompt in the app (NPCs, enemies, items, locations, classes,
+  survivors, logs, spells, procedural faction-picking) -- always included
+  locked ghost-placeholder factions (`lib/entryLinker.js#ensureGhostPlaceholder()`
+  auto-creates one the moment any other generated entry name-references a
+  faction that doesn't exist yet). A generation could get told an empty,
+  never-generated faction stub was available and pick it, directly
+  contradicting `getFactionOptions()`'s own header comment. Same root
+  cause as the two locked-ghost-leak bugs already fixed for PDF export --
+  this was the one place still missing it. Separately,
+  `lib/factionDeepLore.js#syncReciprocalRelationships()` wrote
+  `factionKey: target.id` (the dossier slug) onto the faction it was
+  splicing a reciprocal relationship into, instead of `target.faction ||
+  target.id` (the real Roundup-matching key) -- the fallback every other
+  faction-key computation in that same file already uses. For any world
+  where those two values differ (a real, documented case for Austin's
+  migrated Echoes world: `ferro_kings` matching key vs. `the-ferro-kings`
+  slug), regenerating/confirming any faction with a relationship pointing
+  at such a faction silently corrupted the target's matching key --
+  the save succeeds with no error, but every entry already tagged with
+  the real key instantly drops out of that faction's Roundup and out of
+  faction-grounded generation context. New
+  `scripts/testFactionOptionsLockedFilter.js` and
+  `scripts/testSyncReciprocalRelationshipsFactionKey.js` -- both verified
+  to fail against the pre-fix code and pass against the fix; full existing
+  offline suite (`testPipeline.js`, `testEnemyPipeline.js`,
+  `testPdfExportLockedFilter.js`, `testEntryLinker.js`,
+  `testCampaignStructureRaces.js`, `testProceduralRulesetGenerators.js`,
+  and every other `scripts/test*.js`) still passes unchanged. See
+  `session_addendum_faction_identity_leak_fixes_shipped.md`.
+
+- **Fix: wizard-generated (not imported) lore never grounded Spell
+  generation -- another instance of the category-list-drift bug class
+  already fixed for PDF export/World Status Panel/Location generation.**
+  `routes/wizardLore.js`'s `GENERATED_SECTION_META` (the table deciding
+  which `categoryTags` a wizard-generated-fresh lore section gets) never
+  listed `"spells"` anywhere, even though `routes/generateSpell.js` grounds
+  itself via `getLoreContext(worldId, { category: "spells" })` for every
+  5e-ruleset world. Since `lib/loreContext.js#getRelevantLoreSections` only
+  includes a non-core section when its `categoryTags` include the requested
+  category, a wizard-generated Resources/Culture/History section -- and
+  `technologyOrSupernatural` especially, whose own "magic" framing is the
+  single most Spell-relevant section in the schema -- silently never
+  reached a Spell generation prompt. Added `"spells"` to `resources`,
+  `culture`, `technologyOrSupernatural`, and `history`'s `categoryTags`
+  (plus `geography`, core, for display accuracy). This is the
+  generate-fresh counterpart to the *imported*-lore fix already open
+  against `lib/loreParsing.js` -- that file's `ALL_CATEGORIES` already
+  covers the import path for both Locations and Spells; this fixes the
+  other lore path for Spells specifically, the one gap neither of the two
+  open Locations-lore-grounding PRs touched. New
+  `scripts/testWizardLoreSpellsCategoryTag.js` -- verified it fails against
+  the pre-fix code (`GENERATED_SECTION_META` wasn't exported yet, so the
+  import crashes) and passes against the fix; full existing offline suite
+  (every `scripts/test*.js` except `testTenantIsolation.js`) still passes
+  unchanged. `npm start` boots cleanly. No UI-visible change (prompt-
+  grounding data only), so no `bump-cache-version.js` run needed.
+
+- **Fix: regenerating a Location or a Faction's Deep Lore (or an
+  entryLinker.js backfill rebake landing on either) silently deleted a
+  baked battle map, a dragged map pin, or a faction's AI-generated
+  banner.** `saveLocationEntry()`/`saveFactionEntry()` (`lib/fileWriter.js`)
+  each do a full `raw_json` overwrite built from that category's own
+  content object -- but `dungeonMap` (routes/dungeonMap.js's baked battle
+  map, real Gemini image spend) and `manualMapPosition` (routes/entries.js's
+  dragged world-map pin) live on Locations, and `bannerImageUrl`
+  (routes/worldArt.js's AI-generated faction banner) lives on Factions,
+  entirely outside those content objects -- all three are written via
+  `patchEntryMeta()` instead. `saveFactionEntry()` already carried
+  `accentColor` forward the same way for the same reason; this was a
+  documented, known-but-unfixed gap for the other three (see
+  `entriesRepo.js#patchEntryMeta()`'s and `entryLinker.js`'s own NOTE
+  comments) -- every Location regenerate-confirm or backfill rebake wiped
+  its map bake/pin, and every Faction Deep Lore regenerate wiped its
+  banner. Both writers now read the existing row first and carry these
+  fields forward, mirroring the `accentColor` precedent exactly. New
+  `scripts/testPatchOnlyFieldsSurviveRebake.js` -- verified it fails
+  against the pre-fix code (5 failing checks) and passes against the fix;
+  updated `scripts/testEntryMetaPatchRace.js`'s Test 3, which had
+  previously pinned the old buggy behavior as an explicit "KNOWN GAP"
+  assertion, to expect the now-fixed behavior instead; full existing
+  suite (`testPipeline.js`, `testEnemyPipeline.js`, `testEntryLinker.js`,
+  `testCampaignStructureRaces.js`, `testEntryDriftSuggestions.js`,
+  `testSessionAssembly.js`) still passes unchanged.
+
+- **Feature: Session Chronicle's implied-update suggestions now cover
+  Locations, not just NPCs/Factions/Survivors/Items.** A Chronicle
+  (`prompts/sessionChroniclePrompt.js`) already had the whole Quest/
+  Campaign roster in context -- Locations included, since it's one of
+  the 5 core Quest-slot categories -- and the downstream regenerate/
+  status_flip machinery (`routes/pendingUpdates.js`,
+  `archive/js/render.js`'s `REGENERATE_ENDPOINTS`) was already fully
+  generic per category. `lib/sessionChronicleSuggestions.js`'s
+  `VALID_CATEGORIES` whitelist was the only thing stopping a session
+  recap that implies "the outpost was destroyed" or "the hideout was
+  discovered" from surfacing a Suggested Update the same way an NPC
+  dying or a faction losing territory already did. Added `locations`
+  to that whitelist and to the prompt's `impliedUpdates` schema/
+  instructions. Purely additive -- no schema, template, or UI change
+  needed since every layer downstream was category-agnostic already.
+
+- **Fix: `lib/logDateSuggestions.js` and `lib/sessionChronicleSuggestions.js`
+  had the same check-then-act race already fixed elsewhere for Campaign
+  Arc/Quest cleanup, entry metadata patches, and Suggested Updates
+  apply/dismiss.** Both call the shared dedup guard in
+  `lib/pendingEntryUpdatesRepo.js` (`findExistingUpdate` + `createPendingUpdate`,
+  keyed on `source`/entry/category/suggestionType) before writing a new
+  `pending_entry_updates` row -- it's what stops a regenerate-confirm of
+  the same Log/Chronicle from inserting a fresh near-identical suggestion
+  on every confirm, not just the first. But the check and the write were
+  two separate, unguarded steps: two confirms of the same Log/Chronicle
+  landing close together (a double-click on Confirm, or the same dossier
+  open in two tabs) could each run the existence check before either
+  insert landed, both see "no existing row," and both insert -- leaving
+  the DM two near-identical suggestions for the same fact to dismiss/apply
+  separately instead of one. Fixed by adding
+  `pendingEntryUpdatesRepo.js#findOrCreatePendingUpdate()`, which wraps
+  the check and the insert in one `lib/asyncLock.js` lock (same in-process
+  pattern as the other fixes in this family) keyed on the same
+  (world, source, entry, category, suggestionType) tuple the dedup check
+  already uses -- the second caller's own existence check, re-run inside
+  the lock after the first caller's insert has landed, now sees that row
+  and skips the insert instead of racing it. Both call sites now go
+  through it instead of calling `findExistingUpdate`/`createPendingUpdate`
+  directly. New `scripts/testPendingUpdateDedupeRace.js` -- verified it
+  fails against the pre-fix code (2 duplicate rows in both the Log-date
+  and Chronicle-implied-update paths) and passes against the fix;
+  `testEntryDriftSuggestions.js`, `testPipeline.js`, `testEnemyPipeline.js`,
+  `testCampaignStructureRaces.js`, `testEntryMetaPatchRace.js`,
+  `testEntryLinker.js`, and `testSessionAssembly.js` still pass unchanged.
+
+- **Fix: a regenerated Session Chronicle or Log that revised its underlying
+  facts (not just wording) left its Suggested Updates queue entry stale
+  forever instead of refreshing it.** `findExistingUpdate()`
+  (`lib/pendingEntryUpdatesRepo.js`) -- the dedup guard both
+  `lib/sessionChronicleSuggestions.js` and `lib/logDateSuggestions.js` call
+  on every regenerate-confirm of the same Chronicle/Log -- only ever
+  matched on `(source, entryId, category, suggestionType)`, never compared
+  the proposed content itself. A DM confirming a Chronicle that flips an
+  NPC to "wounded", then regenerating it with corrected notes that actually
+  flip the NPC to "dead," saw the suggestion queue keep showing "wounded"
+  indefinitely -- applying it later would have written the wrong status.
+  Same shape of gap in `logDateSuggestions.js` for a Log's resolved-date
+  suggestion. Fixed with a new `updatePendingUpdate()` -- when a still-
+  PENDING row already exists for that tuple and its `deltaText`/`payload`
+  has actually changed, it's refreshed in place instead of silently
+  skipped; an already-applied/dismissed row is left untouched either way
+  (the DM already acted on it), matching the dedup guard's existing "any
+  status" matching. New Tests 10/11 in
+  `scripts/testEntryDriftSuggestions.js` -- verified both the refresh-in-
+  place case and the leave-applied-rows-alone case; the full existing
+  suite (`testPipeline.js`, `testEnemyPipeline.js`, `testEntryLinker.js`,
+  `testCampaignStructureRaces.js`, `testSessionAssembly.js`,
+  `testEntryMetaPatchRace.js`, `testPdfExportCategoryCoverage.js`,
+  `testPdfExportLockedFilter.js`) still passes unchanged. See
+  `session_addendum_stale_suggestion_refresh_shipped.md`.
+
+- **Fix: imported World Bible lore never grounded Location or Spell
+  generation -- same category-list drift bug as the PDF export fix below,
+  in a different file.** `lib/loreParsing.js`'s `ALL_CATEGORIES` (the
+  Wizard's "import an existing doc" category-tagging list, used both as
+  the "unmatched section title" fallback and inside several
+  `TOPIC_CATEGORY_MAP` keyword rows) was missing `"locations"` and
+  `"spells"` entirely -- both real generator categories that call
+  `getLoreContext(worldId, { category })` (`routes/generateLocation.js`,
+  `routes/generateSpell.js`), just added after this file was written.
+  Since `lib/loreContext.js`'s `getRelevantLoreSections()` only includes a
+  non-core section when its `categoryTags` include the requested category,
+  every non-core section of an uploaded World Bible -- resource/economy,
+  culture, history, faction/politics, and (for Spells specifically) the
+  `technolog|magic|supernatural|power system` row, whose own "magic"
+  keyword is the single most relevant signal for Spell grounding -- was
+  silently invisible to both categories; only the three `core: true` rows
+  (geography/overview/glossary) got through, since core sections bypass
+  category filtering entirely. Fixed by bringing `ALL_CATEGORIES` in line
+  with `lib/entryLinker.js`'s own canonical `ALL_CATEGORIES` (which was
+  already correct) and adding `"spells"` to the magic/technology row. New
+  `scripts/testLoreCategoryTagCoverage.js` -- verified it fails against
+  the pre-fix code (7 failing checks) and passes against the fix; full
+  existing suite still passes unchanged.
+
+- **Fix: Location generation never grounded on History, Faction/Politics,
+  Culture, Resources, or Technology/Magic lore -- only ever saw the
+  handful of "core" sections.** Same category-list-drift bug class as the
+  PDF export, World Status Panel, and Spell roster-cap fixes elsewhere in
+  this file: `routes/generateLocation.js` grounds itself via
+  `getLoreContext(worldId, { category: "locations" })`, but neither of
+  the two hand-maintained lists that decide which non-core lore sections
+  get tagged `category: "locations"` (`lib/loreParsing.js`'s
+  `ALL_CATEGORIES`/`TOPIC_CATEGORY_MAP`, used when a DM imports an
+  existing lore doc; `routes/wizardLore.js`'s `GENERATED_SECTION_META`,
+  used when the wizard generates lore fresh) had ever been updated to
+  include it. `lib/loreContext.js#getRelevantLoreSections` only includes
+  a non-core section when its `category_tags` includes the requested
+  category, so a Location entry could only ever ground on `core:true`
+  sections (Overview/Geography/Peoples/Glossary) -- a lore doc's
+  History/Founding, Faction/Politics, Culture, Resources, and
+  Technology/Magic sections silently never reached a Location generation
+  prompt, for every world, on both the generate-fresh and import-a-doc
+  paths. Fixed by adding `"locations"` to both lists' relevant entries.
+  Full detail in `session_addendum_location_lore_grounding_shipped.md`.
+  New `scripts/testLocationLoreGrounding.js` -- verified it fails against
+  the pre-fix code (both the direct category-tag assertions and a hard
+  crash importing the now-exported `GENERATED_SECTION_META`, which didn't
+  exist as an export pre-fix) and passes against the fix; full existing
+  offline suite (every `scripts/test*.js` except `testTenantIsolation.js`)
+  still passes unchanged. `npm start` boots cleanly.
+
+- **Cost: homebrew Spell generation's roster context was the one category
+  that never got the MAX_FULL_ROSTER_LINES cap.** `routes/generateSpell.js`
+  built its roster-overlap context inline with a raw, uncapped
+  `listEntries(worldId, "spells")` map/join instead of going through
+  `lib/roster.js` like every sibling category (NPCs, Enemies, Items,
+  Classes, Survivors, Logs, Locations) -- a leftover from Spells being a
+  brand-new category (multi-ruleset genericization, Phase 4) with no
+  established roster-builder pattern to copy at the time. That meant a
+  world's homebrew Spell generation was the one prompt whose cost grew
+  unboundedly with its own history instead of being bounded at 60 entries
+  like everything else (see `lib/roster.js`'s header comment on why that
+  cap exists -- a category's roster context alone crosses 100% of a
+  typical generation call's cost around ~390 entries without it). Added
+  `buildSpellRosterContext()`/`readSpellManifest()` to `lib/roster.js`
+  (same `splitRosterForCap()`/`plainOverflowNote()` shape as
+  Classes/Survivors/Logs) and routed `generateSpell.js`'s homebrew path
+  through it. New `scripts/testSpellRosterCap.js` -- verified it fails
+  against the pre-fix code (the function it tests didn't exist yet) and
+  passes against the fix, covering the empty-world fallback, under-cap
+  (all listed), and over-cap (75 seeded spells -> capped at 60 lines +
+  overflow note) cases; full existing offline suite
+  (`testPipeline.js`, `testEnemyPipeline.js`, `testEntryLinker.js`,
+  `testCampaignStructureRaces.js`, `testEntryDriftSuggestions.js`,
+  `testSessionAssembly.js`, `testPdfExportCategoryCoverage.js`,
+  `testPdfExportLockedFilter.js`, `testEntryMetaPatchRace.js`, and every
+  other `scripts/test*.js` except `testTenantIsolation.js`) still passes
+  unchanged.
+
+- **Fix: `worldConfigRepo.js#saveDraftStep()` had the same unguarded
+  check-then-act race already fixed for `patchEntryMeta()`/entry-linker
+  rebake and the Campaign Arc/Quest cleanup helpers.** `routes/wizard.js`'s
+  `POST /wizard/save-draft` autosaves on every field blur/change (not
+  debounced or serialized client-side) -- tabbing through several fields on
+  one wizard step fires several `saveDraftStep()` calls back to back.
+  Each one read `world_config.draft_json`, shallow-merged its own field
+  into a JS copy, and wrote the whole column back with a plain `.update()`,
+  no lock -- two calls landing close together could both read the same
+  pre-write `draft_json` and each write back a merge that silently drops
+  the other's field (and since every step's fields live in the same
+  `draft_json` column, this could clobber across steps too, not just
+  within one). Now wrapped in `lib/asyncLock.js`'s `withLock()`, keyed
+  `wizard-draft:${worldId}`, same pattern as the other three fixes. New
+  `scripts/testWizardDraftSaveRace.js` -- verified it fails against the
+  pre-fix code (two of three checks) and passes against the fix; full
+  existing suite (`testPipeline.js`, `testEnemyPipeline.js`,
+  `testEntryDriftSuggestions.js`, `testCampaignStructureRaces.js`,
+  `testSessionAssembly.js`, `testEntryMetaPatchRace.js`, `testEntryLinker.js`,
+  `testPdfExportCategoryCoverage.js`, `testPdfExportLockedFilter.js`) still
+  passes unchanged.
+
+- **Fix (v1.3): the homepage World Status Panel silently broke for every
+  5e-ruleset world once Spells shipped -- same category-list-drift bug
+  class as the PDF export and World Bible lore fixes below, this time in
+  `archive/js/render.js`.** `renderWorldStatusPanel()`'s `CATEGORY_TARGETS`
+  object (the per-category "what counts as a decent start" denominator
+  for the progress bar) was never given a `spells` entry, so
+  `Math.min(count / CATEGORY_TARGETS["spells"], 1)` computed as
+  `Math.min(count / undefined, 1)` = `NaN` for that row. One `NaN` in the
+  per-category list poisons `overallPct` (a plain sum/divide across every
+  row), which broke two things on every affected homepage at once: the
+  progress bar rendered an invalid `width:NaN%` (silently dropped by the
+  browser, so the bar looked permanently stuck), and the `overallPct >= 1`
+  "World fully archived — nice." congratulations state could never
+  trigger again, since a `NaN` comparison is always `false`. Non-5e
+  (Echoes/generic) worlds were unaffected -- their `category_config_json`
+  already marks `spells.enabled: false` (see `archive/wizard-categories.html`),
+  which excludes the row entirely -- but any 5e-ruleset world hit this on
+  every single homepage load. Fixed by adding `spells: 3` to
+  `CATEGORY_TARGETS`, matching the target already used for the other
+  single-entity-at-a-time categories (Items/NPCs/Enemies/Survivors/Logs).
+  New `scripts/testWorldStatusPanelCategoryTargets.js` -- loads the real
+  `archive/js/render.js` into a Node `vm` context (a minimal `document`/
+  `localStorage` stub, since this file has no module.exports or existing
+  Node test harness) and calls `renderWorldStatusPanel()` for real;
+  verified it fails against the pre-fix code (NaN in the rendered HTML,
+  "fully archived" state unreachable) and passes against the fix. Full
+  existing offline suite (every `scripts/test*.js` except
+  `testTenantIsolation.js`) still passes unchanged; `npm start` boots
+  cleanly. Not click-through-verified in an actual browser this session
+  (no live Supabase-backed 5e world available here) -- worth a real
+  homepage check on a 5e-ruleset world next session that has one.
+
+- **Fix: "Delete World" left three tables behind, so a fresh world (same
+  `world_id`) could still show old Timeline events, stale Suggested
+  Updates, and old Calendar dates from the world it was supposed to
+  replace.** `routes/deleteWorld.js` deliberately keeps the user's
+  `worlds` row intact ("start over, not delete the account" -- Austin's
+  call), so every world-scoped table's `world_id ... on delete cascade`
+  FK never fires; the route already knew this and explicitly deletes
+  `campaign_modules`/`campaign_arcs` for exactly that reason, but
+  `timeline_events` (Phase 6), `pending_entry_updates` (Phase 7), and
+  `calendar_notable_dates` (Phase 8) -- all added to the schema after
+  that comment was written -- never got the same treatment. Added
+  `deleteAllTimelineEvents`/`deleteAllPendingUpdates`/
+  `deleteAllNotableDates` to their respective repo files and wired them
+  into `POST /world/delete`, matching the existing Quest/Campaign
+  pattern exactly. New `scripts/testDeleteWorldTableCoverage.js` --
+  verified it fails against the pre-fix code (all three tables' rows
+  survive) and passes against the fix; `testPipeline.js`,
+  `testEnemyPipeline.js`, `testEntryDriftSuggestions.js`,
+  `testCampaignStructureRaces.js`, `testSessionAssembly.js`,
+  `testTimelineEvents.js`, `testTimelineEntryDateEvents.js`,
+  `testCalendar.js`, `testCalendarPage.js`, `testEntryLinker.js`,
+  `testEntryMetaPatchRace.js`, and `testSessionPrepDates.js` still pass
+  unchanged.
+
 - **New: "Download as VTT Token" button on any dossier page with a
   generated/uploaded portrait.** Client-side only (canvas crop + a border
   ring in the entry's own faction accent color, no server route, no AI
