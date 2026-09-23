@@ -622,6 +622,27 @@ a.graph-node:hover text {
   fill: var(--bg-void);
 }
 
+/* Stance legend for faction-to-faction edges (render.js#STANCE_BUCKETS) --
+   only rendered when at least one colored edge is actually drawn. */
+.graph-stance-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+  margin: 8px 0 0;
+}
+
+.graph-stance-legend i {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 .graph-truncated-note {
   text-align: center;
   font-family: var(--font-mono);

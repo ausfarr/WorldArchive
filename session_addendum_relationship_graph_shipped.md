@@ -146,3 +146,31 @@ verification pass.
   re-syncs them again later if the target is renamed), and the edge
   count per entry is small in practice (single digits to low teens), so
   correctness was judged worth more than the extra round-trips here.
+
+## Follow-up (2026-09-23): stance-colored faction edges
+
+Merged to `main` 2026-09-23 as part of the Sept 1-21 backlog reconciliation.
+A second, independent implementation existed on `claude/hopeful-rubin-2p5a67`
+(Sept 3): a faction-only graph server-rendered into the faction template
+(`lib/factionTemplate.js#buildRelationshipGraphSvg`). This general version was
+kept -- every category, real route, async client render -- and that branch was
+closed as superseded. The one idea worth keeping from it was coloring faction
+relationships by stance, now in `archive/js/render.js`:
+
+- `STANCE_BUCKETS` / `stanceBucket()` bucket a free-text stance by keyword into
+  hostile (`--neon-primary`), strained (amber), or allied (`--neon-cyan`);
+  anything else keeps the generic edge style. Checked in that order, so hedged
+  phrasing ("uneasy alliance") reads as strained, not friendly.
+- Two false positives in the original regexes are fixed with whole-word
+  matching: bare `war` matched "wary", bare `ally` matched "formally" /
+  "mutually".
+- Only faction<->faction lines are colored (the only edge kind whose label is a
+  stance). When both factions list a stance toward each other the line takes
+  the more severe one (`mostSevereStanceBucket()`).
+- A small legend renders under the graph only when a colored line is drawn.
+- `scripts/testRelationshipGraphStanceColors.js` pins the buckets, the two
+  regex fixes, and the end-to-end render (loads the real render.js in a vm).
+
+Known cosmetic follow-up, not addressed here: node names sit below each node,
+so on nodes in the top half of the circle the edge line crosses the name text.
+

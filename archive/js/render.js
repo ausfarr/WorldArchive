@@ -2868,6 +2868,41 @@ function renderDossier(entry, factionLookup) {
 // of the dossier page from rendering.
 const RELATIONSHIP_GRAPH_MAX_NODES = 20;
 
+// Faction <-> faction edges are the one kind whose label carries real
+// sentiment (a faction relationship's free-text `stance` -- "Open war",
+// "Uneasy alliance", "Trade partner"; there's no fixed enum, see
+// prompts/factionContentPrompt.js), so those get colored by it instead of
+// the generic edge style. Ported from the faction-only graph built
+// independently in claude/hopeful-rubin-2p5a67 (superseded by this
+// general one), with two keyword fixes: its hostile bucket matched bare
+// "war" (so "Wary neutrality" read as open war) and its ally bucket bare
+// "ally" (so "Formally neutral" read as allied) -- both now whole-word.
+// Order matters: hostile is checked before strained before allied, so
+// hedged phrasing like "uneasy alliance" reads as strained, not friendly.
+const STANCE_BUCKETS = [
+  { key: "hostile", label: "Hostile", color: "var(--neon-primary)", re: /\bwars?\b|warfare|at war|hostil|enem|invas|conflict|threat/ },
+  { key: "strained", label: "Strained", color: "#e0a83c", re: /rival|tension|uneasy|distrust|\bwary\b|suspicio|strain/ },
+  { key: "allied", label: "Allied", color: "var(--neon-cyan)", re: /\ball(y|ies|ied)\b|allian|partner|friend|trade|cooperat|support/ }
+];
+
+function stanceBucket(stance) {
+  const s = String(stance || "").toLowerCase();
+  return STANCE_BUCKETS.find((b) => b.re.test(s)) || null;
+}
+
+// Both factions can list a stance toward each other (two edges, one line
+// in this layout) -- the line takes the more severe of the two, since
+// "they consider us an enemy" matters more than "we consider them a
+// trade partner" when reading the graph at a glance.
+function mostSevereStanceBucket(labels) {
+  let best = null;
+  labels.forEach((label) => {
+    const b = stanceBucket(label);
+    if (b && (!best || STANCE_BUCKETS.indexOf(b) < STANCE_BUCKETS.indexOf(best))) best = b;
+  });
+  return best;
+}
+
 async function renderRelationshipGraph(entry) {
   const host = document.getElementById("relationship-graph-zone");
   if (!host) return;
@@ -2931,14 +2966,26 @@ async function renderRelationshipGraph(entry) {
     };
   });
 
+  const usedStances = new Set();
   const linesHtml = placed.map((p) => {
     const lineX = cx + (radius - nodeR - 4) * Math.cos(p.angle);
     const lineY = cy + (radius - nodeR - 4) * Math.sin(p.angle);
     const startX = cx + (centerR + 4) * Math.cos(p.angle);
     const startY = cy + (centerR + 4) * Math.sin(p.angle);
     const pointsAtCenter = (edgesByOther.get(p.key) || []).some((e) => e.to === graph.center);
-    return `<line x1="${startX}" y1="${startY}" x2="${lineX}" y2="${lineY}" class="graph-edge${pointsAtCenter ? "" : " graph-edge-outgoing"}"></line>`;
+    const stance = entry.category === "factions" && p.node.category === "factions"
+      ? mostSevereStanceBucket((edgesByOther.get(p.key) || []).map((e) => e.label))
+      : null;
+    if (stance) usedStances.add(stance);
+    const stanceAttr = stance ? ` style="stroke:${stance.color};opacity:0.9;stroke-width:2"` : "";
+    return `<line x1="${startX}" y1="${startY}" x2="${lineX}" y2="${lineY}" class="graph-edge${pointsAtCenter ? "" : " graph-edge-outgoing"}"${stanceAttr}></line>`;
   }).join("");
+
+  // Legend only for the buckets actually drawn -- a graph with no
+  // faction-to-faction edges (every non-faction dossier) shows none.
+  const legendHtml = usedStances.size
+    ? `<p class="graph-stance-legend">${STANCE_BUCKETS.filter((b) => usedStances.has(b)).map((b) => `<span><i style="background:${b.color}"></i>${b.label}</span>`).join("")}</p>`
+    : "";
 
   const nodesHtml = placed.map((p) => {
     const edges = edgesByOther.get(p.key) || [];
@@ -2964,6 +3011,7 @@ async function renderRelationshipGraph(entry) {
       </g>
       ${nodesHtml}
     </svg>
+    ${legendHtml}
     ${truncated ? `<p class="graph-truncated-note">Showing ${RELATIONSHIP_GRAPH_MAX_NODES} of ${allNodes.length} connections.</p>` : ""}
   `;
 }

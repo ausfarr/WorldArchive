@@ -34,8 +34,14 @@ entry from here forward gets both a real date and a version at write time.
   change, no AI calls, pure presentation over data that was already
   there. Hand-rolled SVG radial layout in `archive/js/render.js`
   (`renderRelationshipGraph()`), matching this codebase's no-build-step,
-  no-new-dependency convention. `v1.3` cache-version bump (UI-affecting).
-  New `scripts/testRelationshipGraph.js`. See
+  no-new-dependency convention. Faction-to-faction edges are colored by
+  their free-text `stance` (hostile / strained / allied / other, with a
+  legend) -- `stanceGraphColor()`'s idea ported from the faction-only graph
+  built independently on `claude/hopeful-rubin-2p5a67` (superseded by this
+  general version and closed), with two keyword false positives fixed
+  ("wary" no longer reads as war, "formally" no longer as allied). `v1.4`
+  cache-version bump (UI-affecting). New `scripts/testRelationshipGraph.js`
+  and `scripts/testRelationshipGraphStanceColors.js`. See
   `session_addendum_relationship_graph_shipped.md`.
 
 - **Backlog reconciliation (2026-09-23): 12 fix branches from the
