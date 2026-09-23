@@ -2850,10 +2850,10 @@ function renderDossier(entry, factionLookup) {
   wireEntryExportButton(entry);
   renderLocationBattleMap(entry);
   renderRelationshipGraph(entry);
-  // portraitActions.js -- wires a "Download VTT Token" button onto this
-  // entry's portrait once it finishes loading (no-op for categories with
-  // no portrait, since #portrait-img-<id> won't exist).
-  if (typeof wirePortraitTokenButton === "function") wirePortraitTokenButton(entry.id);
+  // tokenMaker.js -- wires the "Make VTT Token" button onto this entry's
+  // portrait once it finishes loading (no-op for categories with no
+  // portrait, since #portrait-img-<id> won't exist).
+  if (typeof wireTokenMakerButton === "function") wireTokenMakerButton(entry.id);
 }
 
 // Relationship graph panel -- GET /api/entries/:category/:id/graph

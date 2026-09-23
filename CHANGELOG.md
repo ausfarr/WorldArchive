@@ -21,6 +21,18 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **VTT Token Maker: one combined tool replaces the one-click "Download as
+  VTT Token" button.** The dossier's "Make VTT Token" button opens a modal with
+  four shapes (circle, rounded square, hex, shield), interactive pan and zoom
+  to frame the face, and a border ring (on/off, defaulting to the entry's
+  faction accent, with a color picker). The PNG is exported at 512px, entirely
+  client-side with no AI spend. Built from three independent builds of the
+  same feature (`main`'s original button,
+  `claude/hopeful-rubin-fv5rv4`, `claude/hopeful-rubin-w83u0u`); neither
+  branch was merged verbatim. See `session_addendum_vtt_token_maker_shipped.md`
+  for what came from each. `v1.5` cache-version bump; `tokenMaker` added to
+  `scripts/bump-cache-version.js`.
+
 - **New: "Relationships" panel on every dossier page -- a one-hop visual
   graph of an entry's cross-links (who it references, and who references
   it back), not just prose.** Closes a repeatedly-flagged marketing gap
