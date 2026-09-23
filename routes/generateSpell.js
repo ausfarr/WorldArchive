@@ -17,6 +17,7 @@ const { callClaudeExpectingJson } = require("../lib/claude");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
 const { listEntries, getEntry } = require("../lib/entriesRepo");
+const { buildSpellRosterContext } = require("../lib/roster");
 
 const { buildHomebrewSpellSystemPrompt, buildReflavorSpellSystemPrompt } = require("../prompts/rulesets/5e/spellContentPrompt");
 const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
@@ -163,10 +164,13 @@ async function handle5eSpellGenerate(req, res) {
       return res.status(400).json({ error: "Spell level must be an integer 0-9." });
     }
 
-    const rosterEntries = await listEntries(worldId, "spells", { locked: false });
-    const rosterContext = rosterEntries.length
-      ? rosterEntries.map((e) => `- ${e.id} | ${e.name}: Level ${(e.level != null ? e.level : "?")}`).join("\n")
-      : "No spells archived yet -- any concept is available.";
+    // lib/roster.js applies the same MAX_FULL_ROSTER_LINES cap every other
+    // category's roster context gets -- this used to be a raw, uncapped
+    // listEntries() map/join here, which meant a world's homebrew Spell
+    // generation cost grew unboundedly with its spell count instead of
+    // being bounded like every sibling category (see roster.js's header
+    // comment on why that cap exists).
+    const rosterContext = await buildSpellRosterContext(worldId);
 
     const systemPrompt = buildHomebrewSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, level, school });
     const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the spell now.", maxTokens: 1500 });

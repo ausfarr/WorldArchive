@@ -24,8 +24,13 @@ const router = express.Router();
 // each faction's own .territory field (see prompts/factionContentPrompt.js's
 // schema) rather than inventing new terrain descriptions -- this stays
 // consistent with each faction's own dossier.
+//
+// { locked: false } excludes ghost-placeholder factions (see
+// lib/worldFlavor.js#getFactionOptions's header comment for the full
+// story) -- a ghost has no .territory to ground terrain on, so including
+// it here only ever added a bare name with no grounding value.
 async function buildFactionSummaryText(worldId) {
-  const manifest = await readFactionManifest(worldId);
+  const manifest = await readFactionManifest(worldId, { locked: false });
   if (!manifest.length) return "";
   const lines = [];
   for (const m of manifest) {
@@ -41,8 +46,12 @@ async function buildFactionSummaryText(worldId) {
 // Full (not truncated-to-one-sentence) faction id/name/territory list,
 // for the vision anchor call below -- that prompt needs enough detail
 // to actually judge a visual match, not just a one-line flavor summary.
+//
+// { locked: false } -- same ghost-placeholder exclusion as
+// buildFactionSummaryText above; a ghost has no territory for the vision
+// call to match against on the generated backdrop.
 async function getFactionsForAnchorDetection(worldId) {
-  const manifest = await readFactionManifest(worldId);
+  const manifest = await readFactionManifest(worldId, { locked: false });
   const factions = [];
   for (const m of manifest) {
     const entry = await readFactionEntry(worldId, m.id);

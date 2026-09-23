@@ -25,7 +25,7 @@ const SCHEMA_DESCRIPTION = `{
   "designNotes": "1-2 sentences: what this session moved forward, and anything notable that deviated from what was planned",
   "impliedUpdates": [
     {
-      "category": "npcs | factions | survivors | items",
+      "category": "npcs | factions | survivors | items | locations",
       "entryId": "a real id from THIS QUEST/CAMPAIGN'S ROSTER below -- never invent one",
       "suggestionType": "status_flip | regenerate",
       "targetStatus": "ONLY for suggestionType status_flip -- a short new status value (e.g. \\"dead\\", \\"missing\\", \\"hostile\\", \\"allied\\", \\"consumed\\"), else null",
@@ -43,7 +43,7 @@ VOICE: write bodyText as an in-world document, not a DM's out-of-character sessi
 
 ANCHOR IT: reference real roster entries (NPCs/locations/etc.) that were actually part of this session wherever the recap notes name them -- don't invent new named characters/locations that weren't in the recap notes or the roster.
 
-IMPLIED UPDATES (impliedUpdates): if the recap notes clearly imply a real state change to a SPECIFIC existing roster entry (an NPC died, a faction lost territory, an item was consumed/lost, an ally turned hostile), surface it here as a suggestion -- NEVER apply it yourself, this only ever proposes. Most sessions imply zero or very few of these -- an empty array is normal and expected; don't force one. Only reference entryIds that are genuinely in THIS QUEST/CAMPAIGN'S ROSTER below, never invent one, and never suggest an update for something the recap notes don't actually support.
+IMPLIED UPDATES (impliedUpdates): if the recap notes clearly imply a real state change to a SPECIFIC existing roster entry (an NPC died, a faction lost territory, an item was consumed/lost, an ally turned hostile, a location was destroyed/abandoned/discovered), surface it here as a suggestion -- NEVER apply it yourself, this only ever proposes. Most sessions imply zero or very few of these -- an empty array is normal and expected; don't force one. Only reference entryIds that are genuinely in THIS QUEST/CAMPAIGN'S ROSTER below, never invent one, and never suggest an update for something the recap notes don't actually support.
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
