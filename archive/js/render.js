@@ -2849,10 +2849,123 @@ function renderDossier(entry, factionLookup) {
   wireDeleteEntryButton(entry);
   wireEntryExportButton(entry);
   renderLocationBattleMap(entry);
+  renderRelationshipGraph(entry);
   // portraitActions.js -- wires a "Download VTT Token" button onto this
   // entry's portrait once it finishes loading (no-op for categories with
   // no portrait, since #portrait-img-<id> won't exist).
   if (typeof wirePortraitTokenButton === "function") wirePortraitTokenButton(entry.id);
+}
+
+// Relationship graph panel -- GET /api/entries/:category/:id/graph
+// (lib/relationshipGraph.js) returns this entry's one-hop neighborhood:
+// its own resolved link fields (relationships, notableNpcs, locationId,
+// etc.) plus every other entry whose own link fields resolve back to it.
+// Pure presentation over data lib/entryLinker.js already maintains -- see
+// relationshipGraph.js's header for why this exists (three competitors
+// now market a visual entity-relationship graph; Chronicled had the data,
+// not the view). Fire-and-forget, same pattern as renderFactionBanner --
+// a slow/failed fetch just leaves the panel empty, never blocks the rest
+// of the dossier page from rendering.
+const RELATIONSHIP_GRAPH_MAX_NODES = 20;
+
+async function renderRelationshipGraph(entry) {
+  const host = document.getElementById("relationship-graph-zone");
+  if (!host) return;
+  host.innerHTML = "";
+
+  let graph;
+  try {
+    const res = await authFetch(`/api/entries/${entry.category}/${entry.id}/graph`);
+    if (!res.ok) return;
+    const data = await res.json();
+    graph = data.graph;
+  } catch (err) {
+    console.error("Loading relationship graph failed:", err);
+    return;
+  }
+  if (!graph) return;
+
+  const allNodes = (graph.nodes || []).filter((n) => !n.isCenter);
+  if (!allNodes.length) return; // nothing links to/from this entry yet -- no empty panel
+
+  const truncated = allNodes.length > RELATIONSHIP_GRAPH_MAX_NODES;
+  const nodes = truncated ? allNodes.slice(0, RELATIONSHIP_GRAPH_MAX_NODES) : allNodes;
+
+  // Groups this entry's edges by the OTHER node's key, regardless of
+  // which end is "from" in the API response, so a node's tooltip/line
+  // style can be built from a single lookup either direction.
+  const edgesByOther = new Map();
+  (graph.edges || []).forEach((e) => {
+    const otherKey = e.from === graph.center ? e.to : e.from;
+    if (!edgesByOther.has(otherKey)) edgesByOther.set(otherKey, []);
+    edgesByOther.get(otherKey).push(e);
+  });
+
+  const prefix = getSitePrefix();
+  // Labels sit OUTSIDE their node (category above, name below) rather
+  // than inside the circle -- a circle wide enough to fit "Dockside
+  // Warrens" at a readable size would dwarf the graph at 15-20 nodes.
+  // Small dot + outside label keeps every node the same visual weight
+  // regardless of name length, same tradeoff mapLayout.js's location
+  // pins already make on the world map.
+  const size = 640;
+  const cx = size / 2;
+  const cy = size / 2;
+  const radius = 240;
+  const nodeR = 14;
+  const centerR = 22;
+
+  function truncateName(name) {
+    const clean = stripHtml(name || "");
+    return clean.length > 22 ? `${clean.slice(0, 21)}…` : clean;
+  }
+
+  const placed = nodes.map((node, i) => {
+    const angle = (i / nodes.length) * Math.PI * 2 - Math.PI / 2;
+    return {
+      node,
+      key: `${node.category}:${node.id}`,
+      x: cx + radius * Math.cos(angle),
+      y: cy + radius * Math.sin(angle),
+      angle
+    };
+  });
+
+  const linesHtml = placed.map((p) => {
+    const lineX = cx + (radius - nodeR - 4) * Math.cos(p.angle);
+    const lineY = cy + (radius - nodeR - 4) * Math.sin(p.angle);
+    const startX = cx + (centerR + 4) * Math.cos(p.angle);
+    const startY = cy + (centerR + 4) * Math.sin(p.angle);
+    const pointsAtCenter = (edgesByOther.get(p.key) || []).some((e) => e.to === graph.center);
+    return `<line x1="${startX}" y1="${startY}" x2="${lineX}" y2="${lineY}" class="graph-edge${pointsAtCenter ? "" : " graph-edge-outgoing"}"></line>`;
+  }).join("");
+
+  const nodesHtml = placed.map((p) => {
+    const edges = edgesByOther.get(p.key) || [];
+    const labels = edges.map((e) => e.label).filter((v, idx, arr) => arr.indexOf(v) === idx);
+    const tooltip = escapeHtmlForSearch(labels.join(", ") || (CATEGORY_LABELS[p.node.category] || p.node.category));
+    const href = `${prefix}dossier.html?category=${encodeURIComponent(p.node.category)}&id=${encodeURIComponent(p.node.id)}`;
+    return `
+      <a href="${href}" class="graph-node${p.node.locked ? " graph-node-locked" : ""}" transform="translate(${p.x}, ${p.y})">
+        <title>${tooltip}</title>
+        <circle r="${nodeR}"></circle>
+        <text class="graph-node-cat" y="${-(nodeR + 18)}">${escapeHtmlForSearch(CATEGORY_LABELS[p.node.category] || p.node.category)}</text>
+        <text class="graph-node-name" y="${nodeR + 20}">${escapeHtmlForSearch(truncateName(p.node.name))}</text>
+      </a>`;
+  }).join("");
+
+  host.innerHTML = `
+    <h3 class="graph-heading">Relationships</h3>
+    <svg viewBox="0 0 ${size} ${size}" class="relationship-graph" role="img" aria-label="Relationship graph">
+      ${linesHtml}
+      <g class="graph-node graph-node-center">
+        <circle cx="${cx}" cy="${cy}" r="${centerR}"></circle>
+        <text class="graph-node-name" x="${cx}" y="${cy + centerR + 20}">${escapeHtmlForSearch(truncateName(entry.name))}</text>
+      </g>
+      ${nodesHtml}
+    </svg>
+    ${truncated ? `<p class="graph-truncated-note">Showing ${RELATIONSHIP_GRAPH_MAX_NODES} of ${allNodes.length} connections.</p>` : ""}
+  `;
 }
 
 // Multi-ruleset genericization, NPC "Combatant" upgrade UI (Phase 11

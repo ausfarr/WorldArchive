@@ -4,6 +4,23 @@ Ranked highest-ROI first. These are the things only Austin can do (posting under
 
 Update this file's checkboxes as you go — future sessions (including this one, tomorrow) will read it cold.
 
+**Product-side update, 2026-09-23 (built 2026-09-17, merged to `main` 2026-09-23):** shipped the
+"visual entity relationship graph" idea first flagged 2026-08-27 and
+re-flagged 2026-08-30 when Grimoire made it a 3-for-3 pattern across
+CharGen/Reality Forge/Grimoire — a "Relationships" panel on every
+dossier page, a one-hop radial graph of that entry's cross-links (who it
+references, and who references it back), built entirely from data
+`lib/entryLinker.js` already resolves at generation time (no new
+fields). See `CHANGELOG.md` Unreleased and
+`session_addendum_relationship_graph_shipped.md` for detail. Faction-to-
+faction edges are colored by stance (hostile / strained / allied / other).
+Scope note: this is a per-entry (one-hop) graph on the
+dossier page, not a whole-world graph view — that's a materially bigger
+layout problem, deliberately left for later. Stop re-flagging the
+entity-relationship-graph idea in future check-ins as a missing
+feature; the underlying idea is done. A whole-world graph view, if it's
+ever wanted, would be new scope, not a gap in this feature.
+
 **Status as of 2026-09-21 (automated check-in):** The 2026-09-20 "20-day gap" wasn't really a gap — it was 19 real daily check-ins (2026-09-01 through 2026-09-19) that ran but never got merged into `main`, each starting over from the same stale 2026-08-31 base. This session recovered the most recent one and confirmed the pattern; see `DAILY_LOG.md`'s 2026-09-21 entry and `GROWTH_STRATEGY.md` §2i. **The single highest-leverage thing on this list right now is a process fix, not a Reddit post:** figure out why check-in branches aren't being merged/PR'd, both here and — more urgently — on the product side, where **16 PRs are open and unmerged going back 20 days**, including two that already build features this thread has been asking for (a relationship graph, portrait "keep likeness"). See item 1 below. The AI-directory submission (#8) now has ready-to-paste copy waiting in `drafts/ai_directory_submission_copy.md`.
 
 ---

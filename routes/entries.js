@@ -3,6 +3,7 @@ const { listEntries, getEntry, deleteEntry, patchEntryMeta } = require("../lib/e
 const { deletePortrait, saveFactionEntry } = require("../lib/fileWriter");
 const { removeEntryFromAllCampaignModules } = require("../lib/campaignModuleRepo");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
+const { buildEntryGraph } = require("../lib/relationshipGraph");
 
 const router = express.Router();
 
@@ -54,6 +55,24 @@ router.get("/entries/:category/:id", requireValidCategory, async (req, res) => {
     res.json({ entry });
   } catch (err) {
     console.error(`Loading entry (${req.params.category}/${req.params.id}) failed:`, err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// One-hop relationship graph for the dossier page's "Relationships" panel
+// (see lib/relationshipGraph.js's header for why this exists). A distinct
+// path shape from "/entries/:category/:id" (one extra segment), so this
+// can sit anywhere relative to that route with no risk of either
+// shadowing the other.
+router.get("/entries/:category/:id/graph", requireValidCategory, async (req, res) => {
+  try {
+    const graph = await buildEntryGraph(req.worldId, req.params.category, req.params.id);
+    if (!graph) {
+      return res.status(404).json({ error: "Entry not found." });
+    }
+    res.json({ graph });
+  } catch (err) {
+    console.error(`Building relationship graph (${req.params.category}/${req.params.id}) failed:`, err);
     res.status(500).json({ error: err.message });
   }
 });

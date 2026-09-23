@@ -531,3 +531,101 @@ body.admin-view-mode #create-entry-stage0-btn,
 body.admin-view-mode #gen-form {
   display: none !important;
 }
+
+/* Dossier "Relationships" panel (js/render.js#renderRelationshipGraph) --
+   a one-hop radial graph: this entry in the center, every linked entry
+   arranged around it, connected by a line. Deliberately hand-rolled SVG
+   (no charting library) matching this codebase's no-build-step, no-new-
+   dependency convention -- see the world map's own computed layout
+   (js/mapLayout.js) for the same approach at a different scale. */
+.graph-heading {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.95rem;
+  color: var(--ink-dim);
+  margin: 0 0 14px;
+}
+
+.relationship-graph {
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.graph-edge {
+  stroke: var(--fac-color, var(--border-line));
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+/* Outgoing (this entry -> the other) vs. incoming (the other -> this
+   entry) edges are visually identical today -- both classes exist so a
+   future pass can tell them apart (e.g. an arrowhead) without touching
+   the data layer again. */
+.graph-edge-outgoing {
+  opacity: 0.55;
+}
+
+.graph-node circle {
+  fill: var(--bg-panel-raised);
+  stroke: var(--fac-color, var(--neon-primary));
+  stroke-width: 1.5;
+  transition: stroke 0.15s ease, fill 0.15s ease;
+}
+
+.graph-node-center circle {
+  fill: var(--bg-panel);
+  stroke: var(--fac-color, var(--neon-primary));
+  stroke-width: 2.5;
+}
+
+.graph-node-locked circle {
+  stroke-dasharray: 4 3;
+  stroke: var(--ink-faint);
+}
+
+.graph-node text {
+  fill: var(--ink);
+  font-family: var(--font-mono);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.graph-node-cat {
+  font-size: 8px;
+  fill: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.graph-node-name {
+  font-size: 11px;
+}
+
+.graph-node-center .graph-node-name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+a.graph-node {
+  cursor: pointer;
+}
+
+a.graph-node:hover circle {
+  fill: var(--fac-color, var(--neon-primary));
+}
+
+a.graph-node:hover text {
+  fill: var(--bg-void);
+}
+
+.graph-truncated-note {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  margin-top: 10px;
+}
