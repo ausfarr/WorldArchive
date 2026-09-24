@@ -186,7 +186,7 @@ async function handle5eSpellGenerate(req, res) {
       srdLicenseNote: srdRow.license_note,
       ...mechanics,
       description: reflavored.description || mechanics.description,
-      classes: await resolveSpellClasses(worldId, { proposedClasses: reflavored.classes, newClass: reflavored.newClass })
+      ...(await resolveSpellClasses(worldId, { proposedClasses: reflavored.classes, newClass: reflavored.newClass, deferStub: isRegenerate }))
     };
 
     // Same Differential Billing treatment as Enemies' Reflavor tier.
@@ -215,17 +215,20 @@ async function handle5eSpellGenerate(req, res) {
       proposed.level = Math.max(0, Math.min(9, Math.round(Number(proposed.level) || 0)));
     }
 
-    const classes = await resolveSpellClasses(worldId, { proposedClasses: proposed.classes, newClass: proposed.newClass });
+    const classResult = await resolveSpellClasses(worldId, { proposedClasses: proposed.classes, newClass: proposed.newClass, deferStub: isRegenerate });
     delete proposed.newClass; // consumed above; not part of a saved spell
     spell = {
       ...proposed,
-      classes,
+      ...classResult,
       id: fillExistingId || slugify(proposed.name),
       sourceMode: "homebrew"
     };
   }
 
   if (existingEntry) spell.id = existingEntry.manifestEntry.id;
+  // Only a deferred (preview) stub is carried on the spell -- see
+  // lib/rulesets/5e/spellClasses.js's resolveSpellClasses().
+  if (!spell.pendingClassStub) delete spell.pendingClassStub;
   // A homebrew Fill keeps the placeholder's name even if the model drifted
   // from it -- other entries already link to this entry by that name.
   if (existingEntry && existingEntry.manifestEntry.locked && effectiveMode === "homebrew") spell.name = existingEntry.manifestEntry.name;

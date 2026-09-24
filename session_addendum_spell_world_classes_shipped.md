@@ -40,6 +40,17 @@ name into a locked ghost Class placeholder. A cyberpunk world ended up with
   names" line sits in the cacheable block. The world's own list (or the
   "invent one" instruction) goes in the dynamic block.
 
+**Regenerate previews defer the stub (Austin's call).** A regenerate
+returns a preview without writing anything, so a stub a preview invents
+isn't created then. `resolveSpellClasses(..., { deferStub: true })` puts it
+on the previewed spell as `pendingClassStub`. `routes/confirmEntry.js`
+calls `commitPendingClassStub()` *before* linking, so the spell links to the
+stub instead of spawning a ghost with no concept. That call creates the
+stub and strips the field so it's never persisted. If a class was added
+between preview and confirm, the "only when none exist" rule wins: no stub
+is created, and its name is dropped from the spell. A rejected preview
+leaves nothing behind.
+
 **Filling the stub.** `routes/generateClass.js`'s 5e Homebrew path passes a
 locked placeholder's `subtitle` into `buildHomebrewClassSystemPrompt` as
 `concept`. The full class is built around the pitch the spell was written
@@ -97,5 +108,5 @@ To add another admin, add their email to `ADMIN_EMAILS` in
 routes against `scripts/lib/fakeSupabase.js`, with Anthropic mocked and
 `BILLING_ENABLED=true`. It covers the item crash, no-classes stubs,
 off-list class filtering, Import/Reflavor/procedural paths, stub Fill (name
-and concept) and each admin bypass. Every other `scripts/test*.js`, except
+and concept) the regenerate preview -> confirm stub flow (including a class added mid-preview), and each admin bypass. Every other `scripts/test*.js`, except
 the ones that need a live DB, still passes.

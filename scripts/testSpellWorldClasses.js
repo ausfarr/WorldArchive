@@ -90,7 +90,7 @@ db.world_srd_imports = [];
 db.timeline_events = [];
 
 const express = require("express");
-const { getEntry, listEntries } = require("../lib/entriesRepo");
+const { getEntry, listEntries, upsertEntry } = require("../lib/entriesRepo");
 const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 const { checkEntryCap } = require("../middleware/enforceEntryCap");
 const { enforceGenerationCap, enforceImageGenerationCap } = require("../middleware/enforceGenerationCap");
@@ -106,12 +106,13 @@ app.use((req, res, next) => {
   // trip). Admin email so the billing gates (on, above) let us through.
   req.userId = "admin-user";
   req.userEmail = ADMIN_EMAIL;
-  req.worldId = WORLD;
+  req.worldId = req.headers["x-test-world"] || WORLD;
   next();
 });
 app.use("/api", require("../routes/generateSpell"));
 app.use("/api", require("../routes/generateClass"));
 app.use("/api", require("../routes/generateItem"));
+app.use("/api", require("../routes/confirmEntry"));
 
 const results = [];
 function check(label, cond, extra) {
@@ -119,9 +120,9 @@ function check(label, cond, extra) {
   console.log(`  ${cond ? "PASS" : "FAIL"} - ${label}${!cond && extra !== undefined ? `  (${JSON.stringify(extra)})` : ""}`);
 }
 
-async function post(path, body) {
+async function post(path, body, world) {
   const res = await fetch(`http://localhost:4017/api${path}`, {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    method: "POST", headers: { "Content-Type": "application/json", ...(world ? { "x-test-world": world } : {}) }, body: JSON.stringify(body)
   });
   return { status: res.status, data: await res.json() };
 }
@@ -178,6 +179,35 @@ const server = app.listen(4017, async () => {
     const filled = await getEntry(WORLD, "classes", "chrome-hexer");
     check("filled class is unlocked", filled && !filled.locked, filled);
     check("filled class keeps the placeholder's name", filled && filled.name === "Chrome Hexer", filled && filled.name);
+
+    console.log("\nRegenerate preview in a world with NO classes (stub only on confirm):");
+    const W2 = "w-regen";
+    db.world_config.push({ world_id: W2, draft_json: {}, ruleset: "5e" });
+    await upsertEntry(W2, "spells", { id: "old-spell", name: "Old Spell", subtitle: null, faction: null, tags: [], bodyHtml: "<p>old</p>", raw: { id: "old-spell", name: "Old Spell", level: 1, classes: [], sourceMode: "homebrew" } }, { locked: false });
+    const prev = await post("/generate-spell", { fillExistingId: "old-spell" }, W2);
+    check("regenerate returns a preview", prev.status === 200 && prev.data.preview === true, prev);
+    check("preview carries the pending stub", prev.data.entry && prev.data.entry.pendingClassStub && prev.data.entry.pendingClassStub.name === "Chrome Hexer", prev.data.entry);
+    check("preview created NO class (rejecting it leaves nothing behind)", (await listEntries(W2, "classes")).length === 0);
+    const conf = await post("/confirm-entry", { category: "spells", entry: prev.data.entry }, W2);
+    check("confirm returns 200", conf.status === 200, conf);
+    const w2Stub = await getEntry(W2, "classes", "chrome-hexer");
+    check("confirm created the stub, locked, with its concept", w2Stub && w2Stub.locked && /neural rigs/.test(w2Stub.subtitle || ""), w2Stub);
+    const w2Spell = await getEntry(W2, "spells", "old-spell");
+    check("pendingClassStub isn't persisted on the spell", !("pendingClassStub" in w2Spell.raw));
+    check("confirmed spell links the stub class", classNames(w2Spell) === JSON.stringify(["Chrome Hexer"]), w2Spell.raw.classes);
+    check("non-preview spells never carry pendingClassStub", !("pendingClassStub" in spell1.raw));
+
+    console.log("\nPreview confirmed AFTER a class was added meanwhile:");
+    const W3 = "w-regen-2";
+    db.world_config.push({ world_id: W3, draft_json: {}, ruleset: "5e" });
+    await upsertEntry(W3, "spells", { id: "old-spell", name: "Old Spell", subtitle: null, faction: null, tags: [], bodyHtml: "<p>old</p>", raw: { id: "old-spell", name: "Old Spell", level: 1, classes: [], sourceMode: "homebrew" } }, { locked: false });
+    const prev3 = await post("/generate-spell", { fillExistingId: "old-spell" }, W3);
+    await upsertEntry(W3, "classes", { id: "street-samurai", name: "Street Samurai", subtitle: null, faction: null, tags: [], bodyHtml: null, raw: null }, { locked: true });
+    const conf3 = await post("/confirm-entry", { category: "spells", entry: prev3.data.entry }, W3);
+    check("confirm returns 200", conf3.status === 200, conf3);
+    const w3Classes = await listEntries(W3, "classes");
+    check("stub not created (world has a class now), no ghost either", w3Classes.length === 1 && w3Classes[0].name === "Street Samurai", w3Classes.map((c) => c.name));
+    check("stub's name dropped from the spell", classNames(await getEntry(W3, "spells", "old-spell")) === "[]");
 
     console.log("\nAdmin bypass (BILLING_ENABLED=true):");
     const regen = await post("/generate-spell", { fillExistingId: s2.data.id });

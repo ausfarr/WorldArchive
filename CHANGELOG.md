@@ -26,7 +26,8 @@ entry from here forward gets both a real date and a version at write time.
   world's Classes list (off-list names are dropped in code), so a cyberpunk
   world no longer gets "Wizard"/"Rogue" spells plus empty Wizard/Rogue ghost
   placeholders. If a world has no classes yet, the spell invents one class,
-  saved as a locked placeholder with its concept, ready to Fill In. Import
+  saved as a locked placeholder with its concept, ready to Fill In (a
+  regenerate preview only creates it once the preview is confirmed). Import
   and Roll Randomly keep only matching classes. Also: 5e Item generation
   no longer crashes with `save5eItemEntry is not defined`. Filling a 5e/generic
   placeholder now builds the entry that placeholder names. Spell regenerate
