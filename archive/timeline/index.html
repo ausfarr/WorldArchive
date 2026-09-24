@@ -42,7 +42,7 @@
 </head>
 <body data-category="timeline">
 
-<script src="/js/siteHeader.js?v=v1.9"></script>
+<script src="/js/siteHeader.js?v=v1.10"></script>
 
 <div class="wrap">
   <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span>Timeline</span></div>
@@ -58,10 +58,100 @@
        Built with DOM APIs in js/timeline.js (model/lore text is never
        interpolated into innerHTML). Hidden until a run returns. -->
   <div id="tl-lore-review" style="display:none; background: var(--bg-panel-raised); border: 1px solid var(--border-line); padding: 16px 18px; margin: 0 0 22px;"></div>
-  <div id="tl-list"></div>
+  <!-- Timeline redesign (bug batch 1): stats + source filter chips are
+       rendered by js/timeline.js once events load. -->
+  <div id="tl-overview" style="display:none;"></div>
+  <div id="tl-list" class="tl-stream"></div>
   <p id="tl-list-empty" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">Nothing on the Timeline yet -- give an entry a founding or birth date, confirm a Session Chronicle or a Log with a resolved date, or use Sync / Find dates in lore above.</p>
   <p id="tl-no-calendar" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">This world has no calendar yet, so nothing can be dated. <a href="../wizard-calendar.html?from=timeline">Set one up →</a></p>
 </div>
+
+<style>
+  /* Timeline redesign (bug batch 1). Everything keys off the site's
+     theme variables, so a world's own Style Guide colors carry through.
+     Source colors: --tl-c is set per event by source type. */
+  #tl-overview { margin: 6px 0 26px; }
+  .tl-stats { font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-faint); letter-spacing: 0.03em; margin: 0 0 12px; }
+  .tl-stats strong { color: var(--ink); font-weight: 600; }
+  .tl-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tl-chip {
+    --tl-c: var(--ink-dim);
+    display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+    background: var(--bg-panel); border: 1px solid var(--border-line); color: var(--ink-dim);
+    padding: 5px 11px; border-radius: 999px; font-family: var(--font-mono); font-size: 0.72rem;
+    text-transform: uppercase; letter-spacing: 0.04em; transition: border-color .15s, color .15s, opacity .15s;
+  }
+  .tl-chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tl-c); box-shadow: 0 0 6px var(--tl-c); }
+  .tl-chip .tl-chip-n { color: var(--ink-faint); }
+  .tl-chip[aria-pressed="true"] { border-color: var(--tl-c); color: var(--ink); }
+  .tl-chip[aria-pressed="false"] { opacity: 0.45; }
+
+  .tl-stream { position: relative; padding-left: 34px; }
+  .tl-stream::before {
+    content: ""; position: absolute; left: 11px; top: 6px; bottom: 6px; width: 2px;
+    background: linear-gradient(to bottom, transparent, var(--border-line) 24px, var(--border-line) calc(100% - 24px), transparent);
+  }
+  .tl-year { position: relative; margin: 34px 0 14px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .tl-year:first-child { margin-top: 4px; }
+  .tl-year::before {
+    content: ""; position: absolute; left: -30px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%) rotate(45deg);
+    background: var(--bg-void); border: 2px solid var(--neon-primary); box-shadow: 0 0 10px color-mix(in srgb, var(--neon-primary) 45%, transparent);
+  }
+  .tl-year-num { font-family: var(--font-display); font-size: 2rem; line-height: 1; text-transform: uppercase; color: var(--ink); letter-spacing: 0.02em; }
+  .tl-year-era { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); }
+  .tl-gap { position: relative; margin: 22px 0 0; font-family: var(--font-mono); font-size: 0.72rem; font-style: italic; color: var(--ink-faint); letter-spacing: 0.04em; }
+  .tl-gap::before { content: ""; position: absolute; left: -26px; top: -14px; bottom: -14px; width: 10px; background: repeating-linear-gradient(to bottom, var(--bg-void) 0 3px, transparent 3px 7px); }
+
+  .tl-event { --tl-c: var(--neon-cyan); position: relative; margin: 0 0 14px; }
+  .tl-event::before {
+    content: ""; position: absolute; left: -29px; top: 18px; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--tl-c); box-shadow: 0 0 0 3px var(--bg-void), 0 0 12px var(--tl-c);
+  }
+  .tl-event.tl-approx::before { background: var(--bg-void); border: 2px dashed var(--tl-c); width: 10px; height: 10px; box-shadow: 0 0 0 3px var(--bg-void); }
+  .tl-card {
+    background: linear-gradient(135deg, var(--bg-panel-raised), var(--bg-panel));
+    border: 1px solid var(--border-line); border-left: 3px solid var(--tl-c);
+    padding: 14px 18px 13px; transition: border-color .15s, transform .15s;
+  }
+  .tl-card:hover { border-color: var(--tl-c); transform: translateX(2px); }
+  .tl-date { font-family: var(--font-mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tl-c); margin: 0 0 5px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .tl-date .tl-approx-tag { color: var(--ink-faint); text-transform: none; letter-spacing: 0; font-style: italic; }
+  .tl-summary { font-family: var(--font-body); font-size: 1.02rem; color: var(--ink); margin: 0 0 10px; line-height: 1.45; }
+  .tl-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .tl-pill {
+    display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px;
+    font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.03em; text-decoration: none;
+    border: 1px solid var(--border-line); color: var(--ink-dim); background: var(--bg-void);
+  }
+  a.tl-pill:hover { color: var(--ink); border-color: var(--ink-dim); }
+  .tl-pill.tl-source { border-color: var(--tl-c); color: var(--tl-c); text-transform: uppercase; }
+  .tl-pill.tl-session { border-color: var(--neon-primary); color: var(--neon-primary); }
+  .tl-pill .tl-pill-k { color: var(--ink-faint); text-transform: uppercase; }
+  .tl-nudge { margin: 9px 0 0; font-size: 0.76rem; color: var(--ink-faint); }
+  .tl-nudge a { color: var(--ink-dim); }
+
+  .tl-now { --tl-c: var(--neon-primary); position: relative; margin: 26px 0 26px; display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+  .tl-now::before {
+    content: ""; position: absolute; left: -32px; top: 50%; width: 18px; height: 18px; border-radius: 50%; transform: translateY(-50%);
+    background: var(--neon-primary); box-shadow: 0 0 0 4px var(--bg-void), 0 0 18px var(--neon-primary); animation: tl-pulse 2.4s ease-in-out infinite;
+  }
+  .tl-now-label { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.06em; color: var(--neon-primary); font-size: 0.95rem; white-space: nowrap; }
+  .tl-now-date { font-family: var(--font-mono); font-size: 0.74rem; color: var(--ink-dim); min-width: 0; }
+  .tl-now-line { flex: 1 1 40px; height: 1px; background: linear-gradient(to right, var(--neon-primary), transparent); }
+  @keyframes tl-pulse { 50% { box-shadow: 0 0 0 4px var(--bg-void), 0 0 4px var(--neon-primary); } }
+  @media (prefers-reduced-motion: reduce) { .tl-now::before { animation: none; } .tl-card, .tl-card:hover { transition: none; transform: none; } }
+  .tl-empty-filter { color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.82rem; padding: 12px 0; }
+  @media (max-width: 560px) {
+    .tl-stream { padding-left: 26px; }
+    .tl-stream::before { left: 7px; }
+    .tl-year::before { left: -26px; width: 13px; height: 13px; }
+    .tl-event::before { left: -24px; }
+    .tl-now::before { left: -27px; }
+    .tl-gap::before { left: -22px; }
+    .tl-year-num { font-size: 1.6rem; }
+    .tl-card { padding: 12px 14px; }
+  }
+</style>
 
 <footer class="site-footer">
   <div class="wrap"><span id="site-footer-text">CHRONICLED</span><span class="app-version">v0.7</span></div>
@@ -77,9 +167,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.9"></script>
-<script src="../js/render.js?v=v1.9"></script>
-<script src="../js/timeline.js?v=v1.9"></script>
+<script src="/js/auth.js?v=v1.10"></script>
+<script src="../js/render.js?v=v1.10"></script>
+<script src="../js/timeline.js?v=v1.10"></script>
 <script>
   initTimelinePage();
 </script>

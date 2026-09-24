@@ -21,6 +21,15 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Timeline redesign.** The Timeline page is now a vertical stream:
+  large year markers, "N years later" gaps, color-coded nodes and card
+  edges per source (entry date, session chronicle, log, world lore,
+  regenerate), hollow dashed nodes for approximate lore dates, a pulsing
+  "Today in your world" marker at the calendar's current date, source
+  filter chips with counts, and linked entries shown as named pills
+  instead of raw ids. Themed via the world's style variables and
+  mobile-friendly. v1.10. Details in `session_addendum_bug_batch_1.md`.
+
 - **Bug batch 1, Phase 4 — Timeline fills itself in.** Founding, birth,
   and other entry dates now reach the Timeline from every save path (the
   generate routes, Campaign modules, wizard factions, and `/confirm-entry`)

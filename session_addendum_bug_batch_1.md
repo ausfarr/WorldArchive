@@ -518,3 +518,43 @@ Austin's answers to the design questions:
 **Migrations as of this phase:** 036/037/038 were confirmed live during
 the session. **039 is not applied yet**: "Find dates in lore" extraction
 works, but "Add selected" returns the 409 until it's run.
+
+## Phase 4 follow-up — answers + Timeline redesign
+
+- **Scanning entry prose for dates:** no (Austin). "Find dates in lore"
+  stays lore-sections-only.
+- **Date changed A → B → A:** kept as built. The Timeline is
+  append-only, so the change to B adds a "B" event and the change back
+  finds the existing "A" and adds nothing. The record ends up with one A
+  and one B, not a duplicate A.
+
+**Timeline redesign** (Austin's request; `archive/timeline/index.html`
+styles, `archive/js/timeline.js` render):
+
+- A vertical stream with a spine. Each year gets a diamond marker with
+  the era name, and gaps between distant years show as "N years later".
+- One accent per source type (entry date → `--neon-cyan`, chronicle →
+  `--neon-primary`, world lore → `--the-board`, log → `--colony`,
+  regenerate → `--glitch-kin`), used on the node, the card edge, the date
+  line, and the source pill. The two neon colors follow the world's Style
+  Guide theme.
+- Approximate dates (lore extraction) get a hollow dashed node and an
+  "approximate" tag. Cards show only the within-year part of the date
+  ("12 Thawmoot", "Hoarfrost", or "Sometime this year"), since the year
+  is the section header.
+- A "Today in your world" marker sits at `calendar_config.current_date`.
+  Future-dated events fall after it. The pulse is disabled under
+  `prefers-reduced-motion`.
+- Summary line (event count, year span, era) and source filter chips
+  with counts. Filters are per page view, not persisted.
+- Linked entries render as pills with a kind label ("NPC", "Location")
+  and a readable name: real names for factions (from the faction lookup
+  the page already loads, with their accent color), otherwise the id
+  humanized ("the-ember-gate" → "The Ember Gate"). That's a trade-off
+  that avoids one fetch per category. The self-link on entry-date events
+  is dropped (the source pill already goes there).
+- The "Roundup may be stale" nudge now shows only for chronicle, log, and
+  regenerate events. It was noise on a member's birth-date event.
+- Verified in headless Chromium at 1000px and 390px (no horizontal
+  scroll). A "Today" line that overflowed on mobile was fixed during that
+  check.

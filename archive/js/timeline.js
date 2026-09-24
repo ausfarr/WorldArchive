@@ -1,10 +1,14 @@
 // archive/js/timeline.js
 //
-// Session Prep Companion, Phase 6 -- basic Timeline browse page. Pure
-// read/render -- all three trigger sources already wrote their events at
-// confirm-time (see lib/timelineEvents.js); this just lists and links
-// them. The rich calendar view (overlaying these on an actual month
-// grid) is Phase 8 -- this is intentionally just a chronological list.
+// Session Prep Companion, Phase 6 -- Timeline browse page. Pure
+// read/render -- events were written at save/confirm time (see
+// lib/timelineEvents.js); this lists and links them. The month-grid view
+// is the Calendar page (calendarPage.js).
+//
+// Bug batch 1: redesigned from a flat list of cards into a vertical
+// stream -- year markers, "N years later" gaps, color-coded source nodes
+// (hollow + dashed for approximate lore dates), a "Today in your world"
+// marker, source filter chips, and readable linked-entry pills.
 
 function compareWorldDates(a, b) {
   if (!a && !b) return 0;
@@ -23,9 +27,179 @@ const SOURCE_LABELS = {
   entry_date: "Entry Date"
 };
 
+// Timeline redesign (bug batch 1): one accent per source type, drawn from
+// the site's theme variables (so a world's Style Guide colors carry
+// through) plus the fixed faction palette for the rest.
+const SOURCE_COLORS = {
+  entry_date: "var(--neon-cyan)",
+  chronicle: "var(--neon-primary)",
+  lore_date: "var(--the-board)",
+  log_date: "var(--colony)",
+  regenerate: "var(--glitch-kin)"
+};
+const SOURCE_ORDER = ["entry_date", "chronicle", "log_date", "lore_date", "regenerate"];
+
+const CATEGORY_SINGULAR = {
+  factions: "Faction", npcs: "NPC", survivors: "PC", items: "Item", logs: "Log",
+  locations: "Location", enemies: "Bestiary", classes: "Class", spells: "Spell"
+};
+
+// Page state: fetched once per load, re-rendered on filter toggles.
+const TL_STATE = { events: [], calendarConfig: null, factionLookup: {}, hidden: new Set() };
+
+// "the-iron-pact" -> "The Iron Pact": linked entries only carry
+// { category, entryId }, and fetching every entry just for its display
+// name isn't worth a round trip per category. Factions use their real
+// name from the lookup this page already loads.
+function humanizeEntryId(id) {
+  return String(id || "").split("-").filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
 function timelineEntryLink(ref) {
   if (!ref || !ref.entryId) return "";
-  return `<a href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}">${escapeHtmlForSearch(ref.category)}: ${escapeHtmlForSearch(ref.entryId)}</a>`;
+  const kind = CATEGORY_SINGULAR[ref.category] || ref.category;
+  const fac = ref.category === "factions" ? TL_STATE.factionLookup[ref.entryId] : null;
+  const name = fac ? fac.name : humanizeEntryId(ref.entryId);
+  return `<a class="tl-pill" href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}"><span class="tl-pill-k">${escapeHtmlForSearch(kind)}</span>${escapeHtmlForSearch(name)}</a>`;
+}
+
+function safeHex(color) {
+  return /^#[0-9a-fA-F]{6}$/.test(color || "") ? color : null;
+}
+
+// Short in-card date: the year is already the section header, so cards
+// show just the part of the date below it -- and honestly say when the
+// lore only gave a year or month.
+function shortDateLabel(date, calendarConfig) {
+  if (!date) return "Undated";
+  const months = (calendarConfig && calendarConfig.months) || [];
+  const month = months[date.monthIndex];
+  const monthName = month ? month.name : `Month ${(date.monthIndex ?? 0) + 1}`;
+  if (date.precision === "year") return "Sometime this year";
+  if (date.precision === "month") return monthName;
+  return `${date.day} ${monthName}`;
+}
+
+function currentWorldDate(calendarConfig) {
+  const cd = calendarConfig && calendarConfig.current_date;
+  if (!cd || !Number.isInteger(cd.year)) return null;
+  return { year: cd.year, monthIndex: cd.month_index || 0, day: cd.day || 1 };
+}
+
+function renderEventCard(e) {
+  const { calendarConfig, factionLookup } = TL_STATE;
+  const color = SOURCE_COLORS[e.sourceType] || "var(--ink-dim)";
+  const approx = !!(e.worldDate && e.worldDate.approximate);
+  const sourceHref = e.sourceType === "lore_date"
+    ? "../world-info.html"
+    : `../dossier.html?category=${escapeHtmlForSearch(e.sourceCategory)}&id=${escapeHtmlForSearch(e.sourceId)}`;
+  const pills = [`<a class="tl-pill tl-source" href="${sourceHref}">${escapeHtmlForSearch(SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`];
+  if (e.sessionNumber) pills.push(`<span class="tl-pill tl-session">Session ${Number(e.sessionNumber)}</span>`);
+  // The source pill already links to an entry_date event's own entry --
+  // don't repeat it as a "linked" pill.
+  (e.linkedEntryIds || [])
+    .filter((ref) => !(e.sourceType === "entry_date" && ref.category === e.sourceCategory && ref.entryId === e.sourceId))
+    .forEach((ref) => pills.push(timelineEntryLink(ref)));
+  (e.linkedFactionIds || []).forEach((fk) => {
+    if (e.sourceType === "entry_date" && e.sourceCategory === "factions" && e.sourceId === fk) return;
+    const fac = factionLookup[fk];
+    const accent = fac && safeHex(fac.accentColor);
+    pills.push(`<a class="tl-pill" href="../dossier.html?category=factions&id=${escapeHtmlForSearch(fk)}"${accent ? ` style="border-color:${accent}"` : ""}><span class="tl-pill-k">Faction</span>${escapeHtmlForSearch(fac ? fac.name : humanizeEntryId(fk))}</a>`);
+  });
+  // The Roundup-may-be-stale nudge only makes sense for events that
+  // happened TO a faction in play (chronicles/logs/regenerates), not for
+  // a member's birth date.
+  const nudgeFactions = ["chronicle", "log_date", "regenerate"].includes(e.sourceType) ? (e.linkedFactionIds || []) : [];
+  const nudge = nudgeFactions.map((fk) => {
+    const fac = factionLookup[fk];
+    return `⟳ <a href="../dossier.html?category=factions&id=${escapeHtmlForSearch(fk)}">${escapeHtmlForSearch(fac ? fac.name : humanizeEntryId(fk))}</a>'s Roundup may be stale — regenerate?`;
+  }).join(" · ");
+
+  return `
+    <div class="tl-event${approx ? " tl-approx" : ""}" style="--tl-c:${color}">
+      <div class="tl-card">
+        <p class="tl-date">${escapeHtmlForSearch(shortDateLabel(e.worldDate, calendarConfig))}${approx ? '<span class="tl-approx-tag">approximate</span>' : ""}</p>
+        <p class="tl-summary">${escapeHtmlForSearch(e.summary)}</p>
+        <div class="tl-meta">${pills.join("")}</div>
+        ${nudge ? `<p class="tl-nudge">${nudge}</p>` : ""}
+      </div>
+    </div>`;
+}
+
+function renderOverview() {
+  const host = document.getElementById("tl-overview");
+  const { events, calendarConfig, hidden } = TL_STATE;
+  const dated = events.filter((e) => e.worldDate);
+  const eraName = calendarConfig && calendarConfig.era_name;
+  let span = "";
+  if (dated.length) {
+    const first = dated[0].worldDate.year;
+    const last = dated[dated.length - 1].worldDate.year;
+    span = first === last ? ` in <strong>Year ${first}</strong>` : ` spanning <strong>${last - first}</strong> years (Year ${first}–${last})`;
+  }
+  const counts = {};
+  events.forEach((e) => { counts[e.sourceType] = (counts[e.sourceType] || 0) + 1; });
+  const chips = SOURCE_ORDER.filter((t) => counts[t]).concat(Object.keys(counts).filter((t) => !SOURCE_ORDER.includes(t)))
+    .map((t) => `<button type="button" class="tl-chip" data-type="${escapeHtmlForSearch(t)}" aria-pressed="${hidden.has(t) ? "false" : "true"}" style="--tl-c:${SOURCE_COLORS[t] || "var(--ink-dim)"}">${escapeHtmlForSearch(SOURCE_LABELS[t] || t)} <span class="tl-chip-n">${counts[t]}</span></button>`)
+    .join("");
+  host.innerHTML = `
+    <p class="tl-stats"><strong>${events.length}</strong> event${events.length === 1 ? "" : "s"}${span}${eraName ? ` · ${escapeHtmlForSearch(eraName)}` : ""}</p>
+    ${chips ? `<div class="tl-filters" role="group" aria-label="Filter by source">${chips}</div>` : ""}`;
+  host.style.display = "block";
+  host.querySelectorAll(".tl-chip").forEach((chip) => chip.addEventListener("click", () => {
+    const t = chip.dataset.type;
+    if (hidden.has(t)) hidden.delete(t); else hidden.add(t);
+    renderOverview();
+    renderStream();
+  }));
+}
+
+// Vertical stream: a diamond year marker per year, "N years later" gaps
+// between distant years, and a pulsing "Today in your world" marker at the
+// calendar's current date (future-dated events land after it).
+function renderStream() {
+  const host = document.getElementById("tl-list");
+  const { events, calendarConfig, hidden } = TL_STATE;
+  const visible = events.filter((e) => !hidden.has(e.sourceType));
+  if (!visible.length) {
+    host.innerHTML = '<p class="tl-empty-filter">No events match these filters.</p>';
+    return;
+  }
+  const eraName = calendarConfig && calendarConfig.era_name;
+  const now = currentWorldDate(calendarConfig);
+  const nowHtml = now ? `
+    <div class="tl-now">
+      <span class="tl-now-label">Today in your world</span>
+      <span class="tl-now-date">${escapeHtmlForSearch(formatWorldDateClient(now, calendarConfig))}</span>
+      <span class="tl-now-line"></span>
+    </div>` : "";
+  const parts = [];
+  let lastYear = null;
+  let nowPlaced = !now;
+  let undatedHeader = false;
+  for (const e of visible) {
+    if (!nowPlaced && e.worldDate && compareWorldDates(now, e.worldDate) < 0) {
+      parts.push(nowHtml);
+      nowPlaced = true;
+    }
+    if (!e.worldDate) {
+      if (!undatedHeader) {
+        if (!nowPlaced) { parts.push(nowHtml); nowPlaced = true; }
+        parts.push('<div class="tl-year"><span class="tl-year-num">Undated</span></div>');
+        undatedHeader = true;
+      }
+    } else if (e.worldDate.year !== lastYear) {
+      if (lastYear !== null && e.worldDate.year - lastYear > 1) {
+        const gap = e.worldDate.year - lastYear;
+        parts.push(`<div class="tl-gap">${gap} years later</div>`);
+      }
+      parts.push(`<div class="tl-year"><span class="tl-year-num">Year ${e.worldDate.year}</span>${eraName ? `<span class="tl-year-era">${escapeHtmlForSearch(eraName)}</span>` : ""}</div>`);
+      lastYear = e.worldDate.year;
+    }
+    parts.push(renderEventCard(e));
+  }
+  if (!nowPlaced) parts.push(nowHtml);
+  host.innerHTML = parts.join("");
 }
 
 async function loadAndRenderTimeline() {
@@ -49,42 +223,19 @@ async function loadAndRenderTimeline() {
     const hasCalendar = !!(calendarConfig && Array.isArray(calendarConfig.months) && calendarConfig.months.length);
     const noCal = document.getElementById("tl-no-calendar");
     if (noCal) noCal.style.display = hasCalendar ? "none" : "block";
+    Object.assign(TL_STATE, { events, calendarConfig, factionLookup: factionLookup || {} });
     if (!events.length) {
       empty.style.display = "block";
+      document.getElementById("tl-overview").style.display = "none";
       host.innerHTML = "";
       return;
     }
     empty.style.display = "none";
-
-    host.innerHTML = events.map((e) => {
-      const dateLabel = e.worldDate ? formatWorldDateClient(e.worldDate, calendarConfig) : "(undated)";
-      // lore_date events (Phase 4) come from World Lore prose, not an
-      // entry -- link to World Info rather than a dossier that doesn't exist.
-      const sourceHref = e.sourceType === "lore_date"
-        ? "../world-info.html"
-        : `../dossier.html?category=${escapeHtmlForSearch(e.sourceCategory)}&id=${escapeHtmlForSearch(e.sourceId)}`;
-      const sourceLink = `<a href="${sourceHref}">${escapeHtmlForSearch(SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`;
-      const sessionBadge = e.sessionNumber ? `<span class="tag">Session ${e.sessionNumber}</span>` : "";
-      const linkedEntries = (e.linkedEntryIds || []).map(timelineEntryLink).filter(Boolean).join(", ");
-      const factionNudges = (e.linkedFactionIds || []).map((fk) => {
-        const fac = factionLookup[fk];
-        const name = fac ? fac.name : fk;
-        return `<span style="color:var(--ink-faint);">⟳ <a href="../dossier.html?category=factions&id=${escapeHtmlForSearch(fk)}">${escapeHtmlForSearch(name)}</a> Roundup may be stale — regenerate?</span>`;
-      }).join(" ");
-
-      return `
-        <div class="entry-card">
-          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:baseline;">
-            <strong>${escapeHtmlForSearch(dateLabel)}</strong>
-            ${sessionBadge}
-          </div>
-          <p style="margin:6px 0;">${escapeHtmlForSearch(e.summary)}</p>
-          <p style="color:var(--ink-faint); font-size:0.8rem; margin:0;">Source: ${sourceLink}${linkedEntries ? ` — Linked: ${linkedEntries}` : ""}</p>
-          ${factionNudges ? `<p style="font-size:0.78rem; margin:6px 0 0;">${factionNudges}</p>` : ""}
-        </div>`;
-    }).join("");
+    renderOverview();
+    renderStream();
   } catch (err) {
     console.error("Loading Timeline failed:", err);
+    host.innerHTML = '<p class="tl-empty-filter">Could not load the Timeline. Try refreshing.</p>';
   }
 }
 
