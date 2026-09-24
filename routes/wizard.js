@@ -120,9 +120,10 @@ router.post("/wizard/save-draft", async (req, res) => {
   }
 });
 
-// Step 1's combined "generate for me" — takes whatever genre/scale/era/
-// supernaturalSystem the user has already picked (may be partial or
-// empty) and suggests coreTension, inspirations, and nonNegotiables.
+// Step 1's combined "generate for me" — takes whatever worldName/
+// worldDescription/genre/scale/era/supernaturalSystem the user has
+// already entered (may be partial or empty; worldDescription is the
+// main steer for a user who only has a vague idea) and suggests coreTension, inspirations, and nonNegotiables.
 // Does NOT save to the draft itself — the frontend fills the form fields
 // with the suggestions, and the user's own edits get saved via
 // /wizard/save-draft like any other field, same as manual entries.
@@ -132,8 +133,8 @@ router.post("/wizard/save-draft", async (req, res) => {
 // new world's generation budget before it's even archived anything).
 router.post("/wizard/generate-step1", requireAiEnabled, async (req, res) => {
   try {
-    const { genre, scale, era, supernaturalSystem } = req.body || {};
-    const systemPrompt = buildWizardStep1SystemPrompt({ genre, scale, era, supernaturalSystem });
+    const { worldName, worldDescription, genre, scale, era, supernaturalSystem } = req.body || {};
+    const systemPrompt = buildWizardStep1SystemPrompt({ worldName, worldDescription, genre, scale, era, supernaturalSystem });
     const suggestions = await callClaudeExpectingJson({
       systemPrompt,
       userMessage: "Generate the suggestions now.",

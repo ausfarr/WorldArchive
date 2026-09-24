@@ -18,6 +18,7 @@ const SCHEMA_DESCRIPTION = `{
 function buildWizardStep3SystemPrompt({ step1 }) {
   const s = step1 || {};
   const knownContext = [
+    s.worldDescription ? `World description (the creator's own free-text pitch -- treat as the primary signal for what this world is): ${s.worldDescription}` : null,
     s.genre && s.genre.length ? `Genre & tone: ${Array.isArray(s.genre) ? s.genre.join(", ") : s.genre}` : null,
     s.scale ? `Scale: ${s.scale}` : null,
     s.era ? `Era/tech level: ${s.era}` : null,

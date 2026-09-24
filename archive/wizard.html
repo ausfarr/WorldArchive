@@ -43,6 +43,12 @@
       </div>
 
       <div class="field-group">
+        <label class="field-label">World Description</label>
+        <textarea id="world-description" class="field-input" rows="4" placeholder="Any ideas you already have, rough or detailed. e.g. &quot;A wild west frontier where the gold rush dug up something that should have stayed buried.&quot;"></textarea>
+        <p class="field-hint">Optional. "Generate for me" and every later step build on whatever you write here, so even one line helps.</p>
+      </div>
+
+      <div class="field-group">
         <label class="field-label">Genre &amp; Tone</label>
         <div id="genre-checklist" class="checklist"></div>
       </div>
@@ -223,6 +229,7 @@ async function init() {
     const { draft } = await res.json();
     const step1 = (draft && draft["1"]) || {};
     if (step1.worldName) document.getElementById("world-name").value = step1.worldName;
+    if (step1.worldDescription) document.getElementById("world-description").value = step1.worldDescription;
     setCheckedValues(document.getElementById("genre-checklist"), step1.genre);
     if (step1.scale) document.getElementById("scale").value = step1.scale;
     if (step1.era) document.getElementById("era").value = step1.era;
@@ -251,6 +258,8 @@ document.querySelector(".generate-btn").addEventListener("click", async (e) => {
   showGenerationOverlay(["Weighing the genre…", "Drafting a core tension…","Looking for inspiration…","Weighing the non-negotiables…","Almost there…"]);
   try {
     const body = {
+      worldName: document.getElementById("world-name").value,
+      worldDescription: document.getElementById("world-description").value,
       genre: getCheckedValues(document.getElementById("genre-checklist")).join(", "),
       scale: document.getElementById("scale").value,
       era: document.getElementById("era").value,
@@ -289,6 +298,7 @@ document.getElementById("step1-form").addEventListener("submit", async (e) => {
   status.textContent = "Saving…";
   const fields = {
     worldName: document.getElementById("world-name").value,
+    worldDescription: document.getElementById("world-description").value,
     genre: getCheckedValues(document.getElementById("genre-checklist")),
     scale: document.getElementById("scale").value,
     era: document.getElementById("era").value,

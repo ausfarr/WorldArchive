@@ -21,6 +21,15 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Wizard Step 1: World Description field.** New optional free-text box
+  under World Name for a rough pitch ("a wild west world"). Step 1's
+  "Generate for me" now builds on it instead of producing random output,
+  and it's saved to `draft_json["1"].worldDescription`, then fed into every
+  later wizard step's Generate prompt, `getSettingContext()` (so all content
+  generation sees it), and the Review screen. It isn't added to the
+  procedural generators' genre keyword matching, because substring matching
+  on prose misfires ("elf" in "himself"). No migration needed.
+
 - **Audit fix: 5e mapper tests isolated (item 11).**
   `test5eBackgroundFeatMapper.js` / `test5eRaceSystemMapper.js` forced
   "offline" only when `SUPABASE_URL` was unset, so on any machine with real

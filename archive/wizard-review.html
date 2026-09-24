@@ -118,11 +118,12 @@ function renderSummary(data) {
   const s1 = data.step1 || {};
   const genre = Array.isArray(s1.genre) ? s1.genre.join(", ") : (s1.genre || "");
   html += section("Seed & Vision", `
+    ${s1.worldDescription ? `<div class="review-row"><strong>Description:</strong> ${s1.worldDescription}</div>` : ""}
     ${genre ? `<div class="review-row"><strong>Genre:</strong> ${genre}</div>` : ""}
     ${s1.scale ? `<div class="review-row"><strong>Scale:</strong> ${s1.scale}</div>` : ""}
     ${s1.era ? `<div class="review-row"><strong>Era:</strong> ${s1.era}</div>` : ""}
     ${s1.coreTension ? `<div class="review-row"><strong>Core Tension:</strong> ${s1.coreTension}</div>` : ""}
-    ${(!genre && !s1.scale && !s1.era && !s1.coreTension) ? '<div class="empty">Not filled in yet.</div>' : ""}
+    ${(!s1.worldDescription && !genre && !s1.scale && !s1.era && !s1.coreTension) ? '<div class="empty">Not filled in yet.</div>' : ""}
   `);
 
   // Lore
