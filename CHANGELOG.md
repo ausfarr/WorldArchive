@@ -21,6 +21,15 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Bug batch 1, Phase 1 — wizard factions now have a correct relationship
+  graph immediately.** "Expand Factions" at the end of the wizard saved Deep
+  Lore without resolving relationship ids, syncing reciprocals, or
+  backfilling, so the graph stayed empty until each faction was edited and
+  re-saved. A sequential linking pass now runs after the parallel
+  generations (`lib/afterEntrySave.js`), sharing the same linking helper
+  `/confirm-entry` uses. New `scripts/testWizardFactionGraph.js`. Details in
+  `session_addendum_bug_batch_1.md`.
+
 - **Cloudflare Web Analytics on every served page.** The beacon was only on
   the marketing homepage (`marketing/index.html`); the identical snippet, same
   existing token (no new site token created), is now inserted just before

@@ -28,7 +28,8 @@ const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
 const { saveGenericSurvivorEntry } = require("../lib/rulesets/generic/survivorRepo");
 const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
-const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { resolveReferencesForEntry } = require("../lib/entryLinker");
+const { linkAfterSave } = require("../lib/afterEntrySave");
 const { maybeCreateDateSuggestion, validateResolvedDateSubject } = require("../lib/logDateSuggestions");
 const { createChronicleEvent, createLogDateEvent, createRegenerateEvent, createEntryDateEvents } = require("../lib/timelineEvents");
 const { createSuggestionsFromChronicle } = require("../lib/sessionChronicleSuggestions");
@@ -49,11 +50,11 @@ const router = express.Router();
 // its own Trigger 3). priorEntry is the entry's raw content before this
 // save (null for a brand-new entry) -- Trigger 4 needs it to detect
 // whether a date field actually changed.
+// The linking half now lives in lib/afterEntrySave.js's linkAfterSave()
+// (same two steps, same order) so the wizard's faction post-pass can
+// share it -- see that file's header comment.
 async function afterSave(worldId, category, savedContent, unresolvedGhosts, calendarConfig, timelineOptIn, priorEntry) {
-  await backfillReferencesFromNewEntry(worldId, category, savedContent);
-  for (const ghost of unresolvedGhosts || []) {
-    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
-  }
+  await linkAfterSave(worldId, category, savedContent, unresolvedGhosts);
   if (category === "logs") {
     await maybeCreateDateSuggestion(worldId, savedContent, calendarConfig);
     await createChronicleEvent(worldId, savedContent);
