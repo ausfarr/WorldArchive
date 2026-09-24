@@ -28,10 +28,12 @@ entry from here forward gets both a real date and a version at write time.
   served on app.chronicled.world. HTML built in `lib/pdfExport.js` and
   `lib/dungeonMapCompositor.js` is intentionally left alone -- it's rendered
   in headless Chromium for PDF/PNG output, never served to a browser. No
-  version bump (no user-visible UI change). Note for later: app URLs carry
-  user content in query strings (dossier `?id=` is the slugified entry name;
-  the Quest builder's `?prefillConcept=` is free text) -- routing is
-  unchanged here, to be decided separately.
+  version bump (no user-visible UI change). App URLs do carry user content
+  in query strings (dossier `?id=` is the slugified entry name; the Quest
+  builder's `?prefillConcept=` is free text), but Web Analytics records only
+  host + path (its GraphQL dataset has no query-string field), so none of it
+  reaches Cloudflare. One token covers both hosts; the dashboard filters by
+  host.
 
 - **v1.6 — Feature: "Keep likeness" portrait regenerate, plus a way to regenerate a portrait that already exists at all.** Previously, once an entry had a portrait, the only UI path to a NEW one was deleting the Storage object out from under it so the resulting 404 fell through to the pending-slot Generate/Upload flow -- there was no "regenerate this portrait" affordance anywhere once a portrait existed. Added a hover-revealed "⟳ Regenerate" control directly on any rendered portrait (`archive/js/portraitActions.js`'s `initExistingPortraitControls`), with a "Keep likeness" checkbox (checked by default) that feeds the entry's *current* portrait back into the Gemini call as a reference image (`lib/imagegen.js`'s new `referenceImage` option on `generateImage()`) so a stat/lore edit or a "different pose" regenerate doesn't lose the character's established face. Answers a real competitive gap flagged in `claude_marketing/ACTION_ITEMS.md`'s 2026-08-31 entry (CharGen's "Character Reference Workflow"). Full detail in `session_addendum_portrait_keep_likeness_shipped.md`. Built 2026-09-06 on `claude/hopeful-rubin-eok7k7` (PR #82), merged 2026-09-23 with three changes: the server-side reference fetch is restricted to this project's own Supabase Storage origin with a size cap (it fetches whatever portrait URL it finds in stored `bodyHtml`), the "Make VTT Token" button now anchors below the new `.portrait-wrap` so the two portrait controls don't collide, and a regenerated portrait refreshes the token source. v1.6 via `scripts/bump-cache-version.js` (UI-affecting). New `scripts/testKeepLikenessPortrait.js` -- verifies the real route sends the existing portrait as a Gemini reference when `keepLikeness:true` and a portrait exists, and sends text-only otherwise (including when no portrait has ever been generated yet); `testPipeline.js`, `testEnemyPipeline.js`, and the check-then-act race suites still pass unchanged.
 
