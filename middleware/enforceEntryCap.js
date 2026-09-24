@@ -26,7 +26,8 @@
 // this the same way routes/confirmEntry.js's withLock() already closed
 // the identical race on its own (lock-for-the-whole-request) write path.
 const { getSubscription } = require("../lib/billingRepo");
-const { countEntries } = require("../lib/entriesRepo");
+const { isActiveSubscription } = require("../lib/billingTier");
+const { countEntries, getEntry } = require("../lib/entriesRepo");
 const { getEntriesPurchased, FREE_ENTRY_CAP } = require("../lib/worldConfigRepo");
 const { withLock } = require("../lib/asyncLock");
 
@@ -60,8 +61,13 @@ function releaseReservation(worldId) {
 async function checkEntryCap(worldId, userId) {
   if (!BILLING_ENABLED) return { allowed: true, unlimited: true };
 
+  // Active-only perk: a lapsed (canceled/unpaid/incomplete_expired) or
+  // past_due row falls through to FREE_ENTRY_CAP + purchased entries,
+  // same as a free account -- routes/billing.js's buildEntryCapStatus
+  // reports from the same isActiveSubscription() check, so the gate and
+  // the Settings readout can't disagree.
   const subscription = await getSubscription(userId);
-  if (subscription && subscription.status === "active") {
+  if (isActiveSubscription(subscription)) {
     return { allowed: true, unlimited: true };
   }
 
@@ -120,9 +126,38 @@ async function reserveEntryCapSlot(worldId, userId) {
 // idea what a "mode" is and shouldn't need to; it just answers "is this
 // world under its cap," and it's this middleware's job to decide when
 // that question even applies.
+// Which category a /generate-X request writes, for the fill check below.
+const ROUTE_CATEGORIES = {
+  "/generate-npc": "npcs",
+  "/generate-enemy": "enemies",
+  "/generate-item": "items",
+  "/generate-survivor": "survivors",
+  "/generate-log": "logs",
+  "/generate-class": "classes",
+  "/generate-faction": "factions",
+  "/generate-location": "locations",
+  "/generate-spell": "spells",
+  "/generate-session-packet": "session-packets"
+};
+
+function categoryForRequest(req) {
+  if (req.path === "/generate-procedural") return req.body && req.body.category;
+  return ROUTE_CATEGORIES[req.path] || null;
+}
+
 async function enforceEntryCapOnGenerate(req, res, next) {
   try {
-    if (req.body && req.body.fillExistingId) return next();
+    // fillExistingId: a regenerate of a real entry creates nothing new, so
+    // no cap. But filling a LOCKED ghost placeholder turns an uncounted
+    // stub (countEntries excludes locked rows) into a counted entry --
+    // bug batch 1 audit, item 4: that used to skip the cap too, letting a
+    // free world grow past its limit by filling ghosts. It now goes
+    // through the same reserve-a-slot check as a brand-new entry.
+    if (req.body && req.body.fillExistingId) {
+      const category = categoryForRequest(req);
+      const target = category ? await getEntry(req.worldId, category, req.body.fillExistingId) : null;
+      if (!target || !target.locked) return next();
+    }
     if (req.body && req.body.mode === "import") return next();
     const result = await reserveEntryCapSlot(req.worldId, req.userId);
     if (!result.allowed) {

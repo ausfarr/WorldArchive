@@ -12,37 +12,40 @@
 //                                   purchase, branch on session.mode
 //   invoice.payment_succeeded   -- renewal: reset used_this_cycle,
 //                                   reactivate if it was past_due
-//   customer.subscription.updated -- keep status in sync generally
-//   customer.subscription.deleted -- mark canceled (credits stay usable)
+//   customer.subscription.updated -- keep status, current period, and
+//                                   cancel_at_period_end in sync
+//   customer.subscription.deleted -- mark canceled (account falls back to
+//                                   the free tier; credits stay usable)
 //   invoice.payment_failed      -- mark past_due (Stripe auto-retries;
-//                                   credits stay usable, monthly quota
-//                                   access pauses until it recovers)
+//                                   meanwhile the account is on the free
+//                                   tier + credits, see lib/billingTier.js,
+//                                   until a retry succeeds)
 
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
-const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, getSubscriptionByStripeId, addCredits, claimWebhookEvent, releaseWebhookEventClaim } = require("../lib/billingRepo");
+const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, syncSubscriptionFromStripe, getSubscriptionByStripeId, getSubscription, addCredits, claimWebhookEvent, releaseWebhookEventClaim } = require("../lib/billingRepo");
+const { stripePeriodFields } = require("../lib/billingTier");
 const { addPurchasedEntries, POINTS_PER_GENERATION } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
-// Credits per unit purchased at the $2 credit-pack Price -- 1 unit of
-// that Price = 5 generations. Checkout quantity is always a multiple of
-// this (see routes/billing.js's createCreditsCheckout, which sets
-// quantity = packs directly). Kept here rather than imported from
-// billing.js to avoid a circular require between the two route files.
-//
-// This constant still means "generations," not points -- customer-facing
-// meaning is unchanged (buy 1 unit, get 5 generations' worth of spend).
-// v0.9 Manual Mode, Piece 2 converts to points only at the addCredits()
-// call site below, right before writing to credit_ledger, since that's
-// the one place the unit switch actually matters.
-const CREDITS_PER_PACK_UNIT = 5;
+// Credits/entries granted per pack unit purchased -- now defined once in
+// lib/billingOffer.js (audit item 8), which Settings also reads to
+// describe the packs, so the advertised size and the granted size can't
+// drift. CREDITS_PER_PACK_UNIT still means "generations"; it's converted
+// to points only at the addCredits() call below (v0.9 Manual Mode,
+// Piece 2), since that's the one place the unit matters.
+const { CREDITS_PER_PACK_UNIT, ENTRIES_PER_PACK_UNIT } = require("../lib/billingOffer");
 
-// Entries granted per entry-pack unit purchased at the $5 entry-pack
-// Price -- 1 unit = +25 entries for that world. See routes/billing.js's
-// createEntriesCheckout, which sets quantity = packs directly, same
-// pattern as CREDITS_PER_PACK_UNIT above.
-const ENTRIES_PER_PACK_UNIT = 25;
+// Audit item 2: Stripe does not guarantee event order and can drop
+// deliveries, so the subscription.updated/deleted handlers re-read the
+// subscription from Stripe and write ITS current state rather than the
+// (possibly stale) snapshot inside the event. A delayed "updated: active"
+// processed after "deleted" used to flip a canceled row back to active;
+// with a fresh read it just re-writes "canceled".
+async function retrieveFreshSubscription(eventSubscription) {
+  return stripe.subscriptions.retrieve(eventSubscription.id);
+}
 
 async function handleCheckoutCompleted(session) {
   if (session.mode === "subscription") {
@@ -58,14 +61,31 @@ async function handleCheckoutCompleted(session) {
       console.error(`Stripe webhook: checkout.session.completed (subscription) missing client_reference_id -- session ${session.id}`);
       return;
     }
+    // Also the resubscribe path for a lapsed account: upserting on
+    // user_id overwrites the old canceled row's stripe_subscription_id and
+    // status, and resetUsage zeroes both cycle counters, so the account is
+    // straight back on the paid path. A late customer.subscription.deleted
+    // for the OLD subscription id then matches no row and is a no-op.
+    // Defense in depth for audit item 1 (routes/billing.js now refuses a
+    // second checkout): if this account's row still points at a different
+    // subscription that isn't finished, say so loudly -- that old
+    // subscription is about to become untracked while Stripe may keep
+    // billing it, and needs a manual cancel in the Stripe Dashboard.
+    const prior = await getSubscriptionByStripeId(subscription.id) || null;
+    const priorByUser = prior ? null : await getSubscription(userId);
+    if (priorByUser && priorByUser.stripe_subscription_id !== subscription.id && !["canceled", "incomplete_expired"].includes(priorByUser.status)) {
+      console.error(`Stripe webhook: user ${userId} started subscription ${subscription.id} while ${priorByUser.stripe_subscription_id} (status ${priorByUser.status}) was still on record -- check the old one in Stripe for double billing.`);
+    }
+    const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
     await upsertSubscription({
       userId,
       planId: plan.id,
       stripeCustomerId: session.customer,
       stripeSubscriptionId: subscription.id,
       status: "active",
-      currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+      currentPeriodStart,
+      currentPeriodEnd,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
       resetUsage: true
     });
     return;
@@ -117,29 +137,84 @@ async function handleInvoicePaymentSucceeded(invoice) {
   const priceId = subscription.items.data[0].price.id;
   const plan = await getPlanByStripePriceId(priceId);
 
+  // Audit item 3: only a real new cycle resets usage. Proration/plan-change
+  // invoices ("subscription_update") and one-off invoices mid-cycle used
+  // to hand out a fresh month's quota. billing_reason is always present
+  // on real Stripe invoices; if it were ever missing, keep the old
+  // behavior (reset) rather than risk never resetting a renewal.
+  const reason = invoice.billing_reason;
+  const resetUsage = reason == null || reason === "subscription_cycle" || reason === "subscription_create";
+  const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
   await upsertSubscription({
     userId: existing.user_id,
     planId: plan ? plan.id : existing.plan_id,
     stripeCustomerId: subscription.customer,
     stripeSubscriptionId: subscription.id,
     status: "active",
-    currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-    resetUsage: true
+    currentPeriodStart: currentPeriodStart || existing.current_period_start,
+    currentPeriodEnd: currentPeriodEnd || existing.current_period_end,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
+    resetUsage
   });
 }
 
-async function handleSubscriptionUpdated(subscription) {
-  const existing = await getSubscriptionByStripeId(subscription.id);
+// Bug batch 1, Phase 2: this used to sync status only, so a DM who hit
+// "Cancel" in the Stripe portal (Stripe keeps status 'active' and sets
+// cancel_at_period_end) still saw "Renews <date>" in Settings, and the
+// stored period never moved except on a paid renewal. Now it syncs the
+// period and cancel_at_period_end too (migrations/037 -- written without
+// that column if the migration hasn't been run yet, see
+// lib/billingRepo.js). Access is unchanged by cancel_at_period_end: the
+// row stays 'active' with full quota until Stripe's period actually ends
+// and customer.subscription.deleted arrives.
+//
+// Stripe's own status values (active, past_due, canceled, unpaid, etc.)
+// pass through directly -- lib/billingTier.js decides what each one means
+// for quota (canceled/unpaid/incomplete_expired fall back to the free
+// tier; everything else stays on the subscription path).
+async function handleSubscriptionUpdated(eventSubscription) {
+  const existing = await getSubscriptionByStripeId(eventSubscription.id);
   if (!existing) return;
-  // Stripe's own status values (active, past_due, canceled, unpaid, etc.)
-  // pass through directly -- the RPC in migrations/012_billing.sql only
-  // special-cases 'active' vs everything else, so no translation needed.
-  await setSubscriptionStatus(subscription.id, subscription.status);
+  // Fresh read (audit item 2). If Stripe can't be reached, throw -- the
+  // handler 500s, the idempotency claim is released, and Stripe retries.
+  const subscription = await retrieveFreshSubscription(eventSubscription);
+  const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
+  await syncSubscriptionFromStripe(subscription.id, {
+    status: subscription.status,
+    currentPeriodStart,
+    currentPeriodEnd,
+    cancelAtPeriodEnd: typeof subscription.cancel_at_period_end === "boolean" ? subscription.cancel_at_period_end : undefined
+  });
 }
 
-async function handleSubscriptionDeleted(subscription) {
-  await setSubscriptionStatus(subscription.id, "canceled");
+// Marks the row canceled -> the account falls back to the free tier
+// (lib/billingTier.js). current_period_end is what Settings shows as
+// "Your subscription ended on <date>", so it's clamped to Stripe's
+// ended_at when that's earlier: a cancel-at-period-end sub ends exactly
+// at period end anyway, but an immediate cancel from the Dashboard ends
+// mid-period and would otherwise claim it "ended" on a future date.
+// cancel_at_period_end is cleared -- it's moot once the sub is over, and
+// a stale true would be misleading if anything ever read it later.
+async function handleSubscriptionDeleted(eventSubscription) {
+  // Fresh read when possible (audit item 2); a deleted subscription is
+  // terminal, so if Stripe can't be reached the event's own snapshot is
+  // safe to use rather than failing the delivery.
+  let subscription = eventSubscription;
+  try {
+    subscription = await retrieveFreshSubscription(eventSubscription);
+  } catch (err) {
+    console.warn(`Stripe webhook: couldn't re-read deleted subscription ${eventSubscription.id}, using the event payload:`, err.message);
+  }
+  const status = subscription.status && subscription.status !== "active" ? subscription.status : "canceled";
+  const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
+  const endedAt = typeof subscription.ended_at === "number" ? new Date(subscription.ended_at * 1000).toISOString() : null;
+  const effectiveEnd = endedAt && (!currentPeriodEnd || endedAt < currentPeriodEnd) ? endedAt : currentPeriodEnd;
+  await syncSubscriptionFromStripe(subscription.id, {
+    status,
+    currentPeriodStart,
+    currentPeriodEnd: effectiveEnd,
+    cancelAtPeriodEnd: false
+  });
 }
 
 async function handleInvoicePaymentFailed(invoice) {
@@ -219,3 +294,10 @@ router.post("/", async (req, res) => {
 });
 
 module.exports = router;
+// Exposed for scripts/testBillingTier.js's fixture-event tests -- the
+// handlers are plain async functions of a Stripe object; the router above
+// only adds signature verification and idempotency around them.
+module.exports.handlers = {
+  handleCheckoutCompleted, handleInvoicePaymentSucceeded, handleSubscriptionUpdated,
+  handleSubscriptionDeleted, handleInvoicePaymentFailed
+};

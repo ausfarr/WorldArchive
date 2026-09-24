@@ -10,7 +10,8 @@ const { slugify, buildLogBodyHtml } = require("../lib/logTemplate");
 const { getLoreContext } = require("../lib/loreContext");
 const { getSettingContext, getFactionOptions, formatFactionOptionsForPrompt } = require("../lib/worldFlavor");
 const { createNewLog } = require("../lib/campaignEntryGenerators");
-const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { resolveReferencesForEntry } = require("../lib/entryLinker");
+const { afterEntrySave } = require("../lib/afterEntrySave");
 const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { formatCalendarContextForPrompt, resolveRegeneratedDate } = require("../lib/calendar");
 const { buildKnownDatesContext } = require("../lib/dateContext");
@@ -24,10 +25,9 @@ const router = express.Router();
 // for a specific existing entry (Session Prep Companion, Phase 3, Section
 // 6a) -- see lib/logDateSuggestions.js.
 async function afterSave(worldId, category, savedContent, unresolvedGhosts, calendarConfig) {
-  await backfillReferencesFromNewEntry(worldId, category, savedContent);
-  for (const ghost of unresolvedGhosts || []) {
-    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
-  }
+  // Linking + Timeline (the log's resolvedDate event) via the shared
+  // helper -- bug batch 1, Phase 4 -- then this route's own extra step.
+  await afterEntrySave(worldId, category, savedContent, unresolvedGhosts, { calendarConfig });
   if (category === "logs") {
     await maybeCreateDateSuggestion(worldId, savedContent, calendarConfig);
   }

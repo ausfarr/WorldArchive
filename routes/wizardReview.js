@@ -4,6 +4,7 @@ const { listLoreSections } = require("../lib/loreRepo");
 const { listEntries } = require("../lib/entriesRepo");
 const { generateFactionDeepLore } = require("../lib/factionDeepLore");
 const { saveFactionEntry } = require("../lib/fileWriter");
+const { linkWizardFactionsSequentially } = require("../lib/afterEntrySave");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
@@ -29,6 +30,7 @@ router.get("/wizard/review", async (req, res) => {
       raceSystem: config.race_system_json || null,
       styleGuide: config.style_guide_json || null,
       categoryConfig: config.category_config_json || null,
+      calendarConfig: config.calendar_config || null,
       setupCompletedAt: config.setup_completed_at || null
     });
   } catch (err) {
@@ -59,6 +61,15 @@ router.get("/wizard/review", async (req, res) => {
 // per-faction and non-fatal -- one bad generation shouldn't block the
 // rest.
 //
+// Bug batch 1, Phase 1: once every generation has settled, a SEQUENTIAL
+// linking post-pass (lib/afterEntrySave.js's linkWizardFactionsSequentially)
+// runs over the factions that upgraded -- resolve references, sync
+// reciprocal relationships, backfill, ghosts -- the same steps
+// /confirm-entry runs. Before this, the wizard saved Deep Lore without any
+// of it, so the relationship graph stayed empty until the DM happened to
+// edit + re-save each faction. Sequential rather than inside the parallel
+// map because the reciprocal sync writes to OTHER factions' rows.
+//
 // requireAiEnabled gates this like every other AI-spend route -- this
 // was previously missing here (a real gap: this is a Claude call per
 // faction) despite every other wizard generate route having it added.
@@ -83,7 +94,8 @@ router.post("/wizard/upgrade-factions", requireAiEnabled, async (req, res) => {
         console.error(`Faction upgrade failed for '${factionEntries[i].id}':`, result.reason && result.reason.message);
       }
     });
-    res.json({ upgraded, failed });
+    const linking = await linkWizardFactionsSequentially(worldId, upgraded);
+    res.json({ upgraded, failed, linkFailed: linking.failed });
   } catch (err) {
     console.error("Upgrading factions failed:", err);
     res.status(500).json({ error: err.message });

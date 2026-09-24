@@ -57,7 +57,8 @@ const { slugify: slugifyGeneric, buildSurvivorBodyHtml: buildSurvivorBodyHtmlGen
 const { computeDerivedStats } = require("../lib/rulesets/generic/statFormulas");
 const { buildHomebrewSurvivorSystemPrompt: buildHomebrewGenericSurvivorSystemPrompt } = require("../prompts/rulesets/generic/survivorContentPrompt");
 const { getGenericSystem } = require("../lib/worldConfigRepo");
-const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { resolveReferencesForEntry } = require("../lib/entryLinker");
+const { afterEntrySave } = require("../lib/afterEntrySave");
 const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { formatCalendarContextForPrompt, resolveRegeneratedDate } = require("../lib/calendar");
 const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
@@ -65,12 +66,11 @@ const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
 const router = express.Router();
 
 // Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
-async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
-  await backfillReferencesFromNewEntry(worldId, category, savedContent);
-  for (const ghost of unresolvedGhosts || []) {
-    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
-  }
-}
+// Bug batch 1, Phase 4: this used to be a local copy of the linking
+// steps with no Timeline step, so a directly-saved entry's founding/birth/
+// created dates never reached the Timeline. Now the one shared hook
+// (lib/afterEntrySave.js) every non-confirm save path calls.
+const afterSave = afterEntrySave;
 
 router.post("/generate-survivor", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("survivors"), async (req, res) => {
   try {

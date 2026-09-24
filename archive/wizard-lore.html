@@ -20,7 +20,7 @@
 
 <div class="wrap" style="max-width: 720px; padding-top: 40px; padding-bottom: 80px;">
 
-  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Steps 2–3 of 8 <span class="sep">/</span> World Lore</p>
+  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Steps 2–3 of 9 <span class="sep">/</span> World Lore</p>
 
   <a href="wizard.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Seed &amp; Vision</a>
 
@@ -130,9 +130,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.6"></script>
-<script src="/js/wizardSession.js?v=v1.6"></script>
-<script src="js/render.js?v=v1.6"></script>
+<script src="/js/auth.js?v=v1.11"></script>
+<script src="/js/wizardSession.js?v=v1.11"></script>
+<script src="js/render.js?v=v1.11"></script>
 <script>
 let currentSections = [];
 let currentSource = "generated";
@@ -242,7 +242,7 @@ document.getElementById("save-lore").addEventListener("click", async () => {
     });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || "Save failed."); }
     status.textContent = "Saved — continuing…";
-    window.location.href = "wizard-factions.html";
+    window.location.href = "wizard-calendar.html"; // bug batch 1, Phase 3: Calendar is now the step after Lore
   } catch (err) {
     status.textContent = "Error: " + err.message;
   } finally {

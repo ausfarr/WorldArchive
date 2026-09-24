@@ -20,7 +20,7 @@
 
 <div class="wrap" style="max-width: 680px; padding-top: 40px; padding-bottom: 80px;">
 
-  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 6 of 8 <span class="sep">/</span> Style Guide</p>
+  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 7 of 9 <span class="sep">/</span> Style Guide</p>
 
   <a href="wizard-stats.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Stat System</a>
 
@@ -95,7 +95,7 @@
       <h2 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1rem; color: var(--neon-cyan); margin: 0;">Faction Accent Colors</h2>
       <button type="button" id="generate-accents" class="generate-btn ai-action">Generate for me</button>
     </div>
-    <p id="no-factions-note" style="color: var(--ink-faint); font-size: 0.85rem; display:none;">No factions saved yet (Step 4) — add some there first, then come back.</p>
+    <p id="no-factions-note" style="color: var(--ink-faint); font-size: 0.85rem; display:none;">No factions saved yet (Step 5) — add some there first, then come back.</p>
     <div id="accents-list"></div>
 
     <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); min-height: 1.2em; margin: 16px 0;"></p>
@@ -170,9 +170,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.6"></script>
-<script src="/js/wizardSession.js?v=v1.6"></script>
-<script src="js/render.js?v=v1.6"></script>
+<script src="/js/auth.js?v=v1.11"></script>
+<script src="/js/wizardSession.js?v=v1.11"></script>
+<script src="js/render.js?v=v1.11"></script>
 <script>
 function previewThemeOnThisPage() {
   const hex = /^#[0-9a-fA-F]{6}$/;
@@ -388,7 +388,7 @@ document.getElementById("generate-art").addEventListener("click", async () => {
   // One world mood board + one banner per faction, both generate-once.
   // Deliberately non-blocking to the wizard's progress: this is
   // enhancement art, not required setup data, so a failure here is
-  // logged and shown briefly but never stops the redirect to Step 7.
+  // logged and shown briefly but never stops the redirect to Step 8 (Category Configuration).
   // Runs the two independent calls in parallel (world art doesn't
   // depend on faction banners or vice versa); faction banners are
   // themselves generated sequentially inside that one call (see

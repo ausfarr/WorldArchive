@@ -20,7 +20,7 @@
 // require.cache for "../lib/supabaseClient" relative to itself, i.e.
 // ../../lib/supabaseClient from here) -- see each call site.
 
-const db = { entries: [], world_config: [], user_settings: [], subscriptions: [] };
+const db = { entries: [], world_config: [], user_settings: [], subscriptions: [], credit_ledger: [] };
 
 function matches(row, filters) {
   return filters.every(([col, val]) => row[col] === val);
@@ -32,7 +32,10 @@ class FakeQuery {
     this.filters = [];
     this.op = { type: "select" };
   }
-  select() { return this; }
+  // { count: "exact" } support (bug batch 1 audit tests): countEntries()
+  // reads `count`, which this fake used to leave undefined -- so every
+  // entry-cap check under the fake saw 0 entries and always allowed.
+  select(_cols, opts) { if (opts && opts.count) this._count = true; return this; }
   eq(col, val) { this.filters.push([col, val]); return this; }
   // Only the one real caller's shape is supported --
   // lib/srdLibraryRepo.js's findNearestCrMonsters() calls
@@ -123,6 +126,7 @@ class FakeQuery {
     }
     if (this._single === "maybe") return { data: filtered[0] || null, error: null };
     if (this._single === "required") return { data: filtered[0], error: filtered[0] ? null : { message: "not found" } };
+    if (this._count) return { data: filtered, count: filtered.length, error: null };
     return { data: filtered, error: null };
   }
 
@@ -166,10 +170,71 @@ class FakeQuery {
 // credit_ledger fallback (nothing in this repo's tests exercises that
 // path yet), and reset_free_cycle_if_elapsed is a pure no-op since no
 // test needs actual cycle-rollover behavior, just for the call not to
-// throw. image-quota RPCs (check_and_increment_image_generation_count/
-// refund_image_generation_count) are still NOT covered -- no test in this
-// repo exercises image generation under fakeSupabase yet.
+// throw.
+//
+// Bug batch 1, Phase 2 (scripts/testBillingTier.js) filled in the rest of
+// the billing surface: the credit_ledger fallback in
+// check_and_spend_subscription_generation + the 'credit' refund branch
+// (migrations/015/018/028), get_credit_balance (019), the image-quota
+// RPCs (029), and the free-account check_and_spend_credits (038). reset_free_cycle_if_elapsed is still a no-op -- real cycle
+// rollover is proven against live Postgres by
+// scripts/testFreeTierAllowance.js instead, since its `interval '1 month'`
+// arithmetic is exactly the thing worth testing for real.
+const disabledRpcs = new Set();
+
+function creditBalance(userId) {
+  return db.credit_ledger.filter((r) => r.user_id === userId).reduce((sum, r) => sum + r.amount, 0);
+}
+
 function fakeRpc(fn, params) {
+  if (fn === "check_and_spend_credits") {
+    // migrations/038. fakeSupabase.disabledRpcs lets a test simulate the
+    // migration not having been run yet (PostgREST's PGRST202).
+    if (disabledRpcs.has(fn)) return { data: null, error: { code: "PGRST202", message: `Could not find the function public.${fn}(p_amount, p_user_id) in the schema cache` } };
+    const balance = creditBalance(params.p_user_id);
+    if (balance >= params.p_amount) {
+      db.credit_ledger.push({ user_id: params.p_user_id, amount: -params.p_amount, reason: "generation_spend" });
+      return { data: [{ allowed: true, credit_balance: balance - params.p_amount }], error: null };
+    }
+    return { data: [{ allowed: false, credit_balance: balance }], error: null };
+  }
+  if (fn === "get_credit_balance") {
+    return { data: creditBalance(params.p_user_id), error: null };
+  }
+  if (fn === "check_and_increment_image_generation_count") {
+    const row = db.world_config.find((r) => r.world_id === params.p_world_id);
+    if (!row) return { data: null, error: { message: `world_config row for world_id ${params.p_world_id} does not exist` } };
+    const current = row.image_generation_count || 0;
+    const amount = params.p_amount || 1;
+    const allowed = current + amount <= params.p_cap;
+    if (allowed) row.image_generation_count = current + amount;
+    return { data: [{ allowed, new_count: allowed ? current + amount : current }], error: null };
+  }
+  if (fn === "refund_image_generation_count") {
+    const row = db.world_config.find((r) => r.world_id === params.p_world_id);
+    if (row) row.image_generation_count = Math.max(0, (row.image_generation_count || 0) - params.p_amount);
+    return { data: row ? row.image_generation_count : null, error: null };
+  }
+  if (fn === "check_and_spend_subscription_image_generation") {
+    const sub = db.subscriptions.find((s) => s.user_id === params.p_user_id);
+    if (!sub) return { data: null, error: { message: `no subscription row for user_id ${params.p_user_id}` } };
+    const amount = params.p_amount || 1;
+    const quota = sub.status === "active" ? (sub.monthly_quota_images || 0) : 0;
+    const used = sub.used_images_this_cycle || 0;
+    if (used + amount <= quota) {
+      sub.used_images_this_cycle = used + amount;
+      return { data: [{ allowed: true, used_images_this_cycle: sub.used_images_this_cycle }], error: null };
+    }
+    return { data: [{ allowed: false, used_images_this_cycle: used }], error: null };
+  }
+  if (fn === "refund_subscription_image_generation") {
+    const sub = db.subscriptions.find((s) => s.user_id === params.p_user_id);
+    if (sub) sub.used_images_this_cycle = Math.max(0, (sub.used_images_this_cycle || 0) - params.p_amount);
+    return { data: null, error: null };
+  }
+  return fakeRpcCore(fn, params);
+}
+function fakeRpcCore(fn, params) {
   if (fn === "check_and_increment_generation_count") {
     const row = db.world_config.find((r) => r.world_id === params.p_world_id);
     const current = (row && row.generation_count) || 0;
@@ -199,11 +264,20 @@ function fakeRpc(fn, params) {
     const used = sub.used_this_cycle || 0;
     if (used + amount <= quota) {
       sub.used_this_cycle = used + amount;
-      return { data: [{ allowed: true, used_this_cycle: sub.used_this_cycle, credit_balance: 0, source: "quota" }], error: null };
+      return { data: [{ allowed: true, used_this_cycle: sub.used_this_cycle, credit_balance: creditBalance(params.p_user_id), source: "quota" }], error: null };
     }
-    return { data: [{ allowed: false, used_this_cycle: used, credit_balance: 0, source: "none" }], error: null };
+    const balance = creditBalance(params.p_user_id);
+    if (balance >= amount) {
+      db.credit_ledger.push({ user_id: params.p_user_id, amount: -amount, reason: "generation_spend" });
+      return { data: [{ allowed: true, used_this_cycle: used, credit_balance: balance - amount, source: "credit" }], error: null };
+    }
+    return { data: [{ allowed: false, used_this_cycle: used, credit_balance: balance, source: "none" }], error: null };
   }
   if (fn === "refund_subscription_generation") {
+    if (params.p_source === "credit") {
+      db.credit_ledger.push({ user_id: params.p_user_id, amount: params.p_amount, reason: "generation_refund" });
+      return { data: null, error: null };
+    }
     const sub = db.subscriptions.find((s) => s.user_id === params.p_user_id);
     if (sub) sub.used_this_cycle = Math.max(0, (sub.used_this_cycle || 0) - params.p_amount);
     return { data: null, error: null };
@@ -280,4 +354,4 @@ function install() {
   };
 }
 
-module.exports = { install, db };
+module.exports = { install, db, disabledRpcs };

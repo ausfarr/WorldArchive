@@ -21,6 +21,113 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Audit fix: 5e mapper tests isolated (item 11).**
+  `test5eBackgroundFeatMapper.js` / `test5eRaceSystemMapper.js` forced
+  "offline" only when `SUPABASE_URL` was unset, so on any machine with real
+  keys their fallback checks read the real SRD library and failed. Now
+  always offline. No app code changed.
+
+- **Audit fixes: entry consistency (items 4–7).** Filling a ghost
+  placeholder now counts against the entry cap. Renaming a faction no
+  longer duplicates reciprocal relationships. A rename now updates every
+  other entry's stored label for it (custom labels are left alone), and the
+  Timeline shows live names. Deleting a faction makes its members
+  Unaligned (re-rendered), removes other factions' relationships to it,
+  and clears stale links. Timeline events stay as history and show a
+  deleted source as plain text. New `lib/entryCleanup.js`,
+  `lib/entryWriters.js` (extracted from `/confirm-entry`),
+  `lib/timelineDecorate.js`. v1.11. Details in
+  `session_addendum_bug_batch_1.md`.
+
+- **Audit fixes: billing (items 1, 2, 3, 8, 9, 10).** Subscribing again is
+  refused while Stripe still has a live subscription. The guard asks
+  Stripe directly, which also self-heals a missed cancellation. Webhook
+  update/delete handlers re-read the subscription from Stripe, so
+  out-of-order events can't reactivate a canceled plan. An "active" row
+  whose period ended over 5 days ago is treated as lapsed (a missed
+  cancellation used to mean free access forever). Only renewal invoices
+  reset usage. Settings prices, quotas, and pack sizes now come from the
+  plan and Stripe (`lib/billingOffer.js`). Settings refreshes itself after
+  checkout, and leftover credit points show as field assists. Details in
+  `session_addendum_bug_batch_1.md`.
+
+- **Bug batch 1, Phase 5 — audit (no code changes).** A prioritized list of
+  surrounding issues (double-subscribe guard, webhook ordering, mid-cycle
+  usage resets, the ghost-fill entry-cap bypass, faction rename/delete
+  consistency, and more) in `session_addendum_bug_batch_1.md`.
+
+- **Timeline redesign.** The Timeline page is now a vertical stream:
+  large year markers, "N years later" gaps, color-coded nodes and card
+  edges per source (entry date, session chronicle, log, world lore,
+  regenerate), hollow dashed nodes for approximate lore dates, a pulsing
+  "Today in your world" marker at the calendar's current date, source
+  filter chips with counts, and linked entries shown as named pills
+  instead of raw ids. Themed via the world's style variables and
+  mobile-friendly. v1.10. Details in `session_addendum_bug_batch_1.md`.
+
+- **Bug batch 1, Phase 4 — Timeline fills itself in.** Founding, birth,
+  and other entry dates now reach the Timeline from every save path (the
+  generate routes, Campaign modules, wizard factions, and `/confirm-entry`)
+  through one shared `lib/afterEntrySave.js#afterEntrySave`, replacing ten
+  local copies that had no Timeline step. Duplicates are prevented inside
+  `createEntryDateEvents` for every caller. A new additive, idempotent
+  backfill runs after each calendar save and from a "Sync timeline"
+  button. New **"Find dates in lore"** on the Timeline page (1 generation):
+  the AI proposes dated events from your lore (approximate dates shown as
+  "c. Year 512"), quotes are verified against the lore, possible
+  duplicates are flagged, and you tick which to add (**migration 039**).
+  Found live: production was missing migration 036, so `/confirm-entry`
+  returned a 500 when saving any newly dated entry; Timeline writes now
+  fail safe. Removed the Settings calendar pointer. v1.9. Details in
+  `session_addendum_bug_batch_1.md`.
+
+- **Bug batch 1, Phase 3 — the calendar is a required wizard step.** New
+  Step 4 of 9 (`archive/wizard-calendar.html`) between Lore and Factions:
+  six non-AI templates (`lib/calendarPresets.js`), AI generate (hidden
+  when AI is off), or manual entry; Continue stays disabled until the
+  calendar is valid and saves it. Finished worlds use the same page in edit
+  mode, linked from Calendar, Timeline, and World Info; the Settings
+  editor is gone (shared `archive/js/calendarEditor.js`). Saving a change
+  that would invalidate stored dates warns with counts first (nothing is
+  changed). Entry date fields use a month-name dropdown instead of "Month
+  #". Fixed the "wrong week names" (a wrong-length AI weekday list was
+  nulled → "D1..D7"; now repaired) and the stale Calendar page
+  (unsaved generated calendars, back/forward cache). Start Over now clears
+  the calendar. v1.8. Details in `session_addendum_bug_batch_1.md`.
+
+- **Bug batch 1, Phase 2 follow-up — `past_due` joins the free tier; free
+  accounts can spend purchased credits.** A failed renewal is now treated
+  like a cancel (free allowance + credits; a successful Stripe retry
+  restores the plan). Credits bought by a free account were displayed but
+  never spendable; new `check_and_spend_credits` RPC (**migration 038, run
+  by hand**; until then the app behaves as before). Details in
+  `session_addendum_bug_batch_1.md`.
+
+- **Bug batch 1, Phase 2 — canceled subscribers fall back to the free
+  tier.** Any `subscriptions` row, even a canceled one, used to route to the
+  subscription quota (zeroed for non-active rows), so lapsed accounts got no
+  free allowance and Settings showed "44 of 50 remaining… Renews <past
+  date>". `canceled`/`unpaid`/`incomplete_expired` now spend the monthly
+  free allowance, then purchased credits (images: free allowance only);
+  `past_due` unchanged. New `lib/billingTier.js` (tier selection + status
+  payloads). Settings shows a lapsed state with "Your subscription ended
+  on…" + Resubscribe, and "Cancels on…" for portal cancellations. Webhook
+  now syncs period + `cancel_at_period_end` on `subscription.updated`
+  (**migration 037, run by hand**; the app works without it). Also fixed:
+  subscribers' image counter never reset on renewal/resubscribe; free-tier
+  "Resets <date>" could be days late at month ends. New
+  `scripts/testBillingTier.js`, `scripts/testFreeTierAllowance.js` (live).
+  v1.7. Details in `session_addendum_bug_batch_1.md`.
+
+- **Bug batch 1, Phase 1 — wizard factions now have a correct relationship
+  graph immediately.** "Expand Factions" at the end of the wizard saved Deep
+  Lore without resolving relationship ids, syncing reciprocals, or
+  backfilling, so the graph stayed empty until each faction was edited and
+  re-saved. A sequential linking pass now runs after the parallel
+  generations (`lib/afterEntrySave.js`), sharing the same linking helper
+  `/confirm-entry` uses. New `scripts/testWizardFactionGraph.js`. Details in
+  `session_addendum_bug_batch_1.md`.
+
 - **Cloudflare Web Analytics on every served page.** The beacon was only on
   the marketing homepage (`marketing/index.html`); the identical snippet, same
   existing token (no new site token created), is now inserted just before

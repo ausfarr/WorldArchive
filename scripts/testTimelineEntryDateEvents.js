@@ -22,9 +22,39 @@
 //   6. Logs are excluded from this trigger (resolvedDate keeps its own
 //      existing Trigger 3 only).
 //
+// Bug batch 1, Phase 4 (session_addendum_bug_batch_1.md) additions:
+//   7. Dedupe is enforced for every caller: a second caller with no
+//      priorEntry (what a generate route passes) creates nothing new.
+//   8. A DIRECT save path -- the real POST /generate-faction route, Anthropic
+//      stubbed -- puts a new faction's foundingDate on the Timeline with no
+//      /confirm-entry re-save (it never did before).
+//   9. Renaming an entry doesn't make the backfill add a second event (the
+//      dedupe key uses the field label, not the summary text).
+//  10. backfillEntryDateEvents: creates missing events, counts already-
+//      present and skipped-invalid, and a second run creates 0.
+//  11. No calendar: backfill creates nothing, reports noCalendar.
+//  12. Saving a calendar (POST /wizard/save-calendar-config) runs the
+//      backfill and reports it.
+//
 // Run with: node scripts/testTimelineEntryDateEvents.js
 
 process.env.ANTHROPIC_API_KEY = "test-key";
+
+// Stubbed Anthropic for Test 8's real /generate-faction call -- no real or
+// paid AI call is ever made. Everything else passes through.
+const originalFetch = global.fetch;
+global.fetch = async (url, opts) => {
+  if (!String(url).includes("anthropic.com")) return originalFetch(url, opts);
+  // One payload serves both calls createNewFaction makes (seed, then
+  // Deep Lore) -- seed fields + Deep Lore fields together.
+  const deepLore = {
+    name: "The Salt Choir", concept: "c", politics: "p", government: "g", economy: "e", military: "m", tensions: "t",
+    nickname: "n", overviewQuote: "q", origin: "o", corePhilosophy: "p", structureHierarchy: "s",
+    territory: "t. t.", goalsNearTerm: "g", goalsLongTerm: "g", internalTensions: "i", iconography: "i",
+    relationships: [], economyResources: "e", joining: "j", foundingDate: { year: 640, monthIndex: 1, day: 2 }
+  };
+  return { ok: true, status: 200, json: async () => ({ content: [{ type: "text", text: JSON.stringify(deepLore) }], usage: { input_tokens: 1, output_tokens: 1 }, stop_reason: "end_turn" }) };
+};
 
 const CALENDAR_CONFIG = {
   months: [{ name: "Frostmere", days: 30 }, { name: "Ashfall", days: 28 }],
@@ -41,6 +71,7 @@ fakeSupabase.db.world_config.push({ world_id: "test-world", draft_json: {}, cale
 const express = require("express");
 const confirmEntryRoute = require("../routes/confirmEntry");
 const { listTimelineEvents } = require("../lib/timelineRepo");
+const { createEntryDateEvents, backfillEntryDateEvents } = require("../lib/timelineEvents");
 
 const WORLD_ID = "test-world";
 const failures = [];
@@ -56,6 +87,8 @@ async function main() {
   app.use(express.json());
   app.use((req, res, next) => { req.userId = "test-user"; req.worldId = WORLD_ID; next(); });
   app.use("/api", confirmEntryRoute);
+  app.use("/api", require("../routes/generateFaction"));
+  app.use("/api", require("../routes/wizardCalendar"));
   const server = app.listen(4329);
 
   const post = (body) => fetch("http://localhost:4329/api/confirm-entry", {
@@ -133,6 +166,60 @@ async function main() {
     check("no entry_date event created for the Log itself", logEntryDateEvents.length === 0);
     const logDateEvents = events.filter((e) => e.sourceType === "log_date" && e.sourceId === "a-log");
     check("its existing log_date event still fires as before", logDateEvents.length === 1);
+
+    const entryDateCount = async (id, category) => (await listTimelineEvents(WORLD_ID))
+      .filter((e) => e.sourceType === "entry_date" && (!id || e.sourceId === id) && (!category || e.sourceCategory === category)).length;
+
+    console.log("\nTest 7: dedupe is enforced for every caller, not just /confirm-entry's prior-value check");
+    const again = await createEntryDateEvents(WORLD_ID, "factions",
+      { id: "ashen-hand", name: "The Ashen Hand", foundingDate: { year: 200, monthIndex: 0, day: 1 } }, null, CALENDAR_CONFIG);
+    check("a caller with no priorEntry creates nothing for an already-recorded date", again.length === 0 && (await entryDateCount("ashen-hand", "factions")) === 1);
+    const sameIdOtherCategory = await createEntryDateEvents(WORLD_ID, "items",
+      { id: "ashen-hand", name: "Ashen Hand (relic)", createdDate: { year: 200, monthIndex: 0, day: 1 } }, null, CALENDAR_CONFIG);
+    check("same entry id in a different category is NOT treated as a duplicate", sameIdOtherCategory.length === 1);
+
+    console.log("\nTest 8: a direct save path (POST /generate-faction) creates the event with no re-save");
+    const genRes = await fetch("http://localhost:4329/api/generate-faction", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "The Salt Choir" })
+    });
+    const gen = await genRes.json();
+    const genId = gen.id || (gen.entry && gen.entry.id) || "the-salt-choir";
+    const genEvents = (await listTimelineEvents(WORLD_ID)).filter((e) => e.sourceType === "entry_date" && e.sourceId === genId);
+    check("generate-faction saved (200)", genRes.status === 200);
+    check("its foundingDate is on the Timeline immediately", genEvents.length === 1 && genEvents[0].summary === "Founded: The Salt Choir" && genEvents[0].worldDate.year === 640);
+
+    console.log("\nTest 9 + 10: backfill -- creates missing, idempotent, rename-safe");
+    // Entries saved "before Phase 4": dates on the row, nothing on the Timeline.
+    const pushRow = (category, id, name, raw) => fakeSupabase.db.entries.push({
+      world_id: WORLD_ID, category, entry_id: id, name, subtitle: null, faction: null, tags_json: [], body_html: "",
+      raw_json: { raw: { id, name, ...raw } }, locked: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString()
+    });
+    pushRow("survivors", "old-pc", "Old Pc", { birthDate: { year: 790, monthIndex: 1, day: 3 } });
+    pushRow("items", "old-blade", "Old Blade", { createdDate: { year: 500, monthIndex: 0, day: 9 }, discoveredDate: { year: 811, monthIndex: 5, day: 1 } }); // discovered: month 5 doesn't exist
+    // Rename a faction that already has its event -- must not duplicate.
+    const ashenRow = fakeSupabase.db.entries.find((r) => r.category === "factions" && r.entry_id === "ashen-hand");
+    if (ashenRow) { ashenRow.name = "The Ashen Hands"; if (ashenRow.raw_json && ashenRow.raw_json.raw) ashenRow.raw_json.raw.name = "The Ashen Hands"; }
+
+    const before = await entryDateCount();
+    const first = await backfillEntryDateEvents(WORLD_ID, CALENDAR_CONFIG);
+    check("first run creates exactly the 2 missing events (Born: Old Pc, Created: Old Blade)", first.created === 2 && (await entryDateCount()) === before + 2);
+    check("the out-of-range discoveredDate is counted as skipped-invalid", first.skippedInvalid === 1);
+    check("already-recorded dates counted as already present (incl. the renamed faction)", first.alreadyPresent === 5 && (await entryDateCount("ashen-hand", "factions")) === 1);
+    const second = await backfillEntryDateEvents(WORLD_ID, CALENDAR_CONFIG);
+    check("second run creates 0 (idempotent)", second.created === 0 && second.alreadyPresent === first.alreadyPresent + first.created);
+
+    console.log("\nTest 11: no calendar -> nothing created, reported");
+    const noCal = await backfillEntryDateEvents(WORLD_ID, null);
+    check("noCalendar reported, 0 created, every dated field skipped", noCal.noCalendar === true && noCal.created === 0 && noCal.skippedInvalid > 0);
+
+    console.log("\nTest 12: saving a calendar runs the backfill");
+    pushRow("npcs", "late-npc", "Late Npc", { birthDate: { year: 801, monthIndex: 0, day: 2 } });
+    const calRes = await fetch("http://localhost:4329/api/wizard/save-calendar-config", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ calendarConfig: CALENDAR_CONFIG })
+    });
+    const calBody = await calRes.json();
+    check("save-calendar-config reports timelineSync with the new event", calRes.status === 200 && calBody.timelineSync && calBody.timelineSync.created === 1);
+    check("Born: Late Npc is on the Timeline", (await entryDateCount("late-npc")) === 1);
   } finally {
     server.close();
   }

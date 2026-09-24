@@ -1,34 +1,16 @@
 const express = require("express");
-const {
-  saveNpcEntry,
-  saveEnemyEntry,
-  saveItemEntry,
-  saveSurvivorEntry,
-  saveLogEntry,
-  saveClassEntry,
-  saveFactionEntry,
-  saveLocationEntry,
-  saveSessionPacketEntry,
-  getPortraitUrl
-} = require("../lib/fileWriter");
+const { saveFactionEntry } = require("../lib/fileWriter");
+const { writeEntry } = require("../lib/entryWriters");
+const { propagateEntryRename } = require("../lib/entryCleanup");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
 const { syncReciprocalRelationships } = require("../lib/factionDeepLore");
 const { getEntry } = require("../lib/entriesRepo");
 const { checkEntryCap } = require("../middleware/enforceEntryCap");
 const { withLock } = require("../lib/asyncLock");
-const { getRuleset, getCalendarConfig } = require("../lib/worldConfigRepo");
+const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { sanitizeEntryDateFields } = require("../lib/calendar");
-const { save5eEnemyEntry } = require("../lib/rulesets/5e/enemyRepo");
-const { save5eSpellEntry } = require("../lib/rulesets/5e/spellRepo");
-const { save5eClassEntry } = require("../lib/rulesets/5e/classRepo");
-const { saveGenericClassEntry } = require("../lib/rulesets/generic/classRepo");
-const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
-const { saveGenericItemEntry } = require("../lib/rulesets/generic/itemRepo");
-const { save5eSurvivorEntry } = require("../lib/rulesets/5e/survivorRepo");
-const { saveGenericSurvivorEntry } = require("../lib/rulesets/generic/survivorRepo");
-const { saveGenericEnemyEntry } = require("../lib/rulesets/generic/enemyRepo");
-const { getGenericSystem } = require("../lib/worldConfigRepo");
-const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { resolveReferencesForEntry } = require("../lib/entryLinker");
+const { linkAfterSave } = require("../lib/afterEntrySave");
 const { maybeCreateDateSuggestion, validateResolvedDateSubject } = require("../lib/logDateSuggestions");
 const { createChronicleEvent, createLogDateEvent, createRegenerateEvent, createEntryDateEvents } = require("../lib/timelineEvents");
 const { createSuggestionsFromChronicle } = require("../lib/sessionChronicleSuggestions");
@@ -49,11 +31,11 @@ const router = express.Router();
 // its own Trigger 3). priorEntry is the entry's raw content before this
 // save (null for a brand-new entry) -- Trigger 4 needs it to detect
 // whether a date field actually changed.
+// The linking half now lives in lib/afterEntrySave.js's linkAfterSave()
+// (same two steps, same order) so the wizard's faction post-pass can
+// share it -- see that file's header comment.
 async function afterSave(worldId, category, savedContent, unresolvedGhosts, calendarConfig, timelineOptIn, priorEntry) {
-  await backfillReferencesFromNewEntry(worldId, category, savedContent);
-  for (const ghost of unresolvedGhosts || []) {
-    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
-  }
+  await linkAfterSave(worldId, category, savedContent, unresolvedGhosts);
   if (category === "logs") {
     await maybeCreateDateSuggestion(worldId, savedContent, calendarConfig);
     await createChronicleEvent(worldId, savedContent);
@@ -62,42 +44,23 @@ async function afterSave(worldId, category, savedContent, unresolvedGhosts, cale
   }
   await createRegenerateEvent(worldId, category, savedContent, timelineOptIn, calendarConfig);
   await createEntryDateEvents(worldId, category, savedContent, priorEntry, calendarConfig);
+  // Bug batch 1 audit, item 7: a rename (manual edit or a regenerate that
+  // changed the name) updates every other entry's stored label for this
+  // one -- faction relationships, NPC/PC relationships, a location's
+  // notable NPCs, ... (lib/entryCleanup.js). Best-effort: the save itself
+  // already succeeded.
+  if (priorEntry && priorEntry.name && savedContent.name && priorEntry.name !== savedContent.name) {
+    try {
+      await propagateEntryRename(worldId, category, savedContent.id, priorEntry.name, savedContent.name);
+    } catch (err) {
+      console.error(`Rename propagation for ${category}/${savedContent.id} failed:`, err && err.message);
+    }
+  }
 }
 
-// Shared write path for every "regenerate" preview across all categories
-// except factions (handled separately below, since it needs a freshly
-// computed Roundup rather than a stored writer).
-const WRITERS = {
-  npcs: saveNpcEntry,
-  enemies: saveEnemyEntry,
-  items: saveItemEntry,
-  survivors: saveSurvivorEntry,
-  logs: saveLogEntry,
-  classes: saveClassEntry,
-  locations: saveLocationEntry,
-  // Session Prep Companion, Phase 4 -- see routes/generateSessionPacket.js.
-  "session-packets": saveSessionPacketEntry,
-  // "spells" -- only 5e has a `spells` registry entry today. Echoes/
-  // generic worlds can never reach this writer since
-  // requireCategoryAvailable already turned their /generate-spell
-  // request away with a 501 (see lib/rulesets/index.js).
-  spells: save5eSpellEntry
-};
-
-// Categories whose writer function accepts a third imageUrl argument
-// (logs don't have portraits at all). Regenerate never touches images —
-// without this, confirming a regenerate would silently overwrite a
-// previously-working portrait's URL with nothing, reverting the dossier
-// to the dead relative-path placeholder every single time (see this
-// session's chat).
-const HAS_PORTRAIT = {
-  npcs: true,
-  enemies: true,
-  items: true,
-  survivors: true,
-  classes: true,
-  locations: true
-};
+// Writer selection (WRITERS / HAS_PORTRAIT / per-ruleset branching)
+// moved to lib/entryWriters.js#writeEntry (bug batch 1 audit, item 6) so
+// the faction-delete cleanup re-saves members through the same code.
 
 // Called after the user reviews a /generate-X preview response and clicks
 // "Save This Version." Takes the exact `entry` object the preview returned
@@ -218,8 +181,13 @@ router.post("/confirm-entry", async (req, res) => {
       entry.sessionChronicle.sessionNumber = await getNextSessionNumber(worldId);
     }
 
+    // Bug batch 1 audit, item 4: filling a locked ghost placeholder turns
+    // an uncounted stub into a counted entry, so it's cap-checked (and
+    // serialized under the entry-cap lock) exactly like a new one. It
+    // used to count as "already exists" and skip the cap entirely.
+    const createsCountedEntry = !alreadyExists || alreadyExists.locked === true;
     const doConfirm = async () => {
-      if (!alreadyExists) {
+      if (createsCountedEntry) {
         const capResult = await checkEntryCap(worldId, req.userId);
         if (!capResult.allowed) {
           return {
@@ -250,73 +218,17 @@ router.post("/confirm-entry", async (req, res) => {
         return { status: 200, body: { saved: true, id: entry.id, category } };
       }
 
-      // Multi-ruleset genericization: "enemies" is the one category so
-      // far (Phase 3) with a per-ruleset writer instead of a single
-      // fixed one -- WRITERS.enemies stays Echoes' saveEnemyEntry
-      // UNCHANGED (see that map above) so this only branches away from
-      // it for a ruleset that actually has its own enemy pipeline built.
-      // Every other category keeps going through WRITERS exactly as
-      // before this project.
-      let writer = WRITERS[category];
-      if (category === "enemies") {
-        const ruleset = await getRuleset(worldId);
-        if (ruleset === "5e") writer = save5eEnemyEntry;
-        else if (ruleset === "generic") {
-          // saveGenericEnemyEntry() needs this world's generic_system_json
-          // as an extra argument (attribute/derived-stat definitions
-          // aren't fixed, unlike every other ruleset's writer) -- doesn't
-          // fit the plain writer(worldId, entry, imageUrl) shape below,
-          // so it's called directly here instead of assigned to `writer`.
-          const genericSystem = await getGenericSystem(worldId);
-          await saveGenericEnemyEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
-          return { status: 200, body: { saved: true, id: entry.id, category } };
-        }
-      }
-      if (category === "classes") {
-        const ruleset = await getRuleset(worldId);
-        if (ruleset === "5e") writer = save5eClassEntry;
-        else if (ruleset === "generic") {
-          // Same extra-argument shape as enemies' generic branch above --
-          // saveGenericClassEntry() needs this world's generic_system_json
-          // to resolve keyAttribute's display label.
-          const genericSystem = await getGenericSystem(worldId);
-          await saveGenericClassEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
-          return { status: 200, body: { saved: true, id: entry.id, category } };
-        }
-      }
-      if (category === "items") {
-        const ruleset = await getRuleset(worldId);
-        if (ruleset === "5e") writer = save5eItemEntry;
-        else if (ruleset === "generic") {
-          const genericSystem = await getGenericSystem(worldId);
-          await saveGenericItemEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
-          return { status: 200, body: { saved: true, id: entry.id, category } };
-        }
-      }
-      if (category === "survivors") {
-        const ruleset = await getRuleset(worldId);
-        if (ruleset === "5e") writer = save5eSurvivorEntry;
-        else if (ruleset === "generic") {
-          const genericSystem = await getGenericSystem(worldId);
-          await saveGenericSurvivorEntry(worldId, entry, genericSystem, undefined);
-          await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
-          return { status: 200, body: { saved: true, id: entry.id, category } };
-        }
-      }
-      if (!writer) {
+      // Per-ruleset writer selection (5e / generic / Echoes default) lives
+      // in lib/entryWriters.js#writeEntry.
+      const written = await writeEntry(worldId, category, entry);
+      if (!written) {
         return { status: 400, body: { error: `Unknown category '${category}'` } };
       }
-
-      const imageUrl = HAS_PORTRAIT[category] ? getPortraitUrl(worldId, entry.id) : undefined;
-      await writer(worldId, entry, imageUrl);
       await afterSave(worldId, category, entry, linkResult.unresolvedGhosts, calendarConfig, effectiveTimelineOptIn, priorRaw);
       return { status: 200, body: { saved: true, id: entry.id, category } };
     };
 
-    const result = alreadyExists ? await doConfirm() : await withLock(`entry-cap:${worldId}`, doConfirm);
+    const result = createsCountedEntry ? await withLock(`entry-cap:${worldId}`, doConfirm) : await doConfirm();
     res.status(result.status).json(result.body);
   } catch (err) {
     console.error("Confirm-save failed:", err);

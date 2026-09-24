@@ -1,39 +1,60 @@
 // routes/wizardCalendar.js
 //
-// Session Prep Companion, Phase 2 -- minimal Calendar (see
-// session_prep_companion_scope.md Section 4a-i). Lives alongside the
-// other world_config-backed settings routes (wizardStatSystem.js,
-// wizardStyleGuide.js) but is reached from the Settings page rather than
-// a new step in the 8-step setup wizard -- see this session's Phase 2
-// commit summary for why: the wizard is a shipped, linear flow real beta
-// worlds have already completed (setup_completed_at set), and every step
-// number is baked into wizard.html's nav, wizard-review.html's summary,
-// and draft_json's own "1".."8" step keys. Inserting a new step mid-
-// sequence would mean renumbering all of that for a field that, like
-// Stat System/Style Guide, is really just one more independent
-// world_config column -- a standalone settings action carries the same
-// "generate for me + manual edit" wizard-step pattern without that
-// renumbering risk. Kept the "wizard" file/route naming (matching
-// wizardStatSystem.js etc.) since this is still config storage, not a
-// generation route.
+// World Calendar storage + generate-for-me. Originally (Session Prep
+// Companion, Phase 2) reached only from the Settings page, deliberately
+// NOT a wizard step, to avoid renumbering a shipped linear flow.
+//
+// Bug batch 1, Phase 3 reversed that call (session_addendum_bug_batch_1.md):
+// the calendar is now a REQUIRED wizard step between Lore and Factions
+// (archive/wizard-calendar.html), so factions and every later generation
+// can propose real structured dates from day one instead of null. The
+// renumbering risk is contained: calendar_config was already its own
+// world_config column, so draft_json's "1".."8" keys are untouched and
+// only the visible "Step N of 9" labels changed. The Settings editor is
+// gone; already-completed worlds reach the same page in edit mode.
+//
+// Routes:
+//   GET  /wizard/calendar-config       -- current calendar + setupCompletedAt
+//   GET  /wizard/calendar-presets      -- non-AI templates (lib/calendarPresets.js)
+//   POST /wizard/generate-calendar     -- AI proposal, never saved here
+//   POST /wizard/calendar-impact       -- counts stored dates a proposed
+//                                         calendar would invalidate (read-only)
+//   POST /wizard/save-calendar-config  -- validate + save, then backfill
+//                                         entry-date Timeline events (Phase 4)
 
 const express = require("express");
 const { callClaudeExpectingJson } = require("../lib/claude");
-const { getDraft, getCalendarConfig, saveCalendarConfig } = require("../lib/worldConfigRepo");
+const { getDraft, getFullConfig, saveCalendarConfig } = require("../lib/worldConfigRepo");
+const { validateCalendarConfigShape, repairWeekdayNames, countDatesInvalidatedByCalendar, DATE_FIELDS_BY_CATEGORY } = require("../lib/calendar");
+const { listCalendarPresets } = require("../lib/calendarPresets");
+const { listTimelineEvents } = require("../lib/timelineRepo");
+const { backfillEntryDateEvents } = require("../lib/timelineEvents");
+const { listNotableDates } = require("../lib/calendarNotableDatesRepo");
+const { listEntries } = require("../lib/entriesRepo");
 const { getLoreContext } = require("../lib/loreContext");
 const { buildWizardCalendarPrompt } = require("../prompts/wizardCalendarPrompt");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
 
 const router = express.Router();
 
+// setupCompletedAt rides along so wizard-calendar.html can pick its mode
+// (in-flow wizard step vs. post-setup edit) and wizard-factions.html can
+// tell whether its "no calendar yet -> back to the calendar step" guard
+// applies, without a second round trip.
 router.get("/wizard/calendar-config", async (req, res) => {
   try {
-    const calendarConfig = await getCalendarConfig(req.worldId);
-    res.json({ calendarConfig });
+    const config = await getFullConfig(req.worldId);
+    res.json({ calendarConfig: config.calendar_config || null, setupCompletedAt: config.setup_completed_at || null });
   } catch (err) {
     console.error("Loading calendar config failed:", err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// No AI, no quota, no requireAiEnabled -- presets exist precisely so an
+// AI-off DM has a starting point.
+router.get("/wizard/calendar-presets", (req, res) => {
+  res.json({ presets: listCalendarPresets() });
 });
 
 // requireAiEnabled, not enforceGenerationCap -- same as every other
@@ -62,8 +83,11 @@ router.post("/wizard/generate-calendar", requireAiEnabled, async (req, res) => {
       : [{ name: "Firstmonth", days: 30 }];
 
     const daysPerWeek = clampInt(proposal.daysPerWeek, 4, 10, 7);
-    let weekdayNames = Array.isArray(proposal.weekdayNames) ? proposal.weekdayNames.map((w) => String(w).trim()).filter(Boolean) : [];
-    if (weekdayNames.length !== daysPerWeek) weekdayNames = null; // don't guess a mismatched list -- DM can fill it in manually
+    // Repair, don't discard: a count mismatch used to null the whole
+    // list, and the Calendar page then showed "D1..D7" headers (bug batch
+    // 1, bug 3). Extras are truncated; missing ones become "Day N"
+    // placeholders the editor highlights for renaming.
+    const weekdayNames = repairWeekdayNames(proposal.weekdayNames, daysPerWeek);
 
     const calendarConfig = {
       months,
@@ -86,36 +110,31 @@ function clampInt(value, min, max, fallback) {
   return Math.min(max, Math.max(min, n));
 }
 
-function validateCalendarConfigShape(calendarConfig) {
-  if (!calendarConfig || typeof calendarConfig !== "object") return "calendarConfig is required.";
-  if (!Array.isArray(calendarConfig.months) || calendarConfig.months.length === 0) {
-    return "At least one month is required.";
+// validateCalendarConfigShape now lives in lib/calendar.js, shared with
+// scripts/testCalendarPresets.js.
+
+// Read-only preview for the editor's "this change would invalidate N
+// stored dates" warning. Never writes -- existing dates are left exactly
+// as they are whatever the DM decides. An invalid proposed shape reports
+// the shape error instead of counts (the save would reject it anyway).
+router.post("/wizard/calendar-impact", async (req, res) => {
+  try {
+    const { calendarConfig } = req.body || {};
+    const shapeError = validateCalendarConfigShape(calendarConfig);
+    if (shapeError) return res.json({ shapeError });
+    const [timelineEvents, notableDates, ...entryLists] = await Promise.all([
+      listTimelineEvents(req.worldId),
+      listNotableDates(req.worldId),
+      ...Object.keys(DATE_FIELDS_BY_CATEGORY).map((category) =>
+        listEntries(req.worldId, category).then((rows) => rows.map((r) => ({ ...r, category }))))
+    ]);
+    const impact = countDatesInvalidatedByCalendar(calendarConfig, { timelineEvents, notableDates, entries: entryLists.flat() });
+    res.json({ impact });
+  } catch (err) {
+    console.error("Calendar impact check failed:", err);
+    res.status(500).json({ error: err.message });
   }
-  for (const m of calendarConfig.months) {
-    if (!m || typeof m.name !== "string" || !m.name.trim()) return "Every month needs a name.";
-    if (!Number.isInteger(m.days) || m.days < 1) return `Month "${m.name}" needs a positive whole number of days.`;
-  }
-  if (!Number.isInteger(calendarConfig.days_per_week) || calendarConfig.days_per_week < 1) {
-    return "days_per_week must be a positive whole number.";
-  }
-  if (calendarConfig.weekday_names != null) {
-    if (!Array.isArray(calendarConfig.weekday_names) || calendarConfig.weekday_names.length !== calendarConfig.days_per_week) {
-      return "weekday_names, if set, must have exactly days_per_week entries.";
-    }
-  }
-  const cd = calendarConfig.current_date;
-  if (!cd || !Number.isInteger(cd.year) || !Number.isInteger(cd.month_index) || !Number.isInteger(cd.day)) {
-    return "current_date must have integer year, month_index, and day.";
-  }
-  if (cd.month_index < 0 || cd.month_index >= calendarConfig.months.length) {
-    return "current_date.month_index is out of range for the given months.";
-  }
-  const month = calendarConfig.months[cd.month_index];
-  if (cd.day < 1 || cd.day > month.days) {
-    return `current_date.day must be between 1 and ${month.days} for ${month.name}.`;
-  }
-  return null;
-}
+});
 
 router.post("/wizard/save-calendar-config", async (req, res) => {
   try {
@@ -123,7 +142,19 @@ router.post("/wizard/save-calendar-config", async (req, res) => {
     const validationError = validateCalendarConfigShape(calendarConfig);
     if (validationError) return res.status(400).json({ error: validationError });
     const saved = await saveCalendarConfig(req.worldId, calendarConfig);
-    res.json({ calendarConfig: saved });
+    // Bug batch 1, Phase 4: a new or changed calendar can make stored
+    // entry dates valid that weren't before (the most common case: a
+    // finished world setting up its first calendar after its factions/NPCs
+    // already had dates). Backfill their Timeline events now -- additive,
+    // idempotent. A failure here never fails the save; the Timeline page's
+    // "Sync timeline" button runs the same thing on demand.
+    let timelineSync = null;
+    try {
+      timelineSync = await backfillEntryDateEvents(req.worldId, saved);
+    } catch (syncErr) {
+      console.error("Timeline backfill after calendar save failed:", syncErr);
+    }
+    res.json({ calendarConfig: saved, timelineSync });
   } catch (err) {
     console.error("Saving calendar config failed:", err);
     res.status(500).json({ error: err.message });

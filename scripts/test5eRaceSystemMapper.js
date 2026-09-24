@@ -17,8 +17,15 @@
 //
 // Run with: node scripts/test5eRaceSystemMapper.js
 
-process.env.SUPABASE_URL = process.env.SUPABASE_URL || "http://127.0.0.1:1";
-process.env.SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY || "offline-test-placeholder";
+// ALWAYS offline, even when real Supabase credentials are in the
+// environment (bug batch 1 audit, item 11). This used to be
+// `process.env.SUPABASE_URL || ...`, so on any machine with real keys set
+// the "srd_library unreachable -> hand-authored fallback" checks below
+// silently read the REAL srd_library instead and failed (e.g. 17 real
+// feats vs the 10 hand-authored ones) -- the code under test was fine,
+// the test just wasn't isolated. Nothing in this file needs a live DB.
+process.env.SUPABASE_URL = "http://127.0.0.1:1";
+process.env.SUPABASE_SECRET_KEY = "offline-test-placeholder";
 
 const { mapSrdSpeciesToRaceEntry, parseSizeAndChoiceNote, parseSpeed } = require("../lib/rulesets/5e/srdSpeciesMapper");
 const { STARTER_5E_RACES } = require("../lib/rulesets/5e/starterRaces");

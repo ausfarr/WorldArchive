@@ -31,7 +31,10 @@ function calWeekdayHeaders(calendarConfig) {
   const n = calendarConfig.days_per_week || 7;
   const names = Array.isArray(calendarConfig.weekday_names) && calendarConfig.weekday_names.length === n
     ? calendarConfig.weekday_names
-    : Array.from({ length: n }, (_, i) => `D${i + 1}`);
+    // "Day N", not "D1": a calendar saved with no weekday names (or a
+    // legacy one whose AI list was nulled on a count mismatch before bug
+    // batch 1, Phase 3) should read as unnamed days, not as broken data.
+    : Array.from({ length: n }, (_, i) => `Day ${i + 1}`);
   return names.map((w) => `<div style="color:var(--ink-faint); text-align:center; font-family:var(--font-mono);">${escapeHtmlForSearch(w)}</div>`).join("");
 }
 
@@ -42,6 +45,10 @@ function calBuildDayIndex(year) {
   const index = {};
   for (const e of CAL_STATE.events) {
     if (!e.worldDate || e.worldDate.year !== year) continue;
+    // Year/month-precision dates (lore-extracted, bug batch 1 Phase 4)
+    // have placeholder days -- pinning them to a grid cell would claim a
+    // day the lore never gave. They stay on the Timeline list only.
+    if (e.worldDate.precision && e.worldDate.precision !== "day") continue;
     const key = `${e.worldDate.monthIndex}-${e.worldDate.day}`;
     (index[key] = index[key] || { events: [], notableDates: [] }).events.push(e);
   }
@@ -91,18 +98,27 @@ function calRenderGrid() {
 
 function calTimelineEntryLink(ref) {
   if (!ref || !ref.entryId) return "";
+  // Decorated by GET /timeline-events (lib/timelineDecorate.js): real
+  // name, and plain text instead of a dead link for a deleted entry.
+  if (ref.deleted) return `<span style="text-decoration:line-through; opacity:0.6;">${escapeHtmlForSearch(ref.name || ref.entryId)}</span>`;
+  if (ref.name) return `<a href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}">${escapeHtmlForSearch(ref.name)}</a>`;
   return `<a href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}">${escapeHtmlForSearch(ref.category)}: ${escapeHtmlForSearch(ref.entryId)}</a>`;
 }
 
-const CAL_SOURCE_LABELS = { chronicle: "Session Chronicle", log_date: "Log", regenerate: "Regenerate", entry_date: "Entry Date" };
+const CAL_SOURCE_LABELS = { chronicle: "Session Chronicle", log_date: "Log", regenerate: "Regenerate", entry_date: "Entry Date", lore_date: "World Lore" };
 
 function calShowDayDetail(monthIndex, day, dayIndex) {
   const hit = dayIndex[`${monthIndex}-${day}`] || { events: [], notableDates: [] };
   const monthName = CAL_STATE.calendarConfig.months[monthIndex].name;
   const panel = document.getElementById("cal-day-detail");
   const eventsHtml = hit.events.map((e) => {
-    const sourceLink = `<a href="../dossier.html?category=${escapeHtmlForSearch(e.sourceCategory)}&id=${escapeHtmlForSearch(e.sourceId)}">${escapeHtmlForSearch(CAL_SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`;
-    const linked = (e.linkedEntryIds || []).map(calTimelineEntryLink).filter(Boolean).join(", ");
+    const sourceHref = e.sourceType === "lore_date"
+      ? "../world-info.html"
+      : `../dossier.html?category=${escapeHtmlForSearch(e.sourceCategory)}&id=${escapeHtmlForSearch(e.sourceId)}`;
+    const sourceLink = e.sourceDeleted
+      ? `${escapeHtmlForSearch(CAL_SOURCE_LABELS[e.sourceType] || e.sourceType)} (deleted)`
+      : `<a href="${sourceHref}">${escapeHtmlForSearch(CAL_SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`;
+    const linked = (e.linkedEntries || e.linkedEntryIds || []).map(calTimelineEntryLink).filter(Boolean).join(", ");
     return `<div style="margin-bottom:10px;"><p style="margin:0 0 4px;">${escapeHtmlForSearch(e.summary)}</p><p style="color:var(--ink-faint); font-size:0.78rem; margin:0;">Source: ${sourceLink}${linked ? ` — Linked: ${linked}` : ""}</p></div>`;
   }).join("");
   const notableHtml = hit.notableDates.map((nd) => `<div style="margin-bottom:8px;"><strong>${escapeHtmlForSearch(nd.name)}</strong>${nd.note ? ` — ${escapeHtmlForSearch(nd.note)}` : ""}</div>`).join("");
@@ -215,3 +231,15 @@ async function initCalendarPage() {
     document.getElementById("cal-loading").textContent = "Failed to load calendar.";
   }
 }
+
+// Bug batch 1, Phase 3 -- one of the real causes of "the Calendar page
+// shows stale data": this page renders once on load, and a Back/Forward
+// navigation that restores it from the browser's back/forward cache
+// (e.g. Calendar -> edit calendar -> Save -> Back) shows the pre-edit DOM
+// without re-running initCalendarPage(). A restored page reloads so it
+// always reflects the saved calendar. (No HTTP caching is involved: the
+// API sends no cache headers, authFetch sets no cache mode, and there is
+// no service worker.)
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) window.location.reload();
+});

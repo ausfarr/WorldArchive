@@ -1277,29 +1277,101 @@ function efSelect(label, id, optionsHtml) {
 
 // Session Prep Companion, Phase 3 -- a WorldDate field editor
 // ({ year, monthIndex, day } or null), reused across every category's
-// edit form that got a new date field this phase (Factions/NPCs/PCs/
-// Items/Logs). Three plain number inputs rather than a calendar picker
-// widget -- this world's own month names/lengths live in calendar_config,
-// not in this file, and building a full date-picker component against
-// per-world calendar data is out of scope for what's otherwise a single
-// optional flavor field; a DM who cares about exact placement can always
-// cross-reference the Settings-page calendar editor (Phase 2).
-// idPrefix becomes "${idPrefix}-year"/"-month"/"-day" input ids; readWorldDateField
-// reads them back, returning null if the year field was left blank
-// (the field is optional everywhere it's used) or any value fails to parse.
+// edit form with a date field (Factions/NPCs/PCs/Items/Logs, plus the
+// Session Chronicle and Regenerate-to-Timeline controls).
+//
+// Bug batch 1, Phase 3: the month used to be a bare "Month #" number
+// input (a zero-based index!), which meant a DM had to remember that
+// "Stormcrest" is month 1 -- and with per-world calendars (10-day weeks,
+// 9 or 13 months) there's no real-world intuition to fall back on. It's
+// now a dropdown of THIS world's month names, and the day input's max
+// follows the chosen month's length. Values are unchanged (the select's
+// value is still the monthIndex), so readWorldDateField and every stored
+// date are untouched.
+//
+// efWorldDateField must stay synchronous (every caller builds HTML
+// strings), so the month names come from a memoized calendar fetch:
+// if it has already resolved, options render inline; otherwise the
+// select renders with just the current value and is filled in by
+// hydrateWorldDateMonthSelects() as soon as the fetch lands.
+//
+// idPrefix becomes "${idPrefix}-year"/"-month"/"-day" element ids;
+// readWorldDateField reads them back, returning null if the year field
+// was left blank (the field is optional everywhere it's used) or any
+// value fails to parse.
+let _worldCalendarForDatesPromise = null;
+let _worldCalendarForDates; // undefined = not loaded yet, null = world has no calendar
+
+function loadWorldCalendarForDateFields() {
+  if (_worldCalendarForDatesPromise) return _worldCalendarForDatesPromise;
+  _worldCalendarForDatesPromise = (async () => {
+    try {
+      const res = await authFetch("/api/wizard/calendar-config");
+      const data = await res.json();
+      const cfg = res.ok ? data.calendarConfig : null;
+      _worldCalendarForDates = cfg && Array.isArray(cfg.months) && cfg.months.length ? cfg : null;
+    } catch (err) {
+      console.error("Could not load the world calendar for date fields:", err);
+      _worldCalendarForDates = null;
+    }
+    return _worldCalendarForDates;
+  })();
+  return _worldCalendarForDatesPromise;
+}
+
+function worldDateMonthOptionsHtml(calendarConfig, selectedIndex) {
+  const hasSelected = Number.isInteger(selectedIndex);
+  if (!calendarConfig) {
+    // No calendar (or still loading): keep any stored index selectable so
+    // an edit-then-save round trip can't silently drop it.
+    return `<option value="">Month…</option>${hasSelected ? `<option value="${selectedIndex}" selected>Month ${selectedIndex + 1}</option>` : ""}`;
+  }
+  const opts = calendarConfig.months.map((m, i) =>
+    `<option value="${i}"${i === selectedIndex ? " selected" : ""}>${escapeHtmlForSearch(m.name)} (${Number(m.days)} days)</option>`).join("");
+  const outOfRange = hasSelected && selectedIndex >= calendarConfig.months.length
+    ? `<option value="${selectedIndex}" selected>Month ${selectedIndex + 1} (not in this calendar)</option>` : "";
+  return `<option value="">Month…</option>${opts}${outOfRange}`;
+}
+
+function syncWorldDateDayMax(select) {
+  const dayInput = document.getElementById(select.dataset.wdDay);
+  const month = _worldCalendarForDates && _worldCalendarForDates.months[Number(select.value)];
+  if (dayInput) dayInput.max = month ? String(month.days) : "";
+}
+
+async function hydrateWorldDateMonthSelects() {
+  await loadWorldCalendarForDateFields();
+  document.querySelectorAll('select[data-wd-month="pending"]').forEach((select) => {
+    const selected = select.dataset.wdSelected === "" ? null : Number(select.dataset.wdSelected);
+    select.innerHTML = worldDateMonthOptionsHtml(_worldCalendarForDates, selected);
+    select.dataset.wdMonth = "ready";
+    syncWorldDateDayMax(select);
+    const note = document.getElementById(select.dataset.wdNote);
+    if (note && !_worldCalendarForDates) note.style.display = "block";
+  });
+}
+
+document.addEventListener("change", (e) => {
+  if (e.target && e.target.matches && e.target.matches("select[data-wd-month]")) syncWorldDateDayMax(e.target);
+});
+
 function efWorldDateField(label, idPrefix, date) {
-  const style = "background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body); width: 100px;";
+  const style = "background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 10px; font-family: var(--font-body);";
   const y = date && Number.isInteger(date.year) ? date.year : "";
-  const m = date && Number.isInteger(date.monthIndex) ? date.monthIndex : "";
+  const m = date && Number.isInteger(date.monthIndex) ? date.monthIndex : null;
   const d = date && Number.isInteger(date.day) ? date.day : "";
+  const loaded = _worldCalendarForDates !== undefined;
+  const month = loaded && _worldCalendarForDates && m != null ? _worldCalendarForDates.months[m] : null;
+  if (!loaded) setTimeout(hydrateWorldDateMonthSelects, 0); // runs after the caller inserts this HTML
   return `
     <div style="margin-bottom: 14px;">
-      <label style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label} <span style="text-transform:none; letter-spacing:normal;">(optional -- Year / Month index / Day, per this world's calendar)</span></label>
-      <div style="display:flex; gap:8px;">
-        <input id="${idPrefix}-year" type="number" placeholder="Year" value="${y}" style="${style}">
-        <input id="${idPrefix}-month" type="number" placeholder="Month #" min="0" value="${m}" style="${style}">
-        <input id="${idPrefix}-day" type="number" placeholder="Day" min="1" value="${d}" style="${style}">
+      <label style="display:block; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">${label} <span style="text-transform:none; letter-spacing:normal;">(optional -- per this world's calendar)</span></label>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <input id="${idPrefix}-year" type="number" placeholder="Year" value="${y}" style="${style} width: 100px;">
+        <select id="${idPrefix}-month" data-wd-month="${loaded ? "ready" : "pending"}" data-wd-selected="${m == null ? "" : m}" data-wd-day="${idPrefix}-day" data-wd-note="${idPrefix}-nocal" style="${style} min-width: 170px;">${worldDateMonthOptionsHtml(loaded ? _worldCalendarForDates : null, m)}</select>
+        <input id="${idPrefix}-day" type="number" placeholder="Day" min="1"${month ? ` max="${Number(month.days)}"` : ""} value="${d}" style="${style} width: 80px;">
       </div>
+      <p id="${idPrefix}-nocal" style="display:${loaded && !_worldCalendarForDates ? "block" : "none"}; font-size: 0.75rem; color: var(--ink-faint); margin: 6px 0 0;">This world has no calendar yet, so dates can't be saved. <a href="/wizard-calendar.html">Set one up</a>.</p>
     </div>`;
 }
 
@@ -2330,7 +2402,7 @@ function showClassEditForm(entry) {
         ${efField("Major (1.0x)", "ef-skill-major-fallback", skillEff.major)}
         ${efField("Minor (0.5x)", "ef-skill-minor-fallback", skillEff.minor)}
         ${efField("Misc (0.2x)", "ef-skill-misc-fallback", skillEff.misc)}
-        <p style="color: var(--ink-faint); font-size: 0.75rem; margin: -6px 0 14px;">This world hasn't generated a fixed skill list yet (Wizard Step 5), so these are free text for now.</p>
+        <p style="color: var(--ink-faint); font-size: 0.75rem; margin: -6px 0 14px;">This world hasn't generated a fixed skill list yet (Wizard Step 6, Stats & Skills), so these are free text for now.</p>
       `;
       addSkillBtn.style.display = "none";
       return;
@@ -3151,7 +3223,13 @@ function wireDeleteEntryButton(entry) {
   btn.parentNode.replaceChild(freshBtn, btn);
 
   freshBtn.addEventListener("click", async () => {
-    const confirmed = window.confirm(`Permanently delete "${stripHtml(entry.name)}"? This cannot be undone.`);
+    // Bug batch 1 audit, item 6: deleting a faction also makes its
+    // members Unaligned and removes other factions' relationships to it
+    // (routes/entries.js) -- say so up front.
+    const factionNote = entry.category === "factions"
+      ? "\n\nEvery NPC, PC, location and other entry in this faction will become Unaligned, and other factions' relationships to it will be removed. Timeline events stay as history."
+      : "";
+    const confirmed = window.confirm(`Permanently delete "${stripHtml(entry.name)}"? This cannot be undone.${factionNote}`);
     if (!confirmed) return;
 
     const status = document.getElementById("delete-entry-status");
@@ -3164,7 +3242,10 @@ function wireDeleteEntryButton(entry) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Delete failed.");
       }
-      status.textContent = "Deleted. Redirecting…";
+      const body = await res.json().catch(() => ({}));
+      const unaligned = body.cleanup && body.cleanup.members ? body.cleanup.members.unaligned : 0;
+      status.textContent = unaligned ? `Deleted. ${unaligned} entr${unaligned === 1 ? "y is" : "ies are"} now Unaligned. Redirecting…` : "Deleted. Redirecting…";
+      if (unaligned) await new Promise((r) => setTimeout(r, 1500));
       window.location.href = `${entry.category}/index.html`;
     } catch (err) {
       console.error("Delete entry failed:", err);
