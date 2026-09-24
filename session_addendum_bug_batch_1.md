@@ -769,3 +769,26 @@ Tests: `scripts/testEntryConsistency.js` (16 checks, real routes over HTTP,
 fakeSupabase, BILLING_ENABLED=true). The item 4 checks fail against the
 pre-fix code. The full offline suite passes, apart from the two 5e mapper
 tests (item 11).
+
+### Tests (item 11)
+
+The two "failing on main" 5e tests were a test-isolation bug, not an app
+bug. They set `SUPABASE_URL` to a dead address only if it was unset, to
+force the "srd_library unreachable → hand-authored fallback" path. With
+real credentials in the environment, that path read the real SRD library
+(17 real feats vs 10 hand-authored), so the fallback-parity checks failed.
+Both now force offline unconditionally, and both pass.
+`verifySrd5eFullIngest.js` / `verifySrdOriginsIngest.js` use the same
+`||` pattern on purpose (they have a `--live` mode) and pass; left as is.
+
+### Item 12 re-check, item 13 answer, item 14
+
+- **12:** migration 039 is now confirmed applied (a `lore_date` insert on a
+  disposable world succeeded), so "Find dates in lore" can save.
+- **13 (lore edits don't re-check lore-extracted dates):** left as is.
+  Those events are DM-confirmed history, like every other Timeline event,
+  and a DM editing lore usually refines wording rather than retracting
+  events. If a date truly no longer applies, it's one delete away. An
+  automatic re-check would either nag after every lore tweak or silently
+  remove confirmed history. Revisit only if it actually bites.
+- **14 (calendar remap helper):** deferred by Austin.

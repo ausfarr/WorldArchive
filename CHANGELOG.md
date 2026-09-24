@@ -21,6 +21,12 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Audit fix: 5e mapper tests isolated (item 11).**
+  `test5eBackgroundFeatMapper.js` / `test5eRaceSystemMapper.js` forced
+  "offline" only when `SUPABASE_URL` was unset, so on any machine with real
+  keys their fallback checks read the real SRD library and failed. Now
+  always offline. No app code changed.
+
 - **Audit fixes: entry consistency (items 4–7).** Filling a ghost
   placeholder now counts against the entry cap. Renaming a faction no
   longer duplicates reciprocal relationships. A rename now updates every
