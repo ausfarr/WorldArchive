@@ -62,7 +62,10 @@ RULES:
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildHomebrewClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, campaignContext }) {
+// concept: set when filling a class stub a spell invented while the world
+// had no classes (lib/rulesets/5e/spellClasses.js) -- the one-line pitch
+// the spell was written around, so the full class matches it.
+function buildHomebrewClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, concept, campaignContext }) {
   const dynamicContext = `SETTING (stay consistent with this):
 ${settingContext}
 
@@ -76,7 +79,7 @@ EXISTING CLASS ROSTER (avoid repeating a concept, name, or mechanical niche alre
 ${rosterContext}
 
 USER INPUT:
-Name: ${name || "generate one fitting the setting"}${campaignContext ? `\nCampaign context: ${campaignContext}` : ""}`;
+Name: ${name || "generate one fitting the setting"}${concept ? `\nConcept (build the class around this): ${concept}` : ""}${campaignContext ? `\nCampaign context: ${campaignContext}` : ""}`;
 
   return buildCacheableSystemPrompt(STATIC_INSTRUCTIONS, dynamicContext);
 }

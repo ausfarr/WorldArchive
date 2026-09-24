@@ -18,6 +18,10 @@ const { listEntries, getEntry } = require("../lib/entriesRepo");
 // Multi-ruleset genericization, Phase 6 (Items) -- see
 // session_addendum_ruleset_genericization.md.
 const { buildItemBodyHtml: buildItemBodyHtml5e } = require("../lib/rulesets/5e/itemTemplate");
+// The 5e Homebrew/Import/Reflavor save calls below used save5eItemEntry
+// without ever requiring it, so every 5e item generation threw
+// "save5eItemEntry is not defined" after the (already-billed) model call.
+const { save5eItemEntry } = require("../lib/rulesets/5e/itemRepo");
 const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 const { generateHomebrew5eItem, import5eItem, reflavor5eItem } = require("../lib/rulesets/5e/homebrewItemGenerator");
@@ -219,7 +223,7 @@ async function handle5eItemGenerate(req, res) {
   // from all three tiers than keep it selectively. factionOptionsText
   // below is still passed to Reflavor/Homebrew as grounding CONTEXT for
   // the model's flavor text -- a different thing from a user-set field.
-  const { name, fillExistingId, rarity, itemType, srdLibraryId } = req.body || {};
+  let { name, fillExistingId, rarity, itemType, srdLibraryId } = req.body || {};
   const mode = req.body && req.body.mode;
 
   let existingEntry = null;
@@ -234,6 +238,13 @@ async function handle5eItemGenerate(req, res) {
     const full = await getEntry(worldId, "items", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    // Filling a LOCKED placeholder (a ghost created by entry
+    // cross-linking, or a spell's class stub) must build the entry the
+    // placeholder names -- the Fill In button only posts { fillExistingId },
+    // so without this the model invented an unrelated entry saved under the
+    // placeholder's id (e.g. a "Wizard" ghost filled as "Neon Hacker").
+    // Same behavior every Echoes handler already had.
+    if (!name && manifestEntry.locked) name = manifestEntry.name;
     if (isRegenerate) {
       const gate = await requireSubscriptionToRegenerate(req);
       if (!gate.allowed) {
@@ -306,9 +317,17 @@ async function handle5eItemGenerate(req, res) {
     // srdLibraryId is recovered above (resolvedSrdLibraryId) from either
     // the request body (first-time reflavor) or the existing entry's
     // saved srdSourceId (a regenerate).
-    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    // Nothing was generated -- give back the points enforceGenerationCap
+    // already spent (idempotent, so the catch block can't double-refund).
+    if (!resolvedSrdLibraryId) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    }
     const srdRow = await getSrdEntry(resolvedSrdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
+    if (!srdRow) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
+    }
 
     // Extracted to homebrewItemGenerator.js's reflavor5eItem() -- same
     // "reuse it, don't fork it" reasoning as Import above.
@@ -326,6 +345,9 @@ async function handle5eItemGenerate(req, res) {
   }
 
   if (existingEntry) item.id = existingEntry.manifestEntry.id;
+  // A homebrew Fill keeps the placeholder's name even if the model drifted
+  // from it -- other entries already link to this entry by that name.
+  if (existingEntry && existingEntry.manifestEntry.locked && effectiveMode === "homebrew") item.name = existingEntry.manifestEntry.name;
 
   const linkResult = await resolveReferencesForEntry(worldId, "items", item);
   item = linkResult.raw;
@@ -349,7 +371,7 @@ async function handle5eItemGenerate(req, res) {
 // ============================================================
 async function handleGenericItemGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId } = req.body || {};
+  let { name, faction, fillExistingId } = req.body || {};
 
   const genericSystem = await getGenericSystem(worldId);
   if (!genericSystem || !Array.isArray(genericSystem.attributes) || !genericSystem.attributes.length) {
@@ -369,6 +391,8 @@ async function handleGenericItemGenerate(req, res) {
     const full = await getEntry(worldId, "items", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    // Fill a locked placeholder AS that placeholder -- see the 5e handler above.
+    if (!name && manifestEntry.locked) name = manifestEntry.name;
     if (isRegenerate) {
       const gate = await requireSubscriptionToRegenerate(req);
       if (!gate.allowed) {
@@ -386,6 +410,7 @@ async function handleGenericItemGenerate(req, res) {
   let item = await generateHomebrewGenericItem(worldId, genericSystem, { name, faction });
   if (fillExistingId) item.id = fillExistingId;
   if (existingEntry) item.id = existingEntry.manifestEntry.id;
+  if (existingEntry && existingEntry.manifestEntry.locked) item.name = existingEntry.manifestEntry.name; // see the 5e handler above
 
   const linkResult = await resolveReferencesForEntry(worldId, "items", item);
   item = linkResult.raw;

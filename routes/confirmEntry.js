@@ -188,7 +188,7 @@ router.post("/confirm-entry", async (req, res) => {
     const createsCountedEntry = !alreadyExists || alreadyExists.locked === true;
     const doConfirm = async () => {
       if (createsCountedEntry) {
-        const capResult = await checkEntryCap(worldId, req.userId);
+        const capResult = await checkEntryCap(worldId, req.userId, req.userEmail);
         if (!capResult.allowed) {
           return {
             status: 403,

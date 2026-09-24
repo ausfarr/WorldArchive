@@ -17,6 +17,7 @@ const {
 } = require("../lib/worldConfigRepo");
 const { countEntries } = require("../lib/entriesRepo");
 const { getAiEnabled, setAiEnabled } = require("../lib/userSettingsRepo");
+const { isAdminEmail } = require("../lib/adminAccess");
 const { billingTierFor, isActiveSubscription, buildBillingStatusPayload, pointsToGenerations, stripePeriodFields, TERMINAL_STRIPE_STATUSES } = require("../lib/billingTier");
 
 const router = express.Router();
@@ -77,6 +78,13 @@ async function buildEntryCapStatus(worldId, subscriptionActive) {
 router.get("/billing/status", async (req, res) => {
   try {
     const aiEnabled = await getAiEnabled(req.userId);
+
+    // Admins bypass every cap (middleware/enforceGenerationCap.js,
+    // enforceEntryCap.js, lib/regenerateGate.js), so a quota readout
+    // here would be meaningless -- nothing is ever deducted for them.
+    if (isAdminEmail(req.userEmail)) {
+      return res.json({ state: "admin", entryCap: { unlimited: true }, aiEnabled });
+    }
 
     if (!BILLING_ENABLED) {
       const usedPoints = await getGenerationCount(req.worldId);
