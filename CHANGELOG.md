@@ -21,6 +21,22 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Bug batch 1, Phase 2 — canceled subscribers fall back to the free
+  tier.** Any `subscriptions` row, even a canceled one, used to route to the
+  subscription quota (zeroed for non-active rows), so lapsed accounts got no
+  free allowance and Settings showed "44 of 50 remaining… Renews <past
+  date>". `canceled`/`unpaid`/`incomplete_expired` now spend the monthly
+  free allowance, then purchased credits (images: free allowance only);
+  `past_due` unchanged. New `lib/billingTier.js` (tier selection + status
+  payloads). Settings shows a lapsed state with "Your subscription ended
+  on…" + Resubscribe, and "Cancels on…" for portal cancellations. Webhook
+  now syncs period + `cancel_at_period_end` on `subscription.updated`
+  (**migration 037, run by hand**; the app works without it). Also fixed:
+  subscribers' image counter never reset on renewal/resubscribe; free-tier
+  "Resets <date>" could be days late at month ends. New
+  `scripts/testBillingTier.js`, `scripts/testFreeTierAllowance.js` (live).
+  v1.7. Details in `session_addendum_bug_batch_1.md`.
+
 - **Bug batch 1, Phase 1 — wizard factions now have a correct relationship
   graph immediately.** "Expand Factions" at the end of the wizard saved Deep
   Lore without resolving relationship ids, syncing reciprocals, or

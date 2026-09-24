@@ -26,6 +26,7 @@
 // this the same way routes/confirmEntry.js's withLock() already closed
 // the identical race on its own (lock-for-the-whole-request) write path.
 const { getSubscription } = require("../lib/billingRepo");
+const { isActiveSubscription } = require("../lib/billingTier");
 const { countEntries } = require("../lib/entriesRepo");
 const { getEntriesPurchased, FREE_ENTRY_CAP } = require("../lib/worldConfigRepo");
 const { withLock } = require("../lib/asyncLock");
@@ -60,8 +61,13 @@ function releaseReservation(worldId) {
 async function checkEntryCap(worldId, userId) {
   if (!BILLING_ENABLED) return { allowed: true, unlimited: true };
 
+  // Active-only perk: a lapsed (canceled/unpaid/incomplete_expired) or
+  // past_due row falls through to FREE_ENTRY_CAP + purchased entries,
+  // same as a free account -- routes/billing.js's buildEntryCapStatus
+  // reports from the same isActiveSubscription() check, so the gate and
+  // the Settings readout can't disagree.
   const subscription = await getSubscription(userId);
-  if (subscription && subscription.status === "active") {
+  if (isActiveSubscription(subscription)) {
     return { allowed: true, unlimited: true };
   }
 

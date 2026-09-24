@@ -12,15 +12,18 @@
 //                                   purchase, branch on session.mode
 //   invoice.payment_succeeded   -- renewal: reset used_this_cycle,
 //                                   reactivate if it was past_due
-//   customer.subscription.updated -- keep status in sync generally
-//   customer.subscription.deleted -- mark canceled (credits stay usable)
+//   customer.subscription.updated -- keep status, current period, and
+//                                   cancel_at_period_end in sync
+//   customer.subscription.deleted -- mark canceled (account falls back to
+//                                   the free tier; credits stay usable)
 //   invoice.payment_failed      -- mark past_due (Stripe auto-retries;
 //                                   credits stay usable, monthly quota
 //                                   access pauses until it recovers)
 
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
-const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, getSubscriptionByStripeId, addCredits, claimWebhookEvent, releaseWebhookEventClaim } = require("../lib/billingRepo");
+const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, syncSubscriptionFromStripe, getSubscriptionByStripeId, addCredits, claimWebhookEvent, releaseWebhookEventClaim } = require("../lib/billingRepo");
+const { stripePeriodFields } = require("../lib/billingTier");
 const { addPurchasedEntries, POINTS_PER_GENERATION } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
@@ -58,14 +61,21 @@ async function handleCheckoutCompleted(session) {
       console.error(`Stripe webhook: checkout.session.completed (subscription) missing client_reference_id -- session ${session.id}`);
       return;
     }
+    // Also the resubscribe path for a lapsed account: upserting on
+    // user_id overwrites the old canceled row's stripe_subscription_id and
+    // status, and resetUsage zeroes both cycle counters, so the account is
+    // straight back on the paid path. A late customer.subscription.deleted
+    // for the OLD subscription id then matches no row and is a no-op.
+    const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
     await upsertSubscription({
       userId,
       planId: plan.id,
       stripeCustomerId: session.customer,
       stripeSubscriptionId: subscription.id,
       status: "active",
-      currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+      currentPeriodStart,
+      currentPeriodEnd,
+      cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
       resetUsage: true
     });
     return;
@@ -117,29 +127,64 @@ async function handleInvoicePaymentSucceeded(invoice) {
   const priceId = subscription.items.data[0].price.id;
   const plan = await getPlanByStripePriceId(priceId);
 
+  const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
   await upsertSubscription({
     userId: existing.user_id,
     planId: plan ? plan.id : existing.plan_id,
     stripeCustomerId: subscription.customer,
     stripeSubscriptionId: subscription.id,
     status: "active",
-    currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+    currentPeriodStart: currentPeriodStart || existing.current_period_start,
+    currentPeriodEnd: currentPeriodEnd || existing.current_period_end,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
     resetUsage: true
   });
 }
 
+// Bug batch 1, Phase 2: this used to sync status only, so a DM who hit
+// "Cancel" in the Stripe portal (Stripe keeps status 'active' and sets
+// cancel_at_period_end) still saw "Renews <date>" in Settings, and the
+// stored period never moved except on a paid renewal. Now it syncs the
+// period and cancel_at_period_end too (migrations/037 -- written without
+// that column if the migration hasn't been run yet, see
+// lib/billingRepo.js). Access is unchanged by cancel_at_period_end: the
+// row stays 'active' with full quota until Stripe's period actually ends
+// and customer.subscription.deleted arrives.
+//
+// Stripe's own status values (active, past_due, canceled, unpaid, etc.)
+// pass through directly -- lib/billingTier.js decides what each one means
+// for quota (canceled/unpaid/incomplete_expired fall back to the free
+// tier; everything else stays on the subscription path).
 async function handleSubscriptionUpdated(subscription) {
   const existing = await getSubscriptionByStripeId(subscription.id);
   if (!existing) return;
-  // Stripe's own status values (active, past_due, canceled, unpaid, etc.)
-  // pass through directly -- the RPC in migrations/012_billing.sql only
-  // special-cases 'active' vs everything else, so no translation needed.
-  await setSubscriptionStatus(subscription.id, subscription.status);
+  const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
+  await syncSubscriptionFromStripe(subscription.id, {
+    status: subscription.status,
+    currentPeriodStart,
+    currentPeriodEnd,
+    cancelAtPeriodEnd: typeof subscription.cancel_at_period_end === "boolean" ? subscription.cancel_at_period_end : undefined
+  });
 }
 
+// Marks the row canceled -> the account falls back to the free tier
+// (lib/billingTier.js). current_period_end is what Settings shows as
+// "Your subscription ended on <date>", so it's clamped to Stripe's
+// ended_at when that's earlier: a cancel-at-period-end sub ends exactly
+// at period end anyway, but an immediate cancel from the Dashboard ends
+// mid-period and would otherwise claim it "ended" on a future date.
+// cancel_at_period_end is cleared -- it's moot once the sub is over, and
+// a stale true would be misleading if anything ever read it later.
 async function handleSubscriptionDeleted(subscription) {
-  await setSubscriptionStatus(subscription.id, "canceled");
+  const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
+  const endedAt = typeof subscription.ended_at === "number" ? new Date(subscription.ended_at * 1000).toISOString() : null;
+  const effectiveEnd = endedAt && (!currentPeriodEnd || endedAt < currentPeriodEnd) ? endedAt : currentPeriodEnd;
+  await syncSubscriptionFromStripe(subscription.id, {
+    status: "canceled",
+    currentPeriodStart,
+    currentPeriodEnd: effectiveEnd,
+    cancelAtPeriodEnd: false
+  });
 }
 
 async function handleInvoicePaymentFailed(invoice) {
@@ -219,3 +264,10 @@ router.post("/", async (req, res) => {
 });
 
 module.exports = router;
+// Exposed for scripts/testBillingTier.js's fixture-event tests -- the
+// handlers are plain async functions of a Stripe object; the router above
+// only adds signature verification and idempotency around them.
+module.exports.handlers = {
+  handleCheckoutCompleted, handleInvoicePaymentSucceeded, handleSubscriptionUpdated,
+  handleSubscriptionDeleted, handleInvoicePaymentFailed
+};

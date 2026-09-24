@@ -11,27 +11,23 @@ const express = require("express");
 const { stripe } = require("../lib/stripeClient");
 const { getPlan, getSubscription, getCreditBalance, DEFAULT_PLAN_ID } = require("../lib/billingRepo");
 const {
-  getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP, POINTS_PER_GENERATION,
-  FREE_MONTHLY_GENERATION_CAP, FREE_MONTHLY_IMAGE_CAP, resetFreeCycleIfElapsed, getFullConfig
+  getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP,
+  resetFreeCycleIfElapsed, getFullConfig
 } = require("../lib/worldConfigRepo");
 const { countEntries } = require("../lib/entriesRepo");
 const { getAiEnabled, setAiEnabled } = require("../lib/userSettingsRepo");
+const { billingTierFor, isActiveSubscription, buildBillingStatusPayload, pointsToGenerations } = require("../lib/billingTier");
 
 const router = express.Router();
 
 // v0.9 Manual Mode, Piece 2 -- every counter this route reads
 // (generation_count, used_this_cycle, monthly_quota, credit_ledger sums)
-// is now stored in POINTS, not raw generations (see
+// is stored in POINTS, not raw generations (see
 // migrations/015_field_assist_points.sql). This route is the one place
-// that unit gets converted back for display -- the Settings page and
-// every other consumer of /billing/status still sees plain "generations"
-// numbers, unaware points exist at all. Floors rather than rounds, so a
-// user never sees a "remaining" count that implies a full generation is
-// available when it isn't (e.g. 4 leftover points is 0 generations, even
-// though it's still spendable as 4 field assists).
-function pointsToGenerations(points) {
-  return Math.floor(points / POINTS_PER_GENERATION);
-}
+// that unit gets converted back for display; pointsToGenerations() now
+// lives in lib/billingTier.js alongside the status-payload builders that
+// share it (floors, so a user never sees a "remaining" count that implies
+// a full generation is available when it isn't).
 
 // Same kill switch as middleware/enforceGenerationCap.js -- see that
 // file's header comment for the full explanation. Guarded here too
@@ -54,9 +50,10 @@ const CREDIT_PRICE_ID = process.env.STRIPE_CREDIT_PRICE_ID;
 const ENTRY_PACK_PRICE_ID = process.env.STRIPE_ENTRY_PACK_PRICE_ID;
 
 // Entry cap status for the Settings page, folded into /billing/status
-// below. `unlimited: true` for active subscribers (see
-// middleware/enforceEntryCap.js's identical logic -- kept in sync
-// manually since this is a read-only status report, not a gate).
+// below. `unlimited: true` for active subscribers only -- the caller
+// passes lib/billingTier.js#isActiveSubscription, the same check
+// middleware/enforceEntryCap.js gates on, so a lapsed or past_due account
+// sees FREE_ENTRY_CAP + purchased here exactly as the gate enforces it.
 async function buildEntryCapStatus(worldId, subscriptionActive) {
   if (!BILLING_ENABLED || subscriptionActive) {
     return { unlimited: true };
@@ -95,55 +92,34 @@ router.get("/billing/status", async (req, res) => {
 
     const subscription = await getSubscription(req.userId);
     const creditBalancePoints = await getCreditBalance(req.userId);
-    const subscriptionActive = !!(subscription && subscription.status === "active");
+    const tier = billingTierFor(subscription);
 
-    if (!subscription) {
-      // v1.1 split-quota pricing -- a genuinely recurring monthly free
-      // allowance for signed-up accounts (migrations/029), replacing the
-      // old one-time TRIAL_CAP. Reset first so this status read always
-      // reflects the current cycle, same as every cap-check call site.
+    // Payload shapes live in lib/billingTier.js#buildBillingStatusPayload
+    // (pure, unit-tested by scripts/testBillingTier.js). 'free' and
+    // 'lapsed' both report the recurring monthly free allowance
+    // (migrations/029) -- reset first so this read always reflects the
+    // current cycle, same as every cap-check call site in
+    // middleware/enforceGenerationCap.js. A lapsed subscriber used to
+    // fall into the 'subscribed' shape and render "44 of 50 remaining...
+    // Renews <past date>" off a dead plan (bug batch 1, bug 2).
+    let config = null;
+    let plan = null;
+    if (tier === "subscribed") {
+      plan = await getPlan(subscription.plan_id);
+    } else {
       await resetFreeCycleIfElapsed(req.worldId);
-      const config = await getFullConfig(req.worldId);
-      const freeUsedPoints = config.generation_count || 0;
-      const freeImageUsed = config.image_generation_count || 0;
-      const nextResetAt = new Date(config.free_cycle_reset_at);
-      nextResetAt.setMonth(nextResetAt.getMonth() + 1);
-      return res.json({
-        state: "free",
-        freeUsed: pointsToGenerations(freeUsedPoints),
-        freeCap: pointsToGenerations(FREE_MONTHLY_GENERATION_CAP),
-        freeRemaining: pointsToGenerations(Math.max(0, FREE_MONTHLY_GENERATION_CAP - freeUsedPoints)),
-        freeImageUsed,
-        freeImageCap: FREE_MONTHLY_IMAGE_CAP,
-        freeImageRemaining: Math.max(0, FREE_MONTHLY_IMAGE_CAP - freeImageUsed),
-        nextResetAt: nextResetAt.toISOString(),
-        creditBalance: pointsToGenerations(creditBalancePoints),
-        fieldAssistsRemaining: Math.max(0, FREE_MONTHLY_GENERATION_CAP - freeUsedPoints) + creditBalancePoints,
-        entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive),
-        aiEnabled
-      });
+      config = await getFullConfig(req.worldId);
     }
 
-    const plan = await getPlan(subscription.plan_id);
-    const remainingThisCyclePoints = Math.max(0, plan.monthly_quota - subscription.used_this_cycle);
-    const usedImagesThisCycle = subscription.used_images_this_cycle || 0;
-    const monthlyQuotaImages = plan.monthly_quota_images || 0;
-    res.json({
-      state: "subscribed",
-      status: subscription.status,
-      planName: plan.name,
-      monthlyQuota: pointsToGenerations(plan.monthly_quota),
-      usedThisCycle: pointsToGenerations(subscription.used_this_cycle),
-      remainingThisCycle: pointsToGenerations(remainingThisCyclePoints),
-      monthlyQuotaImages,
-      usedImagesThisCycle,
-      remainingImagesThisCycle: Math.max(0, monthlyQuotaImages - usedImagesThisCycle),
-      currentPeriodEnd: subscription.current_period_end,
-      creditBalance: pointsToGenerations(creditBalancePoints),
-      fieldAssistsRemaining: remainingThisCyclePoints + creditBalancePoints,
-      entryCap: await buildEntryCapStatus(req.worldId, subscriptionActive),
+    res.json(buildBillingStatusPayload({
+      tier,
+      subscription,
+      plan,
+      config,
+      creditBalancePoints,
+      entryCap: await buildEntryCapStatus(req.worldId, isActiveSubscription(subscription)),
       aiEnabled
-    });
+    }));
   } catch (err) {
     console.error("Loading billing status failed:", err);
     res.status(500).json({ error: err.message });

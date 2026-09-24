@@ -52,6 +52,7 @@ const {
   getSubscription, spendSubscriptionGeneration, refundSubscriptionGeneration,
   spendSubscriptionImageGeneration, refundSubscriptionImageGeneration
 } = require("../lib/billingRepo");
+const { billingTierFor } = require("../lib/billingTier");
 
 const CONTACT_EMAIL = "ausfarr@gmail.com";
 
@@ -84,8 +85,9 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
     }
 
     const subscription = await getSubscription(req.userId);
+    const tier = billingTierFor(subscription);
 
-    if (subscription) {
+    if (tier === "subscribed") {
       const result = await spendSubscriptionGeneration(req.userId, amount);
       if (!result.allowed) {
         const outOfEverything = amount === POINTS_PER_FIELD_ASSIST
@@ -103,26 +105,57 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
       return next();
     }
 
-    // No subscriptions row -- free account. v1.1 split-quota pricing: this
-    // is a genuinely recurring MONTHLY allowance (migrations/029), not the
-    // old one-time TRIAL_CAP -- reset first so a request right after the
+    // Free account (no subscriptions row) or lapsed subscriber (canceled/
+    // unpaid/incomplete_expired -- see lib/billingTier.js). Both get the
+    // recurring MONTHLY free allowance (migrations/029), not the old
+    // one-time TRIAL_CAP -- reset first so a request right after the
     // cycle rolls over sees a clean slate before the check below.
+    //
+    // A lapsed subscriber's free_cycle_reset_at was never touched while
+    // they were subscribed (only this branch ever resets it), so their
+    // very first fallback request usually resets immediately and they
+    // start a fresh free allowance -- intended, see the Phase 2 section
+    // of session_addendum_bug_batch_1.md.
     await resetFreeCycleIfElapsed(req.worldId);
     const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, FREE_MONTHLY_GENERATION_CAP, amount);
-    if (!allowed) {
-      const remainingPoints = Math.max(0, FREE_MONTHLY_GENERATION_CAP - count);
-      const partialNote = (amount === POINTS_PER_GENERATION && remainingPoints > 0)
-        ? ` You do still have enough left for ${remainingPoints} more field assist${remainingPoints === 1 ? "" : "s"}, if that helps.`
-        : "";
-      return res.status(403).json({
-        error: "free_cap_reached",
-        message: `You've used all ${Math.floor(FREE_MONTHLY_GENERATION_CAP / POINTS_PER_GENERATION)} free generations this month.${partialNote} Subscribe to keep creating, or email ${CONTACT_EMAIL} with questions.`,
-        cap: FREE_MONTHLY_GENERATION_CAP
-      });
+    if (allowed) {
+      req.generationSource = "free";
+      req.generationCount = count;
+      req.refundGeneration = makeRefundOnce((amt) => refundGenerationCount(req.worldId, amt), amount);
+      return next();
     }
-    req.generationCount = count;
-    req.refundGeneration = makeRefundOnce((amt) => refundGenerationCount(req.worldId, amt), amount);
-    next();
+
+    // Free allowance exhausted -- a lapsed subscriber can still spend
+    // purchased credits (decision 1). The subscription RPC already does
+    // exactly that for a non-'active' row: it zeroes the quota and falls
+    // through to credit_ledger, so no new RPC/migration is needed. A
+    // plain free account (no row) can't take this path -- that RPC
+    // raises without a subscriptions row; the "free accounts can't spend
+    // purchased credits" gap is deferred to the Phase 5 audit by decision.
+    let creditBalance = null;
+    if (tier === "lapsed") {
+      const result = await spendSubscriptionGeneration(req.userId, amount);
+      if (result.allowed) {
+        req.generationSource = result.source; // 'credit' (or 'quota' if a resubscribe landed mid-request)
+        req.refundGeneration = makeRefundOnce((amt) => refundSubscriptionGeneration(req.userId, amt, result.source), amount);
+        return next();
+      }
+      creditBalance = result.creditBalance;
+    }
+
+    const remainingPoints = Math.max(0, FREE_MONTHLY_GENERATION_CAP - count);
+    const partialNote = (amount === POINTS_PER_GENERATION && remainingPoints > 0)
+      ? ` You do still have enough left for ${remainingPoints} more field assist${remainingPoints === 1 ? "" : "s"}, if that helps.`
+      : "";
+    const nextStep = tier === "lapsed"
+      ? "Resubscribe or buy credits to keep creating"
+      : "Subscribe to keep creating";
+    return res.status(403).json({
+      error: "free_cap_reached",
+      message: `You've used all ${Math.floor(FREE_MONTHLY_GENERATION_CAP / POINTS_PER_GENERATION)} free generations this month${tier === "lapsed" ? " and have no purchased credits left" : ""}.${partialNote} ${nextStep}, or email ${CONTACT_EMAIL} with questions.`,
+      cap: FREE_MONTHLY_GENERATION_CAP,
+      ...(creditBalance != null ? { creditBalance } : {})
+    });
   } catch (err) {
     next(err);
   }
@@ -149,8 +182,9 @@ async function enforceImageGenerationCap(req, res, next, amount = 1) {
     }
 
     const subscription = await getSubscription(req.userId);
+    const tier = billingTierFor(subscription);
 
-    if (subscription) {
+    if (tier === "subscribed") {
       const result = await spendSubscriptionImageGeneration(req.userId, amount);
       if (!result.allowed) {
         return res.status(403).json({
@@ -163,16 +197,18 @@ async function enforceImageGenerationCap(req, res, next, amount = 1) {
       return next();
     }
 
-    // No subscriptions row -- free account's recurring monthly image
-    // allowance (FREE_MONTHLY_IMAGE_CAP). Same reset call as the text
-    // path -- both counters live on the same world_config row and reset
+    // Free account or lapsed subscriber -- the recurring monthly free
+    // image allowance (FREE_MONTHLY_IMAGE_CAP) only. No credit fallback
+    // for either: purchased credits are text-only by design (see
+    // migrations/029's design notes). Same reset call as the text path
+    // -- both counters live on the same world_config row and reset
     // together.
     await resetFreeCycleIfElapsed(req.worldId);
     const { allowed, count } = await checkAndIncrementImageGenerationCount(req.worldId, FREE_MONTHLY_IMAGE_CAP, amount);
     if (!allowed) {
       return res.status(403).json({
         error: "free_image_cap_reached",
-        message: `You've used your ${FREE_MONTHLY_IMAGE_CAP} free image${FREE_MONTHLY_IMAGE_CAP === 1 ? "" : "s"} this month. Subscribe to keep generating images, or email ${CONTACT_EMAIL} with questions.`,
+        message: `You've used your ${FREE_MONTHLY_IMAGE_CAP} free image${FREE_MONTHLY_IMAGE_CAP === 1 ? "" : "s"} this month. ${tier === "lapsed" ? "Resubscribe" : "Subscribe"} to keep generating images, or email ${CONTACT_EMAIL} with questions.`,
         cap: FREE_MONTHLY_IMAGE_CAP
       });
     }
