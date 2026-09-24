@@ -49,7 +49,7 @@ const {
   checkAndIncrementImageGenerationCount, refundImageGenerationCount
 } = require("../lib/worldConfigRepo");
 const {
-  getSubscription, spendSubscriptionGeneration, refundSubscriptionGeneration,
+  getSubscription, spendSubscriptionGeneration, refundSubscriptionGeneration, spendCredits,
   spendSubscriptionImageGeneration, refundSubscriptionImageGeneration
 } = require("../lib/billingRepo");
 const { billingTierFor } = require("../lib/billingTier");
@@ -106,7 +106,7 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
     }
 
     // Free account (no subscriptions row) or lapsed subscriber (canceled/
-    // unpaid/incomplete_expired -- see lib/billingTier.js). Both get the
+    // unpaid/incomplete_expired/past_due -- see lib/billingTier.js). Both get the
     // recurring MONTHLY free allowance (migrations/029), not the old
     // one-time TRIAL_CAP -- reset first so a request right after the
     // cycle rolls over sees a clean slate before the check below.
@@ -125,19 +125,33 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
       return next();
     }
 
-    // Free allowance exhausted -- a lapsed subscriber can still spend
-    // purchased credits (decision 1). The subscription RPC already does
-    // exactly that for a non-'active' row: it zeroes the quota and falls
-    // through to credit_ledger, so no new RPC/migration is needed. A
-    // plain free account (no row) can't take this path -- that RPC
-    // raises without a subscriptions row; the "free accounts can't spend
-    // purchased credits" gap is deferred to the Phase 5 audit by decision.
+    // Free allowance exhausted -- fall back to purchased credits.
+    //   - Lapsed subscriber: the subscription RPC already does exactly
+    //     that for a non-'active' row (zeroes the quota, falls through to
+    //     credit_ledger), so it's reused as-is.
+    //   - Free account (no row): that RPC raises without a subscriptions
+    //     row, so it uses the credits-only RPC from migrations/038.
+    //     Before that, credits a free account bought were displayed in
+    //     Settings but could never be spent. Until 038 is run,
+    //     spendCredits() reports unavailable and this falls through to
+    //     the block below, same as before the fix.
+    // Both refund through refund_subscription_generation's 'credit'
+    // branch, which only writes credit_ledger (no subscriptions row
+    // needed).
     let creditBalance = null;
     if (tier === "lapsed") {
       const result = await spendSubscriptionGeneration(req.userId, amount);
       if (result.allowed) {
         req.generationSource = result.source; // 'credit' (or 'quota' if a resubscribe landed mid-request)
         req.refundGeneration = makeRefundOnce((amt) => refundSubscriptionGeneration(req.userId, amt, result.source), amount);
+        return next();
+      }
+      creditBalance = result.creditBalance;
+    } else {
+      const result = await spendCredits(req.userId, amount);
+      if (result.allowed) {
+        req.generationSource = "credit";
+        req.refundGeneration = makeRefundOnce((amt) => refundSubscriptionGeneration(req.userId, amt, "credit"), amount);
         return next();
       }
       creditBalance = result.creditBalance;
@@ -149,10 +163,10 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
       : "";
     const nextStep = tier === "lapsed"
       ? "Resubscribe or buy credits to keep creating"
-      : "Subscribe to keep creating";
+      : "Subscribe or buy credits to keep creating";
     return res.status(403).json({
       error: "free_cap_reached",
-      message: `You've used all ${Math.floor(FREE_MONTHLY_GENERATION_CAP / POINTS_PER_GENERATION)} free generations this month${tier === "lapsed" ? " and have no purchased credits left" : ""}.${partialNote} ${nextStep}, or email ${CONTACT_EMAIL} with questions.`,
+      message: `You've used all ${Math.floor(FREE_MONTHLY_GENERATION_CAP / POINTS_PER_GENERATION)} free generations this month${creditBalance != null ? " and have no purchased credits left" : ""}.${partialNote} ${nextStep}, or email ${CONTACT_EMAIL} with questions.`,
       cap: FREE_MONTHLY_GENERATION_CAP,
       ...(creditBalance != null ? { creditBalance } : {})
     });

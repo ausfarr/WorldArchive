@@ -24,8 +24,8 @@ Phase 0 follow-up answers:
 
 - **Free accounts can't spend purchased credits** (the free branch of
   `middleware/enforceGenerationCap.js` never touches `credit_ledger`; only
-  the subscription RPC does). Deferred — would need a small credits-only
-  spend RPC + migration. Listed in the Phase 5 audit.
+  the subscription RPC does). Initially deferred; Austin decided after
+  Phase 2 to fix it — see "Phase 2 follow-up" below.
 - `BILLING_ENABLED=true` in production.
 - Timeline `entry_date` dedupe key is enforced for every caller, including
   `/confirm-entry` (Phase 4).
@@ -123,7 +123,7 @@ pure):
 | none | `free` | monthly free allowance | free allowance | 30 + purchased |
 | `canceled` / `unpaid` / `incomplete_expired` | `lapsed` | free allowance, **then purchased credits** | free allowance only | 30 + purchased |
 | `active` | `subscribed` | plan quota, then credits | plan quota | unlimited |
-| `past_due` (and any other status) | `subscribed` | unchanged: quota paused (0), credits only | unchanged: 0 | 30 + purchased |
+| `past_due` | `lapsed` (Phase 2 follow-up) | same as lapsed | same as lapsed | 30 + purchased |
 
 - The lapsed credit fallback reuses `check_and_spend_subscription_generation`:
   for a non-active row it already zeroes the quota and spends
@@ -223,3 +223,43 @@ middleware routing for every status, and the webhook handlers with fixture
 events, including the missing-column fallback. `scripts/lib/fakeSupabase.js`
 gained the credit_ledger fallback, `get_credit_balance`, and the
 image-quota RPCs. `scripts/testFreeTierAllowance.js` (29 checks, live).
+
+## Phase 2 follow-up — past_due and free-account credits
+
+Austin's answers to the Phase 2 open questions:
+
+1. **`past_due` is treated as lapsed.** "Past due is essentially an
+   automatic cancel." Added to `LAPSED_SUBSCRIPTION_STATUSES`, so a
+   past_due account gets the free allowance, then credits, then capped
+   entries. Nothing extra is needed to restore it: a successful Stripe
+   retry fires `invoice.payment_succeeded`, which sets `active` with fresh
+   usage. Settings words it as a payment problem ("Your last subscription
+   payment failed… update your card in Manage Billing"), not "ended". It
+   hides Resubscribe for past_due, since the Stripe subscription still
+   exists and a second checkout would double-bill once the retry
+   succeeds.
+2. **Out-of-order webhook events** → left for the Phase 5 audit.
+3. **Free accounts can now spend purchased credits.**
+   `migrations/038_credits_only_spend.sql` adds
+   `check_and_spend_credits(p_user_id, p_amount)`. It is serialized per
+   user by `pg_advisory_xact_lock`, because a free account has no
+   subscriptions row to lock, and without the lock two concurrent requests
+   could both spend the last credit. Refunds reuse
+   `refund_subscription_generation`'s `'credit'` branch, which only
+   inserts a positive ledger row. Order for a free account: monthly free
+   allowance → credits → `free_cap_reached` (with `creditBalance`).
+   Lapsed accounts keep using the subscription RPC's credit fallback.
+   **Fail-safe:** until 038 is run, PostgREST returns PGRST202,
+   `spendCredits()` reports unavailable (one warning per process), and the
+   request gets the same 403 as before the fix. Verified live against
+   the un-migrated schema.
+
+Not changed, for Phase 5: `/billing/checkout/subscribe` has no
+server-side guard against an account that already has a live
+subscription (active or past_due). Only the UI hides the button.
+
+Tests: `scripts/testBillingTier.js` now covers past_due as lapsed
+(including a return to paid on `active`), free credits spend/refund/block,
+and the missing-RPC fail-safe. `scripts/testFreeTierAllowance.js` probes
+for 038 and checks the real credit spend if it's present, else the
+fail-safe. **Re-run it after applying 038.**

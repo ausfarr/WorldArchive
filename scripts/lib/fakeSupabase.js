@@ -171,16 +171,29 @@ class FakeQuery {
 // Bug batch 1, Phase 2 (scripts/testBillingTier.js) filled in the rest of
 // the billing surface: the credit_ledger fallback in
 // check_and_spend_subscription_generation + the 'credit' refund branch
-// (migrations/015/018/028), get_credit_balance (019), and the image-quota
-// RPCs (029). reset_free_cycle_if_elapsed is still a no-op -- real cycle
+// (migrations/015/018/028), get_credit_balance (019), the image-quota
+// RPCs (029), and the free-account check_and_spend_credits (038). reset_free_cycle_if_elapsed is still a no-op -- real cycle
 // rollover is proven against live Postgres by
 // scripts/testFreeTierAllowance.js instead, since its `interval '1 month'`
 // arithmetic is exactly the thing worth testing for real.
+const disabledRpcs = new Set();
+
 function creditBalance(userId) {
   return db.credit_ledger.filter((r) => r.user_id === userId).reduce((sum, r) => sum + r.amount, 0);
 }
 
 function fakeRpc(fn, params) {
+  if (fn === "check_and_spend_credits") {
+    // migrations/038. fakeSupabase.disabledRpcs lets a test simulate the
+    // migration not having been run yet (PostgREST's PGRST202).
+    if (disabledRpcs.has(fn)) return { data: null, error: { code: "PGRST202", message: `Could not find the function public.${fn}(p_amount, p_user_id) in the schema cache` } };
+    const balance = creditBalance(params.p_user_id);
+    if (balance >= params.p_amount) {
+      db.credit_ledger.push({ user_id: params.p_user_id, amount: -params.p_amount, reason: "generation_spend" });
+      return { data: [{ allowed: true, credit_balance: balance - params.p_amount }], error: null };
+    }
+    return { data: [{ allowed: false, credit_balance: balance }], error: null };
+  }
   if (fn === "get_credit_balance") {
     return { data: creditBalance(params.p_user_id), error: null };
   }
@@ -337,4 +350,4 @@ function install() {
   };
 }
 
-module.exports = { install, db };
+module.exports = { install, db, disabledRpcs };

@@ -288,11 +288,19 @@ async function loadUsage() {
       const imagePct = Math.min(100, Math.round((data.freeImageUsed / data.freeImageCap) * 100));
       const nextReset = data.nextResetAt ? new Date(data.nextResetAt).toLocaleDateString() : "next month";
       const endedOn = lapsed && data.endedAt ? new Date(data.endedAt).toLocaleDateString() : null;
+      // past_due is lapsed too (Phase 2 follow-up: a failed renewal counts
+      // as an automatic cancel), but the subscription hasn't "ended" --
+      // Stripe is still retrying the card, and a successful retry puts the
+      // account straight back on the paid plan.
+      const lapsedNote = !lapsed ? ""
+        : data.status === "past_due"
+          ? "Your last subscription payment failed. You're on the free tier until it goes through — update your card in Manage Billing."
+          : `${endedOn ? `Your subscription ended on ${endedOn}.` : "Your subscription has ended."} You're on the free tier until you resubscribe.`;
       const creditsLine = lapsed
         ? `<div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available (never expire, used after your free generations run out).</div>`
-        : (data.creditBalance > 0 ? `<div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available.</div>` : "");
+        : (data.creditBalance > 0 ? `<div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available (never expire, used after your free generations run out).</div>` : "");
       el.innerHTML = `
-        ${lapsed ? `<div style="margin-bottom:12px; color: var(--ink-dim);">${endedOn ? `Your subscription ended on ${endedOn}.` : "Your subscription has ended."} You're on the free tier until you resubscribe.</div>` : ""}
+        ${lapsed ? `<div style="margin-bottom:12px; color: var(--ink-dim);">${lapsedNote}</div>` : ""}
         <div>${data.freeRemaining} of ${data.freeCap} free generations remaining this month (${data.freeUsed} used)${lapsed ? "" : " — no card required"}. Counts NPCs, enemies, items, classes, logs, survivors, and factions generated or regenerated from the archive. Wizard setup doesn't count against this.</div>
         <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
           <div style="height:100%; width:${pct}%; background: var(--neon-cyan);"></div>
@@ -305,27 +313,32 @@ async function loadUsage() {
         ${creditsLine}
         ${renderEntryCapStatus(data.entryCap)}
       `;
-      const subscribeLabel = lapsed
+      const subscribeLabel = lapsed && data.status === "past_due"
+        ? null
+        : lapsed
         ? "Resubscribe — $4.99/month (50 generations + 10 images/mo, unlimited entries, regenerate/remix)"
         : "Subscribe — $4.99/month (50 generations + 10 images/mo, unlimited entries, regenerate/remix)";
       // Lapsed accounts still have a Stripe customer, so Manage Billing
       // (invoices, payment method) stays available alongside Resubscribe.
-      actions.innerHTML = `<button id="subscribe-btn" style="${BTN_PRIMARY}">${subscribeLabel}</button>`
-        + (lapsed ? `<button id="manage-billing-btn" style="${BTN_SECONDARY}">Manage Billing</button>` : "")
+      // past_due still HAS a live Stripe subscription -- a second
+      // subscribe checkout would double-bill once the retry succeeds, so it
+      // gets only Manage Billing (where the card is fixed).
+      actions.innerHTML = (subscribeLabel ? `<button id="subscribe-btn" style="${BTN_PRIMARY}">${subscribeLabel}</button>` : "")
+        + (lapsed ? `<button id="manage-billing-btn" style="${data.status === "past_due" ? BTN_PRIMARY : BTN_SECONDARY}">Manage Billing</button>` : "")
         + renderCreditsControls()
         + (data.entryCap && !data.entryCap.unlimited ? renderEntryPackControls() : "");
-      document.getElementById("subscribe-btn").addEventListener("click", () => startCheckout("/api/billing/checkout/subscribe"));
+      if (subscribeLabel) document.getElementById("subscribe-btn").addEventListener("click", () => startCheckout("/api/billing/checkout/subscribe"));
       if (lapsed) document.getElementById("manage-billing-btn").addEventListener("click", openBillingPortal);
     } else {
       const pct = Math.min(100, Math.round((data.usedThisCycle / data.monthlyQuota) * 100));
       const imagePct = Math.min(100, Math.round((data.usedImagesThisCycle / data.monthlyQuotaImages) * 100));
       const periodEnd = new Date(data.currentPeriodEnd).toLocaleDateString();
-      // Only statuses that are still a live subscription reach this branch
-      // (active, past_due, ...) -- lapsed ones render above. A subscriber
+      // Only a live subscription reaches this branch (active in practice)
+      // -- lapsed ones, past_due included, render above. A subscriber
       // who canceled in the portal stays 'active' until period end with
       // cancelAtPeriodEnd set, so they keep full access and see when it
       // stops instead of a renewal that won't happen.
-      const statusLabel = data.status === "active" ? "" : ` — ${data.status === "past_due" ? "payment issue, update your card" : data.status}`;
+      const statusLabel = data.status === "active" ? "" : ` — ${data.status}`;
       const periodLine = data.cancelAtPeriodEnd ? `Cancels on ${periodEnd}.` : `Renews ${periodEnd}.`;
       el.innerHTML = `
         <div>${data.planName}${statusLabel}: ${data.remainingThisCycle} of ${data.monthlyQuota} generations remaining this cycle (${data.usedThisCycle} used). ${periodLine}</div>

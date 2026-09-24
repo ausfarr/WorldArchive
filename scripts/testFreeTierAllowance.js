@@ -165,6 +165,34 @@ async function main() {
     check("status after reset: nextResetAt = new reset_at + 1 month",
       sameInstant(status.nextResetAt, addOneMonthLikePostgres(cfg.free_cycle_reset_at)), { nextResetAt: status.nextResetAt, resetAt: cfg.free_cycle_reset_at });
 
+    // ---- free account + purchased credits (migrations/038) ----
+    console.log("\n-- free account with purchased credits --");
+    // Probe with an amount nobody can afford: no side effects if the
+    // function exists, PGRST202 if migration 038 hasn't been run yet.
+    const probe = await supabase.rpc("check_and_spend_credits", { p_user_id: userId, p_amount: 1e9 });
+    const has038 = !probe.error;
+    const { error: freeCreditErr } = await supabase.from("credit_ledger").insert({ user_id: userId, amount: POINTS_PER_GENERATION, reason: "purchase" });
+    if (freeCreditErr) throw new Error(`insert test credits failed: ${freeCreditErr.message}`);
+    await setCounters(worldId, FREE_MONTHLY_GENERATION_CAP, FREE_MONTHLY_IMAGE_CAP);
+    const origWarn = console.warn;
+    console.warn = () => {};
+    const freeCredit = await runMiddleware(enforceGenerationCap, ids);
+    const freeAfterCredit = await runMiddleware(enforceGenerationCap, ids);
+    console.warn = origWarn;
+    if (has038) {
+      check("free + credits: generation past the cap spends a purchased credit",
+        freeCredit.allowed && freeCredit.req.generationSource === "credit", freeCredit.body);
+      check("free + credits: then blocked with creditBalance 0",
+        !freeAfterCredit.allowed && freeAfterCredit.body.error === "free_cap_reached" && freeAfterCredit.body.creditBalance === 0, freeAfterCredit.body);
+      await freeCredit.req.refundGeneration();
+    } else {
+      console.log("  NOTE - migrations/038 not applied yet: checking the fail-safe path instead");
+      check("free + credits, 038 missing: blocked cleanly (403 free_cap_reached, not a 500)",
+        !freeCredit.allowed && freeCredit.status === 403 && freeCredit.body.error === "free_cap_reached", freeCredit.body);
+    }
+    // Leave the ledger at exactly 0 for the lapsed section below.
+    await supabase.from("credit_ledger").delete().eq("user_id", userId);
+
     // ---- lapsed subscriber: free -> credits, immediate reset, resubscribe ----
     console.log("\n-- lapsed subscriber (disposable subscriptions/credit_ledger rows) --");
     const periodEnd = new Date(Date.now() - 10 * DAY_MS);

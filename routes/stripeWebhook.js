@@ -17,8 +17,9 @@
 //   customer.subscription.deleted -- mark canceled (account falls back to
 //                                   the free tier; credits stay usable)
 //   invoice.payment_failed      -- mark past_due (Stripe auto-retries;
-//                                   credits stay usable, monthly quota
-//                                   access pauses until it recovers)
+//                                   meanwhile the account is on the free
+//                                   tier + credits, see lib/billingTier.js,
+//                                   until a retry succeeds)
 
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");

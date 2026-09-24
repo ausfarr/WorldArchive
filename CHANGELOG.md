@@ -21,6 +21,14 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Bug batch 1, Phase 2 follow-up — `past_due` joins the free tier; free
+  accounts can spend purchased credits.** A failed renewal is now treated
+  like a cancel (free allowance + credits; a successful Stripe retry
+  restores the plan). Credits bought by a free account were displayed but
+  never spendable; new `check_and_spend_credits` RPC (**migration 038, run
+  by hand**; until then the app behaves as before). Details in
+  `session_addendum_bug_batch_1.md`.
+
 - **Bug batch 1, Phase 2 — canceled subscribers fall back to the free
   tier.** Any `subscriptions` row, even a canceled one, used to route to the
   subscription quota (zeroed for non-active rows), so lapsed accounts got no

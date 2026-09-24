@@ -30,7 +30,7 @@ process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || "sk_test_not_re
 
 const fake = require("./lib/fakeSupabase");
 fake.install();
-const { db } = fake;
+const { db, disabledRpcs } = fake;
 
 const {
   billingTierFor, isActiveSubscription, addOneMonthLikePostgres,
@@ -95,8 +95,8 @@ function testPure() {
 
   check("no row -> free", billingTierFor(null) === "free");
   check("active -> subscribed", billingTierFor({ status: "active" }) === "subscribed");
-  check("past_due stays subscribed (unchanged by decision)", billingTierFor({ status: "past_due" }) === "subscribed");
-  for (const status of ["canceled", "unpaid", "incomplete_expired"]) {
+  check("trialing stays subscribed", billingTierFor({ status: "trialing" }) === "subscribed");
+  for (const status of ["canceled", "unpaid", "incomplete_expired", "past_due"]) {
     check(`${status} -> lapsed`, billingTierFor({ status }) === "lapsed");
   }
   check("isActiveSubscription only for 'active'",
@@ -155,20 +155,44 @@ async function testMiddleware() {
   console.log("\n-- middleware tier routing (BILLING_ENABLED=true) --");
   const FREE_GENS = FREE_MONTHLY_GENERATION_CAP / 5;
 
-  // Free account: 10 gens then blocked; credits NOT spendable (known,
-  // deferred gap -- asserted so a future fix has to update this test).
+  // Free account: 10 gens, then purchased credits (migrations/038), then
+  // blocked.
   resetDb();
   seedWorld("w-free");
-  grantCredits("u-free", 50);
+  grantCredits("u-free", 10); // 2 generations' worth
   let last;
   for (let i = 0; i < FREE_GENS; i++) last = await runMiddleware(enforceGenerationCap, { userId: "u-free", worldId: "w-free" });
   check("free: 10th generation allowed from the free allowance", last.allowed && last.req.generationSource === "free");
+  const fc1 = await runMiddleware(enforceGenerationCap, { userId: "u-free", worldId: "w-free" });
+  const fc2 = await runMiddleware(enforceGenerationCap, { userId: "u-free", worldId: "w-free" });
+  check("free: after 10 free, the next two spend purchased credits",
+    fc1.allowed && fc1.req.generationSource === "credit" && fc2.allowed && fc2.req.generationSource === "credit");
+  await fc2.req.refundGeneration();
+  check("free: refunding a credit spend restores it", db.credit_ledger.reduce((sum, r) => sum + r.amount, 0) === 5);
+  await runMiddleware(enforceGenerationCap, { userId: "u-free", worldId: "w-free" });
   last = await runMiddleware(enforceGenerationCap, { userId: "u-free", worldId: "w-free" });
-  check("free: 11th blocked with free_cap_reached", !last.allowed && last.body.error === "free_cap_reached");
-  check("free: purchased credits untouched (deferred gap, Phase 5)", db.credit_ledger.length === 1);
+  check("free: then blocked with free_cap_reached + creditBalance 0",
+    !last.allowed && last.body.error === "free_cap_reached" && last.body.creditBalance === 0 && /buy credits/.test(last.body.message));
+  check("free: no subscriptions row was ever created", db.subscriptions.length === 0);
+
+  // Migration 038 not applied yet: fail safe to the old behavior.
+  resetDb();
+  seedWorld("w-free-nomig", { generation_count: FREE_MONTHLY_GENERATION_CAP });
+  grantCredits("u-free-nomig", 50);
+  disabledRpcs.add("check_and_spend_credits");
+  const origWarn = console.warn;
+  console.warn = () => {};
+  try {
+    const nomig = await runMiddleware(enforceGenerationCap, { userId: "u-free-nomig", worldId: "w-free-nomig" });
+    check("free, 038 missing: blocked with free_cap_reached (not a 500), credits untouched",
+      !nomig.allowed && nomig.status === 403 && nomig.body.error === "free_cap_reached" && db.credit_ledger.length === 1);
+  } finally {
+    disabledRpcs.delete("check_and_spend_credits");
+    console.warn = origWarn;
+  }
 
   // Lapsed subscriber: free allowance first, then credits, then blocked.
-  for (const status of ["canceled", "unpaid", "incomplete_expired"]) {
+  for (const status of ["canceled", "unpaid", "incomplete_expired", "past_due"]) {
     resetDb();
     seedWorld("w-lapsed");
     seedSubscription("u-lapsed", { status, used_this_cycle: 30 });
@@ -214,13 +238,16 @@ async function testMiddleware() {
     active.allowed && active.req.generationSource === "quota" && db.subscriptions[0].used_this_cycle === 5
     && db.world_config[0].generation_count === 0);
 
-  // past_due: unchanged (subscription path, quota paused, credits only).
+  // past_due: free tier (Phase 2 follow-up), and a successful retry
+  // (status back to active) returns it to the paid quota.
   resetDb();
   seedWorld("w-pd");
-  seedSubscription("u-pd", { status: "past_due" });
+  const pdRow = seedSubscription("u-pd", { status: "past_due", used_this_cycle: 100 });
   const pd = await runMiddleware(enforceGenerationCap, { userId: "u-pd", worldId: "w-pd" });
-  check("past_due: unchanged -- blocked with generation_limit_reached when no credits",
-    !pd.allowed && pd.body.error === "generation_limit_reached" && db.world_config[0].generation_count === 0);
+  check("past_due: spends the free allowance", pd.allowed && pd.req.generationSource === "free" && db.world_config[0].generation_count === 5);
+  pdRow.status = "active";
+  const pdPaid = await runMiddleware(enforceGenerationCap, { userId: "u-pd", worldId: "w-pd" });
+  check("past_due -> active: back on paid quota", pdPaid.allowed && pdPaid.req.generationSource === "quota");
 
   // Images: lapsed gets the free image allowance only.
   resetDb();
