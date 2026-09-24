@@ -9,14 +9,15 @@
 
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
-const { getPlan, getSubscription, getCreditBalance, DEFAULT_PLAN_ID } = require("../lib/billingRepo");
+const { getPlan, getSubscription, getCreditBalance, syncSubscriptionFromStripe, DEFAULT_PLAN_ID } = require("../lib/billingRepo");
+const { getBillingOffer } = require("../lib/billingOffer");
 const {
-  getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP,
+  getGenerationCount, GENERATION_CAP, getEntriesPurchased, FREE_ENTRY_CAP, POINTS_PER_GENERATION,
   resetFreeCycleIfElapsed, getFullConfig
 } = require("../lib/worldConfigRepo");
 const { countEntries } = require("../lib/entriesRepo");
 const { getAiEnabled, setAiEnabled } = require("../lib/userSettingsRepo");
-const { billingTierFor, isActiveSubscription, buildBillingStatusPayload, pointsToGenerations } = require("../lib/billingTier");
+const { billingTierFor, isActiveSubscription, buildBillingStatusPayload, pointsToGenerations, stripePeriodFields, TERMINAL_STRIPE_STATUSES } = require("../lib/billingTier");
 
 const router = express.Router();
 
@@ -111,15 +112,26 @@ router.get("/billing/status", async (req, res) => {
       config = await getFullConfig(req.worldId);
     }
 
-    res.json(buildBillingStatusPayload({
-      tier,
-      subscription,
-      plan,
-      config,
-      creditBalancePoints,
-      entryCap: await buildEntryCapStatus(req.worldId, isActiveSubscription(subscription)),
-      aiEnabled
-    }));
+    // Audit item 8: what Settings offers (plan quotas + real Stripe
+    // prices) rides along instead of being hardcoded in settings.html.
+    const offerPlan = plan || await getPlan(DEFAULT_PLAN_ID).catch(() => null);
+    const offer = await getBillingOffer({
+      stripe, plan: offerPlan, pointsPerGeneration: POINTS_PER_GENERATION,
+      creditPriceId: CREDIT_PRICE_ID, entryPackPriceId: ENTRY_PACK_PRICE_ID
+    });
+
+    res.json({
+      ...buildBillingStatusPayload({
+        tier,
+        subscription,
+        plan,
+        config,
+        creditBalancePoints,
+        entryCap: await buildEntryCapStatus(req.worldId, isActiveSubscription(subscription)),
+        aiEnabled
+      }),
+      offer
+    });
   } catch (err) {
     console.error("Loading billing status failed:", err);
     res.status(500).json({ error: err.message });
@@ -169,6 +181,33 @@ router.post("/billing/checkout/subscribe", async (req, res) => {
   try {
     const plan = await getPlan(DEFAULT_PLAN_ID);
     const existing = await getSubscription(req.userId);
+
+    // Audit item 1: never start a second subscription while Stripe still
+    // has a live one for this account -- the new checkout would overwrite
+    // the row's stripe_subscription_id and the old subscription would keep
+    // billing untracked. Asks STRIPE (not our row) whether the old one is
+    // still live, which also self-heals a missed customer.subscription.
+    // deleted: a subscription Stripe reports finished is synced into the
+    // row and the checkout proceeds.
+    if (existing && existing.stripe_subscription_id && !TERMINAL_STRIPE_STATUSES.has(existing.status)) {
+      let live;
+      try {
+        live = await stripe.subscriptions.retrieve(existing.stripe_subscription_id);
+      } catch (lookupErr) {
+        console.error("Subscribe guard: couldn't check the existing subscription:", lookupErr.message);
+        return res.status(503).json({ error: "subscription_check_failed", message: "Couldn't confirm your current subscription with the payment provider. Please try again in a minute." });
+      }
+      if (!TERMINAL_STRIPE_STATUSES.has(live.status)) {
+        const message = live.cancel_at_period_end
+          ? "Your subscription is set to cancel but is still active -- resume it from Manage Billing instead of subscribing again."
+          : live.status === "active" || live.status === "trialing"
+            ? "You already have an active subscription."
+            : "Your subscription has a payment problem -- update your card in Manage Billing instead of subscribing again.";
+        return res.status(409).json({ error: "already_subscribed", message, openPortal: true });
+      }
+      const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(live);
+      await syncSubscriptionFromStripe(live.id, { status: live.status, currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd: false });
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",

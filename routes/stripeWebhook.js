@@ -23,30 +23,29 @@
 
 const express = require("express");
 const { stripe } = require("../lib/stripeClient");
-const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, syncSubscriptionFromStripe, getSubscriptionByStripeId, addCredits, claimWebhookEvent, releaseWebhookEventClaim } = require("../lib/billingRepo");
+const { getPlanByStripePriceId, upsertSubscription, setSubscriptionStatus, syncSubscriptionFromStripe, getSubscriptionByStripeId, getSubscription, addCredits, claimWebhookEvent, releaseWebhookEventClaim } = require("../lib/billingRepo");
 const { stripePeriodFields } = require("../lib/billingTier");
 const { addPurchasedEntries, POINTS_PER_GENERATION } = require("../lib/worldConfigRepo");
 
 const router = express.Router();
 
-// Credits per unit purchased at the $2 credit-pack Price -- 1 unit of
-// that Price = 5 generations. Checkout quantity is always a multiple of
-// this (see routes/billing.js's createCreditsCheckout, which sets
-// quantity = packs directly). Kept here rather than imported from
-// billing.js to avoid a circular require between the two route files.
-//
-// This constant still means "generations," not points -- customer-facing
-// meaning is unchanged (buy 1 unit, get 5 generations' worth of spend).
-// v0.9 Manual Mode, Piece 2 converts to points only at the addCredits()
-// call site below, right before writing to credit_ledger, since that's
-// the one place the unit switch actually matters.
-const CREDITS_PER_PACK_UNIT = 5;
+// Credits/entries granted per pack unit purchased -- now defined once in
+// lib/billingOffer.js (audit item 8), which Settings also reads to
+// describe the packs, so the advertised size and the granted size can't
+// drift. CREDITS_PER_PACK_UNIT still means "generations"; it's converted
+// to points only at the addCredits() call below (v0.9 Manual Mode,
+// Piece 2), since that's the one place the unit matters.
+const { CREDITS_PER_PACK_UNIT, ENTRIES_PER_PACK_UNIT } = require("../lib/billingOffer");
 
-// Entries granted per entry-pack unit purchased at the $5 entry-pack
-// Price -- 1 unit = +25 entries for that world. See routes/billing.js's
-// createEntriesCheckout, which sets quantity = packs directly, same
-// pattern as CREDITS_PER_PACK_UNIT above.
-const ENTRIES_PER_PACK_UNIT = 25;
+// Audit item 2: Stripe does not guarantee event order and can drop
+// deliveries, so the subscription.updated/deleted handlers re-read the
+// subscription from Stripe and write ITS current state rather than the
+// (possibly stale) snapshot inside the event. A delayed "updated: active"
+// processed after "deleted" used to flip a canceled row back to active;
+// with a fresh read it just re-writes "canceled".
+async function retrieveFreshSubscription(eventSubscription) {
+  return stripe.subscriptions.retrieve(eventSubscription.id);
+}
 
 async function handleCheckoutCompleted(session) {
   if (session.mode === "subscription") {
@@ -67,6 +66,16 @@ async function handleCheckoutCompleted(session) {
     // status, and resetUsage zeroes both cycle counters, so the account is
     // straight back on the paid path. A late customer.subscription.deleted
     // for the OLD subscription id then matches no row and is a no-op.
+    // Defense in depth for audit item 1 (routes/billing.js now refuses a
+    // second checkout): if this account's row still points at a different
+    // subscription that isn't finished, say so loudly -- that old
+    // subscription is about to become untracked while Stripe may keep
+    // billing it, and needs a manual cancel in the Stripe Dashboard.
+    const prior = await getSubscriptionByStripeId(subscription.id) || null;
+    const priorByUser = prior ? null : await getSubscription(userId);
+    if (priorByUser && priorByUser.stripe_subscription_id !== subscription.id && !["canceled", "incomplete_expired"].includes(priorByUser.status)) {
+      console.error(`Stripe webhook: user ${userId} started subscription ${subscription.id} while ${priorByUser.stripe_subscription_id} (status ${priorByUser.status}) was still on record -- check the old one in Stripe for double billing.`);
+    }
     const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
     await upsertSubscription({
       userId,
@@ -128,6 +137,13 @@ async function handleInvoicePaymentSucceeded(invoice) {
   const priceId = subscription.items.data[0].price.id;
   const plan = await getPlanByStripePriceId(priceId);
 
+  // Audit item 3: only a real new cycle resets usage. Proration/plan-change
+  // invoices ("subscription_update") and one-off invoices mid-cycle used
+  // to hand out a fresh month's quota. billing_reason is always present
+  // on real Stripe invoices; if it were ever missing, keep the old
+  // behavior (reset) rather than risk never resetting a renewal.
+  const reason = invoice.billing_reason;
+  const resetUsage = reason == null || reason === "subscription_cycle" || reason === "subscription_create";
   const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
   await upsertSubscription({
     userId: existing.user_id,
@@ -138,7 +154,7 @@ async function handleInvoicePaymentSucceeded(invoice) {
     currentPeriodStart: currentPeriodStart || existing.current_period_start,
     currentPeriodEnd: currentPeriodEnd || existing.current_period_end,
     cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
-    resetUsage: true
+    resetUsage
   });
 }
 
@@ -156,9 +172,12 @@ async function handleInvoicePaymentSucceeded(invoice) {
 // pass through directly -- lib/billingTier.js decides what each one means
 // for quota (canceled/unpaid/incomplete_expired fall back to the free
 // tier; everything else stays on the subscription path).
-async function handleSubscriptionUpdated(subscription) {
-  const existing = await getSubscriptionByStripeId(subscription.id);
+async function handleSubscriptionUpdated(eventSubscription) {
+  const existing = await getSubscriptionByStripeId(eventSubscription.id);
   if (!existing) return;
+  // Fresh read (audit item 2). If Stripe can't be reached, throw -- the
+  // handler 500s, the idempotency claim is released, and Stripe retries.
+  const subscription = await retrieveFreshSubscription(eventSubscription);
   const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
   await syncSubscriptionFromStripe(subscription.id, {
     status: subscription.status,
@@ -176,12 +195,22 @@ async function handleSubscriptionUpdated(subscription) {
 // mid-period and would otherwise claim it "ended" on a future date.
 // cancel_at_period_end is cleared -- it's moot once the sub is over, and
 // a stale true would be misleading if anything ever read it later.
-async function handleSubscriptionDeleted(subscription) {
+async function handleSubscriptionDeleted(eventSubscription) {
+  // Fresh read when possible (audit item 2); a deleted subscription is
+  // terminal, so if Stripe can't be reached the event's own snapshot is
+  // safe to use rather than failing the delivery.
+  let subscription = eventSubscription;
+  try {
+    subscription = await retrieveFreshSubscription(eventSubscription);
+  } catch (err) {
+    console.warn(`Stripe webhook: couldn't re-read deleted subscription ${eventSubscription.id}, using the event payload:`, err.message);
+  }
+  const status = subscription.status && subscription.status !== "active" ? subscription.status : "canceled";
   const { currentPeriodStart, currentPeriodEnd } = stripePeriodFields(subscription);
   const endedAt = typeof subscription.ended_at === "number" ? new Date(subscription.ended_at * 1000).toISOString() : null;
   const effectiveEnd = endedAt && (!currentPeriodEnd || endedAt < currentPeriodEnd) ? endedAt : currentPeriodEnd;
   await syncSubscriptionFromStripe(subscription.id, {
-    status: "canceled",
+    status,
     currentPeriodStart,
     currentPeriodEnd: effectiveEnd,
     cancelAtPeriodEnd: false

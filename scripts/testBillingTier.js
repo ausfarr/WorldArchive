@@ -34,8 +34,9 @@ const { db, disabledRpcs } = fake;
 
 const {
   billingTierFor, isActiveSubscription, addOneMonthLikePostgres,
-  buildBillingStatusPayload, stripePeriodFields
+  buildBillingStatusPayload, stripePeriodFields, isStaleActive
 } = require("../lib/billingTier");
+const { getBillingOffer, formatMoney, _clearPriceCacheForTests } = require("../lib/billingOffer");
 const { enforceGenerationCap, enforceImageGenerationCap } = require("../middleware/enforceGenerationCap");
 const { checkEntryCap } = require("../middleware/enforceEntryCap");
 const { FREE_MONTHLY_GENERATION_CAP, FREE_ENTRY_CAP } = require("../lib/worldConfigRepo");
@@ -77,7 +78,7 @@ function seedWorld(worldId, overrides = {}) {
 function seedSubscription(userId, overrides = {}) {
   const row = {
     user_id: userId, plan_id: "chronicled_monthly", stripe_customer_id: "cus_test", stripe_subscription_id: `sub_${userId}`,
-    status: "active", current_period_start: "2026-08-01T00:00:00.000Z", current_period_end: "2026-09-01T00:00:00.000Z",
+    status: "active", current_period_start: "2099-08-01T00:00:00.000Z", current_period_end: "2099-09-01T00:00:00.000Z",
     used_this_cycle: 0, used_images_this_cycle: 0, monthly_quota: 250, monthly_quota_images: 10, ...overrides
   };
   db.subscriptions.push(row);
@@ -312,10 +313,25 @@ async function testWebhooks() {
   const origWarn = console.warn;
   console.warn = () => {}; // the missing-column fallback warns by design
 
+  // Audit item 2: updated/deleted handlers re-read the subscription from
+  // Stripe. Stub: STRIPE_STATE overrides what "Stripe" currently says;
+  // otherwise it echoes the event that was just delivered (event == truth).
+  const STRIPE_STATE = {};
+  const echoed = new Map();
+  const stubRetrieve = async (id) => {
+    if (STRIPE_STATE[id] === "throw") throw new Error("Stripe unreachable");
+    if (STRIPE_STATE[id]) return STRIPE_STATE[id];
+    if (echoed.has(id)) return echoed.get(id);
+    throw new Error(`No such subscription: ${id}`);
+  };
+  stripe.subscriptions.retrieve = stubRetrieve;
+  const upd = (o) => { echoed.set(o.id, o); return handlers.handleSubscriptionUpdated(o); };
+  const del = (o) => { echoed.set(o.id, o); return handlers.handleSubscriptionDeleted(o); };
+
   // subscription.updated: portal cancel -> still active, flag + period synced.
   resetDb();
   seedSubscription("u-wh", { stripe_subscription_id: "sub_wh", used_this_cycle: 40 });
-  await handlers.handleSubscriptionUpdated({
+  await upd({
     id: "sub_wh", status: "active", cancel_at_period_end: true,
     current_period_start: 1788220800, current_period_end: 1790899200
   });
@@ -327,19 +343,19 @@ async function testWebhooks() {
   check("updated: usage counters untouched", row.used_this_cycle === 40);
 
   // subscription.updated with no period fields must not null them out.
-  await handlers.handleSubscriptionUpdated({ id: "sub_wh", status: "past_due" });
+  await upd({ id: "sub_wh", status: "past_due" });
   row = db.subscriptions[0];
   check("updated (no period in payload): status synced, period kept, flag kept",
     row.status === "past_due" && row.current_period_end === "2026-10-02T00:00:00.000Z" && row.cancel_at_period_end === true);
 
   // Unknown subscription id -> no-op.
-  await handlers.handleSubscriptionUpdated({ id: "sub_unknown", status: "canceled" });
+  await upd({ id: "sub_unknown", status: "canceled" });
   check("updated: unknown subscription id is a no-op", db.subscriptions.length === 1 && db.subscriptions[0].status === "past_due");
 
   // subscription.deleted: immediate cancel mid-period -> end clamped to ended_at.
   resetDb();
   seedSubscription("u-del", { stripe_subscription_id: "sub_del", cancel_at_period_end: true });
-  await handlers.handleSubscriptionDeleted({
+  await del({
     id: "sub_del", status: "canceled", ended_at: 1789000000, current_period_start: 1788220800, current_period_end: 1790899200
   });
   row = db.subscriptions[0];
@@ -350,7 +366,7 @@ async function testWebhooks() {
   // subscription.deleted at period end: ended_at == period end.
   resetDb();
   seedSubscription("u-del2", { stripe_subscription_id: "sub_del2" });
-  await handlers.handleSubscriptionDeleted({ id: "sub_del2", status: "canceled", ended_at: 1790899200, current_period_end: 1790899200 });
+  await del({ id: "sub_del2", status: "canceled", ended_at: 1790899200, current_period_end: 1790899200 });
   check("deleted at period end: end date is the period end", db.subscriptions[0].current_period_end === "2026-10-02T00:00:00.000Z");
 
   // Resubscribe: checkout.session.completed for a lapsed row resets
@@ -379,7 +395,7 @@ async function testWebhooks() {
     check("resubscribe: next generation spends paid quota again", after.allowed && after.req.generationSource === "quota");
 
     // A late subscription.deleted for the OLD id must not cancel the new one.
-    await handlers.handleSubscriptionDeleted({ id: "sub_old", status: "canceled", ended_at: 1788000000 });
+    await del({ id: "sub_old", status: "canceled", ended_at: 1788000000 });
     check("resubscribe: late deleted event for the old sub id is a no-op", db.subscriptions[0].status === "active");
 
     // Renewal (invoice.payment_succeeded) also resets image usage now.
@@ -394,7 +410,7 @@ async function testWebhooks() {
   resetDb();
   seedSubscription("u-nocol", { stripe_subscription_id: "sub_nocol" });
   delete db.subscriptions[0].cancel_at_period_end;
-  const rejected = await withMissingCancelColumn(() => handlers.handleSubscriptionUpdated({
+  const rejected = await withMissingCancelColumn(() => upd({
     id: "sub_nocol", status: "unpaid", cancel_at_period_end: true, current_period_end: 1790899200
   }));
   row = db.subscriptions[0];
@@ -417,7 +433,145 @@ async function testWebhooks() {
     stripe.subscriptions.retrieve = origRetrieve;
   }
 
+  // ---- audit item 2: out-of-order / stale events ----
+  stripe.subscriptions.retrieve = stubRetrieve;
+  resetDb();
+  seedSubscription("u-ooo", { stripe_subscription_id: "sub_ooo", status: "canceled" });
+  STRIPE_STATE.sub_ooo = { id: "sub_ooo", status: "canceled", cancel_at_period_end: false, current_period_end: 1790899200 };
+  await upd({ id: "sub_ooo", status: "active", cancel_at_period_end: false, current_period_end: 1790899200 });
+  check("out-of-order: a late 'updated: active' after deletion does NOT reactivate (Stripe's current state wins)",
+    db.subscriptions[0].status === "canceled");
+  STRIPE_STATE.sub_ooo2 = "throw";
+  resetDb();
+  seedSubscription("u-ooo2", { stripe_subscription_id: "sub_ooo2", status: "active" });
+  let threw = false;
+  try { await handlers.handleSubscriptionUpdated({ id: "sub_ooo2", status: "past_due" }); } catch (_e) { threw = true; }
+  check("updated: Stripe unreachable -> throws (delivery retried), row untouched", threw && db.subscriptions[0].status === "active");
+  STRIPE_STATE.sub_ooo3 = "throw";
+  resetDb();
+  seedSubscription("u-ooo3", { stripe_subscription_id: "sub_ooo3", status: "active" });
+  await handlers.handleSubscriptionDeleted({ id: "sub_ooo3", status: "canceled", ended_at: 1789000000 });
+  check("deleted: Stripe unreachable -> falls back to the (terminal) event payload", db.subscriptions[0].status === "canceled");
+
+  // ---- audit item 3: only real renewals reset usage ----
+  resetDb();
+  seedSubscription("u-inv", { stripe_subscription_id: "sub_inv", used_this_cycle: 120, used_images_this_cycle: 4 });
+  db.plans = [{ id: "chronicled_monthly", stripe_price_id: "price_monthly", monthly_quota: 250, monthly_quota_images: 10 }];
+  STRIPE_STATE.sub_inv = { id: "sub_inv", customer: "cus_test", status: "active", cancel_at_period_end: false, current_period_start: 1788220800, current_period_end: 1790899200, items: { data: [{ price: { id: "price_monthly" } }] } };
+  await handlers.handleInvoicePaymentSucceeded({ subscription: "sub_inv", billing_reason: "subscription_update" });
+  check("proration/plan-change invoice (subscription_update) does NOT reset usage",
+    db.subscriptions[0].used_this_cycle === 120 && db.subscriptions[0].used_images_this_cycle === 4);
+  await handlers.handleInvoicePaymentSucceeded({ subscription: "sub_inv", billing_reason: "manual" });
+  check("one-off invoice (manual) does NOT reset usage", db.subscriptions[0].used_this_cycle === 120);
+  await handlers.handleInvoicePaymentSucceeded({ subscription: "sub_inv", billing_reason: "subscription_cycle" });
+  check("renewal invoice (subscription_cycle) resets both counters",
+    db.subscriptions[0].used_this_cycle === 0 && db.subscriptions[0].used_images_this_cycle === 0);
+
   console.warn = origWarn;
+}
+
+// ---------- 4. bug batch 1 audit fixes ----------
+
+async function testAuditFixes() {
+  console.log("\n-- audit fixes: stale-active safety net, credit remainder, offer, subscribe guard --");
+  const now = new Date("2026-09-24T00:00:00Z");
+  const staleRow = { status: "active", current_period_end: "2026-09-10T00:00:00Z" };  // 14 days past
+  const lateRow = { status: "active", current_period_end: "2026-09-21T00:00:00Z" };   // 3 days past (renewal webhook just delayed)
+  check("stale 'active' row (period ended 14 days ago) is treated as lapsed", isStaleActive(staleRow, now) && billingTierFor(staleRow, now) === "lapsed" && !isActiveSubscription(staleRow, now));
+  check("recently-ended period (3 days) still counts as subscribed -- grace for a delayed renewal", billingTierFor(lateRow, now) === "subscribed" && isActiveSubscription(lateRow, now));
+  check("row without a period end is never considered stale", !isStaleActive({ status: "active" }, now));
+
+  const payload = buildBillingStatusPayload({ tier: "free", subscription: null, config: { generation_count: 0, image_generation_count: 0, free_cycle_reset_at: "2026-09-01T00:00:00Z" }, creditBalancePoints: 13, entryCap: null, aiEnabled: true });
+  check("credits: 13 points -> 2 credits + 3 extra field assists (not a silent '2')", payload.creditBalance === 2 && payload.creditExtraFieldAssists === 3);
+  const tiny = buildBillingStatusPayload({ tier: "free", subscription: null, config: { free_cycle_reset_at: "2026-09-01T00:00:00Z" }, creditBalancePoints: 4, entryCap: null, aiEnabled: true });
+  check("credits: 4 points -> 0 credits but 4 field assists shown", tiny.creditBalance === 0 && tiny.creditExtraFieldAssists === 4);
+
+  check("formatMoney: $4.99, $2 (no .00)", formatMoney(499, "usd") === "$4.99" && formatMoney(200, "usd") === "$2");
+  _clearPriceCacheForTests();
+  let priceCalls = 0;
+  const fakeStripe = { prices: { retrieve: async (id) => {
+    priceCalls++;
+    if (id === "price_broken") throw new Error("boom");
+    return { price_monthly: { unit_amount: 499, currency: "usd", recurring: { interval: "month" } }, price_credit: { unit_amount: 200, currency: "usd" }, price_entry: { unit_amount: 500, currency: "usd" } }[id];
+  } } };
+  const plan = { name: "Chronicled Subscription", monthly_quota: 250, monthly_quota_images: 10, stripe_price_id: "price_monthly" };
+  const offer = await getBillingOffer({ stripe: fakeStripe, plan, pointsPerGeneration: 5, creditPriceId: "price_credit", entryPackPriceId: "price_entry" });
+  check("offer: plan quotas from the plans row + price from Stripe",
+    offer.subscription.generationsPerMonth === 50 && offer.subscription.imagesPerMonth === 10 && offer.subscription.price === "$4.99" && offer.subscription.interval === "month");
+  check("offer: pack sizes + unit prices", offer.creditPack.generationsPerUnit === 5 && offer.creditPack.unitAmount === 200 && offer.entryPack.entriesPerUnit === 25 && offer.entryPack.unitAmount === 500);
+  await getBillingOffer({ stripe: fakeStripe, plan, pointsPerGeneration: 5, creditPriceId: "price_credit", entryPackPriceId: "price_entry" });
+  check("offer: Stripe prices are cached (no second lookup)", priceCalls === 3);
+  const broken = await getBillingOffer({ stripe: fakeStripe, plan: { ...plan, stripe_price_id: "price_broken" }, pointsPerGeneration: 5 });
+  check("offer: a failed price lookup leaves price null instead of guessing", broken.subscription.price === null && broken.subscription.generationsPerMonth === 50);
+
+  // Subscribe guard, over HTTP through the real router.
+  const express = require("express");
+  const billingRouter = require("../routes/billing");
+  const app = express();
+  app.use(express.json());
+  let currentUser = "u-guard";
+  app.use("/api", (req, _res, next) => { req.userId = currentUser; req.worldId = "w-guard"; req.userEmail = "dm@example.com"; next(); });
+  app.use("/api", billingRouter);
+  const server = await new Promise((resolve) => { const srv = app.listen(0, () => resolve(srv)); });
+  const port = server.address().port;
+  const subscribe = async () => {
+    const res = await fetch(`http://127.0.0.1:${port}/api/billing/checkout/subscribe`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    return { status: res.status, body: await res.json() };
+  };
+  const origRetrieve = stripe.subscriptions.retrieve;
+  const origCreate = stripe.checkout.sessions.create;
+  let checkoutsCreated = 0;
+  stripe.checkout.sessions.create = async () => { checkoutsCreated++; return { url: "https://checkout.test/session" }; };
+  const live = {};
+  stripe.subscriptions.retrieve = async (id) => { if (live[id] === "throw") throw new Error("down"); return live[id]; };
+  const origErr = console.error;
+  console.error = () => {};
+  try {
+    resetDb();
+    db.plans = [{ id: "chronicled_monthly", name: "Chronicled Subscription", stripe_price_id: "price_monthly", monthly_quota: 250, monthly_quota_images: 10 }];
+    seedSubscription("u-guard", { stripe_subscription_id: "sub_live", status: "active" });
+    live.sub_live = { id: "sub_live", status: "active", cancel_at_period_end: false };
+    let r = await subscribe();
+    check("guard: active subscription -> 409 already_subscribed, no checkout created", r.status === 409 && r.body.error === "already_subscribed" && r.body.openPortal === true && checkoutsCreated === 0);
+    live.sub_live = { id: "sub_live", status: "active", cancel_at_period_end: true };
+    r = await subscribe();
+    check("guard: set-to-cancel subscription -> 409 pointing at 'resume'", r.status === 409 && /resume/i.test(r.body.message));
+    db.subscriptions[0].status = "past_due";
+    live.sub_live = { id: "sub_live", status: "past_due", cancel_at_period_end: false };
+    r = await subscribe();
+    check("guard: past_due (still billing in Stripe) -> 409 'update your card'", r.status === 409 && /card/i.test(r.body.message));
+    // Row says active, but Stripe says it's long canceled (missed webhook).
+    db.subscriptions[0].status = "active";
+    live.sub_live = { id: "sub_live", status: "canceled", current_period_end: 1790899200 };
+    r = await subscribe();
+    check("guard: Stripe reports canceled -> row self-heals to canceled and checkout proceeds",
+      r.status === 200 && r.body.url && checkoutsCreated === 1 && db.subscriptions[0].status === "canceled");
+    r = await subscribe();
+    check("guard: an already-canceled row skips the Stripe check and proceeds", r.status === 200 && checkoutsCreated === 2);
+    db.subscriptions[0].status = "active";
+    live.sub_live = "throw";
+    r = await subscribe();
+    check("guard: Stripe unreachable -> 503, never a blind second checkout", r.status === 503 && checkoutsCreated === 2);
+    currentUser = "u-guard-new";
+    r = await subscribe();
+    check("guard: an account with no subscription subscribes normally", r.status === 200 && checkoutsCreated === 3);
+
+    // /billing/status end to end (it caught a missing import once): the
+    // free payload plus the Stripe-priced offer.
+    _clearPriceCacheForTests();
+    const origPrices = stripe.prices.retrieve;
+    stripe.prices.retrieve = async () => ({ unit_amount: 499, currency: "usd", recurring: { interval: "month" } });
+    seedWorld("w-guard");
+    const st = await fetch(`http://127.0.0.1:${port}/api/billing/status`).then((x) => x.json());
+    stripe.prices.retrieve = origPrices;
+    check("/billing/status: 200 free payload with offer (plan quotas + Stripe price)",
+      st.state === "free" && st.offer && st.offer.subscription.generationsPerMonth === 50 && st.offer.subscription.price === "$4.99", st);
+  } finally {
+    console.error = origErr;
+    stripe.subscriptions.retrieve = origRetrieve;
+    stripe.checkout.sessions.create = origCreate;
+    server.close();
+  }
 }
 
 (async () => {
@@ -426,6 +580,7 @@ async function testWebhooks() {
     testPure();
     await testMiddleware();
     await testWebhooks();
+    await testAuditFixes();
   } catch (err) {
     console.error("\nUnexpected error:", err);
     failures.push(`threw: ${err.message}`);

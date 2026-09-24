@@ -97,7 +97,18 @@ async function startCheckout(path, body) {
     });
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
-      throw new Error(errBody.error || "Could not start checkout.");
+      // Audit item 1: the server refuses a second subscription while one
+      // is still live in Stripe -- point the DM at the portal instead.
+      if (errBody.error === "already_subscribed") {
+        msg.textContent = errBody.message + " ";
+        const link = document.createElement("a");
+        link.href = "#";
+        link.textContent = "Open Manage Billing";
+        link.addEventListener("click", (e) => { e.preventDefault(); openBillingPortal(); });
+        msg.appendChild(link);
+        return;
+      }
+      throw new Error(errBody.message || errBody.error || "Could not start checkout.");
     }
     const { url } = await res.json();
     window.location.href = url;
@@ -124,15 +135,47 @@ async function openBillingPortal() {
   }
 }
 
+// Audit item 8: pack sizes and prices come from /billing/status's
+// `offer` (lib/billingOffer.js -- plan row + real Stripe prices) instead
+// of literals here. BILLING_OFFER is set by loadUsage(). A price that
+// couldn't be looked up is simply left off rather than guessed.
+let BILLING_OFFER = null;
+
+function formatOfferMoney(unitAmount, currency, units) {
+  if (!Number.isInteger(unitAmount) || !currency) return "";
+  try {
+    return " — " + new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format((unitAmount * units) / 100).replace(/\.00$/, "");
+  } catch (_e) {
+    return "";
+  }
+}
+
+function packOptionsHtml(pack, perUnitKey, noun, unitsList) {
+  const per = (pack && pack[perUnitKey]) || 0;
+  return unitsList.map((u) => `<option value="${u}">${per ? `${noun === "entries" ? "+" : ""}${per * u} ${noun}` : `${u} pack${u === 1 ? "" : "s"}`}${pack ? formatOfferMoney(pack.unitAmount, pack.currency, u) : ""}</option>`).join("");
+}
+
+function subscribeButtonLabel(lapsed) {
+  const sub = BILLING_OFFER && BILLING_OFFER.subscription;
+  const verb = lapsed ? "Resubscribe" : "Subscribe";
+  if (!sub) return verb;
+  const price = sub.price ? ` — ${sub.price}${sub.interval ? `/${sub.interval}` : ""}` : "";
+  return `${verb}${price} (${sub.generationsPerMonth} generations + ${sub.imagesPerMonth} image${sub.imagesPerMonth === 1 ? "" : "s"}/mo, unlimited entries, regenerate/remix)`;
+}
+
+// Audit item 10: 1-4 leftover credit points still pay for field assists.
+function creditsText(data, suffix) {
+  const extra = data.creditExtraFieldAssists ? ` (+${data.creditExtraFieldAssists} field assist${data.creditExtraFieldAssists === 1 ? "" : "s"})` : "";
+  return `${data.creditBalance} purchased credit(s)${extra} available${suffix}`;
+}
+
 function renderCreditsControls() {
+  const creditPack = BILLING_OFFER && BILLING_OFFER.creditPack;
   return `
     <label style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-dim); display: flex; align-items: center; gap: 8px;">
       Buy credits:
       <select id="credit-packs-select" style="background: var(--bg-void); color: var(--ink); border: 1px solid var(--border-line); padding: 6px 8px; font-family: var(--font-mono);">
-        <option value="1">5 credits — $2</option>
-        <option value="2">10 credits — $4</option>
-        <option value="4">20 credits — $8</option>
-        <option value="10">50 credits — $20</option>
+        ${packOptionsHtml(creditPack, "generationsPerUnit", "credits", [1, 2, 4, 10])}
       </select>
     </label>
     <button id="buy-credits-btn" style="${BTN_SECONDARY}">Buy Credits</button>
@@ -163,9 +206,7 @@ function renderEntryPackControls() {
   return `
     <label style="display:block; margin-top:10px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">
       <select id="entry-packs-select" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 6px 10px; margin-right:8px;">
-        <option value="1">+25 entries — $5</option>
-        <option value="2">+50 entries — $10</option>
-        <option value="4">+100 entries — $20</option>
+        ${packOptionsHtml(BILLING_OFFER && BILLING_OFFER.entryPack, "entriesPerUnit", "entries", [1, 2, 4])}
       </select>
       <button id="buy-entries-btn" style="${BTN_SECONDARY}">Buy More Entries</button>
     </label>
@@ -206,6 +247,10 @@ function wireAiEnabledToggle(aiEnabled) {
   });
 }
 
+let AI_TOGGLE_WIRED = false;
+
+// Returns the /billing/status payload (or null on failure) so the
+// post-checkout poll below can tell when the payment has landed.
 async function loadUsage() {
   const el = document.getElementById("usage-content");
   const actions = document.getElementById("billing-actions");
@@ -213,7 +258,10 @@ async function loadUsage() {
     const res = await authFetch("/api/billing/status");
     if (!res.ok) throw new Error("Failed to load billing status.");
     const data = await res.json();
-    wireAiEnabledToggle(data.aiEnabled);
+    BILLING_OFFER = data.offer || null;
+    // Once only -- loadUsage() re-runs while waiting for a payment to land
+    // (audit item 9), and re-wiring would stack duplicate change handlers.
+    if (!AI_TOGGLE_WIRED) { wireAiEnabledToggle(data.aiEnabled); AI_TOGGLE_WIRED = true; }
 
     if (data.state === "beta") {
       const pct = Math.min(100, Math.round((data.used / data.cap) * 100));
@@ -225,7 +273,7 @@ async function loadUsage() {
         ${renderEntryCapStatus(data.entryCap)}
       `;
       actions.innerHTML = "";
-      return;
+      return data;
     }
 
     if (data.state === "free" || data.state === "lapsed") {
@@ -248,9 +296,9 @@ async function loadUsage() {
         : data.status === "past_due"
           ? "Your last subscription payment failed. You're on the free tier until it goes through — update your card in Manage Billing."
           : `${endedOn ? `Your subscription ended on ${endedOn}.` : "Your subscription has ended."} You're on the free tier until you resubscribe.`;
-      const creditsLine = lapsed
-        ? `<div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available (never expire, used after your free generations run out).</div>`
-        : (data.creditBalance > 0 ? `<div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available (never expire, used after your free generations run out).</div>` : "");
+      const creditsLine = (lapsed || data.creditBalance > 0 || data.creditExtraFieldAssists > 0)
+        ? `<div style="margin-top:8px;">${creditsText(data, " (never expire, used after your free generations run out).")}</div>`
+        : "";
       el.innerHTML = `
         ${lapsed ? `<div style="margin-bottom:12px; color: var(--ink-dim);">${lapsedNote}</div>` : ""}
         <div>${data.freeRemaining} of ${data.freeCap} free generations remaining this month (${data.freeUsed} used)${lapsed ? "" : " — no card required"}. Counts NPCs, enemies, items, classes, logs, survivors, and factions generated or regenerated from the archive. Wizard setup doesn't count against this.</div>
@@ -265,11 +313,7 @@ async function loadUsage() {
         ${creditsLine}
         ${renderEntryCapStatus(data.entryCap)}
       `;
-      const subscribeLabel = lapsed && data.status === "past_due"
-        ? null
-        : lapsed
-        ? "Resubscribe — $4.99/month (50 generations + 10 images/mo, unlimited entries, regenerate/remix)"
-        : "Subscribe — $4.99/month (50 generations + 10 images/mo, unlimited entries, regenerate/remix)";
+      const subscribeLabel = lapsed && data.status === "past_due" ? null : subscribeButtonLabel(lapsed);
       // Lapsed accounts still have a Stripe customer, so Manage Billing
       // (invoices, payment method) stays available alongside Resubscribe.
       // past_due still HAS a live Stripe subscription -- a second
@@ -301,7 +345,7 @@ async function loadUsage() {
         <div style="margin-top:10px; height:8px; background: var(--bg-void); border: 1px solid var(--border-line-soft);">
           <div style="height:100%; width:${imagePct}%; background: var(--neon-cyan);"></div>
         </div>
-        <div style="margin-top:8px;">${data.creditBalance} purchased credit(s) available (never expire, used after your monthly quota).</div>
+        <div style="margin-top:8px;">${creditsText(data, " (never expire, used after your monthly quota).")}</div>
         ${data.cancelAtPeriodEnd ? `<div style="margin-top:8px; font-size:0.85rem; color: var(--ink-dim);">After ${periodEnd} you'll move to the free tier (monthly free generations + 1 image); purchased credits stay usable. Resume anytime from Manage Billing.</div>` : ""}
         ${renderEntryCapStatus(data.entryCap)}
       `;
@@ -321,28 +365,45 @@ async function loadUsage() {
         startCheckout("/api/billing/checkout/entries", { packs });
       });
     }
+    return data;
   } catch (err) {
     console.error("Could not load billing status:", err);
     el.textContent = "Could not load billing status.";
+    return null;
   }
 }
 
 // Stripe redirects back here with ?billing=success or ?billing=canceled.
-// Webhook processing can lag a second or two behind the redirect, so a
-// success message doesn't guarantee loadUsage() below already reflects
-// it -- reloading the page a moment later will.
-(function showBillingRedirectMessage() {
-  const params = new URLSearchParams(window.location.search);
-  const billing = params.get("billing");
-  if (!billing) return;
+// The webhook that actually applies the purchase usually lands a second
+// or two AFTER the redirect, so the first loadUsage() often still shows
+// the old state. Audit item 9: on success, re-poll /billing/status every
+// 2s (up to ~30s) until something billing-relevant changes, re-rendering
+// the panel each time, then say it's applied. If nothing changes in
+// that window, say so and suggest a refresh rather than implying done.
+const BILLING_REDIRECT = new URLSearchParams(window.location.search).get("billing");
+if (BILLING_REDIRECT) window.history.replaceState({}, "", window.location.pathname);
+
+function billingSignature(data) {
+  if (!data) return null;
+  return JSON.stringify([data.state, data.status, data.creditBalance, data.creditExtraFieldAssists, data.entryCap && data.entryCap.cap, data.entryCap && data.entryCap.unlimited, data.cancelAtPeriodEnd]);
+}
+
+async function handleBillingRedirect(initialData) {
   const msg = document.getElementById("billing-status-msg");
-  if (billing === "success") {
-    msg.textContent = "Payment received — this may take a few seconds to reflect below.";
-  } else if (billing === "canceled") {
-    msg.textContent = "Checkout canceled.";
+  if (BILLING_REDIRECT === "canceled") { msg.textContent = "Checkout canceled."; return; }
+  if (BILLING_REDIRECT !== "success") return;
+  msg.textContent = "Payment received — applying it to your account…";
+  const before = billingSignature(initialData);
+  for (let i = 0; i < 15; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const data = await loadUsage();
+    if (data && billingSignature(data) !== before) {
+      msg.textContent = "Payment applied. Thanks!";
+      return;
+    }
   }
-  window.history.replaceState({}, "", window.location.pathname);
-})();
+  msg.textContent = "Payment received. It's taking longer than usual to show up here — refresh the page in a minute.";
+}
 
 // World Calendar editor: moved to archive/js/calendarEditor.js +
 // wizard-calendar.html (bug batch 1, Phase 3); reached from the Calendar,
@@ -355,7 +416,7 @@ async function init() {
   applySpellsNavVisibility();
   applyCategoryConfig();
   applySiteTheme();
-  loadUsage();
+  loadUsage().then(handleBillingRedirect);
   wireWorldExportButton();
 
   document.getElementById("delete-world-btn").addEventListener("click", async () => {

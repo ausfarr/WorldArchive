@@ -657,3 +657,61 @@ Prioritized. Sizes: S ≈ an hour or two, M ≈ half a day to a day, L ≈ multi
     (max 8); Campaign "generate" returns previews only, and its
     slot-entry route is cap-gated; ghost stubs excluded from
     `countEntries`; deleted-entry graph links are skipped.
+
+## Audit fixes (Austin approved items 1–11; 12 re-checked; 13 answered; 14 deferred)
+
+### Billing (items 1, 2, 3, 8, 9, 10)
+
+- **1 Subscribe guard** (`routes/billing.js`). Before creating a
+  subscription checkout for an account whose row isn't terminal
+  (`canceled` or `incomplete_expired`), it retrieves the row's
+  subscription from **Stripe**. If Stripe says it's still live (active,
+  trialing, past_due, unpaid, incomplete, paused) → 409 `already_subscribed`
+  with a message fitted to the case ("resume it", "update your card"), and
+  Settings links straight to Manage Billing. If Stripe says it's finished
+  → the row is synced to that status (self-healing a missed
+  `subscription.deleted`) and checkout proceeds. If Stripe is unreachable
+  → 503, never a blind second checkout. The webhook also logs loudly if a
+  checkout ever completes while a different non-terminal subscription is
+  on record.
+- **2 Webhook ordering.** `customer.subscription.updated` re-reads the
+  subscription from Stripe and writes that state, so a stale "active"
+  event after deletion writes "canceled". If Stripe can't be reached it
+  throws, so the delivery is retried. `deleted` also re-reads, falling
+  back to the event payload if it can't (deleted is terminal, so the
+  payload is safe). **Safety net:** `lib/billingTier.js#isStaleActive`
+  treats an `active` row whose `current_period_end` is more than **5
+  days** past as lapsed for quota, entry cap, and the regenerate gate
+  (`lib/regenerateGate.js` now uses `isActiveSubscription`). Five days
+  clears Stripe's ~3-day webhook retry window, so a merely-delayed
+  renewal never locks out a payer.
+- **3 Usage reset** only for `billing_reason` `subscription_cycle` or
+  `subscription_create` (or a missing reason, to keep the old behavior
+  just in case). Proration/plan-change (`subscription_update`) and
+  `manual` invoices sync status and period without resetting usage.
+- **8 Offer from real data.** `lib/billingOffer.js` builds `offer` on
+  `/billing/status`: plan name and quotas from the `plans` row, prices
+  from the Stripe Price objects (cached 1h; a failed lookup is cached
+  5 min and shown without a price rather than a guess), and pack sizes.
+  `CREDITS_PER_PACK_UNIT` / `ENTRIES_PER_PACK_UNIT` now live there and
+  the webhook imports them, so the advertised and granted sizes can't
+  drift. Settings' subscribe button and both pack dropdowns render from
+  `offer`.
+- **9 After checkout,** Settings polls `/billing/status` every 2s (up to
+  ~30s) until the billing state changes, re-rendering each time, then says
+  "Payment applied". If nothing changes, it asks for a refresh. The AI
+  toggle is wired once, so re-renders can't stack listeners.
+- **10 Credit remainder.** The payloads add `creditExtraFieldAssists`
+  (points mod 5), and Settings shows e.g. "2 purchased credit(s) (+3 field
+  assists)", including the "0 credits + 4 field assists" case that used to
+  read as nothing.
+
+Tests: `scripts/testBillingTier.js` +23 checks. They cover out-of-order
+events, Stripe unreachable on update vs delete, renewal vs proration vs
+manual invoices, stale-active, credit remainder, offer formatting,
+caching and failure, the subscribe guard over HTTP (active,
+set-to-cancel, past_due, self-heal, already canceled, Stripe down, new
+account), and `/billing/status` end to end. The live
+`scripts/testFreeTierAllowance.js` passes; it caught a missing import
+in `routes/billing.js` that the unit tests didn't cover until the
+`/billing/status` check above was added.

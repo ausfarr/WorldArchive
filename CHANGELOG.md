@@ -21,6 +21,18 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Audit fixes: billing (items 1, 2, 3, 8, 9, 10).** Subscribing again is
+  refused while Stripe still has a live subscription. The guard asks
+  Stripe directly, which also self-heals a missed cancellation. Webhook
+  update/delete handlers re-read the subscription from Stripe, so
+  out-of-order events can't reactivate a canceled plan. An "active" row
+  whose period ended over 5 days ago is treated as lapsed (a missed
+  cancellation used to mean free access forever). Only renewal invoices
+  reset usage. Settings prices, quotas, and pack sizes now come from the
+  plan and Stripe (`lib/billingOffer.js`). Settings refreshes itself after
+  checkout, and leftover credit points show as field assists. Details in
+  `session_addendum_bug_batch_1.md`.
+
 - **Bug batch 1, Phase 5 — audit (no code changes).** A prioritized list of
   surrounding issues (double-subscribe guard, webhook ordering, mid-cycle
   usage resets, the ghost-fill entry-cap bypass, faction rename/delete
