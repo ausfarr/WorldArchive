@@ -8,6 +8,14 @@
 // tension and its fitting inspirations are naturally linked — matches the
 // existing item generator's precedent of one call branching into related
 // fields, rather than a new one-field-per-call pattern.
+//
+// worldDescription is the user's free-text pitch ("a wild west world").
+// Before it existed, a user with only a vague idea who clicked Generate
+// got suggestions grounded in nothing but the dropdowns, which always
+// carry a value even when untouched (Scale/Era default to their first
+// option), so output read as random. The description is now the primary
+// signal, and the prompt tells the model to prefer it over dropdown
+// values that contradict it, since those may just be unedited defaults.
 
 const SCHEMA_DESCRIPTION = `{
   "coreTension": "1-2 sentences: the central conflict or pressure driving this world's stories — not a plot, a standing condition (e.g. 'a fixed resource everyone needs is controlled by whoever is willing to be cruelest about it').",
@@ -15,8 +23,10 @@ const SCHEMA_DESCRIPTION = `{
   "nonNegotiables": "1-2 sentences: a hard rule or tone boundary for this world that should never be violated by later generated content (e.g. 'no redemption arcs for the ruling faction' or 'technology never exceeds early-2000s consumer level')."
 }`;
 
-function buildWizardStep1SystemPrompt({ genre, scale, era, supernaturalSystem }) {
+function buildWizardStep1SystemPrompt({ worldName, worldDescription, genre, scale, era, supernaturalSystem }) {
   const knownContext = [
+    worldName ? `World name: ${worldName}` : null,
+    worldDescription ? `World description (the creator's own words): ${worldDescription}` : null,
     genre ? `Genre & tone: ${genre}` : null,
     scale ? `Scale: ${scale}` : null,
     era ? `Era/tech level: ${era}` : null,
@@ -26,6 +36,8 @@ function buildWizardStep1SystemPrompt({ genre, scale, era, supernaturalSystem })
   return `You are helping a tabletop/game worldbuilder fill in the opening "Seed & Vision" step of a new world. Output ONLY valid JSON matching the schema below — no markdown, no prose, no code fences.
 
 This is the very first step of world creation — there is no existing lore, factions, or roster to stay consistent with yet. Ground everything in whatever the user has already chosen below; invent the rest in a way that would plausibly follow from those choices.
+
+If a WORLD DESCRIPTION is given, it is the creator's own pitch and the most important input: every suggestion must clearly fit it, and should build on its specific ideas rather than drifting to a generic take on the genre. If it contradicts a genre/scale/era value below, follow the description -- those dropdowns may be untouched defaults.
 
 WHAT MAKES A GOOD CORE TENSION: a standing condition, not a plot beat — something that generates stories on its own rather than being one story itself. Avoid generic "good vs evil" framing; aim for something with a genuine double edge (both sides have a real point, or the "solution" has a real cost).
 
