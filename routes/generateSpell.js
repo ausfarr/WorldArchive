@@ -26,17 +26,17 @@ const { isValidSpellLevel } = require("../lib/rulesets/5e/spellFormulas");
 const { mapSrdSpellMechanics } = require("../lib/rulesets/5e/srdSpellMapper");
 const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = require("../lib/srdLibraryRepo");
 const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
-const { resolveReferencesForEntry, backfillReferencesFromNewEntry, ensureGhostPlaceholder } = require("../lib/entryLinker");
+const { resolveReferencesForEntry } = require("../lib/entryLinker");
+const { afterEntrySave } = require("../lib/afterEntrySave");
 
 const router = express.Router();
 
 // Entry cross-linking (Phase 2) -- see lib/entryLinker.js.
-async function afterSave(worldId, category, savedContent, unresolvedGhosts) {
-  await backfillReferencesFromNewEntry(worldId, category, savedContent);
-  for (const ghost of unresolvedGhosts || []) {
-    await ensureGhostPlaceholder(worldId, ghost.category, ghost.name);
-  }
-}
+// Bug batch 1, Phase 4: this used to be a local copy of the linking
+// steps with no Timeline step, so a directly-saved entry's founding/birth/
+// created dates never reached the Timeline. Now the one shared hook
+// (lib/afterEntrySave.js) every non-confirm save path calls.
+const afterSave = afterEntrySave;
 
 router.post("/generate-spell", requireAiEnabled, enforceGenerationCap, enforceEntryCapOnGenerate, requireCategoryAvailable("spells"), async (req, res) => {
   try {

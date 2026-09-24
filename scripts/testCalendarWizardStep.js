@@ -20,7 +20,8 @@
 //     the calendar is a wizard step.
 //   - Wizard factions: with a calendar saved BEFORE Factions (the new
 //     step order), "Expand Factions" Deep Lore gets the calendar in its
-//     prompt and saves a structured foundingDate.
+//     prompt and saves a structured foundingDate -- which (Phase 4) is on
+//     the Timeline straight away, no re-save.
 //
 // Usage: node scripts/testCalendarWizardStep.js
 
@@ -144,6 +145,13 @@ async function main() {
     check("Expand Factions: structured foundingDate saved on the faction",
       r.status === 200 && faction && faction.raw.foundingDate && faction.raw.foundingDate.year === 380 && faction.raw.foundingDate.monthIndex === 1,
       faction && faction.raw.foundingDate);
+
+    // Bug batch 1, Phase 4: the wizard path puts that date on the
+    // Timeline itself -- no edit + re-save through /confirm-entry.
+    const { listTimelineEvents } = require("../lib/timelineRepo");
+    const wizardEvents = (await listTimelineEvents(WORLD)).filter((e) => e.sourceType === "entry_date" && e.sourceId === "the-tide-court");
+    check("Expand Factions: foundingDate is on the Timeline immediately (no re-save)",
+      wizardEvents.length === 1 && wizardEvents[0].summary === "Founded: The Tide Court" && wizardEvents[0].worldDate.year === 380, wizardEvents);
 
     // ---- impact check: counts, never mutates ----
     db.timeline_events = db.timeline_events || [];

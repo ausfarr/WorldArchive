@@ -21,6 +21,22 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Bug batch 1, Phase 4 — Timeline fills itself in.** Founding, birth,
+  and other entry dates now reach the Timeline from every save path (the
+  generate routes, Campaign modules, wizard factions, and `/confirm-entry`)
+  through one shared `lib/afterEntrySave.js#afterEntrySave`, replacing ten
+  local copies that had no Timeline step. Duplicates are prevented inside
+  `createEntryDateEvents` for every caller. A new additive, idempotent
+  backfill runs after each calendar save and from a "Sync timeline"
+  button. New **"Find dates in lore"** on the Timeline page (1 generation):
+  the AI proposes dated events from your lore (approximate dates shown as
+  "c. Year 512"), quotes are verified against the lore, possible
+  duplicates are flagged, and you tick which to add (**migration 039**).
+  Found live: production was missing migration 036, so `/confirm-entry`
+  returned a 500 when saving any newly dated entry; Timeline writes now
+  fail safe. Removed the Settings calendar pointer. v1.9. Details in
+  `session_addendum_bug_batch_1.md`.
+
 - **Bug batch 1, Phase 3 — the calendar is a required wizard step.** New
   Step 4 of 9 (`archive/wizard-calendar.html`) between Lore and Factions:
   six non-AI templates (`lib/calendarPresets.js`), AI generate (hidden

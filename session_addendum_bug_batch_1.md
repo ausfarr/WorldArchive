@@ -394,3 +394,127 @@ against the real routes.
 **Unrelated, found while running every script:**
 `test5eBackgroundFeatMapper.js` (3 failures) and
 `test5eRaceSystemMapper.js` (1 failure) fail identically on `main` → Phase 5.
+
+## Phase 3 follow-up
+
+- Settings' "the calendar editor has moved" pointer is removed entirely
+  (Austin). The calendar is reached from the Calendar page, the Timeline
+  page, and World Info.
+- **Added to the Phase 5 audit list:** `/billing/checkout/subscribe` has
+  no server-side guard against an account that already has a live
+  subscription (`active` or `past_due`). Only the Settings UI hides the
+  button, so a direct API call could start a second, double-billing
+  subscription.
+
+## Phase 4 — Timeline auto-population
+
+**One hook for every save path.** `lib/afterEntrySave.js#afterEntrySave`
+(linking, then `recordTimelineForSave`) replaces the ten local
+`afterSave()` copies in `routes/generate.js`, `generateEnemy/Item/
+Survivor/Spell/Class/Location/Faction/Log.js`, and
+`lib/campaignEntryGenerators.js`. None of those copies had a Timeline
+step, so every directly-saved entry's dates stayed off the Timeline until
+a manual re-save. The wizard's sequential post-pass
+(`linkWizardFactionsSequentially`) calls the same `recordTimelineForSave`
+per faction, still one at a time. `/confirm-entry` keeps its own
+`afterSave()` (extra log/regenerate triggers, prior-entry change
+detection) and is otherwise identical; it now gets the dedupe too. The
+Timeline step never throws, since the entry is already saved and paid for.
+For logs saved directly (a new generated log), the helper fires the
+existing `log_date` trigger, which likewise only ran from
+`/confirm-entry` before.
+
+Remaining direct `save*Entry` calls are internal re-saves that never
+change a date (Roundup refresh after a delete, combatant stats, reciprocal
+sync, backfill patches), so they correctly skip it.
+
+**Dedupe key (enforced inside `createEntryDateEvents` and the backfill,
+never trusted to callers):** `source_category + source_id + field label +
+world_date`, with check-then-insert under
+`withLock("timeline-entry-date:<world>")`. It deliberately isn't the raw
+summary: the summary embeds the entry name ("Founded: The Iron Pact"), so
+a rename would duplicate. The label is recovered from the stored summary's
+"Label: " prefix. Category is included because entry ids are only unique
+per category. Side effect: a date changed A → B → A doesn't create a
+second "A" event (the append-only record still has both A and B).
+
+**Backfill** `lib/timelineEvents.js#backfillEntryDateEvents(worldId,
+calendarConfig)` is additive only and idempotent. It returns
+`{ created, alreadyPresent, skippedInvalid, noCalendar, migrationRequired }`.
+It runs automatically after every calendar save (the response carries
+`timelineSync`, and the editor says how many were added) and from the
+Timeline page's **Sync timeline** button (`POST
+/api/timeline/sync-entry-dates`).
+
+**Found live, fixed:** the first real-Supabase run showed production's
+`timeline_events` check constraint didn't allow `entry_date`, meaning
+**migration 036 had never been applied**. Every save that set a new entry
+date threw inside `/confirm-entry`'s `afterSave()` after the entry had
+already saved, so the DM saw a 500 on a save that had actually succeeded.
+Now `createTimelineEvent` raises a typed
+`TimelineSourceTypeNotAllowedError`; entry-date writes skip with one
+warning per process, the backfill reports `migrationRequired`, and the
+lore confirm returns a clear 409. 036 was applied during this session (the
+same insert succeeded minutes later). Migration 039 re-creates the
+constraint with every current type, so it covers 036 as well.
+`scripts/testTimelineEntryDatesLive.js` checks whichever state the
+database is in.
+
+**Rendering:** `entry_date` events already had labels and dossier links on
+the Timeline and Calendar pages. `lore_date` events are labelled "World
+Lore" and link to World Info. The Timeline intro text no longer claims
+"never AI-generated" or "calendar view coming later".
+
+**Find dates in lore** (`lib/loreDateExtraction.js`,
+`prompts/loreDateExtractionPrompt.js`, `POST
+/api/timeline/extract-lore-dates` + `/confirm-lore-dates`, migration 039).
+Austin's answers to the design questions:
+
+- **Cost:** one full generation, refunded on failure. A world with no
+  calendar or no lore is refused *before* the charge.
+- **Fuzzy dates:** allowed but marked. `world_date` gains
+  `precision: 'day'|'month'|'year'` and `approximate`, stored in the
+  existing jsonb with no column change. The unused parts are placeholders
+  (monthIndex 0 / day 1), so validation and sorting work unchanged.
+  Rendered "c. Year 512 of the …" by `formatWorldDate` and its client
+  mirror. Year- and month-precision events stay off the Calendar grid.
+  Relative phrases ("three centuries ago") are resolved against the
+  calendar's current date by the model, then validated by code.
+- **Review:** a checklist on the Timeline page. Nothing is written until
+  the DM clicks "Add selected"; summaries are editable.
+- **Hallucination guard:** each proposal's supporting quote must appear
+  verbatim (after normalizing whitespace, case, and curly quotes) in the
+  lore that was sent, or the proposal is dropped. Dates must pass
+  `validateWorldDate`. There are at most 40 proposals and the lore is
+  capped at 60k characters (whole sections only, reported as `truncated`).
+- **Duplicates against structured dates:** the existing Timeline goes into
+  the prompt ("don't repeat these"). Code also flags a proposal as a
+  possible duplicate when the dates are compatible and either the wording
+  overlaps or it names an entry_date event's subject; flagged items start
+  unticked. Confirm re-validates everything and dedupes against existing
+  `lore_date` events.
+- **Scope:** only `lore_sections` prose is read. Entry prose (faction
+  Origin, NPC backstory) isn't scanned: those entries' structured dates
+  already reach the Timeline, and scanning every body would multiply cost
+  for mostly-duplicate results.
+
+**Tests:**
+- `scripts/testTimelineEntryDateEvents.js` +6 checks: cross-caller
+  dedupe, same id in another category isn't a dup, the real
+  `/generate-faction` route puts a date on the Timeline with no re-save,
+  backfill created / present / invalid counts, rename-safe, idempotent
+  (second run creates 0), no calendar, and calendar save triggers the
+  backfill.
+- `scripts/testCalendarWizardStep.js`: a wizard faction's `foundingDate`
+  is on the Timeline immediately.
+- Both fail against the code with the Timeline step removed (verified).
+- `scripts/testLoreDateExtraction.js`: charge/refund/no-charge prechecks,
+  quote and calendar validation, approximate year, flagged duplicate,
+  tamper-proof idempotent confirm, and the missing-039 409.
+- `scripts/testTimelineEntryDatesLive.js`: real Supabase.
+- Verified in headless Chromium: Sync (2 added, then 0 added / 2
+  present) and the lore checklist.
+
+**Migrations as of this phase:** 036/037/038 were confirmed live during
+the session. **039 is not applied yet**: "Find dates in lore" extraction
+works, but "Add selected" returns the 409 until it's run.

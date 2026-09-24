@@ -19,7 +19,8 @@
 //   POST /wizard/generate-calendar     -- AI proposal, never saved here
 //   POST /wizard/calendar-impact       -- counts stored dates a proposed
 //                                         calendar would invalidate (read-only)
-//   POST /wizard/save-calendar-config  -- validate + save
+//   POST /wizard/save-calendar-config  -- validate + save, then backfill
+//                                         entry-date Timeline events (Phase 4)
 
 const express = require("express");
 const { callClaudeExpectingJson } = require("../lib/claude");
@@ -27,6 +28,7 @@ const { getDraft, getFullConfig, saveCalendarConfig } = require("../lib/worldCon
 const { validateCalendarConfigShape, repairWeekdayNames, countDatesInvalidatedByCalendar, DATE_FIELDS_BY_CATEGORY } = require("../lib/calendar");
 const { listCalendarPresets } = require("../lib/calendarPresets");
 const { listTimelineEvents } = require("../lib/timelineRepo");
+const { backfillEntryDateEvents } = require("../lib/timelineEvents");
 const { listNotableDates } = require("../lib/calendarNotableDatesRepo");
 const { listEntries } = require("../lib/entriesRepo");
 const { getLoreContext } = require("../lib/loreContext");
@@ -140,7 +142,19 @@ router.post("/wizard/save-calendar-config", async (req, res) => {
     const validationError = validateCalendarConfigShape(calendarConfig);
     if (validationError) return res.status(400).json({ error: validationError });
     const saved = await saveCalendarConfig(req.worldId, calendarConfig);
-    res.json({ calendarConfig: saved });
+    // Bug batch 1, Phase 4: a new or changed calendar can make stored
+    // entry dates valid that weren't before (the most common case: a
+    // finished world setting up its first calendar after its factions/NPCs
+    // already had dates). Backfill their Timeline events now -- additive,
+    // idempotent. A failure here never fails the save; the Timeline page's
+    // "Sync timeline" button runs the same thing on demand.
+    let timelineSync = null;
+    try {
+      timelineSync = await backfillEntryDateEvents(req.worldId, saved);
+    } catch (syncErr) {
+      console.error("Timeline backfill after calendar save failed:", syncErr);
+    }
+    res.json({ calendarConfig: saved, timelineSync });
   } catch (err) {
     console.error("Saving calendar config failed:", err);
     res.status(500).json({ error: err.message });

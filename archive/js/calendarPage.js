@@ -45,6 +45,10 @@ function calBuildDayIndex(year) {
   const index = {};
   for (const e of CAL_STATE.events) {
     if (!e.worldDate || e.worldDate.year !== year) continue;
+    // Year/month-precision dates (lore-extracted, bug batch 1 Phase 4)
+    // have placeholder days -- pinning them to a grid cell would claim a
+    // day the lore never gave. They stay on the Timeline list only.
+    if (e.worldDate.precision && e.worldDate.precision !== "day") continue;
     const key = `${e.worldDate.monthIndex}-${e.worldDate.day}`;
     (index[key] = index[key] || { events: [], notableDates: [] }).events.push(e);
   }
@@ -97,14 +101,17 @@ function calTimelineEntryLink(ref) {
   return `<a href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}">${escapeHtmlForSearch(ref.category)}: ${escapeHtmlForSearch(ref.entryId)}</a>`;
 }
 
-const CAL_SOURCE_LABELS = { chronicle: "Session Chronicle", log_date: "Log", regenerate: "Regenerate", entry_date: "Entry Date" };
+const CAL_SOURCE_LABELS = { chronicle: "Session Chronicle", log_date: "Log", regenerate: "Regenerate", entry_date: "Entry Date", lore_date: "World Lore" };
 
 function calShowDayDetail(monthIndex, day, dayIndex) {
   const hit = dayIndex[`${monthIndex}-${day}`] || { events: [], notableDates: [] };
   const monthName = CAL_STATE.calendarConfig.months[monthIndex].name;
   const panel = document.getElementById("cal-day-detail");
   const eventsHtml = hit.events.map((e) => {
-    const sourceLink = `<a href="../dossier.html?category=${escapeHtmlForSearch(e.sourceCategory)}&id=${escapeHtmlForSearch(e.sourceId)}">${escapeHtmlForSearch(CAL_SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`;
+    const sourceHref = e.sourceType === "lore_date"
+      ? "../world-info.html"
+      : `../dossier.html?category=${escapeHtmlForSearch(e.sourceCategory)}&id=${escapeHtmlForSearch(e.sourceId)}`;
+    const sourceLink = `<a href="${sourceHref}">${escapeHtmlForSearch(CAL_SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`;
     const linked = (e.linkedEntryIds || []).map(calTimelineEntryLink).filter(Boolean).join(", ");
     return `<div style="margin-bottom:10px;"><p style="margin:0 0 4px;">${escapeHtmlForSearch(e.summary)}</p><p style="color:var(--ink-faint); font-size:0.78rem; margin:0;">Source: ${sourceLink}${linked ? ` — Linked: ${linked}` : ""}</p></div>`;
   }).join("");

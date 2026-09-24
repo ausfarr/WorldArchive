@@ -409,7 +409,12 @@
       setConfig(savedConfig);
       savedSnapshot = snapshot();
       changed();
-      status.textContent = "Saved.";
+      // Saving also backfills entry-date Timeline events server-side
+      // (bug batch 1, Phase 4) -- say so when it actually added some.
+      const sync = data.timelineSync;
+      status.textContent = sync && sync.created
+        ? `Saved. Added ${sync.created} founding/birth/other date${sync.created === 1 ? "" : "s"} to the Timeline.`
+        : "Saved.";
       return savedConfig;
     }
 
