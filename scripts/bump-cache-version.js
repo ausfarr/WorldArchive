@@ -36,7 +36,17 @@ const CACHE_BUSTED_SCRIPTS = [
   "themeBootstrap",
   "rulesetManualForms",
   "siteHeader",
-  "tokenMaker"
+  "tokenMaker",
+  // Bug batch 1, Phase 3: every remaining archive/js file. calendarPage.js
+  // and timeline.js had sat at ?v=v1.0.0 since they shipped, so a warm
+  // cache could keep serving the old Calendar page script after a deploy;
+  // calendarEditor.js is new this phase.
+  "calendarEditor",
+  "calendarPage",
+  "timeline",
+  "pendingUpdates",
+  "sessionPacket",
+  "sessionRecap"
 ];
 
 const fs = require("fs");

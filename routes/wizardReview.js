@@ -30,6 +30,7 @@ router.get("/wizard/review", async (req, res) => {
       raceSystem: config.race_system_json || null,
       styleGuide: config.style_guide_json || null,
       categoryConfig: config.category_config_json || null,
+      calendarConfig: config.calendar_config || null,
       setupCompletedAt: config.setup_completed_at || null
     });
   } catch (err) {

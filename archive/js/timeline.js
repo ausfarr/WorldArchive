@@ -42,6 +42,12 @@ async function loadAndRenderTimeline() {
     const calendarConfig = calendarData.calendarConfig;
 
     const events = (eventsData.events || []).slice().sort((a, b) => compareWorldDates(a.worldDate, b.worldDate));
+    // Bug batch 1, Phase 3: with the Settings calendar editor gone, the
+    // empty Timeline is where a calendar-less, already-set-up world gets
+    // pointed at wizard-calendar.html's edit mode.
+    const hasCalendar = !!(calendarConfig && Array.isArray(calendarConfig.months) && calendarConfig.months.length);
+    const noCal = document.getElementById("tl-no-calendar");
+    if (noCal) noCal.style.display = hasCalendar ? "none" : "block";
     if (!events.length) {
       empty.style.display = "block";
       host.innerHTML = "";
@@ -109,3 +115,11 @@ async function initTimelinePage() {
   applySiteTheme();
   loadAndRenderTimeline();
 }
+
+// Bug batch 1, Phase 3 -- same back/forward-cache staleness fix as
+// archive/js/calendarPage.js: this page renders once on load, so a page
+// restored by Back/Forward after editing the calendar would show the old
+// month names. Reload when restored from the bfcache.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) window.location.reload();
+});

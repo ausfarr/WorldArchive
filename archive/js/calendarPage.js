@@ -31,7 +31,10 @@ function calWeekdayHeaders(calendarConfig) {
   const n = calendarConfig.days_per_week || 7;
   const names = Array.isArray(calendarConfig.weekday_names) && calendarConfig.weekday_names.length === n
     ? calendarConfig.weekday_names
-    : Array.from({ length: n }, (_, i) => `D${i + 1}`);
+    // "Day N", not "D1": a calendar saved with no weekday names (or a
+    // legacy one whose AI list was nulled on a count mismatch before bug
+    // batch 1, Phase 3) should read as unnamed days, not as broken data.
+    : Array.from({ length: n }, (_, i) => `Day ${i + 1}`);
   return names.map((w) => `<div style="color:var(--ink-faint); text-align:center; font-family:var(--font-mono);">${escapeHtmlForSearch(w)}</div>`).join("");
 }
 
@@ -215,3 +218,15 @@ async function initCalendarPage() {
     document.getElementById("cal-loading").textContent = "Failed to load calendar.";
   }
 }
+
+// Bug batch 1, Phase 3 -- one of the real causes of "the Calendar page
+// shows stale data": this page renders once on load, and a Back/Forward
+// navigation that restores it from the browser's back/forward cache
+// (e.g. Calendar -> edit calendar -> Save -> Back) shows the pre-edit DOM
+// without re-running initCalendarPage(). A restored page reloads so it
+// always reflects the saved calendar. (No HTTP caching is involved: the
+// API sends no cache headers, authFetch sets no cache mode, and there is
+// no service worker.)
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) window.location.reload();
+});

@@ -42,7 +42,7 @@
 </head>
 <body data-category="calendar">
 
-<script src="/js/siteHeader.js?v=v1.7"></script>
+<script src="/js/siteHeader.js?v=v1.8"></script>
 
 <div class="wrap">
   <div class="crumb"><a href="../index.html">Archive</a><span class="sep">/</span><span>Calendar</span></div>
@@ -50,13 +50,14 @@
   <p style="color: var(--ink-dim); max-width: 640px; margin: 0 0 20px;">A year at a glance -- confirmed Session Chronicles, dates resolved from Logs, opted-in Regenerates, and any notable dates you've added. Click a marked day to see what happened.</p>
 
   <div id="cal-loading" style="color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">Loading…</div>
-  <p id="cal-no-calendar" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">This world has no calendar configured yet -- set one up in <a href="../settings.html">Settings</a> first.</p>
+  <p id="cal-no-calendar" style="display:none; color: var(--ink-faint); font-family: var(--font-mono); font-size: 0.85rem;">This world has no calendar yet. <a href="../wizard-calendar.html?from=calendar">Set one up →</a> (pick a template, generate one, or build your own).</p>
 
   <div id="cal-content" style="display:none;">
     <div style="display:flex; align-items:center; gap:16px; margin-bottom: 18px;">
       <button type="button" id="cal-prev-year" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 14px; font-family: var(--font-display); cursor: pointer;">&larr; Prev Year</button>
       <strong id="cal-year-label" style="font-family: var(--font-display); font-size: 1.1rem; text-transform: uppercase;"></strong>
       <button type="button" id="cal-next-year" style="background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 8px 14px; font-family: var(--font-display); cursor: pointer;">Next Year &rarr;</button>
+      <a href="../wizard-calendar.html?from=calendar" style="margin-left:auto; font-family: var(--font-mono); font-size: 0.78rem; color: var(--ink-dim);">Edit calendar</a>
     </div>
 
     <div id="cal-months-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;"></div>
@@ -99,9 +100,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.7"></script>
-<script src="../js/render.js?v=v1.7"></script>
-<script src="../js/calendarPage.js?v=v1.0.0"></script>
+<script src="/js/auth.js?v=v1.8"></script>
+<script src="../js/render.js?v=v1.8"></script>
+<script src="../js/calendarPage.js?v=v1.8"></script>
 <script>
   initCalendarPage();
 </script>

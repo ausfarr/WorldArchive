@@ -7,11 +7,17 @@
 // week structure) fitting the world's own genre/tone -- the DM reviews
 // and edits before saving, same as every other wizard generate-for-me
 // field; nothing here writes to storage directly.
+//
+// Bug batch 1, Phase 3: the weekday-count rule is now stated twice
+// (schema + guidance) because a mismatched list was the most common bad
+// output. routes/wizardCalendar.js still repairs any mismatch
+// (lib/calendar.js#repairWeekdayNames) -- the prompt reduces how often
+// that's needed, it isn't trusted to prevent it.
 
 const SCHEMA_DESCRIPTION = `{
   "eraName": "short era/age name fitting this world's tone, e.g. \\"Age of Ash\\"",
   "daysPerWeek": number between 4 and 10,
-  "weekdayNames": ["array of exactly daysPerWeek short weekday names, in order"],
+  "weekdayNames": ["array of EXACTLY daysPerWeek short weekday names, in order -- its length must equal daysPerWeek"],
   "months": [{ "name": "month name fitting this world's calendar/culture", "days": number between 20 and 40 }],
   "startingYear": "a plausible in-world year number for a campaign to begin in this era, given the world's history/tone"
 }`;
@@ -22,6 +28,7 @@ GUIDANCE:
 - Month count is your judgment call given the setting (real-world-inspired settings often want 12; a genuinely alien or invented cosmology can use a different count, e.g. a lunar-cycle-driven calendar with 10 months, or a world with an unusual orbital period) -- pick something that fits the world's own flavor, not a rote copy of the Gregorian calendar unless the setting calls for exactly that.
 - Month names and lengths should read as native to this world's own culture/language/climate (seasonal names, mythic names, whatever the lore below suggests), not generic "Month 1/Month 2" placeholders.
 - daysPerWeek and weekdayNames should also fit the world's own numerology/culture rather than defaulting to a real-world 7-day week unless that genuinely suits the setting.
+- weekdayNames MUST contain EXACTLY daysPerWeek distinct names -- no more, no fewer. Count them before answering: if daysPerWeek is 8, return exactly 8 names.
 - startingYear should feel period-appropriate for the world's history/tone (a number in the low hundreds for a "dark ages after a great collapse" setting, four digits for a setting with a long unbroken written history, etc.) -- use your judgment, there's no universally "right" answer.
 - Every month's "days" must be an integer between 20 and 40 -- keep the total year length roughly plausible (250-400 days total across all months) unless the setting has an explicit reason to be stranger than that.
 

@@ -20,9 +20,9 @@
 
 <div class="wrap" style="max-width: 760px; padding-top: 40px; padding-bottom: 80px;">
 
-  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 4 of 8 <span class="sep">/</span> Factions</p>
+  <p class="crumb" style="padding: 0 0 18px;">World Setup <span class="sep">/</span> Step 5 of 9 <span class="sep">/</span> Factions</p>
 
-  <a href="wizard-lore.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to World Lore</a>
+  <a href="wizard-calendar.html" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to Calendar</a>
 
   <div class="sheet" style="padding: 32px;">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
@@ -99,9 +99,9 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.7"></script>
-<script src="/js/wizardSession.js?v=v1.7"></script>
-<script src="js/render.js?v=v1.7"></script>
+<script src="/js/auth.js?v=v1.8"></script>
+<script src="/js/wizardSession.js?v=v1.8"></script>
+<script src="js/render.js?v=v1.8"></script>
 <script>
 const MAX_FACTIONS = 8;
 let factions = []; // each: { id, name, concept, politics, government, economy, military, tensions }
@@ -267,6 +267,22 @@ async function init() {
   await requireAuth();
   renderAuthStatus();
   await ensureWizardSession();
+  // Bug batch 1, Phase 3: the Calendar step (wizard-calendar.html) is
+  // required and comes right before this one, so factions' Deep Lore can
+  // propose real founding dates. A mid-wizard world that reaches this
+  // page without one (an old bookmark, a tab opened before the step
+  // existed) goes back to it. Setup-complete worlds are never redirected
+  // -- they can have no calendar and still be fine.
+  try {
+    const calRes = await authFetch("/api/wizard/calendar-config");
+    const cal = await calRes.json();
+    if (calRes.ok && !cal.setupCompletedAt && !cal.calendarConfig) {
+      window.location.href = "wizard-calendar.html";
+      return;
+    }
+  } catch (err) {
+    console.error("Calendar check failed (continuing anyway):", err);
+  }
   applyAiEnabledGating(); // hides both Generate buttons (.ai-action) for AI-off accounts -- every field stays manually fillable
   try {
     const res = await authFetch("/api/wizard/factions");

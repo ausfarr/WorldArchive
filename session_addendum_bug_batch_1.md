@@ -263,3 +263,134 @@ Tests: `scripts/testBillingTier.js` now covers past_due as lapsed
 and the missing-RPC fail-safe. `scripts/testFreeTierAllowance.js` probes
 for 038 and checks the real credit spend if it's present, else the
 fail-safe. **Re-run it after applying 038.**
+
+## Phase 3 — calendar as a wizard step
+
+**Step order** (visible labels only — `draft_json` keys "1".."8" are
+unchanged, and `calendar_config` was already its own column, so
+completed worlds are unaffected): 1 Seed & Vision · 2–3 Lore ·
+**4 Calendar (new)** · 5 Factions · 6 Stats & Skills · 7 Style Guide ·
+8 Category Configuration · 9 Review. Updated: every "Step N of 8" crumb,
+wizard.html's "(Step 7)" hint, wizard-style.html's "(Step 5)" note,
+wizard-review.html's "Step 5 layout" text, and render.js's "Wizard Step 6"
+skills hint. Code **comments** elsewhere still use the old numbers. Those
+match the unchanged `draft_json` keys and were left alone on purpose.
+
+**`archive/wizard-calendar.html`** — one page, two modes:
+
+- **Wizard mode** (`setup_completed_at` unset): Lore → Calendar → Factions,
+  with the Back links updated. Continue is disabled until the calendar
+  passes validation, and Continue itself saves, so there's no separate
+  Save to forget. The editor starts **blank**, not with a
+  "Firstmonth" default: the step is required, and a pre-filled valid
+  default would let Continue skip the decision. `wizard-factions.html`
+  sends a mid-wizard world with no calendar back to this step. It never
+  redirects a setup-complete world.
+- **Edit mode** (setup complete): Save + "Back to <origin>" (whitelisted
+  `?from=calendar|timeline|world-info`, never a raw URL), plus a
+  beforeunload guard for unsaved edits. Linked from the Calendar page
+  (empty state + "Edit calendar"), the Timeline empty state, World Info
+  (new Calendar section), and a one-line pointer where the Settings
+  section used to be. **Wizard pages did NOT load for setup-complete
+  worlds before this:** `ensureWizardSession()`'s auto-reset returns 409 in
+  a tab with no wizard-session flag and bounces to `index.html`. Edit
+  mode skips that call; wizard mode still makes it first.
+- AI toggle respected: Generate carries `.ai-action`, so it's hidden when
+  AI is off. `generate-calendar` stays behind `requireAiEnabled`.
+  Templates and manual entry always work.
+
+**Shared editor `archive/js/calendarEditor.js`** replaces the Settings
+markup/JS. Weekday names are now one input per day (they were a
+comma-separated field). This makes "Day N" placeholders highlightable and
+removes the old failure where changing "Days per week" left a mismatched
+list the server rejected. Client validation mirrors
+`lib/calendar.js#validateCalendarConfigShape`, which moved there from the
+route (and now also rejects blank weekday names). The server stays the
+real gate.
+
+**Presets (`lib/calendarPresets.js`, `GET /api/wizard/calendar-presets`)**:
+Earth, High Fantasy (tenday, original names — not the published 5e
+setting's), Sci-Fi Standard Cycle, Wild West 1878, Post-Collapse, Sword &
+Sorcery. Choosing one fills the editor (confirm first if there are
+unsaved edits) and never saves. No AI, no quota. **Known limitation**
+(noted in the editor UI): no leap years or intercalary days. Earth's
+February is a fixed 28; festivals go in as Notable Dates.
+
+**Change warning:** `POST /api/wizard/calendar-impact` (read-only) counts
+the Timeline events, notable dates, and entry date fields a proposed
+calendar would invalidate, via `lib/calendar.js#countDatesInvalidatedByCalendar`.
+That includes a moved current year pushing dates past the ±bounds. The
+editor calls it only when month lengths or the current year changed
+(renames can't invalidate an index-based date), and confirms with the
+counts and a few examples. An invalid `current_date` is blocked by
+validation rather than counted. Existing data is never mutated.
+
+**"Calendar shows the wrong week names / stale data": causes found**
+
+1. **Wrong week names (primary):** `generate-calendar` set
+   `weekday_names` to `null` whenever the model's list length didn't match
+   `daysPerWeek`. The Calendar page then rendered `D1..Dn` headers. Now
+   `repairWeekdayNames()` truncates extras and pads missing names with
+   "Day N" (highlighted in the editor). The prompt states the exact-count
+   rule twice, and `calWeekdayHeaders` falls back to "Day N" instead of
+   "D1". Reproduced at route level in `scripts/testCalendarWizardStep.js`
+   (6 names for an 8-day week).
+2. **Generated but never saved:** Settings' "Generate For Me" only filled
+   the editor, and its "review and Save Calendar to keep it" status line
+   was easy to miss, so the Calendar tab kept showing the old (or no)
+   calendar. In the wizard step, Continue saves. In edit mode, the button
+   shows "Unsaved changes" and leaving the page warns.
+3. **Back/forward cache:** the Calendar and Timeline pages render once on
+   load, so Back after editing restored the pre-edit DOM. Both now reload
+   on `pageshow` with `event.persisted`.
+4. **Ruled out:** HTTP caching (the API sends no Cache-Control or
+   Last-Modified, so there's no heuristic freshness), `authFetch` (sets no
+   cache mode), and service workers (there are none). `calendarPage.js`
+   and `timeline.js` had sat at `?v=v1.0.0` since they shipped, because
+   the bump script didn't cover them. Low risk, since static files are
+   `max-age=0` and revalidate, but every `archive/js` file is now in
+   `CACHE_BUSTED_SCRIPTS`.
+
+I couldn't replay your exact browser session. Causes 1 and 2 are certain
+from the code; cause 3 is standard browser behavior for these pages.
+
+**Faction dates:** `lib/factionDeepLore.js` already passed
+`calendarContext` to Deep Lore (both the regenerate and wizard-upgrade
+paths). The only problem was ordering, since the calendar didn't exist
+yet at wizard time. With Calendar now before Factions, wizard factions
+get a structured `foundingDate` (asserted in
+`testCalendarWizardStep.js`). Step 5's stub generator
+(`wizardFactionPrompt.js`) has no date field and needs none.
+
+**Month-name date fields:** `render.js#efWorldDateField` (every
+Founding/Birth/Appointed/Death/Created/Discovered/Resolved/Chronicle date
+input) shows a dropdown of this world's month names ("Greenrise (30
+days)") instead of a zero-based "Month #" number. The day input's `max`
+follows the chosen month. Stored values and `readWorldDateField` are
+unchanged (the option value is still `monthIndex`). A stored index outside
+the current calendar stays selectable, labelled "not in this calendar", so
+a save can't silently drop it. With no calendar, a note links to the
+editor.
+
+**Other:** `resetWorldConfig` (Start Over, the auto-reset, Delete World)
+now clears `calendar_config`. `GET /wizard/calendar-config` also returns
+`setupCompletedAt`, and `GET /wizard/review` returns `calendarConfig`
+(new Calendar line on the review page, escaped). Cache version is v1.8.
+
+**Tests:** `scripts/testCalendarPresets.js` (pure: every preset passes
+`validateCalendarConfigShape`, weekday count == `days_per_week`, valid
+`current_date`, months 20–40, weeks 4–10, the specified preset data, no
+published-setting month names; plus `repairWeekdayNames` and
+`countDatesInvalidatedByCalendar`).
+`scripts/testCalendarWizardStep.js` (real routes over HTTP,
+fakeSupabase, stubbed AI): presets load with AI off, generate is gated
+and repairs weekdays without saving, save validation, the impact check
+counts and never mutates, the review summary includes the calendar,
+Start Over clears it, and wizard factions get a `foundingDate`. The page
+flows (required Continue, template confirm, Factions guard, edit mode,
+impact dialog, links, month dropdown) were verified in headless Chromium
+against the real routes.
+
+**Unrelated, found while running every script:**
+`test5eBackgroundFeatMapper.js` (3 failures) and
+`test5eRaceSystemMapper.js` (1 failure) fail identically on `main` → Phase 5.

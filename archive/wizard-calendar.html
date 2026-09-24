@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Setup — Calendar — The Archive</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="index.html">The <span class="accent">Archive</span></a></div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="#" id="start-over-link" onclick="startOverWizard(); return false;" style="display:none; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.04em;">Start Over</a>
+      <div id="auth-status" style="font-family: var(--font-mono); font-size: 0.72rem;"></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" style="max-width: 760px; padding-top: 40px; padding-bottom: 80px;">
+
+  <!-- Filled in by init() once the mode is known (in-flow wizard step vs.
+       post-setup edit). Plain text only -- no DM strings go in here. -->
+  <p class="crumb" id="cal-crumb" style="padding: 0 0 18px;">World Setup</p>
+
+  <a href="wizard-lore.html" id="cal-back-link" style="display:inline-block; margin-bottom:16px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">← Back to World Lore</a>
+
+  <div class="sheet" style="padding: 32px;">
+    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;">World Calendar</h1>
+    <p id="cal-intro" style="color: var(--ink-dim); font-size: 0.9rem; margin: 0 0 20px;">Your world's months, week, and today's date. Factions, characters, and items get real founding and birth dates from it, and it drives the Calendar and Timeline pages. Pick a template, generate one, or build your own.</p>
+
+    <div id="cal-loading" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--ink-faint);">Loading…</div>
+    <div id="cal-editor-host"></div>
+
+    <div style="display:flex; justify-content:flex-end; align-items:center; gap: 14px; margin-top: 28px;">
+      <a href="index.html" id="cal-done-link" style="display:none; font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-dim);">Back to World</a>
+      <button type="button" id="cal-primary" class="primary-btn" disabled>Save &amp; Continue →</button>
+    </div>
+    <p id="cal-primary-hint" style="text-align:right; font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-faint); min-height: 1.2em; margin: 8px 0 0;"></p>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="wrap">CHRONICLED<span class="app-version">v0.7</span><a href="licenses.html" class="footer-license-link">Content Licenses</a></div>
+</footer>
+
+<style>
+  .primary-btn {
+    background: var(--neon-primary); color: var(--bg-void); border: none;
+    padding: 12px 24px; font-family: var(--font-display); text-transform: uppercase;
+    letter-spacing: 0.04em; cursor: pointer; font-weight: 600;
+  }
+  .primary-btn:disabled { opacity: 0.5; cursor: default; }
+</style>
+
+<script src="/config.js"></script>
+<script src="/version.js"></script>
+<script>
+  if (window.APP_VERSION) {
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = window.APP_VERSION;
+    });
+  }
+</script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="/js/auth.js?v=v1.8"></script>
+<script src="/js/wizardSession.js?v=v1.8"></script>
+<script src="js/render.js?v=v1.8"></script>
+<script src="js/calendarEditor.js?v=v1.8"></script>
+<script>
+// Bug batch 1, Phase 3 (session_addendum_bug_batch_1.md). Two modes, one
+// page, one shared editor (js/calendarEditor.js):
+//
+//   WIZARD mode (setup not complete): Step 4 of 9, between Lore and
+//   Factions. Required -- Continue stays disabled until the calendar is
+//   valid, and Continue itself saves (a generated-but-never-saved
+//   calendar was one of the real causes of the "Calendar tab shows the
+//   wrong thing" report, so there's no separate Save to forget here).
+//
+//   EDIT mode (setup_completed_at set): how already-finished worlds --
+//   which never pass through the new step -- create or change their
+//   calendar now that the Settings editor is gone. No forced flow:
+//   Save + "Back to World". Linked from the Calendar page, the Timeline
+//   page, and World Info.
+//
+// Edit mode deliberately skips ensureWizardSession(): for a
+// setup-complete world with no wizard-session flag in this tab, that
+// helper's auto-reset gets a 409 and bounces to index.html -- i.e. every
+// link to this page from the archive would have silently redirected
+// home. Wizard mode still calls it first, same as every other step.
+
+// ?from= picks where "Back" goes in edit mode. Whitelisted, never a raw
+// URL, so this can't be turned into an open redirect.
+const BACK_TARGETS = {
+  calendar: { href: "calendar/index.html", label: "Calendar" },
+  timeline: { href: "timeline/index.html", label: "Timeline" },
+  "world-info": { href: "world-info.html", label: "World Info" }
+};
+
+let editor = null;
+let mode = "wizard";
+
+function setPrimaryState({ valid, dirty, error }) {
+  const btn = document.getElementById("cal-primary");
+  const hint = document.getElementById("cal-primary-hint");
+  if (mode === "wizard") {
+    btn.disabled = !valid;
+    hint.textContent = valid ? "" : "Finish the calendar to continue.";
+  } else {
+    btn.disabled = !valid || !dirty;
+    hint.textContent = !valid ? (error || "") : (dirty ? "Unsaved changes." : "");
+  }
+}
+
+async function onPrimaryClick() {
+  const btn = document.getElementById("cal-primary");
+  btn.disabled = true;
+  try {
+    // Wizard mode: save only if there's something new (Back then
+    // Continue again shouldn't rewrite an unchanged calendar).
+    if (mode === "wizard" && !editor.isDirty() && editor.hasSavedCalendar()) {
+      window.location.href = "wizard-factions.html";
+      return;
+    }
+    const saved = await editor.save();
+    if (!saved) return; // DM backed out at the "invalidates N dates" warning
+    if (mode === "wizard") {
+      editor.setStatus("Saved — continuing…");
+      window.location.href = "wizard-factions.html";
+    }
+  } catch (err) {
+    console.error("Saving calendar failed:", err);
+    editor.setStatus("Something went wrong: " + err.message);
+  } finally {
+    setPrimaryState({ valid: editor.isValid(), dirty: editor.isDirty(), error: editor.validationError() });
+  }
+}
+
+async function init() {
+  const session = await requireAuth();
+  if (!session) return;
+  renderAuthStatus();
+
+  let setupCompletedAt = null;
+  try {
+    const res = await authFetch("/api/wizard/calendar-config");
+    const data = await res.json();
+    setupCompletedAt = data.setupCompletedAt || null;
+  } catch (err) {
+    console.error("Could not read setup status:", err);
+  }
+  mode = setupCompletedAt ? "edit" : "wizard";
+
+  const crumb = document.getElementById("cal-crumb");
+  const back = document.getElementById("cal-back-link");
+  const primary = document.getElementById("cal-primary");
+  if (mode === "wizard") {
+    await ensureWizardSession();
+    document.getElementById("start-over-link").style.display = "";
+    crumb.textContent = "World Setup / Step 4 of 9 / Calendar";
+  } else {
+    const from = BACK_TARGETS[new URLSearchParams(window.location.search).get("from")];
+    crumb.textContent = "Archive / World Calendar";
+    back.href = from ? from.href : "index.html";
+    back.textContent = `← Back to ${from ? from.label : "World"}`;
+    const done = document.getElementById("cal-done-link");
+    done.href = back.href;
+    done.textContent = `Back to ${from ? from.label : "World"}`;
+    done.style.display = "";
+    primary.textContent = "Save Calendar";
+    document.getElementById("cal-intro").textContent =
+      "Your world's months, week, and today's date. Changes apply everywhere dates are shown -- existing dates are never changed for you; if an edit doesn't fit them, you'll be told how many before saving.";
+    // Unsaved-edit guard -- edit mode has no Continue that saves for you.
+    window.addEventListener("beforeunload", (e) => {
+      if (editor && editor.isDirty()) { e.preventDefault(); e.returnValue = ""; }
+    });
+  }
+
+  applyAiEnabledGating(); // AI off -> Generate is hidden; templates + manual entry still work
+
+  editor = createCalendarEditor(document.getElementById("cal-editor-host"), { onChange: setPrimaryState });
+  try {
+    await editor.init();
+  } catch (err) {
+    console.error("Loading calendar failed:", err);
+    editor.setStatus("Could not load the calendar: " + err.message);
+  } finally {
+    document.getElementById("cal-loading").style.display = "none";
+  }
+  setPrimaryState({ valid: editor.isValid(), dirty: editor.isDirty(), error: editor.validationError() });
+  primary.addEventListener("click", onPrimaryClick);
+}
+
+init();
+</script>
+
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "078134c3564245c3b137275f303acb50"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>

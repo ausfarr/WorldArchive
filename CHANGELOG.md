@@ -21,6 +21,20 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Bug batch 1, Phase 3 — the calendar is a required wizard step.** New
+  Step 4 of 9 (`archive/wizard-calendar.html`) between Lore and Factions:
+  six non-AI templates (`lib/calendarPresets.js`), AI generate (hidden
+  when AI is off), or manual entry; Continue stays disabled until the
+  calendar is valid and saves it. Finished worlds use the same page in edit
+  mode, linked from Calendar, Timeline, and World Info; the Settings
+  editor is gone (shared `archive/js/calendarEditor.js`). Saving a change
+  that would invalidate stored dates warns with counts first (nothing is
+  changed). Entry date fields use a month-name dropdown instead of "Month
+  #". Fixed the "wrong week names" (a wrong-length AI weekday list was
+  nulled → "D1..D7"; now repaired) and the stale Calendar page
+  (unsaved generated calendars, back/forward cache). Start Over now clears
+  the calendar. v1.8. Details in `session_addendum_bug_batch_1.md`.
+
 - **Bug batch 1, Phase 2 follow-up — `past_due` joins the free tier; free
   accounts can spend purchased credits.** A failed renewal is now treated
   like a cancel (free allowance + credits; a successful Stripe retry
