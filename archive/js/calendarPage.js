@@ -98,6 +98,10 @@ function calRenderGrid() {
 
 function calTimelineEntryLink(ref) {
   if (!ref || !ref.entryId) return "";
+  // Decorated by GET /timeline-events (lib/timelineDecorate.js): real
+  // name, and plain text instead of a dead link for a deleted entry.
+  if (ref.deleted) return `<span style="text-decoration:line-through; opacity:0.6;">${escapeHtmlForSearch(ref.name || ref.entryId)}</span>`;
+  if (ref.name) return `<a href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}">${escapeHtmlForSearch(ref.name)}</a>`;
   return `<a href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}">${escapeHtmlForSearch(ref.category)}: ${escapeHtmlForSearch(ref.entryId)}</a>`;
 }
 
@@ -111,8 +115,10 @@ function calShowDayDetail(monthIndex, day, dayIndex) {
     const sourceHref = e.sourceType === "lore_date"
       ? "../world-info.html"
       : `../dossier.html?category=${escapeHtmlForSearch(e.sourceCategory)}&id=${escapeHtmlForSearch(e.sourceId)}`;
-    const sourceLink = `<a href="${sourceHref}">${escapeHtmlForSearch(CAL_SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`;
-    const linked = (e.linkedEntryIds || []).map(calTimelineEntryLink).filter(Boolean).join(", ");
+    const sourceLink = e.sourceDeleted
+      ? `${escapeHtmlForSearch(CAL_SOURCE_LABELS[e.sourceType] || e.sourceType)} (deleted)`
+      : `<a href="${sourceHref}">${escapeHtmlForSearch(CAL_SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`;
+    const linked = (e.linkedEntries || e.linkedEntryIds || []).map(calTimelineEntryLink).filter(Boolean).join(", ");
     return `<div style="margin-bottom:10px;"><p style="margin:0 0 4px;">${escapeHtmlForSearch(e.summary)}</p><p style="color:var(--ink-faint); font-size:0.78rem; margin:0;">Source: ${sourceLink}${linked ? ` — Linked: ${linked}` : ""}</p></div>`;
   }).join("");
   const notableHtml = hit.notableDates.map((nd) => `<div style="margin-bottom:8px;"><strong>${escapeHtmlForSearch(nd.name)}</strong>${nd.note ? ` — ${escapeHtmlForSearch(nd.note)}` : ""}</div>`).join("");

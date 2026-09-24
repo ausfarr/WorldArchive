@@ -55,11 +55,16 @@ function humanizeEntryId(id) {
   return String(id || "").split("-").filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 
+// `ref` is a decorated linked entry from GET /timeline-events
+// (lib/timelineDecorate.js): { category, entryId, name, deleted }. A
+// deleted entry renders as plain struck-through text, not a 404 link.
 function timelineEntryLink(ref) {
   if (!ref || !ref.entryId) return "";
   const kind = CATEGORY_SINGULAR[ref.category] || ref.category;
-  const fac = ref.category === "factions" ? TL_STATE.factionLookup[ref.entryId] : null;
-  const name = fac ? fac.name : humanizeEntryId(ref.entryId);
+  const name = ref.name || humanizeEntryId(ref.entryId);
+  if (ref.deleted) {
+    return `<span class="tl-pill tl-deleted" title="This entry was deleted"><span class="tl-pill-k">${escapeHtmlForSearch(kind)}</span>${escapeHtmlForSearch(name)}</span>`;
+  }
   return `<a class="tl-pill" href="../dossier.html?category=${escapeHtmlForSearch(ref.category)}&id=${escapeHtmlForSearch(ref.entryId)}"><span class="tl-pill-k">${escapeHtmlForSearch(kind)}</span>${escapeHtmlForSearch(name)}</a>`;
 }
 
@@ -93,26 +98,36 @@ function renderEventCard(e) {
   const sourceHref = e.sourceType === "lore_date"
     ? "../world-info.html"
     : `../dossier.html?category=${escapeHtmlForSearch(e.sourceCategory)}&id=${escapeHtmlForSearch(e.sourceId)}`;
-  const pills = [`<a class="tl-pill tl-source" href="${sourceHref}">${escapeHtmlForSearch(SOURCE_LABELS[e.sourceType] || e.sourceType)}</a>`];
+  const sourceLabel = escapeHtmlForSearch(SOURCE_LABELS[e.sourceType] || e.sourceType);
+  const pills = [e.sourceDeleted
+    ? `<span class="tl-pill tl-source tl-deleted" title="The source entry was deleted">${sourceLabel} · deleted</span>`
+    : `<a class="tl-pill tl-source" href="${sourceHref}">${sourceLabel}</a>`];
   if (e.sessionNumber) pills.push(`<span class="tl-pill tl-session">Session ${Number(e.sessionNumber)}</span>`);
   // The source pill already links to an entry_date event's own entry --
   // don't repeat it as a "linked" pill.
-  (e.linkedEntryIds || [])
+  const linkedEntries = e.linkedEntries || (e.linkedEntryIds || []).map((ref) => ({ ...ref, name: null, deleted: false }));
+  linkedEntries
     .filter((ref) => !(e.sourceType === "entry_date" && ref.category === e.sourceCategory && ref.entryId === e.sourceId))
     .forEach((ref) => pills.push(timelineEntryLink(ref)));
-  (e.linkedFactionIds || []).forEach((fk) => {
-    if (e.sourceType === "entry_date" && e.sourceCategory === "factions" && e.sourceId === fk) return;
-    const fac = factionLookup[fk];
+  const linkedFactions = e.linkedFactions || (e.linkedFactionIds || []).map((key) => ({ key, id: key, name: null, deleted: false }));
+  linkedFactions.forEach((f) => {
+    if (e.sourceType === "entry_date" && e.sourceCategory === "factions" && (e.sourceId === f.key || e.sourceId === f.id)) return;
+    const fac = factionLookup[f.key];
     const accent = fac && safeHex(fac.accentColor);
-    pills.push(`<a class="tl-pill" href="../dossier.html?category=factions&id=${escapeHtmlForSearch(fk)}"${accent ? ` style="border-color:${accent}"` : ""}><span class="tl-pill-k">Faction</span>${escapeHtmlForSearch(fac ? fac.name : humanizeEntryId(fk))}</a>`);
+    const name = f.name || (fac && fac.name) || humanizeEntryId(f.key);
+    if (f.deleted) {
+      pills.push(`<span class="tl-pill tl-deleted" title="This faction was deleted"><span class="tl-pill-k">Faction</span>${escapeHtmlForSearch(name)}</span>`);
+      return;
+    }
+    pills.push(`<a class="tl-pill" href="../dossier.html?category=factions&id=${escapeHtmlForSearch(f.id)}"${accent ? ` style="border-color:${accent}"` : ""}><span class="tl-pill-k">Faction</span>${escapeHtmlForSearch(name)}</a>`);
   });
   // The Roundup-may-be-stale nudge only makes sense for events that
   // happened TO a faction in play (chronicles/logs/regenerates), not for
   // a member's birth date.
-  const nudgeFactions = ["chronicle", "log_date", "regenerate"].includes(e.sourceType) ? (e.linkedFactionIds || []) : [];
-  const nudge = nudgeFactions.map((fk) => {
-    const fac = factionLookup[fk];
-    return `⟳ <a href="../dossier.html?category=factions&id=${escapeHtmlForSearch(fk)}">${escapeHtmlForSearch(fac ? fac.name : humanizeEntryId(fk))}</a>'s Roundup may be stale — regenerate?`;
+  const nudgeFactions = ["chronicle", "log_date", "regenerate"].includes(e.sourceType) ? linkedFactions.filter((f) => !f.deleted) : [];
+  const nudge = nudgeFactions.map((f) => {
+    const fac = factionLookup[f.key];
+    return `⟳ <a href="../dossier.html?category=factions&id=${escapeHtmlForSearch(f.id)}">${escapeHtmlForSearch(f.name || (fac && fac.name) || humanizeEntryId(f.key))}</a>'s Roundup may be stale — regenerate?`;
   }).join(" · ");
 
   return `

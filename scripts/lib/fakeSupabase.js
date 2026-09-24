@@ -32,7 +32,10 @@ class FakeQuery {
     this.filters = [];
     this.op = { type: "select" };
   }
-  select() { return this; }
+  // { count: "exact" } support (bug batch 1 audit tests): countEntries()
+  // reads `count`, which this fake used to leave undefined -- so every
+  // entry-cap check under the fake saw 0 entries and always allowed.
+  select(_cols, opts) { if (opts && opts.count) this._count = true; return this; }
   eq(col, val) { this.filters.push([col, val]); return this; }
   // Only the one real caller's shape is supported --
   // lib/srdLibraryRepo.js's findNearestCrMonsters() calls
@@ -123,6 +126,7 @@ class FakeQuery {
     }
     if (this._single === "maybe") return { data: filtered[0] || null, error: null };
     if (this._single === "required") return { data: filtered[0], error: filtered[0] ? null : { message: "not found" } };
+    if (this._count) return { data: filtered, count: filtered.length, error: null };
     return { data: filtered, error: null };
   }
 

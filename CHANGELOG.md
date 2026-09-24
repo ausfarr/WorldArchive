@@ -21,6 +21,18 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Audit fixes: entry consistency (items 4–7).** Filling a ghost
+  placeholder now counts against the entry cap. Renaming a faction no
+  longer duplicates reciprocal relationships. A rename now updates every
+  other entry's stored label for it (custom labels are left alone), and the
+  Timeline shows live names. Deleting a faction makes its members
+  Unaligned (re-rendered), removes other factions' relationships to it,
+  and clears stale links. Timeline events stay as history and show a
+  deleted source as plain text. New `lib/entryCleanup.js`,
+  `lib/entryWriters.js` (extracted from `/confirm-entry`),
+  `lib/timelineDecorate.js`. v1.11. Details in
+  `session_addendum_bug_batch_1.md`.
+
 - **Audit fixes: billing (items 1, 2, 3, 8, 9, 10).** Subscribing again is
   refused while Stripe still has a live subscription. The guard asks
   Stripe directly, which also self-heals a missed cancellation. Webhook

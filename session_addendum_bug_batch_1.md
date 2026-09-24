@@ -715,3 +715,57 @@ account), and `/billing/status` end to end. The live
 `scripts/testFreeTierAllowance.js` passes; it caught a missing import
 in `routes/billing.js` that the unit tests didn't cover until the
 `/billing/status` check above was added.
+
+### Entry consistency (items 4, 5, 6, 7)
+
+- **4 Ghost fills count.** `/confirm-entry` now cap-checks (under the
+  `entry-cap` lock) whenever the target row is new *or locked*, not only
+  new. `enforceEntryCapOnGenerate` looks up a `fillExistingId` target
+  (route → category map, plus `body.category` for `/generate-procedural`)
+  and reserves a slot when it's a locked ghost. Regenerating a real entry
+  stays uncapped. (`scripts/lib/fakeSupabase.js` now honors
+  `select(..., { count })`; before, every cap check under the fake saw
+  0 entries.)
+- **5 Reciprocal dedupe by id.** `syncReciprocalRelationships` treats a
+  target as already related if any relationship has `toId === faction.id`
+  (or, as before, the same name).
+- **7 Renames propagate.** `lib/entryCleanup.js#propagateEntryRename` runs
+  from `/confirm-entry`'s `afterSave` when the name changed. It uses
+  `lib/entryLinkRegistry.js`, so every registered name+id reference is
+  covered: faction relationships, NPC/PC relationships, location notable
+  NPCs, and 5e spell classes. A label is only rewritten if it still
+  *exactly equals* the old name, so a DM's custom wording survives.
+  Single-id pointers with prose labels (a log's location context) are
+  never rewritten. Referencing entries are re-saved through their normal
+  writers, so bodies re-render. The Timeline: `GET /timeline-events` is
+  decorated at read time (`lib/timelineDecorate.js`). `entry_date`
+  summaries use the entry's current name, and linked entries get real
+  names. Stored events are never rewritten. Free prose that mentions the
+  old name (Deep Lore text, chronicles) is not rewritten, since that's
+  authored text.
+- **6 Faction delete.** Austin: members go to Unaligned.
+  `DELETE /entries/factions/:id` now runs
+  `lib/entryCleanup.js#unalignFactionMembers`: every entry whose faction
+  was the deleted faction gets the category's "no faction" value
+  (`"unaligned"` for NPC/Location/PC, empty otherwise, matching each edit
+  form). It is re-saved through its normal writer, so the dossier's
+  "Faction:" line and subtitle update. Name-only relationships to it are
+  removed. For **any** deleted entry,
+  `detachReferencesToDeletedEntry` clears every stored id pointing at it
+  (labels kept as text). Faction relationships to a deleted faction are
+  removed outright. This also stops a future entry that reuses the slug
+  from inheriting old links. Timeline events are kept as history; the
+  decorator flags `sourceDeleted` and deleted links, and both the Timeline
+  and Calendar pages render those as plain struck-through text instead of
+  404 links. The dossier's delete confirmation for a faction says all of
+  this up front, and the result reports how many entries became
+  Unaligned. The best-effort posture of the existing delete cleanups is
+  kept: the delete itself never fails on cleanup.
+- **Refactor:** `lib/entryWriters.js#writeEntry` is the per-ruleset writer
+  selection, moved verbatim out of `routes/confirmEntry.js` (which now
+  calls it) so cleanup re-saves use identical writers.
+
+Tests: `scripts/testEntryConsistency.js` (16 checks, real routes over HTTP,
+fakeSupabase, BILLING_ENABLED=true). The item 4 checks fail against the
+pre-fix code. The full offline suite passes, apart from the two 5e mapper
+tests (item 11).

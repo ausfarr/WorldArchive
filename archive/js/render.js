@@ -3223,7 +3223,13 @@ function wireDeleteEntryButton(entry) {
   btn.parentNode.replaceChild(freshBtn, btn);
 
   freshBtn.addEventListener("click", async () => {
-    const confirmed = window.confirm(`Permanently delete "${stripHtml(entry.name)}"? This cannot be undone.`);
+    // Bug batch 1 audit, item 6: deleting a faction also makes its
+    // members Unaligned and removes other factions' relationships to it
+    // (routes/entries.js) -- say so up front.
+    const factionNote = entry.category === "factions"
+      ? "\n\nEvery NPC, PC, location and other entry in this faction will become Unaligned, and other factions' relationships to it will be removed. Timeline events stay as history."
+      : "";
+    const confirmed = window.confirm(`Permanently delete "${stripHtml(entry.name)}"? This cannot be undone.${factionNote}`);
     if (!confirmed) return;
 
     const status = document.getElementById("delete-entry-status");
@@ -3236,7 +3242,10 @@ function wireDeleteEntryButton(entry) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Delete failed.");
       }
-      status.textContent = "Deleted. Redirecting…";
+      const body = await res.json().catch(() => ({}));
+      const unaligned = body.cleanup && body.cleanup.members ? body.cleanup.members.unaligned : 0;
+      status.textContent = unaligned ? `Deleted. ${unaligned} entr${unaligned === 1 ? "y is" : "ies are"} now Unaligned. Redirecting…` : "Deleted. Redirecting…";
+      if (unaligned) await new Promise((r) => setTimeout(r, 1500));
       window.location.href = `${entry.category}/index.html`;
     } catch (err) {
       console.error("Delete entry failed:", err);

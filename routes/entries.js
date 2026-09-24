@@ -1,5 +1,6 @@
 const express = require("express");
 const { listEntries, getEntry, deleteEntry, patchEntryMeta } = require("../lib/entriesRepo");
+const { detachReferencesToDeletedEntry, unalignFactionMembers } = require("../lib/entryCleanup");
 const { deletePortrait, saveFactionEntry } = require("../lib/fileWriter");
 const { removeEntryFromAllCampaignModules } = require("../lib/campaignModuleRepo");
 const { buildFactionRoundup } = require("../lib/factionRoundup");
@@ -119,8 +120,28 @@ router.delete("/entries/:category/:id", requireValidCategory, async (req, res) =
     } catch (cleanupErr) {
       console.error(`Removing ${category}/${id} from Quests after delete failed:`, cleanupErr);
     }
+    // Bug batch 1 audit, item 6 (lib/entryCleanup.js), same best-effort
+    // posture as the cleanups above:
+    //   - every stored id pointing at the deleted entry is cleared (labels
+    //     stay as plain text), so a future entry reusing the slug can't
+    //     inherit old links; faction relationships TO a deleted faction are
+    //     removed outright;
+    //   - deleting a faction makes its members Unaligned (Austin's call),
+    //     re-saved through their normal writers so dossiers update.
+    // Timeline events are deliberately kept -- they're history; the
+    // Timeline shows a deleted source as plain text (lib/timelineDecorate.js).
+    const cleanup = {};
+    try {
+      cleanup.references = await detachReferencesToDeletedEntry(worldId, category, id);
+      if (category === "factions") {
+        const factionKey = (entryBeingDeleted && entryBeingDeleted.faction) || id;
+        cleanup.members = await unalignFactionMembers(worldId, factionKey, entryBeingDeleted && entryBeingDeleted.name);
+      }
+    } catch (cleanupErr) {
+      console.error(`Reference cleanup after deleting ${category}/${id} failed:`, cleanupErr);
+    }
 
-    res.json({ deleted: true });
+    res.json({ deleted: true, cleanup });
   } catch (err) {
     console.error(`Deleting entry (${req.params.category}/${req.params.id}) failed:`, err);
     res.status(500).json({ error: err.message });

@@ -8,6 +8,7 @@
 
 const express = require("express");
 const { listTimelineEvents } = require("../lib/timelineRepo");
+const { decorateTimelineEvents } = require("../lib/timelineDecorate");
 const { backfillEntryDateEvents } = require("../lib/timelineEvents");
 const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { requireAiEnabled } = require("../middleware/requireAiEnabled");
@@ -20,7 +21,9 @@ const router = express.Router();
 
 router.get("/timeline-events", async (req, res) => {
   try {
-    const events = await listTimelineEvents(req.worldId);
+    // Live names + deleted flags for display (bug batch 1 audit, items
+    // 6-7) -- stored events themselves are never rewritten.
+    const events = await decorateTimelineEvents(req.worldId, await listTimelineEvents(req.worldId));
     res.json({ events });
   } catch (err) {
     console.error("Loading timeline events failed:", err);
