@@ -21,6 +21,11 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Bug batch 1, Phase 5 — audit (no code changes).** A prioritized list of
+  surrounding issues (double-subscribe guard, webhook ordering, mid-cycle
+  usage resets, the ghost-fill entry-cap bypass, faction rename/delete
+  consistency, and more) in `session_addendum_bug_batch_1.md`.
+
 - **Timeline redesign.** The Timeline page is now a vertical stream:
   large year markers, "N years later" gaps, color-coded nodes and card
   edges per source (entry date, session chronicle, log, world lore,

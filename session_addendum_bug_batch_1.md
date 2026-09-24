@@ -558,3 +558,102 @@ styles, `archive/js/timeline.js` render):
 - Verified in headless Chromium at 1000px and 390px (no horizontal
   scroll). A "Today" line that overflowed on mobile was fixed during that
   check.
+
+## Phase 5 — surrounding-issues audit (report only, nothing fixed)
+
+Prioritized. Sizes: S ≈ an hour or two, M ≈ half a day to a day, L ≈ multi-day.
+
+**P1 — money or data correctness**
+
+1. **Double subscription via direct API call (S).** `/billing/checkout/subscribe`
+   doesn't refuse an account whose row is `active` or `past_due`. A second
+   checkout overwrites the row's `stripe_subscription_id`. The old
+   subscription keeps billing in Stripe with no row, and its later events
+   are ignored. Same risk for a subscriber who canceled in the portal and
+   then "resubscribes" through checkout instead of resuming. Fix: 409 on
+   active/past_due. For `cancel_at_period_end`, send them to the portal to
+   resume instead.
+2. **Out-of-order / missed webhooks (S–M).**
+   - A delayed `customer.subscription.updated` (status `active`) processed
+     after `customer.subscription.deleted` flips a canceled row back to
+     active.
+   - A missed `deleted` event leaves a row `active` forever: full quota and
+     unlimited entries with no payment.
+   - Fix: in `updated`/`deleted`, re-`retrieve` the subscription from
+     Stripe and write *its* current state, which is immune to ordering.
+     Optional safety net: treat `active` with `current_period_end` more than
+     ~3 days in the past as lapsed. That's cheap now that Phase 2 keeps the
+     period synced.
+3. **Usage reset on non-renewal invoices (S).** `invoice.payment_succeeded`
+   resets both counters for *every* paid invoice. A proration or
+   plan-change invoice mid-cycle (`billing_reason: subscription_update`)
+   hands out a free fresh quota. Fix: reset only for `subscription_cycle`
+   and `subscription_create`.
+4. **Entry cap bypass through ghost placeholders (S).** Locked ghost stubs
+   don't count toward the cap (correct), but *filling* one skips the cap
+   check. `enforceEntryCapOnGenerate` skips any `fillExistingId`, and
+   `/confirm-entry` treats a locked row as `alreadyExists`. The filled
+   entry becomes unlocked and counts, so a free world can grow past
+   30 + purchased by filling ghosts. Each fill still costs a generation,
+   except manual fills, which are free. Fix: run the cap check when the
+   target row is `locked`.
+5. **Duplicate reciprocal relationships after a faction rename (S).**
+   `syncReciprocalRelationships` decides "already has it" by name
+   (`r.faction === faction.name`). After a rename, the next save appends a
+   second relationship under the new name to every related faction, even
+   though the old one already points at the same `toId`. The graph then
+   shows two edges and the Deep Lore lists the faction twice. Fix: match
+   on `toId` first, then by name.
+
+**P2 — stale or misleading state**
+
+6. **Faction delete leaves dangling references (M).** Member entries keep
+   `faction: <deleted key>` and show a humanized id with no Roundup. Other
+   factions keep the relationship text. The graph skips it correctly
+   (dangling `toId`), but the Deep Lore body still lists it. Timeline
+   events keep links to the deleted dossier (404). If a new faction later
+   reuses the same slug, the old `toId`s silently re-link to it. Options:
+   on delete, clear members' faction field (or offer to reassign), and
+   strip or mark relationships. Keep Timeline events (they're history) but
+   render deleted links as plain text.
+7. **Renames don't flow into stored text (S, mostly by design).**
+   Relationship names in other factions' Deep Lore, `entry_date`
+   summaries ("Founded: Old Name"), and chronicle text keep the old name.
+   Graph and Roundup are unaffected (id/key based). Cheapest real
+   improvement: render Timeline entry-date summaries from the live entry
+   name instead of the stored text.
+8. **Settings billing copy is hardcoded (S).** "$4.99/month (50
+   generations + 10 images…)" is a literal string, while quotas live in
+   `plans`. A plan change in the DB would show the wrong numbers. Fix: send
+   plan numbers and price in `/billing/status`.
+9. **Settings after returning from Stripe (S).** "Payment received — this
+   may take a few seconds" but no refresh, so the panel keeps showing the
+   pre-payment state until a manual reload. Fix: poll `/billing/status` a
+   few times after `?billing=success`.
+10. **Credit display rounding (S).** Credits are shown in whole
+    generations (floored), so 1–4 leftover points read as "0 credits"
+    even though they're spendable on field assists. Show "+N field
+    assists" when there's a remainder.
+
+**P3 — housekeeping and follow-ups**
+
+11. **Pre-existing test failures (S to investigate).**
+    `test5eBackgroundFeatMapper.js` (3) and `test5eRaceSystemMapper.js`
+    (1) fail on `main` too, so they're unrelated to this batch but
+    currently red.
+12. **Migration 039 not yet applied (S, yours).** Until it is, "Find dates
+    in lore" can't save.
+13. **Lore edits don't revisit lore-extracted events (S–M).** Rewriting
+    lore leaves earlier `lore_date` events in place even if the prose no
+    longer supports them. Possible: tag events with their section and
+    offer "re-check" after lore changes.
+14. **Calendar change with conflicting dates (M, optional).** We warn but
+    never remap. A "remap dates" helper (e.g. old month N → new month M)
+    would make big calendar edits safer. Only worth it if DMs actually
+    restructure calendars after play starts.
+15. **Other pipeline gaps checked and found fine:** cost logging
+    (`attachCostContext` covers every `/api` request, including the new
+    lore extraction); wizard faction saves are uncapped but bounded
+    (max 8); Campaign "generate" returns previews only, and its
+    slot-entry route is cap-gated; ghost stubs excluded from
+    `countEntries`; deleted-entry graph links are skipped.
