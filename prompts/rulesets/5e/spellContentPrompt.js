@@ -12,8 +12,11 @@
 //     lib/rulesets/5e/srdSpellMapper.js.
 //   - Reflavor: the model rewrites name/flavor/description text only.
 //     Every mechanically-relevant field (level, school, casting time,
-//     range, components, duration, classes, atHigherLevels) is carried
-//     through UNCHANGED from the SRD source.
+//     range, components, duration, atHigherLevels) is carried through
+//     UNCHANGED from the SRD source. "classes" is the exception: the
+//     model maps the spell onto THIS world's classes (see CLASS_RULE and
+//     lib/rulesets/5e/spellClasses.js), since the SRD's Wizard/Cleric/...
+//     list means nothing in, say, a cyberpunk world.
 //   - Homebrew: the model invents a full new spell (unchanged from
 //     before this work).
 //
@@ -40,13 +43,22 @@ const SCHEMA_DESCRIPTION = `{
   "components": "e.g. V, S, M",
   "materialComponent": "material component description, or null if no M component",
   "duration": "e.g. Instantaneous, Concentration, up to 1 minute",
-  "classes": ["Wizard", "Sorcerer"],
+  "classes": ["exact class name(s) from CLASSES IN THIS WORLD below"],
+  "newClass": null,
   "description": "the spell's full rules text, 2-5 sentences",
   "atHigherLevels": "how this spell scales when cast with a higher-level slot (leveled spells only) -- null for cantrips",
   "cantripBaseDamage": { "diceCount": 1, "dieSize": 10, "damageType": "fire" },
   "flavor": "1-2 sentences of world-flavor for this spell's origin/style",
   "designNotes": "1-2 sentences: how this avoids overlapping the existing roster"
 }`;
+
+// Shared by Homebrew and Reflavor. The world-specific half (the actual
+// class list, or the "invent one" instruction when there are none) is
+// dynamic -- see lib/rulesets/5e/spellClasses.js's
+// formatWorldClassesForPrompt(). This static half exists because the model
+// otherwise defaults to Wizard/Sorcerer/Rogue regardless of setting, and
+// every unmatched name becomes a ghost Class placeholder.
+const CLASS_RULE = `- CLASSES: "classes" may ONLY contain names from the CLASSES IN THIS WORLD section of the world context, copied exactly. Never fall back to standard D&D class names (Wizard, Sorcerer, Cleric, Rogue, etc.) unless they appear in that list. Follow that section's instruction for "newClass".`;
 
 const STATIC_INSTRUCTIONS = `You are designing an original 5th Edition (D&D-compatible) spell for a tabletop game world archive's spellbook. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
@@ -55,16 +67,19 @@ RULES:
 - If level is 0 (a cantrip) AND the spell deals damage, fill in "cantripBaseDamage" with the BASE damage at character levels 1st-4th only (e.g. a cantrip that deals 1d10 fire at low levels: { "diceCount": 1, "dieSize": 10, "damageType": "fire" }) -- do NOT write out the 5th/11th/17th-level scaling yourself, code computes that from your base value. Leave "cantripBaseDamage" null for non-damaging cantrips and for every leveled spell (level 1+).
 - If level is 1-9, "atHigherLevels" should describe how the spell improves when cast with a higher-level slot (typical pattern: "+1d6 damage per slot level above Nth", but use your judgment for the spell's actual effect).
 - Ground the spell's flavor in this world's setting/lore, but keep its MECHANICAL shape (casting time/range/components/duration conventions) consistent with real 5e spell design norms.
+${CLASS_RULE}
 
 Return JSON matching this exact schema:
 ${SCHEMA_DESCRIPTION}`;
 
-function buildHomebrewSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, level, school, campaignContext }) {
+function buildHomebrewSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, worldClassesText, rosterContext, name, level, school, campaignContext }) {
   const dynamicContext = `SETTING (stay consistent with this):
 ${settingContext}
 
 FACTIONS IN THIS WORLD:
 ${factionOptionsText}
+
+${worldClassesText}
 
 WORLD LORE — GROUND TRUTH:
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}
@@ -84,22 +99,29 @@ const REFLAVOR_SCHEMA = `{
   "name": "New Full Name",
   "flavor": "1-2 sentences of NEW world-flavor for this spell's origin/style, grounded in this world's tone/factions",
   "description": "2-5 sentences of NEW rules text -- keep the same mechanical effect described (same damage/save/condition), just reworded/reflavored",
-  "designNotes": "1-2 sentences on how this reflavor fits this world"
+  "designNotes": "1-2 sentences on how this reflavor fits this world",
+  "classes": ["exact class name(s) from CLASSES IN THIS WORLD below"],
+  "newClass": null
 }`;
 
 const REFLAVOR_STATIC_INSTRUCTIONS = `You are reflavoring an official 5th Edition spell's NARRATIVE presentation for a specific tabletop game world, while its mechanics stay exactly as printed. Output ONLY valid JSON matching the schema below -- no markdown, no prose, no code fences.
 
 HARD RULE: you may rename the spell and rewrite its flavor/description text -- but do not invent new damage dice, save DCs, ranges, durations, or other mechanical numbers. The spell's real mechanics (level, school, casting time, range, components, duration, scaling) are resolved by code from the source spell, not from anything you write.
 
+The source spell's own "classes" list names official 5e classes. Use it only as a hint about what KIND of caster fits; choose this world's classes instead:
+${CLASS_RULE}
+
 Return JSON matching this exact schema:
 ${REFLAVOR_SCHEMA}`;
 
-function buildReflavorSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceSpell, campaignContext }) {
+function buildReflavorSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, worldClassesText, sourceSpell, campaignContext }) {
   const dynamicContext = `SETTING (stay consistent with this):
 ${settingContext}
 
 FACTIONS IN THIS WORLD:
 ${factionOptionsText}
+
+${worldClassesText}
 
 WORLD LORE — GROUND TRUTH:
 ${loreContext || "(no lore saved yet for this world — invent details consistent with the setting above)"}

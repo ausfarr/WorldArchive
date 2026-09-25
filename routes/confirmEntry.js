@@ -10,6 +10,7 @@ const { withLock } = require("../lib/asyncLock");
 const { getCalendarConfig } = require("../lib/worldConfigRepo");
 const { sanitizeEntryDateFields } = require("../lib/calendar");
 const { resolveReferencesForEntry } = require("../lib/entryLinker");
+const { commitPendingClassStub } = require("../lib/rulesets/5e/spellClasses");
 const { linkAfterSave } = require("../lib/afterEntrySave");
 const { maybeCreateDateSuggestion, validateResolvedDateSubject } = require("../lib/logDateSuggestions");
 const { createChronicleEvent, createLogDateEvent, createRegenerateEvent, createEntryDateEvents } = require("../lib/timelineEvents");
@@ -77,6 +78,11 @@ router.post("/confirm-entry", async (req, res) => {
     // manual-create and an edit/regenerate-confirm can land here with
     // references that are now resolvable against the archive even if
     // they weren't at the original /generate-X call (see lib/entryLinker.js).
+    // A spell regenerate preview in a world with no classes defers its
+    // invented class stub to here, so a rejected preview leaves nothing
+    // behind (lib/rulesets/5e/spellClasses.js). Runs BEFORE linking so the
+    // spell links to the stub rather than spawning a concept-less ghost.
+    if (category === "spells") await commitPendingClassStub(worldId, rawEntry);
     const linkResult = await resolveReferencesForEntry(worldId, category, rawEntry);
     // Session Prep Companion, Phase 3 -- code validates before write on
     // EVERY path that reaches this shared endpoint (regenerate-confirm,
@@ -188,7 +194,7 @@ router.post("/confirm-entry", async (req, res) => {
     const createsCountedEntry = !alreadyExists || alreadyExists.locked === true;
     const doConfirm = async () => {
       if (createsCountedEntry) {
-        const capResult = await checkEntryCap(worldId, req.userId);
+        const capResult = await checkEntryCap(worldId, req.userId, req.userEmail);
         if (!capResult.allowed) {
           return {
             status: 403,

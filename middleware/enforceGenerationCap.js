@@ -53,6 +53,7 @@ const {
   spendSubscriptionImageGeneration, refundSubscriptionImageGeneration
 } = require("../lib/billingRepo");
 const { billingTierFor } = require("../lib/billingTier");
+const { isAdminEmail } = require("../lib/adminAccess");
 
 const CONTACT_EMAIL = "ausfarr@gmail.com";
 
@@ -60,6 +61,18 @@ const BILLING_ENABLED = process.env.BILLING_ENABLED === "true";
 
 async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATION) {
   try {
+    // Admin bypass (lib/adminAccess.js allowlist): unlimited generations
+    // and field assists, nothing spent. Checked before BILLING_ENABLED so
+    // it holds in both the legacy-beta and full-billing flows. No
+    // req.refundGeneration is attached -- every route already guards its
+    // refund calls with `if (req.refundGeneration)`, and there's nothing
+    // to refund. Admin "view as" can't abuse this: req.userEmail is
+    // always the admin's own, and blockAdminViewMutations.js rejects
+    // every mutation made while viewing someone else's world anyway.
+    if (isAdminEmail(req.userEmail)) {
+      req.generationSource = "admin";
+      return next();
+    }
     if (!BILLING_ENABLED) {
       // Legacy beta flow -- same behavior as before Phase 5 existed.
       const { allowed, count } = await checkAndIncrementGenerationCount(req.worldId, GENERATION_CAP, amount);
@@ -191,6 +204,8 @@ async function enforceGenerationCap(req, res, next, amount = POINTS_PER_GENERATI
 // as text, exactly as before this migration.
 async function enforceImageGenerationCap(req, res, next, amount = 1) {
   try {
+    // Same admin bypass as enforceGenerationCap above -- unlimited images.
+    if (isAdminEmail(req.userEmail)) return next();
     if (!BILLING_ENABLED) {
       return enforceGenerationCap(req, res, next, POINTS_PER_GENERATION * amount);
     }

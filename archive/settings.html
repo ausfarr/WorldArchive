@@ -263,6 +263,15 @@ async function loadUsage() {
     // (audit item 9), and re-wiring would stack duplicate change handlers.
     if (!AI_TOGGLE_WIRED) { wireAiEnabledToggle(data.aiEnabled); AI_TOGGLE_WIRED = true; }
 
+    if (data.state === "admin") {
+      // routes/billing.js reports this for lib/adminAccess.js allowlisted
+      // accounts, which bypass every generation/image/entry cap and the
+      // subscriber-only regenerate gate.
+      el.innerHTML = `<div>Admin account — unlimited generations, images, entries, and regenerates. Nothing here is deducted.</div>`;
+      actions.innerHTML = "";
+      return data;
+    }
+
     if (data.state === "beta") {
       const pct = Math.min(100, Math.round((data.used / data.cap) * 100));
       el.innerHTML = `

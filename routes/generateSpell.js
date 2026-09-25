@@ -28,6 +28,10 @@ const { getSrdEntry, getSrdEntryBySlug, recordImport, isAlreadyImported } = requ
 const { POINTS_PER_GENERATION, POINTS_PER_FIELD_ASSIST } = require("../lib/worldConfigRepo");
 const { resolveReferencesForEntry } = require("../lib/entryLinker");
 const { afterEntrySave } = require("../lib/afterEntrySave");
+const { requireSubscriptionToRegenerate } = require("../lib/regenerateGate");
+// Spells attach only to this world's own classes -- see the header of
+// lib/rulesets/5e/spellClasses.js for why and for the no-classes-yet rule.
+const { getWorldClassNames, formatWorldClassesForPrompt, filterToWorldClasses, resolveSpellClasses } = require("../lib/rulesets/5e/spellClasses");
 
 const router = express.Router();
 
@@ -55,7 +59,7 @@ router.post("/generate-spell", requireAiEnabled, enforceGenerationCap, enforceEn
 // handle5eEnemyGenerate.
 async function handle5eSpellGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, level, school, fillExistingId, srdLibraryId } = req.body || {};
+  let { name, level, school, fillExistingId, srdLibraryId } = req.body || {};
   const mode = req.body && req.body.mode;
 
   let existingEntry = null;
@@ -70,6 +74,22 @@ async function handle5eSpellGenerate(req, res) {
     const full = await getEntry(worldId, "spells", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    // Filling a LOCKED placeholder (a ghost created by entry
+    // cross-linking, or a spell's class stub) must build the entry the
+    // placeholder names -- the Fill In button only posts { fillExistingId },
+    // so without this the model invented an unrelated entry saved under the
+    // placeholder's id (e.g. a "Wizard" ghost filled as "Neon Hacker").
+    // Same behavior every Echoes handler already had.
+    if (!name && manifestEntry.locked) name = manifestEntry.name;
+    // Every other generate route gates regenerate behind a subscription
+    // (lib/regenerateGate.js); spells were the one route that forgot to.
+    if (isRegenerate) {
+      const gate = await requireSubscriptionToRegenerate(req);
+      if (!gate.allowed) {
+        if (req.refundGeneration) await req.refundGeneration();
+        return res.status(403).json(gate.body);
+      }
+    }
   }
 
   const effectiveMode = mode || (existingEntry && existingEntry.raw && existingEntry.raw.sourceMode) || "homebrew";
@@ -100,6 +120,9 @@ async function handle5eSpellGenerate(req, res) {
     }
 
     const mechanics = mapSrdSpellMechanics(srdRow.data_json);
+    // No AI here to map the SRD's Wizard/Cleric/... onto this world's
+    // classes, so keep only exact matches (no class stub either).
+    mechanics.classes = filterToWorldClasses(mechanics.classes, await getWorldClassNames(worldId));
     let spell = {
       id: fillExistingId || slugify(srdRow.name),
       name: srdRow.name,
@@ -129,6 +152,7 @@ async function handle5eSpellGenerate(req, res) {
   const settingContext = await getSettingContext(worldId);
   const factionOptionsText = formatFactionOptionsForPrompt(await getFactionOptions(worldId));
   const loreContext = await getLoreContext(worldId, { category: "spells" });
+  const worldClassesText = formatWorldClassesForPrompt(await getWorldClassNames(worldId));
 
   let spell;
 
@@ -136,11 +160,19 @@ async function handle5eSpellGenerate(req, res) {
     // srdLibraryId is recovered above (resolvedSrdLibraryId) from either
     // the request body (first-time reflavor) or the existing entry's
     // saved srdSourceId (a regenerate).
-    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    // Nothing was generated -- give back the points enforceGenerationCap
+    // already spent (idempotent, so the catch block can't double-refund).
+    if (!resolvedSrdLibraryId) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    }
     const srdRow = await getSrdEntry(resolvedSrdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
+    if (!srdRow) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
+    }
 
-    const systemPrompt = buildReflavorSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceSpell: srdRow.data_json });
+    const systemPrompt = buildReflavorSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, worldClassesText, sourceSpell: srdRow.data_json });
     const reflavored = await callClaudeExpectingJson({ systemPrompt, userMessage: "Reflavor the spell now.", maxTokens: 1200 });
 
     const mechanics = mapSrdSpellMechanics(srdRow.data_json);
@@ -153,7 +185,8 @@ async function handle5eSpellGenerate(req, res) {
       srdSourceId: srdRow.srd_id,
       srdLicenseNote: srdRow.license_note,
       ...mechanics,
-      description: reflavored.description || mechanics.description
+      description: reflavored.description || mechanics.description,
+      ...(await resolveSpellClasses(worldId, { proposedClasses: reflavored.classes, newClass: reflavored.newClass, deferStub: isRegenerate }))
     };
 
     // Same Differential Billing treatment as Enemies' Reflavor tier.
@@ -172,7 +205,7 @@ async function handle5eSpellGenerate(req, res) {
     // comment on why that cap exists).
     const rosterContext = await buildSpellRosterContext(worldId);
 
-    const systemPrompt = buildHomebrewSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, level, school });
+    const systemPrompt = buildHomebrewSpellSystemPrompt({ settingContext, loreContext, factionOptionsText, worldClassesText, rosterContext, name, level, school });
     const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the spell now.", maxTokens: 1500 });
 
     if (!isValidSpellLevel(proposed.level)) {
@@ -182,14 +215,23 @@ async function handle5eSpellGenerate(req, res) {
       proposed.level = Math.max(0, Math.min(9, Math.round(Number(proposed.level) || 0)));
     }
 
+    const classResult = await resolveSpellClasses(worldId, { proposedClasses: proposed.classes, newClass: proposed.newClass, deferStub: isRegenerate });
+    delete proposed.newClass; // consumed above; not part of a saved spell
     spell = {
       ...proposed,
+      ...classResult,
       id: fillExistingId || slugify(proposed.name),
       sourceMode: "homebrew"
     };
   }
 
   if (existingEntry) spell.id = existingEntry.manifestEntry.id;
+  // Only a deferred (preview) stub is carried on the spell -- see
+  // lib/rulesets/5e/spellClasses.js's resolveSpellClasses().
+  if (!spell.pendingClassStub) delete spell.pendingClassStub;
+  // A homebrew Fill keeps the placeholder's name even if the model drifted
+  // from it -- other entries already link to this entry by that name.
+  if (existingEntry && existingEntry.manifestEntry.locked && effectiveMode === "homebrew") spell.name = existingEntry.manifestEntry.name;
 
   const linkResult = await resolveReferencesForEntry(worldId, "spells", spell);
   spell = linkResult.raw;

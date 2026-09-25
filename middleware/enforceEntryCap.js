@@ -30,6 +30,7 @@ const { isActiveSubscription } = require("../lib/billingTier");
 const { countEntries, getEntry } = require("../lib/entriesRepo");
 const { getEntriesPurchased, FREE_ENTRY_CAP } = require("../lib/worldConfigRepo");
 const { withLock } = require("../lib/asyncLock");
+const { isAdminEmail } = require("../lib/adminAccess");
 
 const BILLING_ENABLED = process.env.BILLING_ENABLED === "true";
 
@@ -58,8 +59,13 @@ function releaseReservation(worldId) {
 // Counts this world's pending reservations (see reserveEntryCapSlot())
 // alongside the real row count so a generation still in flight -- which
 // hasn't landed a row yet -- still holds its claimed slot against the cap.
-async function checkEntryCap(worldId, userId) {
+// userEmail is optional -- only used for the admin bypass below, so an
+// older caller that doesn't pass it just gets the normal cap.
+async function checkEntryCap(worldId, userId, userEmail) {
   if (!BILLING_ENABLED) return { allowed: true, unlimited: true };
+  // Admins (lib/adminAccess.js allowlist) get unlimited entries, same as
+  // an active subscriber -- see enforceGenerationCap.js's admin bypass.
+  if (isAdminEmail(userEmail)) return { allowed: true, unlimited: true };
 
   // Active-only perk: a lapsed (canceled/unpaid/incomplete_expired) or
   // past_due row falls through to FREE_ENTRY_CAP + purchased entries,
@@ -98,9 +104,9 @@ async function checkEntryCap(worldId, userId) {
 // or the cap itself rejects it (see enforceEntryCapOnGenerate below) --
 // holding it open for that long, unlocked, is what lets the reservation
 // (not a full lock) stand in for the row that doesn't exist yet.
-async function reserveEntryCapSlot(worldId, userId) {
+async function reserveEntryCapSlot(worldId, userId, userEmail) {
   return withLock(`entry-cap:${worldId}`, async () => {
-    const result = await checkEntryCap(worldId, userId);
+    const result = await checkEntryCap(worldId, userId, userEmail);
     if (result.allowed && !result.unlimited) addReservation(worldId);
     return result;
   });
@@ -159,7 +165,7 @@ async function enforceEntryCapOnGenerate(req, res, next) {
       if (!target || !target.locked) return next();
     }
     if (req.body && req.body.mode === "import") return next();
-    const result = await reserveEntryCapSlot(req.worldId, req.userId);
+    const result = await reserveEntryCapSlot(req.worldId, req.userId, req.userEmail);
     if (!result.allowed) {
       // enforceGenerationCap (mounted before this middleware on every
       // /generate-X route) already deducted points/quota/a credit for

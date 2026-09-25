@@ -167,7 +167,7 @@ async function handleEchoesClassGenerate(req, res) {
 // ============================================================
 async function handle5eClassGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId, srdLibraryId } = req.body || {};
+  let { name, faction, fillExistingId, srdLibraryId } = req.body || {};
   const mode = req.body && req.body.mode;
 
   let existingEntry = null;
@@ -182,6 +182,13 @@ async function handle5eClassGenerate(req, res) {
     const full = await getEntry(worldId, "classes", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    // Filling a LOCKED placeholder (a ghost created by entry
+    // cross-linking, or a spell's class stub) must build the entry the
+    // placeholder names -- the Fill In button only posts { fillExistingId },
+    // so without this the model invented an unrelated entry saved under the
+    // placeholder's id (e.g. a "Wizard" ghost filled as "Neon Hacker").
+    // Same behavior every Echoes handler already had.
+    if (!name && manifestEntry.locked) name = manifestEntry.name;
     if (isRegenerate) {
       const gate = await requireSubscriptionToRegenerate(req);
       if (!gate.allowed) {
@@ -256,9 +263,17 @@ async function handle5eClassGenerate(req, res) {
     // srdLibraryId is recovered above (resolvedSrdLibraryId) from either
     // the request body (first-time reflavor) or the existing entry's
     // saved srdSourceId (a regenerate).
-    if (!resolvedSrdLibraryId) return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    // Nothing was generated -- give back the points enforceGenerationCap
+    // already spent (idempotent, so the catch block can't double-refund).
+    if (!resolvedSrdLibraryId) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(400).json({ error: "Reflavor mode requires srdLibraryId." });
+    }
     const srdRow = await getSrdEntry(resolvedSrdLibraryId);
-    if (!srdRow) return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
+    if (!srdRow) {
+      if (req.refundGeneration) await req.refundGeneration();
+      return res.status(404).json({ error: `No SRD library entry found with id '${resolvedSrdLibraryId}'.` });
+    }
 
     const mechanics = mapSrdClassMechanics(srdRow.data_json);
     const systemPrompt = buildReflavorClassSystemPrompt({ settingContext, loreContext, factionOptionsText, sourceClass: srdRow.data_json });
@@ -297,7 +312,11 @@ async function handle5eClassGenerate(req, res) {
       ? rosterEntries.map((e) => `- ${e.id} | ${e.name}`).join("\n")
       : "No classes archived yet -- any concept is available.";
 
-    const systemPrompt = buildHomebrewClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name });
+    // A locked placeholder's subtitle is the concept a spell's class stub
+    // was saved with (lib/rulesets/5e/spellClasses.js); ordinary ghosts
+    // have a null subtitle, so this is a no-op for them.
+    const concept = existingEntry && existingEntry.manifestEntry.locked ? existingEntry.manifestEntry.subtitle : null;
+    const systemPrompt = buildHomebrewClassSystemPrompt({ settingContext, loreContext, factionOptionsText, rosterContext, name, concept });
     const proposed = await callClaudeExpectingJson({ systemPrompt, userMessage: "Design the class now.", maxTokens: 3500 });
 
     // Subclass-unlock level AND saving throw proficiencies are REAL 5e
@@ -324,6 +343,9 @@ async function handle5eClassGenerate(req, res) {
   }
 
   if (existingEntry) cls.id = existingEntry.manifestEntry.id;
+  // A homebrew Fill keeps the placeholder's name even if the model drifted
+  // from it -- other entries already link to this entry by that name.
+  if (existingEntry && existingEntry.manifestEntry.locked && effectiveMode === "homebrew") cls.name = existingEntry.manifestEntry.name;
 
   const linkResult = await resolveReferencesForEntry(worldId, "classes", cls);
   cls = linkResult.raw;
@@ -346,7 +368,7 @@ async function handle5eClassGenerate(req, res) {
 // ============================================================
 async function handleGenericClassGenerate(req, res) {
   const worldId = req.worldId;
-  const { name, faction, fillExistingId } = req.body || {};
+  let { name, faction, fillExistingId } = req.body || {};
 
   const genericSystem = await getGenericSystem(worldId);
   if (!genericSystem || !Array.isArray(genericSystem.attributes) || !genericSystem.attributes.length) {
@@ -366,6 +388,8 @@ async function handleGenericClassGenerate(req, res) {
     const full = await getEntry(worldId, "classes", fillExistingId);
     existingEntry = { manifestEntry, raw: full && full.raw ? full.raw : null, bodyHtml: full ? full.bodyHtml : null };
     isRegenerate = !manifestEntry.locked;
+    // Fill a locked placeholder AS that placeholder -- see the 5e handler above.
+    if (!name && manifestEntry.locked) name = manifestEntry.name;
     if (isRegenerate) {
       const gate = await requireSubscriptionToRegenerate(req);
       if (!gate.allowed) {
@@ -395,6 +419,7 @@ async function handleGenericClassGenerate(req, res) {
     sourceMode: "homebrew"
   };
   if (existingEntry) cls.id = existingEntry.manifestEntry.id;
+  if (existingEntry && existingEntry.manifestEntry.locked) cls.name = existingEntry.manifestEntry.name; // see the 5e handler above
 
   const linkResult = await resolveReferencesForEntry(worldId, "classes", cls);
   cls = linkResult.raw;

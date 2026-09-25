@@ -21,6 +21,21 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Spells attach only to the world's own classes; 5e Item crash fixed;
+  admin bypass.** Homebrew/Reflavor spells now pick 1–3 classes from the
+  world's Classes list (off-list names are dropped in code), so a cyberpunk
+  world no longer gets "Wizard"/"Rogue" spells plus empty Wizard/Rogue ghost
+  placeholders. If a world has no classes yet, the spell invents one class,
+  saved as a locked placeholder with its concept, ready to Fill In (a
+  regenerate preview only creates it once the preview is confirmed). Import
+  and Roll Randomly keep only matching classes. Also: 5e Item generation
+  no longer crashes with `save5eItemEntry is not defined`. Filling a 5e/generic
+  placeholder now builds the entry that placeholder names. Spell regenerate
+  now has the subscription gate like every other category. Reflavor refunds
+  points when its SRD source is missing. Admin accounts
+  (`lib/adminAccess.js`) bypass every billing gate. No migration needed. See
+  [session_addendum_spell_world_classes_shipped.md](session_addendum_spell_world_classes_shipped.md).
+
 - **Wizard Step 1: World Description field.** New optional free-text box
   under World Name for a rough pitch ("a wild west world"). Step 1's
   "Generate for me" now builds on it instead of producing random output,
