@@ -1,0 +1,178 @@
+/* =========================================================================
+   scroll.css — scroll-driven landing page TEST (marketing/scroll-test.html)
+   Loads AFTER style.css and only adds to it; it reuses that file's tokens
+   (--neon-primary, --bg-panel, ...) and card classes (.mock-sheet, .step,
+   .cat-card, .live-frame) rather than inventing new ones. Nothing here
+   loads on the live index.html.
+
+   RULE FOR EVERYTHING BELOW: hidden/initial animation states are only ever
+   applied under `html.js-scroll`, a class scroll.js adds itself once GSAP +
+   ScrollTrigger are confirmed loaded and the visitor has no reduced-motion
+   preference. Without that class (no JS, CDN blocked, reduced motion) this
+   file changes nothing and the page is the normal static stack. Same
+   "arm from JS only" idea as js/reveal.js's .reveal-armed.
+
+   Only transform/opacity are animated by scroll.js — no layout properties.
+   ========================================================================= */
+
+:root {
+  /* Measured from the real header by scroll.js (it wraps on narrow widths,
+     so a hard-coded number would be wrong). Pinned scenes start below it. */
+  --header-h: 56px;
+}
+
+/* ---------- Scroll-progress bar ----------
+   Created by scroll.js and appended INSIDE .site-header so it rides the
+   sticky header and sits flush under it without changing header markup.
+   Scaled with transform (compositor-only), never width. */
+.scroll-progress {
+  position: absolute; left: 0; right: 0; bottom: -2px; height: 2px;
+  background: var(--neon-primary);
+  box-shadow: 0 0 8px rgba(255,47,110,0.6);
+  transform: scaleX(0); transform-origin: 0 50%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* ---------- Native smooth-scroll off when armed ----------
+   style.css sets html{scroll-behavior:smooth}. With pinned scenes a smooth
+   anchor jump would scrub through every scene on the way. scroll.js does
+   instant nav jumps; this keeps the browser's own #hash jump consistent. */
+html.js-scroll { scroll-behavior: auto; }
+
+/* ---------- FIX (also true on the live index.html): flow diagram ----------
+   .flow-diagram has 7 children (4 steps + 3 arrows) but style.css gives it
+   4 equal columns, so from 761px up the arrows spill onto a 2nd row and the
+   steps wrap 2x2. Give arrows their own auto-width tracks. Not gated on
+   .js-scroll: this is a plain layout fix for the static page too. */
+@media (min-width: 761px) {
+  .flow-diagram { grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; }
+}
+
+/* ---------- Scene 1: hero ---------- */
+/* The old neon-flicker keyframes animate opacity on .glow and would fight
+   the scrubbed halo, so the armed page drops it. */
+html.js-scroll .hero h1 .glow { animation: none; position: relative; display: inline-block; }
+.hero h1 .w { display: inline-block; }
+.glow-halo {
+  position: absolute; left: 0; top: 0; pointer-events: none; user-select: none;
+  color: var(--neon-primary);
+  text-shadow: 0 0 10px rgba(255,47,110,0.9), 0 0 28px rgba(255,47,110,0.7), 0 0 60px rgba(255,47,110,0.45);
+  will-change: opacity;
+}
+.portrait-crop { overflow: hidden; border: 1px solid var(--border-line); margin: 0 0 18px; }
+.portrait-crop .mock-portrait-img { margin: 0; border: 0; will-change: transform; }
+
+/* Pinned hero fills the viewport under the header and centres its content.
+   .is-staged is added by scroll.js only inside the desktop media query. */
+.hero.is-staged {
+  min-height: calc(100vh - var(--header-h)); display: flex; align-items: center;
+  padding: 20px 0;
+}
+.hero.is-staged .wrap { width: 100%; }
+/* A pinned scene taller than the viewport gets clipped, so the one tall
+   thing in the hero (the 320px portrait crop) shrinks with viewport height:
+   full size from ~850px up, down to 150px at the 680px floor. */
+.hero.is-staged .portrait-crop .mock-portrait-img { max-height: clamp(150px, calc(100vh - 530px), 320px); }
+.hero.is-staged .mock-sheet { will-change: transform, opacity; }
+
+/* ---------- Scene 2: how it works ---------- */
+.flow-line, .flow-ring { display: none; }
+
+#how.is-staged {
+  min-height: calc(100vh - var(--header-h)); padding: 24px 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+/* Wider measure -> heading on one line, intro on two: buys ~80px so the
+   whole scene (head + diagram + card) fits one short-laptop viewport. */
+#how.is-staged .section-head { margin-bottom: 28px; max-width: 900px; }
+/* Progress line replaces the arrows. Four equal columns again, so each
+   step's centre sits at 12.5/37.5/62.5/87.5% and the line spans first->last. */
+#how.is-staged .flow-arrow { display: none; }
+#how.is-staged .flow-diagram { grid-template-columns: repeat(4, 1fr); position: relative; margin-bottom: 28px; }
+#how.is-staged .flow-icon { position: relative; z-index: 1; }
+#how.is-staged .flow-line {
+  display: block; position: absolute; top: 27px; left: 12.5%; right: 12.5%; height: 2px;
+  background: var(--border-line); z-index: 0;
+}
+#how.is-staged .flow-line-fill {
+  position: absolute; inset: 0; background: var(--neon-primary);
+  box-shadow: 0 0 8px rgba(255,47,110,0.6);
+  transform: scaleX(0); transform-origin: 0 50%; will-change: transform;
+}
+#how.is-staged .flow-ring {
+  display: block; position: absolute; inset: -4px; border-radius: 50%;
+  border: 1px solid var(--neon-primary); box-shadow: 0 0 12px rgba(255,47,110,0.5);
+  pointer-events: none;
+}
+#how.is-staged .flow-step { will-change: opacity; }
+/* The three "File" cards stack in one grid cell; scroll swaps which shows. */
+#how.is-staged .steps { grid-template-columns: minmax(0, 620px); justify-content: center; }
+/* style.css gives .step a 0.15s transform transition (for hover); on a card GSAP
+   moves every frame that would lag behind the scroll, so switch it off here. */
+#how.is-staged .step { grid-area: 1 / 1; will-change: transform, opacity; transition: none; }
+
+/* ---------- Scene 3: categories (horizontal track) ---------- */
+#categories.is-staged {
+  min-height: calc(100vh - var(--header-h)); padding: 24px 0; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center;
+}
+#categories.is-staged .section-head { max-width: 900px; margin-bottom: 36px; }
+/* Grid -> one wide flex row; scroll.js slides it with transform. Vertical
+   padding gives the scaled-up active card room inside overflow:hidden. */
+#categories.is-staged .cat-grid { display: flex; gap: 14px; width: max-content; padding: 24px 0; }
+#categories.is-staged .cat-card {
+  flex: 0 0 300px; transition: none; will-change: transform, opacity;
+}
+
+/* ---------- Scene 5: live screenshots ---------- */
+#live.is-staged {
+  min-height: calc(100vh - var(--header-h)); padding: 24px 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+#live.is-staged .section-head { max-width: 900px; margin-bottom: 24px; }
+/* Both existing frames stack in one grid cell; scroll crossfades them. Each
+   frame keeps its own URL bar, so the markup is unchanged from index.html. */
+#live.is-staged .live-shots { grid-template-columns: minmax(0, 1000px); justify-content: center; }
+#live.is-staged .live-frame { grid-area: 1 / 1; will-change: transform, opacity; }
+/* Screenshots are 1.32:1 (too tall to fit), so each frame becomes a fixed
+   window the image pans inside. */
+#live.is-staged .live-viewport {
+  overflow: hidden; height: clamp(280px, calc(100vh - var(--header-h) - 330px), 560px);
+}
+#live.is-staged .live-viewport img { will-change: transform; }
+
+/* ---------- Scene 6: sample (derived stats) ---------- */
+/* Decoration-only overlays default to invisible so they can never show
+   outside a scene that drives them. */
+.fx { position: relative; display: inline-block; }
+.fx-hl {
+  position: absolute; inset: -2px -4px; padding: 2px 4px; opacity: 0; pointer-events: none;
+  color: var(--neon-cyan); background: rgba(41,240,209,0.12); will-change: opacity;
+}
+#sample.is-staged {
+  min-height: calc(100vh - var(--header-h)); padding: 24px 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+#sample.is-staged .sample-wrap { width: 100%; }
+#sample.is-staged table.derived tr { will-change: opacity; }
+#sample.is-staged .ability-card { will-change: transform, opacity; }
+
+/* ---------- Scene 7: origin (pull-text) ---------- */
+.origin-note .w { display: inline-block; position: relative; }
+.w-pink { position: absolute; left: 0; top: 0; opacity: 0; color: var(--neon-primary); pointer-events: none; }
+#origin.is-staged { padding: 140px 0; }
+#origin.is-staged .section-head { max-width: 900px; }
+#origin.is-staged .origin-note { max-width: 1000px; }
+#origin.is-staged .origin-note p {
+  color: var(--ink); font-size: clamp(1.3rem, 2.3vw, 2rem); line-height: 1.4; font-weight: 500; margin: 0 0 28px;
+}
+/* No will-change on the ~99 words: it promoted each to its own compositor layer
+   (129 layers vs 31 without) with no measurable frame-time benefit. */
+
+/* ---------- Scene 8: CTA ---------- */
+.btn-primary { position: relative; z-index: 0; }
+.btn-halo {
+  position: absolute; inset: 0; z-index: -1; opacity: 0; pointer-events: none;
+  box-shadow: 0 0 22px 4px rgba(255,47,110,0.65), 0 0 60px 10px rgba(255,47,110,0.35);
+}
