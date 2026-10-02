@@ -502,6 +502,10 @@
       if (categories) categories.classList.remove('is-staged');
       if (live) live.classList.remove('is-staged');
       delete scenes.categories; delete scenes.live;
+      // The Categories track/cards are driven by quickSetter, which
+      // matchMedia's revert doesn't know about: without this, resizing to
+      // mobile leaves every card stuck at its desktop scale/opacity.
+      if (catGrid) gsap.set([catGrid].concat(catCards), { clearProps: 'transform,opacity' });
       if (how) how.classList.remove('is-staged');
       delete scenes.how;
     };

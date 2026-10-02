@@ -167,7 +167,8 @@ html.js-scroll .hero h1 .glow { animation: none; position: relative; display: in
 #origin.is-staged .origin-note p {
   color: var(--ink); font-size: clamp(1.3rem, 2.3vw, 2rem); line-height: 1.4; font-weight: 500; margin: 0 0 28px;
 }
-#origin.is-staged .origin-note .w { will-change: opacity; }
+/* No will-change on the ~99 words: it promoted each to its own compositor layer
+   (129 layers vs 31 without) with no measurable frame-time benefit. */
 
 /* ---------- Scene 8: CTA ---------- */
 .btn-primary { position: relative; z-index: 0; }
