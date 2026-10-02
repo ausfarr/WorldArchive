@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chronicled — Every World Deserves an Archive (scroll test)</title>
+<!-- EXPERIMENT: side-by-side test of a scroll-driven landing page. Not linked from
+     anywhere, not in sitemap.xml, noindex on purpose; canonical points at the real
+     home page so even if it leaks it never competes with it. See
+     session_addendum_scroll_test.md (repo root) for how to delete it. -->
+<meta name="robots" content="noindex">
+<meta name="description" content="Chronicled turns your campaign into a living archive. Generate NPCs, monsters, items, and lore grounded in your world's own established facts — auto-filed with portrait art, ready before your next session.">
+<link rel="canonical" href="https://chronicled.world/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chronicled.world/">
+<meta property="og:title" content="Chronicled — Every World Deserves an Archive">
+<meta property="og:description" content="Generate NPCs, monsters, items, and lore grounded in your world's own established facts — auto-filed with portrait art, ready before your next session.">
+<meta property="og:image" content="https://chronicled.world/images/og-cover.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Chronicled">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Chronicled — Every World Deserves an Archive">
+<meta name="twitter:description" content="Generate NPCs, monsters, items, and lore grounded in your world's own established facts — auto-filed with portrait art, ready before your next session.">
+<meta name="twitter:image" content="https://chronicled.world/images/og-cover.jpg">
+
+<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="images/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="images/favicon-180.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/scroll.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title">CHRON<span class="accent">I</span>CLED</div>
+    <nav class="site-nav">
+      <a href="#how">How it works</a>
+      <a href="#demo">Try it</a>
+      <a href="compare.html">Compare</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="changelog.html">Build log</a>
+      <a href="https://app.chronicled.world/" class="nav-cta">Start Now</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow"><span class="dot">●</span> WORLD ARCHIVE SYSTEM</p>
+      <h1>Every world deserves an <span class="glow">archive</span>.</h1>
+      <p class="dek">Chronicled turns your campaign into a living dossier. Describe your world once — then generate NPCs, monsters, items, and lore on demand, each one filed automatically with matching portrait art.</p>
+      <div class="cta-row">
+        <a class="btn-primary" href="https://app.chronicled.world/">Start Now</a>
+        <a class="btn-ghost" href="#how">See how it works ↓</a>
+      </div>
+      <p class="status-line"><span class="dot">●</span> No signup required — 10 free generations + 1 image every month</p>
+    </div>
+
+    <div class="mock-sheet">
+      <div class="mock-header">
+        <p class="mock-eyebrow">Bestiary Entry — Auto-Filed</p>
+        <h3>Compliance Auditor VEX-7</h3>
+        <p class="sub">Control / Attrition / Debuffer</p>
+      </div>
+      <div class="mock-body">
+        <img class="mock-portrait-img" src="images/vex7-portrait.webp" width="1100" height="492" alt="Compliance Auditor VEX-7 — generated portrait art">
+        <p class="mock-quote">"Your oxygen allotment has been reviewed. The discrepancy is... substantial."</p>
+        <table class="mock-stats">
+          <tr><th>Body</th><th>Reflex</th><th>Knowledge</th></tr>
+          <tr><td>14</td><td>10</td><td>20</td></tr>
+        </table>
+        <div class="mock-tags">
+          <span class="tag fac">The Board</span>
+          <span class="tag">Boss</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="section-eyebrow">Process</p>
+      <h2>From blank page to living archive</h2>
+      <p>No manual file editing, no juggling five tabs of scattered notes. Describe your world once, then generate what the session needs.</p>
+    </div>
+
+    <div class="flow-diagram reveal">
+      <div class="flow-step">
+        <div class="flow-icon">①</div>
+        <h4>Wizard</h4>
+        <p>Guided setup — tone, genre, factions, stat system. Type your own answers or let it generate a starting point.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">②</div>
+        <h4>Generate</h4>
+        <p>Pick a category and generate content grounded in your world's own established lore — never a fixed template.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">③</div>
+        <h4>Auto-file</h4>
+        <p>Every entry lands in your browsable archive with portrait art already attached — searchable and cross-referenced.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step">
+        <div class="flow-icon">④</div>
+        <h4>Export</h4>
+        <p>Bundle a Quest, Campaign, or your whole world into a print-ready PDF for the table.</p>
+      </div>
+    </div>
+
+    <div class="steps reveal">
+      <div class="step">
+        <p class="file-no">File 01</p>
+        <h3>Describe your world</h3>
+        <p>A guided setup walks you through tone, genre, and factions — or generates any piece of it for you if you'd rather start from a spark than a blank page.</p>
+      </div>
+      <div class="step">
+        <p class="file-no">File 02</p>
+        <h3>Generate on demand</h3>
+        <p>Pick a category and generate real content grounded in your world's own lore — a full character bible, a stat block, an item, a faction, whatever the session needs.</p>
+      </div>
+      <div class="step">
+        <p class="file-no">File 03</p>
+        <h3>Filed automatically</h3>
+        <p>Every entry lands in your browsable archive with matching portrait art already attached — searchable, cross-referenced, ready before your next session.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="categories">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="section-eyebrow">Coverage</p>
+      <h2>Eight categories. One consistent world.</h2>
+      <p>Everything a campaign needs, generated from the same grounded lore — so fifty separate sessions still read as one world.</p>
+    </div>
+    <div class="cat-grid reveal">
+      <div class="cat-card"><p class="cat-label">Category 01</p><h4>NPCs</h4><p>Full character bible, personality, motivation, and a branching sample dialogue tree.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 02</p><h4>Bestiary</h4><p>Complete stat blocks with real computed combat math and a full ability kit.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 03</p><h4>Items</h4><p>Weapons, armor, consumables, and quest relics with derived stats where they matter.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 04</p><h4>Classes</h4><p>Full leveling tree, signature abilities, and a late-game evolution.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 05</p><h4>Factions</h4><p>Deep lore plus a living roundup of every NPC, enemy, and item tied to it.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 06</p><h4>Logs</h4><p>Found-text: recordings, terminal entries, and journals for environmental storytelling.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 07</p><h4>PCs</h4><p>Full player-character sheets — class, attributes, backstory, personality, and how they connect to the world.</p></div>
+      <div class="cat-card"><p class="cat-label">Category 08</p><h4>Locations</h4><p>Places your world actually visits — grounded in its factions and its danger, with a computed world map.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="demo">
+  <div class="wrap">
+    <div class="section-head center reveal">
+      <p class="section-eyebrow">Try it</p>
+      <h2>Feel the loop in ten seconds</h2>
+      <p>A small illustrative simulation of the core loop — no account, no backend call. The real thing runs against your own world's lore; this one runs a single canned example.</p>
+    </div>
+    <div class="demo-widget reveal" id="demo-widget">
+      <div class="demo-toolbar">
+        <span class="label">Demo — Bestiary Generator</span>
+        <span class="label" id="demo-state-label">Idle</span>
+      </div>
+      <div class="demo-stage" id="demo-stage">
+        <div class="demo-idle" id="demo-idle">
+          <p>This is a simulated run, not a live generation — the real generator grounds every result in your world's own lore, factions, and stat system.</p>
+          <button class="btn-primary" id="demo-generate-btn" type="button">Generate NPC</button>
+        </div>
+      </div>
+      <p class="demo-illustrative-note">Illustrative demo — not a live generation</p>
+    </div>
+  </div>
+</section>
+
+<section id="live">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="section-eyebrow">The real thing</p>
+      <h2>This isn't a mockup</h2>
+      <p>What you're looking at below is the actual archive — live screenshots, not illustrations of an idea.</p>
+    </div>
+    <div class="live-shots reveal">
+      <div class="live-frame">
+        <div class="frame-bar"><span class="dots"><span></span><span></span><span></span></span> app.chronicled.world/archive</div>
+        <img src="images/archive-hub.webp" width="1300" height="982" loading="lazy" alt="The Archive hub page, showing category cards for Factions, NPCs, Enemies, Professions, Items, and Logs with entry counts">
+      </div>
+      <div class="live-frame">
+        <div class="frame-bar"><span class="dots"><span></span><span></span><span></span></span> app.chronicled.world/archive/enemies</div>
+        <img src="images/enemies-page.webp" width="1300" height="965" loading="lazy" alt="The Enemies category page, with a generate-new-entry form and a grid of existing bestiary entries">
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="sample">
+  <div class="wrap sample-wrap reveal">
+    <div class="sample-copy">
+      <p class="section-eyebrow" style="margin-bottom:12px;">Under the hood</p>
+      <h2 class="section-title" style="margin:0 0 16px;">Real math. Real consistency.</h2>
+      <p>The model handles narrative judgment — voice, motivation, tone. Anything that needs to be exact — stat math, formatting, cross-references — is computed by the backend, every time.</p>
+      <ul>
+        <li>Derived stats computed from your world's real formulas, not model guesswork</li>
+        <li>Faction and ability references pulled from what actually exists in your archive — never invented</li>
+        <li>Every entry stays editable, regenerable, and consistent with what came before</li>
+      </ul>
+    </div>
+    <div class="sample-sheet mock-sheet">
+      <div class="mock-header">
+        <p class="mock-eyebrow">Compliance Auditor VEX-7 — Computed Stats</p>
+        <h3 style="font-size:1.05rem;">Derived from six base attributes</h3>
+      </div>
+      <div class="mock-body">
+        <table class="derived">
+          <tr><th>Stat</th><th>Value</th><th>Formula</th></tr>
+          <tr><td>Max Health</td><td>70</td><td class="formula">(Body×2)+(Sanity×2)+Base</td></tr>
+          <tr><td>Max Energy</td><td>74</td><td class="formula">(Knowledge×2)+(Fate×2)+Base</td></tr>
+          <tr><td>Dodge Chance</td><td>27.5%</td><td class="formula">Base+(Reflex/4)+(Skill/4)</td></tr>
+          <tr><td>Crit Chance</td><td>26%</td><td class="formula">Base+(Fate/3)+(Skill/5)</td></tr>
+        </table>
+        <div class="ability-card">
+          <p class="ability-name">Air Tax Assessment <span class="ability-kind">Active</span></p>
+          <p class="ability-desc">Applies a stacking "Oxygen Debt" DOT — damage increases 30% per stack, up to 4 stacks, also reducing the target's Body-derived max HP for the duration.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="origin">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="section-eyebrow">Where this came from</p>
+      <h2>Built for one world, generalized for yours</h2>
+    </div>
+    <div class="origin-note reveal">
+      <p>Chronicled didn't start as a product — it started as the archive for a single personal setting, a neon-soaked survival world called <em>Echoes of the Neon</em>. Keeping that world's NPCs, factions, and bestiary consistent by hand across dozens of sessions is what the generation-and-filing pipeline was actually built to solve.</p>
+      <p>Once that pipeline worked, the obvious next step was pulling the setting-specific parts out — palette, stat formulas, category labels, tone — so any GM could point the same engine at their own world instead of ours. That's what's live today: the same tool, generalized for any world.</p>
+    </div>
+  </div>
+</section>
+
+<section id="cta" class="final-cta" style="border-bottom:none;">
+  <p class="section-eyebrow" style="text-align:center;">Get Started</p>
+  <h2>Open your world's file.</h2>
+  <p>10 free generations + 1 image every month, no account or card required to start. See <a href="pricing.html">pricing</a> for what's next once you need more.</p>
+  <a class="btn-primary" href="https://app.chronicled.world/">Start Now</a>
+</section>
+
+<script src="js/demo-widget.js"></script>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span>CHRONICLED — WORLD ARCHIVE SYSTEM</span>
+    <span class="foot-links"><a href="compare.html">Compare</a> · <a href="pricing.html">Pricing</a> · <a href="changelog.html">Build log</a> · <a href="roadmap.html">Roadmap</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <span class="app-version">v0.7</span></span>
+  </div>
+</footer>
+
+<script src="version.js"></script>
+<!-- GSAP + ScrollTrigger, pinned and SRI-checked. If either fails to load, scroll.js
+     bails out and the page is just the normal static stack. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/gsap.min.js" integrity="sha512-oJ8QbaQThQoJZ7oEv+29jfPM6CcP+zUxh3PKJs1vyOhx0UraUrE7PQgeItu3dOuCJyrzWpoYMsVjkkPEBzbUqw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.15.0/ScrollTrigger.min.js" integrity="sha512-OaIE7ud4P04EhnBuhEcm0wQSceIxbi2pV03oBLS/+F6ampfxsnxcIxOp7H2eF9G7N0kEht0VAzOLG+dTLSo17Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="js/scroll.js"></script>
+<script>
+  if (window.APP_VERSION) {
+    document.querySelectorAll('.app-version').forEach(function(el) {
+      el.textContent = window.APP_VERSION;
+    });
+  }
+</script>
+</body>
+</html>

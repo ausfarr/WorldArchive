@@ -1,0 +1,35 @@
+/* =========================================================================
+   scroll.css — scroll-driven landing page TEST (marketing/scroll-test.html)
+   Loads AFTER style.css and only adds to it; it reuses that file's tokens
+   (--neon-primary, --bg-panel, ...) and card classes (.mock-sheet, .step,
+   .cat-card, .live-frame) rather than inventing new ones. Nothing here
+   loads on the live index.html.
+
+   RULE FOR EVERYTHING BELOW: hidden/initial animation states are only ever
+   applied under `html.js-scroll`, a class scroll.js adds itself once GSAP +
+   ScrollTrigger are confirmed loaded and the visitor has no reduced-motion
+   preference. Without that class (no JS, CDN blocked, reduced motion) this
+   file changes nothing and the page is the normal static stack. Same
+   "arm from JS only" idea as js/reveal.js's .reveal-armed.
+
+   Only transform/opacity are animated by scroll.js — no layout properties.
+   ========================================================================= */
+
+:root {
+  /* Measured from the real header by scroll.js (it wraps on narrow widths,
+     so a hard-coded number would be wrong). Pinned scenes start below it. */
+  --header-h: 56px;
+}
+
+/* ---------- Scroll-progress bar ----------
+   Created by scroll.js and appended INSIDE .site-header so it rides the
+   sticky header and sits flush under it without changing header markup.
+   Scaled with transform (compositor-only), never width. */
+.scroll-progress {
+  position: absolute; left: 0; right: 0; bottom: -2px; height: 2px;
+  background: var(--neon-primary);
+  box-shadow: 0 0 8px rgba(255,47,110,0.6);
+  transform: scaleX(0); transform-origin: 0 50%;
+  pointer-events: none;
+  will-change: transform;
+}
