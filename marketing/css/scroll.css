@@ -141,3 +141,37 @@ html.js-scroll .hero h1 .glow { animation: none; position: relative; display: in
   overflow: hidden; height: clamp(280px, calc(100vh - var(--header-h) - 330px), 560px);
 }
 #live.is-staged .live-viewport img { will-change: transform; }
+
+/* ---------- Scene 6: sample (derived stats) ---------- */
+/* Decoration-only overlays default to invisible so they can never show
+   outside a scene that drives them. */
+.fx { position: relative; display: inline-block; }
+.fx-hl {
+  position: absolute; inset: -2px -4px; padding: 2px 4px; opacity: 0; pointer-events: none;
+  color: var(--neon-cyan); background: rgba(41,240,209,0.12); will-change: opacity;
+}
+#sample.is-staged {
+  min-height: calc(100vh - var(--header-h)); padding: 24px 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+#sample.is-staged .sample-wrap { width: 100%; }
+#sample.is-staged table.derived tr { will-change: opacity; }
+#sample.is-staged .ability-card { will-change: transform, opacity; }
+
+/* ---------- Scene 7: origin (pull-text) ---------- */
+.origin-note .w { display: inline-block; position: relative; }
+.w-pink { position: absolute; left: 0; top: 0; opacity: 0; color: var(--neon-primary); pointer-events: none; }
+#origin.is-staged { padding: 140px 0; }
+#origin.is-staged .section-head { max-width: 900px; }
+#origin.is-staged .origin-note { max-width: 1000px; }
+#origin.is-staged .origin-note p {
+  color: var(--ink); font-size: clamp(1.3rem, 2.3vw, 2rem); line-height: 1.4; font-weight: 500; margin: 0 0 28px;
+}
+#origin.is-staged .origin-note .w { will-change: opacity; }
+
+/* ---------- Scene 8: CTA ---------- */
+.btn-primary { position: relative; z-index: 0; }
+.btn-halo {
+  position: absolute; inset: 0; z-index: -1; opacity: 0; pointer-events: none;
+  box-shadow: 0 0 22px 4px rgba(255,47,110,0.65), 0 0 60px 10px rgba(255,47,110,0.35);
+}

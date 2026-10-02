@@ -226,6 +226,66 @@
     liveVps.push(vp); liveImgs.push(img);
   });
 
+  // ---------- Scene 6/7/8 DOM prep ----------
+  // Decoration-only overlays (formula highlight, pink word, button glow) are
+  // real elements so GSAP can animate opacity on them; CSS keeps them at
+  // opacity:0 so they only ever show when a scene drives them.
+  var sample = document.getElementById('sample');
+  var sampleRows = [], sampleHls = [], abilityCard = null;
+  if (sample) {
+    var rowEls = Array.prototype.slice.call(sample.querySelectorAll('table.derived tr')).slice(1); // [0] is the header row
+    rowEls.forEach(function (tr) {
+      var cell = tr.querySelector('td.formula');
+      if (!cell) return;
+      var txt = cell.textContent;
+      cell.textContent = '';
+      var fx = document.createElement('span'); fx.className = 'fx'; fx.textContent = txt;
+      var hl = document.createElement('span'); hl.className = 'fx-hl'; hl.setAttribute('aria-hidden', 'true'); hl.textContent = txt;
+      fx.appendChild(hl); cell.appendChild(fx);
+      sampleRows.push(tr); sampleHls.push(hl);
+    });
+    abilityCard = sample.querySelector('.ability-card');
+  }
+
+  var origin = document.getElementById('origin');
+  var originNote = origin && origin.querySelector('.origin-note');
+  var originWords = [], originPink = [], pinkFrom = -1;
+  if (originNote) {
+    // Split every paragraph into word spans, descending into <em> so
+    // "Echoes of the Neon" keeps its italics; words inside <em> also get a
+    // pink duplicate layer (a colour shift done as an opacity fade).
+    (function split(node, inEm) {
+      Array.prototype.slice.call(node.childNodes).forEach(function (ch) {
+        if (ch.nodeType === 3) {
+          var frag = document.createDocumentFragment();
+          ch.textContent.split(/(\s+)/).forEach(function (part) {
+            if (!part) return;
+            if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); return; }
+            var w = document.createElement('span'); w.className = 'w'; w.textContent = part;
+            if (inEm) {
+              var pk = document.createElement('span'); pk.className = 'w-pink'; pk.setAttribute('aria-hidden', 'true'); pk.textContent = part;
+              w.appendChild(pk); originPink.push(pk);
+              if (pinkFrom < 0) pinkFrom = originWords.length;
+            }
+            frag.appendChild(w); originWords.push(w);
+          });
+          node.replaceChild(frag, ch);
+        } else if (ch.nodeType === 1) {
+          split(ch, inEm || ch.tagName === 'EM');
+        }
+      });
+    })(originNote, false);
+  }
+
+  var cta = document.getElementById('cta');
+  var ctaHead = cta && cta.querySelector('h2');
+  var ctaBtn = cta && cta.querySelector('.btn-primary');
+  var ctaHalo = null;
+  if (ctaBtn) {
+    ctaHalo = document.createElement('span'); ctaHalo.className = 'btn-halo'; ctaHalo.setAttribute('aria-hidden', 'true');
+    ctaBtn.appendChild(ctaHalo);
+  }
+
   var mm = gsap.matchMedia();
 
   mm.add(DESKTOP, function () {
@@ -377,8 +437,68 @@
       registerScene('live', ltl.scrollTrigger);
     }
 
+    // ---- SAMPLE: pinned. Copy stays put; derived-stats rows land one by one
+    // (formula highlighted as it lands), then the ability card slides in. ----
+    if (sample && sampleRows.length) {
+      sample.classList.add('is-staged');
+      var SSTEP = 0.6;
+      var stl = gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger: sample, start: pinStart,
+          end: function () { return '+=' + Math.round(window.innerHeight * SSTEP * 3.5); },
+          pin: true, scrub: 0.5, anticipatePin: 1, invalidateOnRefresh: true
+        }
+      });
+      gsap.set(sampleRows, { opacity: 0 });
+      gsap.set(sampleHls, { opacity: 0 });
+      if (abilityCard) gsap.set(abilityCard, { opacity: 0, x: 40 });
+      sampleRows.forEach(function (row, i) {
+        var at = 0.2 + i * 0.6;
+        stl.to(row, { opacity: 1, duration: 0.3 }, at);
+        stl.to(sampleHls[i], { opacity: 1, duration: 0.2 }, at + 0.2);
+        // Highlight hands off to the next row as it lands.
+        if (i > 0) stl.to(sampleHls[i - 1], { opacity: 0, duration: 0.3 }, at + 0.2);
+      });
+      var cardAt = 0.2 + sampleRows.length * 0.6;
+      stl.to(sampleHls[sampleHls.length - 1], { opacity: 0, duration: 0.3 }, cardAt);
+      if (abilityCard) stl.to(abilityCard, { opacity: 1, x: 0, duration: 0.6, ease: 'power2.out' }, cardAt);
+      stl.set({}, {}, cardAt + 0.9);
+      registerScene('sample', stl.scrollTrigger);
+    }
+
+    // ---- ORIGIN: scrubbed word-by-word, dim -> ink. Not pinned: at pull-text
+    // size the passage is taller than a short viewport, so a pin would clip it. ----
+    if (origin && originNote && originWords.length) {
+      origin.classList.add('is-staged');
+      var otl = gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: { trigger: originNote, start: 'top 80%', end: 'bottom 55%', scrub: 0.4, invalidateOnRefresh: true }
+      });
+      var EACH = 0.1, DUR = 0.4;
+      // Armed state set explicitly: with ~100 staggered from() tweens only the
+      // first got its dim start value applied at load, so later words showed
+      // full ink until the playhead reached them.
+      gsap.set(originWords, { opacity: 0.25 });
+      otl.fromTo(originWords, { opacity: 0.25 }, { opacity: 1, duration: DUR, stagger: EACH }, 0);
+      if (originPink.length) otl.to(originPink, { opacity: 1, duration: 0.3, stagger: EACH }, pinkFrom * EACH + 0.2);
+    }
+
+    // ---- CTA: headline scales up into place (scrubbed). clamp() because
+    // this is the last, short section: on a tall window the page can't
+    // scroll far enough to reach a plain 'top 45%' and the scale would stall. ----
+    if (ctaHead) {
+      gsap.from(ctaHead, {
+        scale: 0.8, opacity: 0.3, ease: 'none', transformOrigin: '50% 50%',
+        scrollTrigger: { trigger: cta, start: 'clamp(top 90%)', end: 'clamp(top 45%)', scrub: 0.5 }
+      });
+    }
+
     return function () {
       if (hero) hero.classList.remove('is-staged');
+      if (sample) sample.classList.remove('is-staged');
+      if (origin) origin.classList.remove('is-staged');
+      delete scenes.sample;
       if (categories) categories.classList.remove('is-staged');
       if (live) live.classList.remove('is-staged');
       delete scenes.categories; delete scenes.live;
@@ -397,7 +517,30 @@
     }
     // Everything else: the site's own .reveal blocks, but one-shot via GSAP.
     document.querySelectorAll('.reveal').forEach(oneShotReveal);
+    // CTA headline: one-shot scale-in (the scrubbed version is desktop-only).
+    if (ctaHead) {
+      gsap.from(ctaHead, {
+        scale: 0.9, opacity: 0, duration: 0.7, ease: 'power2.out', clearProps: 'opacity,transform',
+        scrollTrigger: { trigger: ctaHead, start: 'top 88%', once: true }
+      });
+    }
   });
+
+
+  // ---------- CTA button glow: one shot, never loops ----------
+  // Created outside matchMedia because it's identical in both modes and
+  // doesn't depend on layout. The halo fades up once when the button first
+  // scrolls into view, then settles at a faint steady glow.
+  if (ctaHalo) {
+    ScrollTrigger.create({
+      trigger: ctaBtn, start: 'top 85%', once: true,
+      onEnter: function () {
+        gsap.timeline()
+          .fromTo(ctaHalo, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power2.out' })
+          .to(ctaHalo, { opacity: 0.4, duration: 1.2, ease: 'power1.inOut' });
+      }
+    });
+  }
 
   // ---------- Refresh hooks ----------
   // Pin positions depend on layout. Images have width/height attrs so they
