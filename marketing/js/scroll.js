@@ -209,6 +209,23 @@
     });
   }
 
+  // ---------- Scene 3/5 DOM prep ----------
+  var categories = document.getElementById('categories');
+  var catGrid = categories && categories.querySelector('.cat-grid');
+  var catCards = categories ? Array.prototype.slice.call(categories.querySelectorAll('.cat-card')) : [];
+  var demo = document.getElementById('demo');
+  var live = document.getElementById('live');
+  var liveFrames = live ? Array.prototype.slice.call(live.querySelectorAll('.live-frame')) : [];
+  var liveVps = [], liveImgs = [];
+  liveFrames.forEach(function (frame) {
+    // Crop box so the screenshot can pan inside the frame (transform only).
+    var img = frame.querySelector('img');
+    if (!img) return;
+    var vp = document.createElement('div'); vp.className = 'live-viewport';
+    img.parentNode.insertBefore(vp, img); vp.appendChild(img);
+    liveVps.push(vp); liveImgs.push(img);
+  });
+
   var mm = gsap.matchMedia();
 
   mm.add(DESKTOP, function () {
@@ -272,8 +289,99 @@
       registerScene('how', tl.scrollTrigger);
     }
 
+    // ---- CATEGORIES: pinned, vertical scroll drives a horizontal track ----
+    if (categories && catGrid && catCards.length) {
+      categories.classList.add('is-staged');
+      var n = catCards.length;
+      var proxy = { p: 0 };
+      var geo = { left: 0, w: 0, gap: 14, vw: 0 };
+      var setX = gsap.quickSetter(catGrid, 'x', 'px');
+      // quickSetter can't take the 'scale' shorthand (it expands to two props).
+      var setSX = catCards.map(function (c) { return gsap.quickSetter(c, 'scaleX'); });
+      var setSY = catCards.map(function (c) { return gsap.quickSetter(c, 'scaleY'); });
+      var setO = catCards.map(function (c) { return gsap.quickSetter(c, 'opacity'); });
+      function measureCats() {
+        gsap.set(catGrid, { x: 0 });
+        geo.left = catGrid.getBoundingClientRect().left;
+        geo.w = catCards[0].offsetWidth;
+        geo.gap = parseFloat(getComputedStyle(catGrid).columnGap) || 14;
+        geo.vw = document.documentElement.clientWidth;
+      }
+      // One source of truth (proxy.p, scrubbed): drives the track position AND
+      // each card's emphasis, so card state can never disagree with where
+      // the track actually is. Card i is centred when p*(n-1) == i.
+      function applyCats() {
+        var pos = proxy.p * (n - 1), step = geo.w + geo.gap;
+        var x0 = geo.vw / 2 - geo.w / 2 - geo.left;
+        setX(x0 - pos * step);
+        for (var i = 0; i < n; i++) {
+          var d = Math.min(Math.abs(i - pos), 1);
+          var sc = 1.1 - 0.2 * d;
+          setSX[i](sc); setSY[i](sc);
+          setO[i](1 - 0.6 * d);
+        }
+      }
+      measureCats(); applyCats();
+      var ctl = gsap.timeline({
+        scrollTrigger: {
+          trigger: categories, start: pinStart,
+          end: function () { return '+=' + Math.round(window.innerHeight * 0.45 * (n - 1) * 1.1); },
+          pin: true, scrub: 0.5, anticipatePin: 1, invalidateOnRefresh: true,
+          onRefresh: function () { measureCats(); applyCats(); }
+        }
+      });
+      ctl.to(proxy, { p: 1, duration: 1, ease: 'none', onUpdate: applyCats }, 0);
+      ctl.set({}, {}, 1.1); // brief hold on the last card before the pin releases
+      registerScene('categories', ctl.scrollTrigger);
+    }
+
+    // ---- DEMO: entrance only. No pin, no scroll listeners, no pointer
+    // handling: the widget must stay fully interactive. clearProps removes
+    // the transform once it lands so nothing lingers on the widget. ----
+    if (demo) {
+      var dHead = demo.querySelector('.section-head'), dWidget = demo.querySelector('.demo-widget');
+      [dHead, dWidget].forEach(function (el, k) {
+        if (!el) return;
+        gsap.from(el, {
+          opacity: 0, y: k ? 60 : 24, scale: k ? 0.96 : 1, duration: 0.8, ease: 'power3.out',
+          clearProps: 'opacity,transform',
+          scrollTrigger: { trigger: el, start: 'top 85%', once: true }
+        });
+      });
+    }
+
+    // ---- LIVE: pinned crossfade between the two real screenshots ----
+    if (live && liveFrames.length === 2 && liveImgs.length === 2) {
+      live.classList.add('is-staged');
+      // Pinned scene needs both images ready; lazy loading would pop in
+      // mid-pin. (Only changed here, in JS; the HTML stays identical to index.)
+      liveImgs.forEach(function (im) { im.loading = 'eager'; });
+      var LSTEP = 0.6;
+      var panY = function (i) {
+        return function () { return -0.3 * Math.max(0, liveImgs[i].offsetHeight - liveVps[i].offsetHeight); };
+      };
+      var ltl = gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger: live, start: pinStart,
+          end: function () { return '+=' + Math.round(window.innerHeight * LSTEP * 2.7); },
+          pin: true, scrub: 0.5, anticipatePin: 1, invalidateOnRefresh: true
+        }
+      });
+      gsap.set(liveFrames[1], { opacity: 0, scale: 1.04 });
+      ltl.fromTo(liveImgs[0], { y: 0 }, { y: panY(0), duration: 1.1 }, 0.2);
+      ltl.to(liveFrames[0], { opacity: 0, scale: 0.96, duration: 0.6, ease: 'power1.inOut' }, 1.0);
+      ltl.to(liveFrames[1], { opacity: 1, scale: 1, duration: 0.6, ease: 'power1.inOut' }, 1.0);
+      ltl.fromTo(liveImgs[1], { y: 0 }, { y: panY(1), duration: 1.0 }, 1.6);
+      ltl.set({}, {}, 2.7);
+      registerScene('live', ltl.scrollTrigger);
+    }
+
     return function () {
       if (hero) hero.classList.remove('is-staged');
+      if (categories) categories.classList.remove('is-staged');
+      if (live) live.classList.remove('is-staged');
+      delete scenes.categories; delete scenes.live;
       if (how) how.classList.remove('is-staged');
       delete scenes.how;
     };
@@ -305,6 +413,12 @@
     if (!img.complete) img.addEventListener('load', queueRefresh, { once: true });
   });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(queueRefresh);
+  // The demo widget changes height when it runs (idle -> result card is
+  // ~300px taller). Everything pinned below it (Live, Sample...) would keep
+  // stale start positions, so re-measure whenever the widget resizes. Watching
+  // only: demo-widget.js itself is untouched.
+  var demoWidget = document.getElementById('demo-widget');
+  if (demoWidget && 'ResizeObserver' in window) new ResizeObserver(queueRefresh).observe(demoWidget);
 
   // ---------- Initial #hash ----------
   // The browser already jumped on parse, before pin-spacers existed. Redo it

@@ -108,4 +108,36 @@ html.js-scroll .hero h1 .glow { animation: none; position: relative; display: in
 #how.is-staged .flow-step { will-change: opacity; }
 /* The three "File" cards stack in one grid cell; scroll swaps which shows. */
 #how.is-staged .steps { grid-template-columns: minmax(0, 620px); justify-content: center; }
-#how.is-staged .step { grid-area: 1 / 1; will-change: transform, opacity; }
+/* style.css gives .step a 0.15s transform transition (for hover); on a card GSAP
+   moves every frame that would lag behind the scroll, so switch it off here. */
+#how.is-staged .step { grid-area: 1 / 1; will-change: transform, opacity; transition: none; }
+
+/* ---------- Scene 3: categories (horizontal track) ---------- */
+#categories.is-staged {
+  min-height: calc(100vh - var(--header-h)); padding: 24px 0; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center;
+}
+#categories.is-staged .section-head { max-width: 900px; margin-bottom: 36px; }
+/* Grid -> one wide flex row; scroll.js slides it with transform. Vertical
+   padding gives the scaled-up active card room inside overflow:hidden. */
+#categories.is-staged .cat-grid { display: flex; gap: 14px; width: max-content; padding: 24px 0; }
+#categories.is-staged .cat-card {
+  flex: 0 0 300px; transition: none; will-change: transform, opacity;
+}
+
+/* ---------- Scene 5: live screenshots ---------- */
+#live.is-staged {
+  min-height: calc(100vh - var(--header-h)); padding: 24px 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+#live.is-staged .section-head { max-width: 900px; margin-bottom: 24px; }
+/* Both existing frames stack in one grid cell; scroll crossfades them. Each
+   frame keeps its own URL bar, so the markup is unchanged from index.html. */
+#live.is-staged .live-shots { grid-template-columns: minmax(0, 1000px); justify-content: center; }
+#live.is-staged .live-frame { grid-area: 1 / 1; will-change: transform, opacity; }
+/* Screenshots are 1.32:1 (too tall to fit), so each frame becomes a fixed
+   window the image pans inside. */
+#live.is-staged .live-viewport {
+  overflow: hidden; height: clamp(280px, calc(100vh - var(--header-h) - 330px), 560px);
+}
+#live.is-staged .live-viewport img { will-change: transform; }
