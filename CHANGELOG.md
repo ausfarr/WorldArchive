@@ -21,6 +21,16 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Log in vs. Save-your-world clarity (v1.12).** `login.html` now has two
+  explicit tabs (`Log in` | `Save my world`); `?mode=signin|save` overrides,
+  otherwise it defaults to Save only when the anonymous session has a
+  completed setup or a non-locked entry, else Log in (fail-open). Log in on
+  a session with content shows a "stays unsaved" warning plus a "Save it
+  first" link. OAuth now follows the selected tab. Marketing nav gains a
+  "Log in" link on every page (kept visible on mobile); the in-app nav
+  shows `Log in` + `Save your world` for anonymous sessions. No DB/API
+  changes. Details: [session_addendum_login_flow_clarity_shipped.md](session_addendum_login_flow_clarity_shipped.md).
+
 - **Spells attach only to the world's own classes; 5e Item crash fixed;
   admin bypass.** Homebrew/Reflavor spells now pick 1–3 classes from the
   world's Classes list (off-list names are dropped in code), so a cyberpunk
