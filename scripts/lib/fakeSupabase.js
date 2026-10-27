@@ -20,6 +20,10 @@
 // require.cache for "../lib/supabaseClient" relative to itself, i.e.
 // ../../lib/supabaseClient from here) -- see each call site.
 
+// Record of storage upload/remove calls, for tests that assert on image
+// handling (scripts/testSaltmereSeed.js). Reset with `storageLog.length = 0`.
+const storageLog = [];
+
 const db = { entries: [], world_config: [], user_settings: [], subscriptions: [], credit_ledger: [] };
 
 function matches(row, filters) {
@@ -62,6 +66,11 @@ class FakeQuery {
   update(patch) { this.op = { type: "update", patch }; return this; }
   upsert(row, opts) { this.op = { type: "upsert", row, onConflict: (opts && opts.onConflict) || "" }; return this; }
   delete() { this.op = { type: "delete" }; return this; }
+  // PostgREST-style inclusive row window, for callers that page through a
+  // table (scripts/seedSaltmereDemo.js reads a whole world's entries 1000
+  // at a time against the real project).
+  range(from, to) { this._range = [from, to]; return this; }
+  limit(n) { this._range = [0, n - 1]; return this; }
   maybeSingle() { this._single = "maybe"; return this; }
   single() { this._single = "required"; return this; }
 
@@ -124,6 +133,7 @@ class FakeQuery {
         return 0;
       });
     }
+    if (this._range) filtered = filtered.slice(this._range[0], this._range[1] + 1);
     if (this._single === "maybe") return { data: filtered[0] || null, error: null };
     if (this._single === "required") return { data: filtered[0], error: filtered[0] ? null : { message: "not found" } };
     if (this._count) return { data: filtered, count: filtered.length, error: null };
@@ -328,6 +338,7 @@ const fakeSupabase = {
         // no-op success is faithful here; nothing currently reads the
         // uploaded bytes back out of this fake storage.
         upload(path) {
+          storageLog.push({ op: "upload", bucket, path });
           return Promise.resolve({ data: { path }, error: null });
         },
         getPublicUrl(path) {
@@ -336,7 +347,8 @@ const fakeSupabase = {
         list() {
           return Promise.resolve({ data: [], error: null });
         },
-        remove() {
+        remove(paths) {
+          storageLog.push({ op: "remove", bucket, paths });
           return Promise.resolve({ data: null, error: null });
         }
       };
@@ -354,4 +366,4 @@ function install() {
   };
 }
 
-module.exports = { install, db, disabledRpcs };
+module.exports = { install, db, disabledRpcs, storageLog };

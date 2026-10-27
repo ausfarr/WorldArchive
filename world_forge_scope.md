@@ -271,3 +271,29 @@ Survivors' Import button still sits outside the "+ Create Entry"
 staged-reveal flow that Enemies already uses.
 
 Full phased build plan: `session_prompt_r5_srd_ingestion_and_import_fixes.md`.
+
+## Saltmere demo seed (`scripts/seedSaltmereDemo.js`)
+
+A one-off, additive content seeder that fills the Saltmere Sprawl demo
+world from `saltmere_pack/` (79 entries + art; 78 created on the live world
+today, `Gate Runner` already existed). Not part of the ruleset system -- it
+only writes 5e-ruleset entries through the existing writers -- but it is the
+one place that creates entries outside a generate/confirm route, so the rules
+it follows are recorded here. Full detail: `session_addendum_saltmere_demo_seed_shipped.md`.
+
+- **Tag:** every created entry carries `demoSeed: "saltmere-v1"` -- inside the
+  content object (`raw_json.raw.demoSeed`, which survives any later
+  `save*Entry()` rebake) and at the top level of `raw_json` via
+  `patchEntryMeta`. No migration. `scripts/.seed-saltmere-ids.json` (git-ignored)
+  is a second record; `--remove` deletes the union of both, plus portraits/banners.
+- **Modes:** dry-run is the default and writes nothing; `--apply` and `--remove`
+  require `--confirm-host <SUPABASE_URL host>`.
+- **World lookup:** by `worlds.name` *or* the wizard's Step 1 `worldName`
+  (`world_config.draft_json["1"].worldName`) -- the app never renames
+  `worlds.name` from its default "My World".
+- **Additive:** never edits or deletes an existing entry. It deliberately does
+  not run the entry linker's backfill or ghost creation (both rewrite/add
+  rows it doesn't own) or `syncReciprocalRelationships`; links are resolved up
+  front from the pack's slug->id map, then by id/name against existing entries.
+- **Tests:** `node scripts/testSaltmereSeed.js` (resolver, dedupe, and an
+  end-to-end apply/idempotency/remove run on `scripts/lib/fakeSupabase.js`).

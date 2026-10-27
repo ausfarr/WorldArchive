@@ -21,6 +21,15 @@ entry from here forward gets both a real date and a version at write time.
 
 ## Unreleased
 
+- **Saltmere demo seed script.** `scripts/seedSaltmereDemo.js` adds the 79-entry
+  `saltmere_pack/` (Powers, Contacts, Hazards, Salvage, Districts, Anomalies,
+  Dive Roles, Divers, Dive Logs + art) to the Saltmere Sprawl world: dry-run by
+  default, `--apply` / `--remove` behind `--confirm-host`, dedupe by
+  (category, name), slug->id cross-link resolution, `demoSeed: "saltmere-v1"`
+  tag, pre-write backup. No app code, schema, or migration changes. Tests:
+  `scripts/testSaltmereSeed.js`. Detail:
+  [session_addendum_saltmere_demo_seed_shipped.md](session_addendum_saltmere_demo_seed_shipped.md).
+
 - **Log in vs. Save-your-world clarity (v1.12).** `login.html` now has two
   explicit tabs (`Log in` | `Save my world`); `?mode=signin|save` overrides,
   otherwise it defaults to Save only when the anonymous session has a
