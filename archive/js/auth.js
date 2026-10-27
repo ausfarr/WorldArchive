@@ -328,6 +328,43 @@ async function getPostLoginDestination() {
   }
 }
 
+// True when the CURRENT session is anonymous AND has something worth
+// saving: a completed setup or at least one non-locked (actually
+// generated/authored) entry. login.html uses this to pick its default tab
+// and to decide whether to warn before switching accounts. Reuses existing
+// authenticated GETs (no new route); fails open to false on any error so
+// the caller falls back to the Log in tab rather than trapping the user.
+const CONTENT_CATEGORIES = ["factions", "npcs", "enemies", "classes", "items", "logs", "survivors", "locations"];
+
+async function anonymousSessionHasContent() {
+  try {
+    const session = await getCurrentSession();
+    if (!session || !session.user || !session.user.is_anonymous) return false;
+
+    const reviewRes = await authFetch("/api/wizard/review");
+    if (reviewRes.ok && (await reviewRes.json()).setupCompletedAt) return true;
+
+    // Parallel fan-out; resolves true on the first category with a
+    // non-locked entry instead of waiting for all of them.
+    return await new Promise((resolve) => {
+      let pending = CONTENT_CATEGORIES.length;
+      CONTENT_CATEGORIES.forEach(async (cat) => {
+        try {
+          const res = await authFetch(`/api/entries/${cat}`);
+          if (res.ok) {
+            const { entries } = await res.json();
+            if ((entries || []).some((e) => !e.locked)) return resolve(true);
+          }
+        } catch (err) { /* treat as no content */ }
+        if (--pending === 0) resolve(false);
+      });
+    });
+  } catch (err) {
+    console.error("Could not check anonymous session content:", err);
+    return false;
+  }
+}
+
 // Fills in a #auth-status element in the site nav, if present on the
 // page, with either a "Log In" link or the current user's email + a
 // Sign Out link.
@@ -341,8 +378,13 @@ async function renderAuthStatus() {
     // email/password or OAuth identity yet -- "Sign Out" would be a trap
     // here (there's no credential to sign back INTO, so it would just
     // strand the visitor's own free-tier work), so point at login.html's
-    // upgrade flow instead of the normal signed-in state.
-    el.innerHTML = `<a href="/login.html">Save Your World</a>`;
+    // upgrade flow instead of the normal signed-in state. "Log in" comes
+    // first and is explicit (?mode=signin) because returning users with an
+    // existing account were landing on the Save screen from this link --
+    // see session_addendum_login_flow_clarity_shipped.md.
+    el.innerHTML =
+      `<a href="/login.html?mode=signin">Log in</a> ` +
+      `<a href="/login.html?mode=save">Save your world</a>`;
     return;
   }
   const email = (session.user && session.user.email) || "account";

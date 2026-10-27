@@ -557,6 +557,7 @@ table.compare-table td strong { color: var(--ink); }
 .legal-wrap th { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; color: var(--ink-dim); background: var(--bg-panel); }
 .legal-header { border-bottom: 1px solid var(--border-line); padding: 20px 0; margin-bottom: 0; }
 .legal-header .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 0; padding-bottom: 0; }
+.legal-actions { display: flex; gap: 16px; align-items: center; }
 .back-link { font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
 .legal-footer {
   border-top: 1px solid var(--border-line); margin-top: 60px; padding: 24px 0;
@@ -571,7 +572,7 @@ table.compare-table td strong { color: var(--ink); }
   .sample-wrap { grid-template-columns: 1fr; }
   /* Full nav collapses on mobile, but the primary CTA stays reachable --
      impatient mobile visitors shouldn't lose the one link that matters. */
-  .site-nav a:not(.nav-cta) { display: none; }
-  .site-nav { gap: 0; }
+  .site-nav a:not(.nav-cta):not(.nav-login) { display: none; }
+  .site-nav { gap: 14px; }
   .compare-yes-cell, table.compare-table { font-size: 0.84rem; }
 }

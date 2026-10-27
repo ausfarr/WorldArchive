@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Save Your World — Chronicled</title>
+<title>Log In — Chronicled</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -16,8 +16,15 @@
 
 <div class="wrap" style="max-width: 420px; padding-top: 60px;">
   <div class="sheet" style="padding: 32px;">
-    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;" id="form-title">Save Your World</h1>
-    <p style="color: var(--ink-dim); font-size: 0.88rem; margin: 0 0 24px;" id="form-sub">Add an email and password so you don't lose access — free either way.</p>
+    <div role="tablist" id="mode-tabs" style="display:flex; gap:0; margin: 0 0 24px; border-bottom: 1px solid var(--border-line);">
+      <button type="button" role="tab" id="tab-signin" data-mode="signin" style="flex:1; background:none; border:none; border-bottom:2px solid transparent; padding:10px 6px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; font-size:0.85rem; color: var(--ink-dim); cursor:pointer;">Log in</button>
+      <button type="button" role="tab" id="tab-save" data-mode="save" style="flex:1; background:none; border:none; border-bottom:2px solid transparent; padding:10px 6px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; font-size:0.85rem; color: var(--ink-dim); cursor:pointer;">Save my world</button>
+    </div>
+
+    <h1 style="font-family: var(--font-display); text-transform: uppercase; font-size: 1.4rem; margin: 0 0 6px;" id="form-title">Log In</h1>
+    <p style="color: var(--ink-dim); font-size: 0.88rem; margin: 0 0 24px;" id="form-sub">Access your Chronicled account.</p>
+
+    <p id="signin-warning" style="display:none; font-size: 0.82rem; color: var(--ink-dim); border-left: 2px solid var(--neon-primary); padding: 6px 10px; margin: 0 0 20px;">Logging in switches you to your account. The world you started on this device stays unsaved. <a href="#" id="save-first-link">Save it first</a></p>
 
     <form id="auth-form">
       <label for="email" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">EMAIL</label>
@@ -26,7 +33,7 @@
       <label for="password" style="display:block; font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin-bottom: 4px;">PASSWORD</label>
       <input id="password" type="password" required autocomplete="current-password" minlength="6" style="width: 100%; background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 10px 12px; font-family: var(--font-body); margin-bottom: 20px;">
 
-      <button type="submit" id="submit-btn" style="width: 100%; background: var(--neon-primary); color: var(--bg-void); border: none; padding: 12px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Save</button>
+      <button type="submit" id="submit-btn" style="width: 100%; background: var(--neon-primary); color: var(--bg-void); border: none; padding: 12px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer; font-weight: 600;">Log In</button>
     </form>
 
     <p id="status" style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--ink-faint); margin: 16px 0 0; display: none;"></p>
@@ -39,15 +46,11 @@
 
     <!-- One-click OAuth, alongside (not instead of) email+password. v1.1:
          whether this links the current anonymous session in place or
-         starts a brand-new sign-in is decided at click time -- see
+         starts a brand-new sign-in follows the selected tab -- see
          handleOAuthClick() below. -->
     <button type="button" id="oauth-google-btn" style="width:100%; background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 12px; font-family: var(--font-body); cursor: pointer; margin-bottom: 10px;">Continue with Google</button>
     <button type="button" id="oauth-discord-btn" style="width:100%; background: var(--bg-panel-raised); color: var(--ink); border: 1px solid var(--border-line); padding: 12px; font-family: var(--font-body); cursor: pointer;">Continue with Discord</button>
 
-    <p style="font-size: 0.85rem; color: var(--ink-dim); margin: 20px 0 0; text-align: center;">
-      <span id="toggle-mode-prompt">Already have an account?</span>
-      <a href="#" id="toggle-mode">Log in</a>
-    </p>
   </div>
 </div>
 
@@ -65,7 +68,7 @@
   }
 </script>
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="/js/auth.js?v=v1.11"></script>
+<script src="/js/auth.js?v=v1.12"></script>
 <script>
 // v1.1 anonymous-by-default access: by the time anyone reaches this page
 // they'll almost always already have a real (not fake) anonymous Supabase
@@ -75,44 +78,59 @@
 // into an existing account" -- "save" mode upgrades the CURRENT session
 // in place (same world, same everything already generated) rather than
 // creating an unrelated second account.
-let mode = "save"; // "save" | "signin"
+let mode = "signin"; // "save" | "signin" -- resolved on load, see resolveInitialMode()
+let anonHasContent = false;
 
+// Two explicit tabs instead of the old text-link toggle: returning users
+// who just want to log in kept landing on "Save Your World" because every
+// visitor has an anonymous session (see
+// session_addendum_login_flow_clarity_shipped.md).
 function applyMode(isSave) {
   mode = isSave ? "save" : "signin";
+  document.title = (isSave ? "Save Your World" : "Log In") + " — Chronicled";
   document.getElementById("form-title").textContent = isSave ? "Save Your World" : "Log In";
   document.getElementById("form-sub").textContent = isSave
     ? "Add an email and password so you don't lose access — free either way."
     : "Access your Chronicled account.";
   document.getElementById("submit-btn").textContent = isSave ? "Save" : "Log In";
-  document.getElementById("toggle-mode-prompt").textContent = isSave
-    ? "Already have an account?"
-    : "Don't have an account yet?";
-  document.getElementById("toggle-mode").textContent = isSave ? "Log in" : "Save your world";
+  document.getElementById("password").autocomplete = isSave ? "new-password" : "current-password";
+  document.querySelectorAll("#mode-tabs button").forEach((btn) => {
+    const active = btn.dataset.mode === mode;
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+    btn.style.color = active ? "var(--neon-primary)" : "var(--ink-dim)";
+    btn.style.borderBottomColor = active ? "var(--neon-primary)" : "transparent";
+  });
+  document.getElementById("signin-warning").style.display = (!isSave && anonHasContent) ? "block" : "none";
 }
 
-document.getElementById("toggle-mode").addEventListener("click", (e) => {
+document.querySelectorAll("#mode-tabs button").forEach((btn) => {
+  btn.addEventListener("click", () => applyMode(btn.dataset.mode === "save"));
+});
+document.getElementById("save-first-link").addEventListener("click", (e) => {
   e.preventDefault();
-  applyMode(mode !== "save");
+  applyMode(true);
 });
 
-// Sync the DOM to the "save" default above -- the static markup still
-// shows "Log In" copy, so this has to run unconditionally on load, not
-// just behind the ?mode= check below (that was the actual v1.1 default
-// change; the query param is now a no-op kept only for marketing links
-// that still pass it).
-applyMode(mode === "save");
-
-// ?mode=signin lands directly in signin mode instead of the default
-// (e.g. for a future "Log In" link that specifically wants that, unlike
-// today's marketing CTAs, which all point at the app root now).
-if (new URLSearchParams(window.location.search).get("mode") === "signin") {
-  applyMode(false);
+// Explicit ?mode= always wins. Otherwise default to Save only when this
+// device's anonymous session has something worth saving; anything else
+// (no session, empty world, any error) fails open to Log in.
+async function resolveInitialMode() {
+  const param = new URLSearchParams(window.location.search).get("mode");
+  anonHasContent = await anonymousSessionHasContent();
+  if (param === "save") return applyMode(true);
+  if (param === "signin") return applyMode(false);
+  applyMode(anonHasContent);
 }
 
-// Links the OAuth identity to the CURRENT anonymous session in place when
-// one exists (the common case), or falls back to a normal OAuth sign-in
-// otherwise -- see archive/js/auth.js's linkOAuthIdentity()/
-// signInWithOAuth() for the distinction. Both do a full-page redirect, so
+// Paint the Log in default immediately (matches the static markup) so
+// there's no blank flash while the content check runs.
+applyMode(false);
+resolveInitialMode().catch((err) => console.error("Could not resolve login mode:", err));
+
+// Follows the SELECTED TAB, not the session: Save mode links the OAuth
+// identity to the current anonymous session in place (falling back to a
+// normal OAuth sign-in if there's somehow no anonymous session); Log in
+// mode always starts a normal sign-in. Both do a full-page redirect, so
 // nothing after the await runs in the success case.
 async function handleOAuthClick(provider, label) {
   const status = document.getElementById("status");
@@ -120,7 +138,7 @@ async function handleOAuthClick(provider, label) {
   status.textContent = `Redirecting to ${label}…`;
   try {
     const session = await getCurrentSession();
-    if (session && session.user.is_anonymous) {
+    if (mode === "save" && session && session.user.is_anonymous) {
       await linkOAuthIdentity(provider);
     } else {
       await signInWithOAuth(provider);
