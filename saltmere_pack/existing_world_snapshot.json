@@ -1,0 +1,1193 @@
+{
+ "capturedAt": "2026-10-27T19:37:15.815Z",
+ "worldName": "Saltmere Sprawl",
+ "config": {
+  "ruleset": "5e",
+  "calendar_config": {
+   "months": [
+    {
+     "days": 36,
+     "name": "Ignition"
+    },
+    {
+     "days": 36,
+     "name": "Ascent"
+    },
+    {
+     "days": 36,
+     "name": "Transit"
+    },
+    {
+     "days": 36,
+     "name": "Apex"
+    },
+    {
+     "days": 36,
+     "name": "Zenith"
+    },
+    {
+     "days": 36,
+     "name": "Descent"
+    },
+    {
+     "days": 36,
+     "name": "Drift"
+    },
+    {
+     "days": 36,
+     "name": "Eclipse"
+    },
+    {
+     "days": 36,
+     "name": "Nadir"
+    },
+    {
+     "days": 36,
+     "name": "Reentry"
+    }
+   ],
+   "era_name": "After Overtopping",
+   "current_date": {
+    "day": 3,
+    "year": 41,
+    "month_index": 0
+   },
+   "days_per_week": 6,
+   "weekday_names": [
+    "Primeday",
+    "Duoday",
+    "Triday",
+    "Quadday",
+    "Pentaday",
+    "Hexaday"
+   ]
+  },
+  "category_config_json": {
+   "logs": {
+    "blurb": "Recovered recordings, tide tables, and the last entries of people who did not come back up.",
+    "label": "Dive Logs",
+    "enabled": true
+   },
+   "npcs": {
+    "blurb": "The fixers, wardens, divers and brokers who shape life from the Terraces down to the Drowned Districts.",
+    "label": "Contacts",
+    "enabled": true
+   },
+   "_site": {
+    "title": "The Tide Ledger",
+    "footer": "SALTMERE SPRAWL · FIELD FILE · NOT FOR TERRACE EYES",
+    "tagline": "Everything the Authority doesn't want you to know about the nine days the sea gives back, and the people who die for them.",
+    "statusLine": "DAY 3 · YEAR 41 AFTER OVERTOPPING · STATUS: LOW TIDE IN 6 DAYS"
+   },
+   "items": {
+    "blurb": "Rebreathers, harpoon rigs, data cores, and the odd relic worth more than a stack apartment.",
+    "label": "Salvage",
+    "enabled": true
+   },
+   "spells": {
+    "blurb": "The rumor-level strangeness of the deep tunnels: songs, currents, and things no one will confirm.",
+    "label": "Anomalies",
+    "enabled": true
+   },
+   "classes": {
+    "blurb": "The roles that survive the Nine Days: Tidewalker, Gate Runner, Warden, Choir Listener.",
+    "label": "Dive Roles",
+    "enabled": true
+   },
+   "enemies": {
+    "blurb": "Everything that wants you dead below the waterline: drones, tide-things, cult hunters, and security left running.",
+    "label": "Hazards",
+    "enabled": true
+   },
+   "factions": {
+    "blurb": "The Authority, the Tidewalkers, the Gate Syndicate, and the Hollow Choir: who owns the lights, the air, and the doors.",
+    "label": "Powers",
+    "enabled": true
+   },
+   "locations": {
+    "blurb": "The eleven Drowned Districts and the tiers above them, each with its own tide rules and its own dead.",
+    "label": "Districts",
+    "enabled": true
+   },
+   "survivors": {
+    "blurb": "The crews and loners going below, with their debts, rigs, and reasons.",
+    "label": "Divers",
+    "enabled": true
+   }
+  },
+  "style_guide_json": {
+   "avoid": "Clean futuristic chrome, sunny skies, pristine white tech, fantasy robes and swords, cartoon proportions.",
+   "fontBody": "IBM Plex Sans",
+   "inkColor": "#d5e2e6",
+   "lighting": "Hard sodium-orange light from salvage lamps and tide-horn beacons, cutting through cold teal ambient glow. Deep shadows pooled in flooded corridors.",
+   "panelColor": "#132028",
+   "accentColor": "Sodium orange for danger, signals, and anything tied to the tide clock.",
+   "basePalette": "Deep sea-teal, wet black, slate blue-gray, and rust brown.",
+   "fontDisplay": "Rajdhani",
+   "primaryColor": "#ff7a3c",
+   "factionAccents": [
+    {
+     "id": "the-seawall-authority",
+     "accentColor": "Cold harbor silver",
+     "accentNotes": "Wall plaques, license stamps, Warden armor trim.",
+     "accentColorHex": "#9fb4c4"
+    },
+    {
+     "id": "the-tidewalkers",
+     "accentColor": "Tide teal",
+     "accentNotes": "Crew patches, rebreather lights, dive-flag banners.",
+     "accentColorHex": "#2fd0c0"
+    },
+    {
+     "id": "the-gate-syndicate",
+     "accentColor": "Sodium orange",
+     "accentNotes": "Gate signage, smuggler route marks, contraband crates.",
+     "accentColorHex": "#ff7a3c"
+    },
+    {
+     "id": "the-hollow-choir",
+     "accentColor": "Pale violet",
+     "accentNotes": "Choir robes, tunnel graffiti, glowing hymn marks.",
+     "accentColorHex": "#b58cff"
+    }
+   ],
+   "renderingStyle": "Gritty cinematic digital painting with the wet, high-contrast look of a rain-soaked neon noir film still. Sharp subject, soft atmospheric depth, visible salt haze.",
+   "secondaryColor": "#2fd0c0",
+   "textureAndWear": "Salt crust on every metal surface, corroded rivets, peeling paint, water stains, patched cables, condensation on glass.",
+   "backgroundColor": "#0a1217",
+   "compositionDefaults": "Waist-up or full-figure portraits against a flooded or tiled backdrop; strong silhouette; one practical light source in frame."
+  },
+  "step1": {
+   "era": "Near-Future",
+   "genre": [
+    "Cyberpunk",
+    "Grimdark",
+    "Noir"
+   ],
+   "scale": "Single City/Settlement",
+   "worldName": "Saltmere Sprawl",
+   "coreTension": "The Nine Days are the only time the lower city can be salvaged, so every faction needs the same dead districts for opposite reasons: to feed, to hide, to rule. The authority that keeps the seawall standing also decides who may go below.",
+   "inspirations": "Blade Runner, Cyberpunk RED, Waterworld, Venice, Kowloon Walled City",
+   "nonNegotiables": "The tide is a hard clock and never negotiable. Tech is grimy, patched and salt-corroded, never clean. Nobody is purely good. The supernatural stays a rumor and is never confirmed.",
+   "worldDescription": "A drowned coastal megacity where the sea pulls back for only nine days a year, and everyone alive races the tide to strip the sunken districts below.",
+   "supernaturalSystem": "Divers swear a song runs through the old metro tunnels on Day Nine, and that anyone who follows it deep enough stops wanting to come back up. The Authority calls it oxygen narcosis. Nothing is ever confirmed."
+  }
+ },
+ "rows": [
+  {
+   "category": "npcs",
+   "entry_id": "manual-npcs-mvpy84wm70tag6",
+   "name": "Ines Okafor-Vane",
+   "subtitle": "Faction Leader — The Seawall Authority",
+   "faction": "the-seawall-authority",
+   "tags_json": [],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpy84wm70tag6\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpy84wm70tag6\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"Ines Okafor-Vane\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"The sea gave you nine days. I will not have you waste them being brave.\"</div>\n<p class=\"flavor\">Tall, silver-cropped hair, a salt-scarred jaw and a Terrace-gray longcoat lined with tide-pressure plating. A brass tide watch hangs from her belt, always running three minutes fast.</p>\n<p><strong>Age:</strong> 52</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> disciplined, tired, incorruptible on paper, quietly afraid</p>\n<p><strong>The Contradiction:</strong> She enforces the dive licensing she privately believes is murdering the Tidewalkers, and she keeps the data proving the tide is shrinking locked in her own desk.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> A clean record and a Seawall that holds for one more generation.</p>\n<p><strong>Actually needs:</strong> Someone she can trust with the truth about the shrinking tide.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Formal, clipped, bureaucratic until she is angry.</p>\n<p><strong>Rhythm:</strong> Short declaratives, long pauses, never raises her voice.</p>\n<p><strong>Tic:</strong> Checks her tide watch mid-sentence.</p>\n<p><strong>Would never say:</strong> Never says 'I'm sorry'. Never says 'the Reach'. Says 'the water' like it is an enemy.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">Ines Okafor-Vane:</span> \"License. Hands where I can see them. You have forty minutes before the horn.\"\n</div>\n<h2>Quest Hook</h2>\n<p>Ines needs an unlicensed diver to bring her the Gate Nine pressure logs from Day Zero, off the books. If the Authority learns who asked, she is finished.</p>\n<h2>Design Notes</h2>\n<p>Use as the face of the Authority: reasonable on the surface, dangerous when cornered. Can flip to ally or antagonist depending on whether the party earns her trust.</p>\n",
+   "raw_json": {
+    "id": "manual-npcs-mvpy84wm70tag6",
+    "age": 52,
+    "raw": {
+     "id": "manual-npcs-mvpy84wm70tag6",
+     "age": 52,
+     "name": "Ines Okafor-Vane",
+     "wants": "A clean record and a Seawall that holds for one more generation.",
+     "speech": {
+      "tic": "Checks her tide watch mid-sentence.",
+      "rhythm": "Short declaratives, long pauses, never raises her voice.",
+      "neverSay": "Never says 'I'm sorry'. Never says 'the Reach'. Says 'the water' like it is an enemy.",
+      "register": "Formal, clipped, bureaucratic until she is angry."
+     },
+     "status": "alive",
+     "traits": [
+      "disciplined",
+      "tired",
+      "incorruptible on paper",
+      "quietly afraid"
+     ],
+     "faction": "the-seawall-authority",
+     "callsign": "The Warden of Gate Nine",
+     "dialogue": {
+      "branches": [],
+      "openingLine": "License. Hands where I can see them. You have forty minutes before the horn."
+     },
+     "birthDate": null,
+     "deathDate": null,
+     "questHook": "Ines needs an unlicensed diver to bring her the Gate Nine pressure logs from Day Zero, off the books. If the Authority learns who asked, she is finished.",
+     "designNotes": "Use as the face of the Authority: reasonable on the surface, dangerous when cornered. Can flip to ally or antagonist depending on whether the party earns her trust.",
+     "actuallyNeeds": "Someone she can trust with the truth about the shrinking tide.",
+     "appointedDate": null,
+     "contradiction": "She enforces the dive licensing she privately believes is murdering the Tidewalkers, and she keeps the data proving the tide is shrinking locked in her own desk.",
+     "relationships": [],
+     "roleArchetype": "Faction Leader",
+     "signatureQuote": "The sea gave you nine days. I will not have you waste them being brave.",
+     "physicalDescription": "Tall, silver-cropped hair, a salt-scarred jaw and a Terrace-gray longcoat lined with tide-pressure plating. A brass tide watch hangs from her belt, always running three minutes fast."
+    },
+    "name": "Ines Okafor-Vane",
+    "tags": [],
+    "footer": [
+     "Faction: The Seawall Authority",
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "NPC Dossier — Faction Leader",
+    "faction": "the-seawall-authority",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpy84wm70tag6\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpy84wm70tag6\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"Ines Okafor-Vane\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"The sea gave you nine days. I will not have you waste them being brave.\"</div>\n<p class=\"flavor\">Tall, silver-cropped hair, a salt-scarred jaw and a Terrace-gray longcoat lined with tide-pressure plating. A brass tide watch hangs from her belt, always running three minutes fast.</p>\n<p><strong>Age:</strong> 52</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> disciplined, tired, incorruptible on paper, quietly afraid</p>\n<p><strong>The Contradiction:</strong> She enforces the dive licensing she privately believes is murdering the Tidewalkers, and she keeps the data proving the tide is shrinking locked in her own desk.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> A clean record and a Seawall that holds for one more generation.</p>\n<p><strong>Actually needs:</strong> Someone she can trust with the truth about the shrinking tide.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Formal, clipped, bureaucratic until she is angry.</p>\n<p><strong>Rhythm:</strong> Short declaratives, long pauses, never raises her voice.</p>\n<p><strong>Tic:</strong> Checks her tide watch mid-sentence.</p>\n<p><strong>Would never say:</strong> Never says 'I'm sorry'. Never says 'the Reach'. Says 'the water' like it is an enemy.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">Ines Okafor-Vane:</span> \"License. Hands where I can see them. You have forty minutes before the horn.\"\n</div>\n<h2>Quest Hook</h2>\n<p>Ines needs an unlicensed diver to bring her the Gate Nine pressure logs from Day Zero, off the books. If the Authority learns who asked, she is finished.</p>\n<h2>Design Notes</h2>\n<p>Use as the face of the Authority: reasonable on the surface, dangerous when cornered. Can flip to ally or antagonist depending on whether the party earns her trust.</p>\n",
+    "category": "npcs",
+    "subtitle": "Faction Leader — The Seawall Authority",
+    "speechTic": "Checks her tide watch mid-sentence.",
+    "contradiction": "She enforces the dive licensing she privately believes is murdering the Tidewalkers, and she keeps the data proving the tide is shrinking locked in her own desk.",
+    "roleArchetype": "Faction Leader"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:30:50.863025+00:00"
+  },
+  {
+   "category": "npcs",
+   "entry_id": "manual-npcs-mvpybj1zcgh0o2",
+   "name": "The Cantor Illa",
+   "subtitle": "Faction Leader — The Hollow Choir",
+   "faction": "the-hollow-choir",
+   "tags_json": [],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpybj1zcgh0o2\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpybj1zcgh0o2\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"The Cantor Illa\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"It is not the sea that sings. Listen closer.\"</div>\n<p class=\"flavor\">Barefoot, gaunt, in a robe stitched from old dive-suit lining. Pale violet pigment on her lips and fingertips. Her eyes never quite settle on a face.</p>\n<p><strong>Age:</strong> 29</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> serene, unsettling, kind, certain</p>\n<p><strong>The Contradiction:</strong> She leads a cult built on the song and has begun to fear that the song is lying to her.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> To follow the song to its end.</p>\n<p><strong>Actually needs:</strong> Someone to tell her she is allowed to stop.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Soft, formal, almost liturgical.</p>\n<p><strong>Rhythm:</strong> Slow and rhythmic, speaking in near-verse.</p>\n<p><strong>Tic:</strong> Hums a half note before answering.</p>\n<p><strong>Would never say:</strong> Never says 'I' when speaking of the song.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">The Cantor Illa:</span> \"You came down alone. The song said you would.\"\n</div>\n<h2>Quest Hook</h2>\n<p>Illa will trade the location of an uncharted drowned district if a party member sits with her through one full Day Nine night.</p>\n<h2>Design Notes</h2>\n<p>Keep her sympathetic. The reveal that the song is not natural belongs to the Choir arc.</p>\n",
+   "raw_json": {
+    "id": "manual-npcs-mvpybj1zcgh0o2",
+    "age": 29,
+    "raw": {
+     "id": "manual-npcs-mvpybj1zcgh0o2",
+     "age": 29,
+     "name": "The Cantor Illa",
+     "wants": "To follow the song to its end.",
+     "speech": {
+      "tic": "Hums a half note before answering.",
+      "rhythm": "Slow and rhythmic, speaking in near-verse.",
+      "neverSay": "Never says 'I' when speaking of the song.",
+      "register": "Soft, formal, almost liturgical."
+     },
+     "status": "alive",
+     "traits": [
+      "serene",
+      "unsettling",
+      "kind",
+      "certain"
+     ],
+     "faction": "the-hollow-choir",
+     "callsign": "Last Voice",
+     "dialogue": {
+      "branches": [],
+      "openingLine": "You came down alone. The song said you would."
+     },
+     "birthDate": null,
+     "deathDate": null,
+     "questHook": "Illa will trade the location of an uncharted drowned district if a party member sits with her through one full Day Nine night.",
+     "designNotes": "Keep her sympathetic. The reveal that the song is not natural belongs to the Choir arc.",
+     "actuallyNeeds": "Someone to tell her she is allowed to stop.",
+     "appointedDate": null,
+     "contradiction": "She leads a cult built on the song and has begun to fear that the song is lying to her.",
+     "relationships": [],
+     "roleArchetype": "Faction Leader",
+     "signatureQuote": "It is not the sea that sings. Listen closer.",
+     "physicalDescription": "Barefoot, gaunt, in a robe stitched from old dive-suit lining. Pale violet pigment on her lips and fingertips. Her eyes never quite settle on a face."
+    },
+    "name": "The Cantor Illa",
+    "tags": [],
+    "footer": [
+     "Faction: The Hollow Choir",
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "NPC Dossier — Faction Leader",
+    "faction": "the-hollow-choir",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpybj1zcgh0o2\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpybj1zcgh0o2\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"The Cantor Illa\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"It is not the sea that sings. Listen closer.\"</div>\n<p class=\"flavor\">Barefoot, gaunt, in a robe stitched from old dive-suit lining. Pale violet pigment on her lips and fingertips. Her eyes never quite settle on a face.</p>\n<p><strong>Age:</strong> 29</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> serene, unsettling, kind, certain</p>\n<p><strong>The Contradiction:</strong> She leads a cult built on the song and has begun to fear that the song is lying to her.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> To follow the song to its end.</p>\n<p><strong>Actually needs:</strong> Someone to tell her she is allowed to stop.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Soft, formal, almost liturgical.</p>\n<p><strong>Rhythm:</strong> Slow and rhythmic, speaking in near-verse.</p>\n<p><strong>Tic:</strong> Hums a half note before answering.</p>\n<p><strong>Would never say:</strong> Never says 'I' when speaking of the song.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">The Cantor Illa:</span> \"You came down alone. The song said you would.\"\n</div>\n<h2>Quest Hook</h2>\n<p>Illa will trade the location of an uncharted drowned district if a party member sits with her through one full Day Nine night.</p>\n<h2>Design Notes</h2>\n<p>Keep her sympathetic. The reveal that the song is not natural belongs to the Choir arc.</p>\n",
+    "category": "npcs",
+    "subtitle": "Faction Leader — The Hollow Choir",
+    "speechTic": "Hums a half note before answering.",
+    "contradiction": "She leads a cult built on the song and has begun to fear that the song is lying to her.",
+    "roleArchetype": "Faction Leader"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:32:43.963744+00:00"
+  },
+  {
+   "category": "npcs",
+   "entry_id": "manual-npcs-mvpybqy9aba9fx",
+   "name": "Pell Ashgrove",
+   "subtitle": "Informant/Fixer — Unaligned",
+   "faction": "unaligned",
+   "tags_json": [],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpybqy9aba9fx\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpybqy9aba9fx\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"Pell Ashgrove\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"I sell what people forget they said.\"</div>\n<p class=\"flavor\">Stooped, in a rain cape lined with tide tables stitched into the fabric. One cloudy eye and one sonar lens. A cracked data slate hangs around his neck on a bootlace.</p>\n<p><strong>Age:</strong> 61</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> gossipy, nervous, sharp-eyed, broke</p>\n<p><strong>The Contradiction:</strong> He sells secrets to every faction and keeps one record he would never sell to anyone.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> Enough scrip to retire to a dry Terrace room.</p>\n<p><strong>Actually needs:</strong> Someone to take the record he is afraid to keep.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Rambling, folksy, mixes tide-table jargon with gossip.</p>\n<p><strong>Rhythm:</strong> Starts mid-thought, ends mid-sentence.</p>\n<p><strong>Tic:</strong> Counts days on his fingers when nervous.</p>\n<p><strong>Would never say:</strong> Never uses names, only descriptions.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">Pell Ashgrove:</span> \"Day three. Low tide in six. You didn't hear it from me. What do you want to know?\"\n</div>\n<h2>Quest Hook</h2>\n<p>Pell will sell the party a complete Gate Nine pressure log, if they promise to keep the other record safe.</p>\n<h2>Design Notes</h2>\n<p>The party's recurring information source. Good for exposition between dives.</p>\n",
+   "raw_json": {
+    "id": "manual-npcs-mvpybqy9aba9fx",
+    "age": 61,
+    "raw": {
+     "id": "manual-npcs-mvpybqy9aba9fx",
+     "age": 61,
+     "name": "Pell Ashgrove",
+     "wants": "Enough scrip to retire to a dry Terrace room.",
+     "speech": {
+      "tic": "Counts days on his fingers when nervous.",
+      "rhythm": "Starts mid-thought, ends mid-sentence.",
+      "neverSay": "Never uses names, only descriptions.",
+      "register": "Rambling, folksy, mixes tide-table jargon with gossip."
+     },
+     "status": "alive",
+     "traits": [
+      "gossipy",
+      "nervous",
+      "sharp-eyed",
+      "broke"
+     ],
+     "faction": "unaligned",
+     "callsign": "Brinewater",
+     "dialogue": {
+      "branches": [],
+      "openingLine": "Day three. Low tide in six. You didn't hear it from me. What do you want to know?"
+     },
+     "birthDate": null,
+     "deathDate": null,
+     "questHook": "Pell will sell the party a complete Gate Nine pressure log, if they promise to keep the other record safe.",
+     "designNotes": "The party's recurring information source. Good for exposition between dives.",
+     "actuallyNeeds": "Someone to take the record he is afraid to keep.",
+     "appointedDate": null,
+     "contradiction": "He sells secrets to every faction and keeps one record he would never sell to anyone.",
+     "relationships": [],
+     "roleArchetype": "Informant/Fixer",
+     "signatureQuote": "I sell what people forget they said.",
+     "physicalDescription": "Stooped, in a rain cape lined with tide tables stitched into the fabric. One cloudy eye and one sonar lens. A cracked data slate hangs around his neck on a bootlace."
+    },
+    "name": "Pell Ashgrove",
+    "tags": [],
+    "footer": [
+     "Faction: Unaligned",
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "NPC Dossier — Informant/Fixer",
+    "faction": "unaligned",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpybqy9aba9fx\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpybqy9aba9fx\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"Pell Ashgrove\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"I sell what people forget they said.\"</div>\n<p class=\"flavor\">Stooped, in a rain cape lined with tide tables stitched into the fabric. One cloudy eye and one sonar lens. A cracked data slate hangs around his neck on a bootlace.</p>\n<p><strong>Age:</strong> 61</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> gossipy, nervous, sharp-eyed, broke</p>\n<p><strong>The Contradiction:</strong> He sells secrets to every faction and keeps one record he would never sell to anyone.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> Enough scrip to retire to a dry Terrace room.</p>\n<p><strong>Actually needs:</strong> Someone to take the record he is afraid to keep.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Rambling, folksy, mixes tide-table jargon with gossip.</p>\n<p><strong>Rhythm:</strong> Starts mid-thought, ends mid-sentence.</p>\n<p><strong>Tic:</strong> Counts days on his fingers when nervous.</p>\n<p><strong>Would never say:</strong> Never uses names, only descriptions.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">Pell Ashgrove:</span> \"Day three. Low tide in six. You didn't hear it from me. What do you want to know?\"\n</div>\n<h2>Quest Hook</h2>\n<p>Pell will sell the party a complete Gate Nine pressure log, if they promise to keep the other record safe.</p>\n<h2>Design Notes</h2>\n<p>The party's recurring information source. Good for exposition between dives.</p>\n",
+    "category": "npcs",
+    "subtitle": "Informant/Fixer — Unaligned",
+    "speechTic": "Counts days on his fingers when nervous.",
+    "contradiction": "He sells secrets to every faction and keeps one record he would never sell to anyone.",
+    "roleArchetype": "Informant/Fixer"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:32:53.907223+00:00"
+  },
+  {
+   "category": "items",
+   "entry_id": "manual-item-mvpyemfg673537",
+   "name": "Sluice Pass-Key",
+   "subtitle": "Rare other",
+   "faction": "the-gate-syndicate",
+   "tags_json": [
+    "<span class=\"tag\">Rare</span>",
+    "<span class=\"tag\">other</span>",
+    "<span class=\"tag\">homebrew</span>"
+   ],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-item-mvpyemfg673537\" data-category=\"items\" data-entry-id=\"manual-item-mvpyemfg673537\" data-label=\"Item portrait\" src=\"about:blank\" alt=\"Sluice Pass-Key\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Rare — other</p>\n<div class=\"quote-block\">Marek Voss sells them by the hour, and swears he has never sold the same one twice.</div>\n\n<table class=\"rel-table\">\n\n<tr><th>Value</th><td>900 gp</td></tr>\n<tr><th>Weight</th><td>0 lb</td></tr>\n</table>\n\n<h2>Description</h2>\n<p>A forged Seawall Authority gate token: a palm-sized ceramic key salted with a dead relay chip. It opens the maintenance hatches on Sluice Gates Three through Seven without logging the entry.</p>\n\n<h2>Magical Properties</h2><p>Once per Nine Days, you may open a Sluice maintenance hatch unnoticed. Authority scanners read the key as a valid warden license until it is used a second time.</p>\n\n\n<h2>Design Notes</h2><p>Plot key. Pairs with the Gate Syndicate questline.</p>\n\n",
+   "raw_json": {
+    "id": "manual-item-mvpyemfg673537",
+    "raw": {
+     "id": "manual-item-mvpyemfg673537",
+     "name": "Sluice Pass-Key",
+     "flavor": "Marek Voss sells them by the hour, and swears he has never sold the same one twice.",
+     "rarity": "Rare",
+     "status": null,
+     "faction": "the-gate-syndicate",
+     "valueGp": 900,
+     "baseItem": null,
+     "itemType": "other",
+     "weightLb": 0,
+     "magicBonus": null,
+     "sourceMode": "homebrew",
+     "description": "A forged Seawall Authority gate token: a palm-sized ceramic key salted with a dead relay chip. It opens the maintenance hatches on Sluice Gates Three through Seven without logging the entry.",
+     "designNotes": "Plot key. Pairs with the Gate Syndicate questline.",
+     "resolvedStats": null,
+     "magicalProperties": [
+      "Once per Nine Days, you may open a Sluice maintenance hatch unnoticed. Authority scanners read the key as a valid warden license until it is used a second time."
+     ],
+     "rarityValueWarning": null,
+     "requiresAttunement": false,
+     "attunementRequirement": null
+    },
+    "name": "Sluice Pass-Key",
+    "tags": [
+     "<span class=\"tag\">Rare</span>",
+     "<span class=\"tag\">other</span>",
+     "<span class=\"tag\">homebrew</span>"
+    ],
+    "footer": [
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Rare Item",
+    "faction": "the-gate-syndicate",
+    "ruleset": "5e",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-item-mvpyemfg673537\" data-category=\"items\" data-entry-id=\"manual-item-mvpyemfg673537\" data-label=\"Item portrait\" src=\"about:blank\" alt=\"Sluice Pass-Key\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Rare — other</p>\n<div class=\"quote-block\">Marek Voss sells them by the hour, and swears he has never sold the same one twice.</div>\n\n<table class=\"rel-table\">\n\n<tr><th>Value</th><td>900 gp</td></tr>\n<tr><th>Weight</th><td>0 lb</td></tr>\n</table>\n\n<h2>Description</h2>\n<p>A forged Seawall Authority gate token: a palm-sized ceramic key salted with a dead relay chip. It opens the maintenance hatches on Sluice Gates Three through Seven without logging the entry.</p>\n\n<h2>Magical Properties</h2><p>Once per Nine Days, you may open a Sluice maintenance hatch unnoticed. Authority scanners read the key as a valid warden license until it is used a second time.</p>\n\n\n<h2>Design Notes</h2><p>Plot key. Pairs with the Gate Syndicate questline.</p>\n\n",
+    "category": "items",
+    "subtitle": "Rare other",
+    "sourceMode": "homebrew"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:35:08.129257+00:00"
+  },
+  {
+   "category": "npcs",
+   "entry_id": "manual-npcs-mvpyb6tgsmvk81",
+   "name": "Marek Voss",
+   "subtitle": "Informant/Fixer — The Gate Syndicate",
+   "faction": "the-gate-syndicate",
+   "tags_json": [],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpyb6tgsmvk81\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpyb6tgsmvk81\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"Marek Voss\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"Everything has a door. I own the doors.\"</div>\n<p class=\"flavor\">Heavyset, immaculate gray coat over a patched pressure vest, three Authority gate keys on a chain he wears openly. A hand-sized rebreather ring on his left hand.</p>\n<p><strong>Age:</strong> 47</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> patient, generous, ruthless, always smiling</p>\n<p><strong>The Contradiction:</strong> He sells to everyone and loves none of them, but he has never missed a funeral of someone he owed.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> Total control of the Sluice Gate shift schedule.</p>\n<p><strong>Actually needs:</strong> A reason to stop counting.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Warm and polite, never rude.</p>\n<p><strong>Rhythm:</strong> Slow, with long friendly pauses before the price.</p>\n<p><strong>Tic:</strong> Offers tea before every deal.</p>\n<p><strong>Would never say:</strong> Never says 'no'. Says 'not today'.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">Marek Voss:</span> \"Tea? You look like someone who just discovered the price of air.\"\n</div>\n<h2>Quest Hook</h2>\n<p>Marek will open any Gate for the party, if they carry one sealed crate to the Terraces without looking inside.</p>\n<h2>Design Notes</h2>\n<p>The smiling antagonist. Reveal in session three that he funds three Authority council seats.</p>\n",
+   "raw_json": {
+    "id": "manual-npcs-mvpyb6tgsmvk81",
+    "age": 47,
+    "raw": {
+     "id": "manual-npcs-mvpyb6tgsmvk81",
+     "age": 47,
+     "name": "Marek Voss",
+     "wants": "Total control of the Sluice Gate shift schedule.",
+     "speech": {
+      "tic": "Offers tea before every deal.",
+      "rhythm": "Slow, with long friendly pauses before the price.",
+      "neverSay": "Never says 'no'. Says 'not today'.",
+      "register": "Warm and polite, never rude."
+     },
+     "status": "alive",
+     "traits": [
+      "patient",
+      "generous",
+      "ruthless",
+      "always smiling"
+     ],
+     "faction": "the-gate-syndicate",
+     "callsign": "The Doorman",
+     "dialogue": {
+      "branches": [],
+      "openingLine": "Tea? You look like someone who just discovered the price of air."
+     },
+     "birthDate": null,
+     "deathDate": null,
+     "questHook": "Marek will open any Gate for the party, if they carry one sealed crate to the Terraces without looking inside.",
+     "designNotes": "The smiling antagonist. Reveal in session three that he funds three Authority council seats.",
+     "actuallyNeeds": "A reason to stop counting.",
+     "appointedDate": null,
+     "contradiction": "He sells to everyone and loves none of them, but he has never missed a funeral of someone he owed.",
+     "relationships": [],
+     "roleArchetype": "Informant/Fixer",
+     "signatureQuote": "Everything has a door. I own the doors.",
+     "physicalDescription": "Heavyset, immaculate gray coat over a patched pressure vest, three Authority gate keys on a chain he wears openly. A hand-sized rebreather ring on his left hand."
+    },
+    "name": "Marek Voss",
+    "tags": [],
+    "footer": [
+     "Faction: The Gate Syndicate",
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "NPC Dossier — Informant/Fixer",
+    "faction": "the-gate-syndicate",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpyb6tgsmvk81\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpyb6tgsmvk81\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"Marek Voss\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"Everything has a door. I own the doors.\"</div>\n<p class=\"flavor\">Heavyset, immaculate gray coat over a patched pressure vest, three Authority gate keys on a chain he wears openly. A hand-sized rebreather ring on his left hand.</p>\n<p><strong>Age:</strong> 47</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> patient, generous, ruthless, always smiling</p>\n<p><strong>The Contradiction:</strong> He sells to everyone and loves none of them, but he has never missed a funeral of someone he owed.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> Total control of the Sluice Gate shift schedule.</p>\n<p><strong>Actually needs:</strong> A reason to stop counting.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Warm and polite, never rude.</p>\n<p><strong>Rhythm:</strong> Slow, with long friendly pauses before the price.</p>\n<p><strong>Tic:</strong> Offers tea before every deal.</p>\n<p><strong>Would never say:</strong> Never says 'no'. Says 'not today'.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">Marek Voss:</span> \"Tea? You look like someone who just discovered the price of air.\"\n</div>\n<h2>Quest Hook</h2>\n<p>Marek will open any Gate for the party, if they carry one sealed crate to the Terraces without looking inside.</p>\n<h2>Design Notes</h2>\n<p>The smiling antagonist. Reveal in session three that he funds three Authority council seats.</p>\n",
+    "category": "npcs",
+    "subtitle": "Informant/Fixer — The Gate Syndicate",
+    "speechTic": "Offers tea before every deal.",
+    "contradiction": "He sells to everyone and loves none of them, but he has never missed a funeral of someone he owed.",
+    "roleArchetype": "Informant/Fixer"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:32:28.041894+00:00"
+  },
+  {
+   "category": "logs",
+   "entry_id": "manual-logs-mvpyesa2jfg1c8",
+   "name": "Day Nine Dive Log: Gate Four Descent",
+   "subtitle": "Character(s): Dova Reyes-Kane, Pell Ashgrove",
+   "faction": "the-tidewalkers",
+   "tags_json": [],
+   "body_html": "\n<p class=\"flavor\">Recovered from a drowned crawler drone on the Tidewalk. The last recording Dova Reyes-Kane made before the Day Nine horn.</p>\n<p><strong>Found at:</strong> Sluice Gate Four, lower stairwell, tide out</p>\n<h2>Audio Log</h2>\n<pre style=\"background: var(--bg-panel-raised); border: 1px solid var(--border-line); padding: 20px; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; white-space: pre-wrap; color: var(--ink);\">Day nine, low water, forty minutes of air left. Pell says turn back. I can hear it again, down the old metro, that long low note, like somebody humming through a mouthful of water. Ines swears it is narcosis. Narcosis does not know my mother's name. I am marking the stairwell with blue chalk. If the horn goes and I am not up, do not throw a rope. Throw the rope. Throw the rope.</pre>\n<h2>Design Notes</h2>\n<p>Hook for the Hollow Choir questline. Keep the song ambiguous.</p>\n",
+   "raw_json": {
+    "id": "manual-logs-mvpyesa2jfg1c8",
+    "raw": {
+     "id": "manual-logs-mvpyesa2jfg1c8",
+     "name": "Day Nine Dive Log: Gate Four Descent",
+     "status": null,
+     "context": "Recovered from a drowned crawler drone on the Tidewalk. The last recording Dova Reyes-Kane made before the Day Nine horn.",
+     "faction": "the-tidewalkers",
+     "logType": "Audio",
+     "bodyText": "Day nine, low water, forty minutes of air left. Pell says turn back. I can hear it again, down the old metro, that long low note, like somebody humming through a mouthful of water. Ines swears it is narcosis. Narcosis does not know my mother's name. I am marking the stairwell with blue chalk. If the horn goes and I am not up, do not throw a rope. Throw the rope. Throw the rope.",
+     "characters": "Dova Reyes-Kane, Pell Ashgrove",
+     "locationId": null,
+     "designNotes": "Hook for the Hollow Choir questline. Keep the song ambiguous.",
+     "resolvedDate": null,
+     "locationContext": "Sluice Gate Four, lower stairwell, tide out",
+     "resolvedDateSubject": null
+    },
+    "name": "Day Nine Dive Log: Gate Four Descent",
+    "tags": [],
+    "footer": [
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Audio — Found: Sluice Gate Four, lower stairwell, tide out",
+    "faction": "the-tidewalkers",
+    "logType": "Audio",
+    "bodyHtml": "\n<p class=\"flavor\">Recovered from a drowned crawler drone on the Tidewalk. The last recording Dova Reyes-Kane made before the Day Nine horn.</p>\n<p><strong>Found at:</strong> Sluice Gate Four, lower stairwell, tide out</p>\n<h2>Audio Log</h2>\n<pre style=\"background: var(--bg-panel-raised); border: 1px solid var(--border-line); padding: 20px; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; white-space: pre-wrap; color: var(--ink);\">Day nine, low water, forty minutes of air left. Pell says turn back. I can hear it again, down the old metro, that long low note, like somebody humming through a mouthful of water. Ines swears it is narcosis. Narcosis does not know my mother's name. I am marking the stairwell with blue chalk. If the horn goes and I am not up, do not throw a rope. Throw the rope. Throw the rope.</pre>\n<h2>Design Notes</h2>\n<p>Hook for the Hollow Choir questline. Keep the song ambiguous.</p>\n",
+    "category": "logs",
+    "subtitle": "Character(s): Dova Reyes-Kane, Pell Ashgrove",
+    "sessionChronicle": null
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:35:29.489123+00:00"
+  },
+  {
+   "category": "locations",
+   "entry_id": "manual-loca-mvpygfr0u3e5sp",
+   "name": "Gate Four",
+   "subtitle": "Sluice Gates / tidal flats — The Seawall Authority",
+   "faction": "the-seawall-authority",
+   "tags_json": [
+    "<span class=\"tag\">flooding</span>",
+    "<span class=\"tag\">narcosis</span>",
+    "<span class=\"tag\">drones</span>"
+   ],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-loca-mvpygfr0u3e5sp\" data-category=\"locations\" data-entry-id=\"manual-loca-mvpygfr0u3e5sp\" data-label=\"Location art\" src=\"about:blank\" alt=\"Gate Four\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">A sluice gate the size of a cathedral, groaning open once a year to drain the Gray Reach.</div>\n<p><strong>Region/Biome:</strong> Sluice Gates / tidal flats</p>\n<h2>Notable Features</h2>\n<p class=\"flavor\">Tide turbine hall; the Tidewalk causeway; a stairwell marked with blue chalk; a Wet Net relay that cuts out below the third landing.</p>\n<p><strong>Tags:</strong> <span class=\"tag\">flooding</span> <span class=\"tag\">narcosis</span> <span class=\"tag\">drones</span></p>\n<h2>Hooks &amp; Secrets</h2>\n<p>The lower stairwell leads to the old metro. Divers hear the tunnel song loudest here on Day Nine. The Authority keeps the stairwell welded shut. The welds are new.</p>\n<h2>Design Notes</h2>\n<p>Hub location for the Day Nine dive.</p>\n",
+   "raw_json": {
+    "id": "manual-loca-mvpygfr0u3e5sp",
+    "raw": {
+     "id": "manual-loca-mvpygfr0u3e5sp",
+     "name": "Gate Four",
+     "status": null,
+     "faction": "the-seawall-authority",
+     "dangerTags": [
+      "flooding",
+      "narcosis",
+      "drones"
+     ],
+     "designNotes": "Hub location for the Day Nine dive.",
+     "notableNpcs": [],
+     "regionBiome": "Sluice Gates / tidal flats",
+     "hooksSecrets": "The lower stairwell leads to the old metro. Divers hear the tunnel song loudest here on Day Nine. The Authority keeps the stairwell welded shut. The welds are new.",
+     "descriptorLine": "A sluice gate the size of a cathedral, groaning open once a year to drain the Gray Reach.",
+     "createdManually": true,
+     "notableFeatures": "Tide turbine hall; the Tidewalk causeway; a stairwell marked with blue chalk; a Wet Net relay that cuts out below the third landing."
+    },
+    "name": "Gate Four",
+    "tags": [
+     "<span class=\"tag\">flooding</span>",
+     "<span class=\"tag\">narcosis</span>",
+     "<span class=\"tag\">drones</span>"
+    ],
+    "footer": [
+     "Faction: The Seawall Authority",
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Location — Sluice Gates / tidal flats",
+    "faction": "the-seawall-authority",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-loca-mvpygfr0u3e5sp\" data-category=\"locations\" data-entry-id=\"manual-loca-mvpygfr0u3e5sp\" data-label=\"Location art\" src=\"about:blank\" alt=\"Gate Four\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">A sluice gate the size of a cathedral, groaning open once a year to drain the Gray Reach.</div>\n<p><strong>Region/Biome:</strong> Sluice Gates / tidal flats</p>\n<h2>Notable Features</h2>\n<p class=\"flavor\">Tide turbine hall; the Tidewalk causeway; a stairwell marked with blue chalk; a Wet Net relay that cuts out below the third landing.</p>\n<p><strong>Tags:</strong> <span class=\"tag\">flooding</span> <span class=\"tag\">narcosis</span> <span class=\"tag\">drones</span></p>\n<h2>Hooks &amp; Secrets</h2>\n<p>The lower stairwell leads to the old metro. Divers hear the tunnel song loudest here on Day Nine. The Authority keeps the stairwell welded shut. The welds are new.</p>\n<h2>Design Notes</h2>\n<p>Hub location for the Day Nine dive.</p>\n",
+    "category": "locations",
+    "subtitle": "Sluice Gates / tidal flats — The Seawall Authority",
+    "dungeonMap": null,
+    "regionBiome": "Sluice Gates / tidal flats",
+    "manualMapPosition": null
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:36:40.822893+00:00"
+  },
+  {
+   "category": "locations",
+   "entry_id": "manual-loca-mvpygtj66ezbtq",
+   "name": "The Mid-Stacks",
+   "subtitle": "Mid-Stacks / urban vertical slum — Unaligned",
+   "faction": "unaligned",
+   "tags_json": [
+    "<span class=\"tag\">flooding</span>",
+    "<span class=\"tag\">gangs</span>",
+    "<span class=\"tag\">collapse</span>"
+   ],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-loca-mvpygtj66ezbtq\" data-category=\"locations\" data-entry-id=\"manual-loca-mvpygtj66ezbtq\" data-label=\"Location art\" src=\"about:blank\" alt=\"The Mid-Stacks\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">Patched towers stacked like rusted dominoes, rented by the hour and flooded every storm season.</div>\n<p><strong>Region/Biome:</strong> Mid-Stacks / urban vertical slum</p>\n<h2>Notable Features</h2>\n<p class=\"flavor\">Hour-bunk hostels; the Tide Ledger market; rope bridges between towers; neon day-count boards on every landing.</p>\n<p><strong>Tags:</strong> <span class=\"tag\">flooding</span> <span class=\"tag\">gangs</span> <span class=\"tag\">collapse</span></p>\n<h2>Hooks &amp; Secrets</h2>\n<p>Pell Ashgrove sells rumors from a bunk on Tower 12 that no one else can rent. Somebody keeps leaving fresh blue chalk marks on the lower landings.</p>\n<h2>Design Notes</h2>\n<p>Social hub between dives. Good for rumor and bargaining scenes.</p>\n",
+   "raw_json": {
+    "id": "manual-loca-mvpygtj66ezbtq",
+    "raw": {
+     "id": "manual-loca-mvpygtj66ezbtq",
+     "name": "The Mid-Stacks",
+     "status": null,
+     "faction": "unaligned",
+     "dangerTags": [
+      "flooding",
+      "gangs",
+      "collapse"
+     ],
+     "designNotes": "Social hub between dives. Good for rumor and bargaining scenes.",
+     "notableNpcs": [],
+     "regionBiome": "Mid-Stacks / urban vertical slum",
+     "hooksSecrets": "Pell Ashgrove sells rumors from a bunk on Tower 12 that no one else can rent. Somebody keeps leaving fresh blue chalk marks on the lower landings.",
+     "descriptorLine": "Patched towers stacked like rusted dominoes, rented by the hour and flooded every storm season.",
+     "createdManually": true,
+     "notableFeatures": "Hour-bunk hostels; the Tide Ledger market; rope bridges between towers; neon day-count boards on every landing."
+    },
+    "name": "The Mid-Stacks",
+    "tags": [
+     "<span class=\"tag\">flooding</span>",
+     "<span class=\"tag\">gangs</span>",
+     "<span class=\"tag\">collapse</span>"
+    ],
+    "footer": [
+     "Faction: Unaligned",
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Location — Mid-Stacks / urban vertical slum",
+    "faction": "unaligned",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-loca-mvpygtj66ezbtq\" data-category=\"locations\" data-entry-id=\"manual-loca-mvpygtj66ezbtq\" data-label=\"Location art\" src=\"about:blank\" alt=\"The Mid-Stacks\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">Patched towers stacked like rusted dominoes, rented by the hour and flooded every storm season.</div>\n<p><strong>Region/Biome:</strong> Mid-Stacks / urban vertical slum</p>\n<h2>Notable Features</h2>\n<p class=\"flavor\">Hour-bunk hostels; the Tide Ledger market; rope bridges between towers; neon day-count boards on every landing.</p>\n<p><strong>Tags:</strong> <span class=\"tag\">flooding</span> <span class=\"tag\">gangs</span> <span class=\"tag\">collapse</span></p>\n<h2>Hooks &amp; Secrets</h2>\n<p>Pell Ashgrove sells rumors from a bunk on Tower 12 that no one else can rent. Somebody keeps leaving fresh blue chalk marks on the lower landings.</p>\n<h2>Design Notes</h2>\n<p>Social hub between dives. Good for rumor and bargaining scenes.</p>\n",
+    "category": "locations",
+    "subtitle": "Mid-Stacks / urban vertical slum — Unaligned",
+    "dungeonMap": null,
+    "regionBiome": "Mid-Stacks / urban vertical slum",
+    "manualMapPosition": null
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:36:51.580564+00:00"
+  },
+  {
+   "category": "npcs",
+   "entry_id": "manual-npcs-mvpy9yz43gyh5p",
+   "name": "Dova Reyes-Kane",
+   "subtitle": "Quest-Giver — The Tidewalkers",
+   "faction": "the-tidewalkers",
+   "tags_json": [],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpy9yz43gyh5p\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpy9yz43gyh5p\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"Dova Reyes-Kane\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"I have been down to the Ninth Stair and back. Tell me again how dangerous it is.\"</div>\n<p class=\"flavor\">Wiry, with a sonar implant glowing amber behind her left eye and a rebreather scar across both cheeks. Her exosuit is patched in four different colors of salvage tape.</p>\n<p><strong>Age:</strong> 34</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> fearless, loyal, reckless, funny at the wrong moments</p>\n<p><strong>The Contradiction:</strong> She is the best diver in the Sprawl and has started hearing the tunnel song, and she hasn't told her crew.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> A record dive on Day Nine.</p>\n<p><strong>Actually needs:</strong> To be pulled back up by someone she trusts.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Casual, profane, crew slang.</p>\n<p><strong>Rhythm:</strong> Fast, interrupts herself, laughs mid-sentence.</p>\n<p><strong>Tic:</strong> Taps her sonar implant when she lies.</p>\n<p><strong>Would never say:</strong> Never says 'license'. Never admits she is scared.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">Dova Reyes-Kane:</span> \"You smell like Terrace soap. Good. They pay in clean scrip. Sit.\"\n</div>\n<h2>Quest Hook</h2>\n<p>Dova needs three divers for a Day Nine run to the old metro station, and she will not say what is down there.</p>\n<h2>Design Notes</h2>\n<p>Ties the Tidewalkers to the Hollow Choir. Her secret is the campaign's long clock.</p>\n",
+   "raw_json": {
+    "id": "manual-npcs-mvpy9yz43gyh5p",
+    "age": 34,
+    "raw": {
+     "id": "manual-npcs-mvpy9yz43gyh5p",
+     "age": 34,
+     "name": "Dova Reyes-Kane",
+     "wants": "A record dive on Day Nine.",
+     "speech": {
+      "tic": "Taps her sonar implant when she lies.",
+      "rhythm": "Fast, interrupts herself, laughs mid-sentence.",
+      "neverSay": "Never says 'license'. Never admits she is scared.",
+      "register": "Casual, profane, crew slang."
+     },
+     "status": "alive",
+     "traits": [
+      "fearless",
+      "loyal",
+      "reckless",
+      "funny at the wrong moments"
+     ],
+     "faction": "the-tidewalkers",
+     "callsign": "Lowline",
+     "dialogue": {
+      "branches": [],
+      "openingLine": "You smell like Terrace soap. Good. They pay in clean scrip. Sit."
+     },
+     "birthDate": null,
+     "deathDate": null,
+     "questHook": "Dova needs three divers for a Day Nine run to the old metro station, and she will not say what is down there.",
+     "designNotes": "Ties the Tidewalkers to the Hollow Choir. Her secret is the campaign's long clock.",
+     "actuallyNeeds": "To be pulled back up by someone she trusts.",
+     "appointedDate": null,
+     "contradiction": "She is the best diver in the Sprawl and has started hearing the tunnel song, and she hasn't told her crew.",
+     "relationships": [],
+     "roleArchetype": "Quest-Giver",
+     "signatureQuote": "I have been down to the Ninth Stair and back. Tell me again how dangerous it is.",
+     "physicalDescription": "Wiry, with a sonar implant glowing amber behind her left eye and a rebreather scar across both cheeks. Her exosuit is patched in four different colors of salvage tape."
+    },
+    "name": "Dova Reyes-Kane",
+    "tags": [],
+    "footer": [
+     "Faction: The Tidewalkers",
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "NPC Dossier — Quest-Giver",
+    "faction": "the-tidewalkers",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-npcs-mvpy9yz43gyh5p\" data-category=\"npcs\" data-entry-id=\"manual-npcs-mvpy9yz43gyh5p\" data-label=\"Character portrait\" src=\"about:blank\" alt=\"Dova Reyes-Kane\" onerror=\"handlePortraitError(this)\">\n<div class=\"quote-block\">\"I have been down to the Ninth Stair and back. Tell me again how dangerous it is.\"</div>\n<p class=\"flavor\">Wiry, with a sonar implant glowing amber behind her left eye and a rebreather scar across both cheeks. Her exosuit is patched in four different colors of salvage tape.</p>\n<p><strong>Age:</strong> 34</p>\n<p class=\"flavor\"><strong>Status:</strong> alive</p>\n<h2>Personality</h2>\n<p><strong>Traits:</strong> fearless, loyal, reckless, funny at the wrong moments</p>\n<p><strong>The Contradiction:</strong> She is the best diver in the Sprawl and has started hearing the tunnel song, and she hasn't told her crew.</p>\n<h2>Motivation</h2>\n<p><strong>Wants:</strong> A record dive on Day Nine.</p>\n<p><strong>Actually needs:</strong> To be pulled back up by someone she trusts.</p>\n<h2>Speech Pattern</h2>\n<p><strong>Register:</strong> Casual, profane, crew slang.</p>\n<p><strong>Rhythm:</strong> Fast, interrupts herself, laughs mid-sentence.</p>\n<p><strong>Tic:</strong> Taps her sonar implant when she lies.</p>\n<p><strong>Would never say:</strong> Never says 'license'. Never admits she is scared.</p>\n<h2>Relationships</h2>\n<table class=\"rel-table\">\n<tr><th>Connection</th><th>To</th><th>Why</th></tr>\n\n</table>\n<h2>Sample Dialogue</h2>\n<div class=\"dialogue-block\">\n<span class=\"speaker\">Dova Reyes-Kane:</span> \"You smell like Terrace soap. Good. They pay in clean scrip. Sit.\"\n</div>\n<h2>Quest Hook</h2>\n<p>Dova needs three divers for a Day Nine run to the old metro station, and she will not say what is down there.</p>\n<h2>Design Notes</h2>\n<p>Ties the Tidewalkers to the Hollow Choir. Her secret is the campaign's long clock.</p>\n",
+    "category": "npcs",
+    "subtitle": "Quest-Giver — The Tidewalkers",
+    "speechTic": "Taps her sonar implant when she lies.",
+    "contradiction": "She is the best diver in the Sprawl and has started hearing the tunnel song, and she hasn't told her crew.",
+    "roleArchetype": "Quest-Giver"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:31:31.260965+00:00"
+  },
+  {
+   "category": "logs",
+   "entry_id": "manual-logs-mvpyfd1l8h8nf4",
+   "name": "Authority Memo: Revised Tide Table",
+   "subtitle": "Character(s): Warden Ines Okafor-Vane",
+   "faction": "the-seawall-authority",
+   "tags_json": [],
+   "body_html": "\n<p class=\"flavor\">Leaked from an Authority terminal by a Gate Syndicate runner.</p>\n<p><strong>Found at:</strong> Seawall Authority records annex, Terrace Level 2</p>\n<h2>Terminal Text</h2>\n<pre style=\"background: var(--bg-panel-raised); border: 1px solid var(--border-line); padding: 20px; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; white-space: pre-wrap; color: var(--ink);\">TO: Gate Wardens, all stations. RE: Nine Day window. Effective Year 41, the Nine Days will be published as eight and one-half days. The remaining half-day is reclassified as maintenance. Do not discuss the revision with licensed crews. Do not discuss the cause. Crews asking about the shortening trend are to be referred to the Narcosis Advisory. - I.O.V.</pre>\n<h2>Design Notes</h2>\n<p>Seeds the central mystery: the tide is drawing out shorter every year.</p>\n",
+   "raw_json": {
+    "id": "manual-logs-mvpyfd1l8h8nf4",
+    "raw": {
+     "id": "manual-logs-mvpyfd1l8h8nf4",
+     "name": "Authority Memo: Revised Tide Table",
+     "status": null,
+     "context": "Leaked from an Authority terminal by a Gate Syndicate runner.",
+     "faction": "the-seawall-authority",
+     "logType": "Terminal",
+     "bodyText": "TO: Gate Wardens, all stations. RE: Nine Day window. Effective Year 41, the Nine Days will be published as eight and one-half days. The remaining half-day is reclassified as maintenance. Do not discuss the revision with licensed crews. Do not discuss the cause. Crews asking about the shortening trend are to be referred to the Narcosis Advisory. - I.O.V.",
+     "characters": "Warden Ines Okafor-Vane",
+     "locationId": null,
+     "designNotes": "Seeds the central mystery: the tide is drawing out shorter every year.",
+     "resolvedDate": null,
+     "locationContext": "Seawall Authority records annex, Terrace Level 2",
+     "resolvedDateSubject": null
+    },
+    "name": "Authority Memo: Revised Tide Table",
+    "tags": [],
+    "footer": [
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Terminal — Found: Seawall Authority records annex, Terrace Level 2",
+    "faction": "the-seawall-authority",
+    "logType": "Terminal",
+    "bodyHtml": "\n<p class=\"flavor\">Leaked from an Authority terminal by a Gate Syndicate runner.</p>\n<p><strong>Found at:</strong> Seawall Authority records annex, Terrace Level 2</p>\n<h2>Terminal Text</h2>\n<pre style=\"background: var(--bg-panel-raised); border: 1px solid var(--border-line); padding: 20px; font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.7; white-space: pre-wrap; color: var(--ink);\">TO: Gate Wardens, all stations. RE: Nine Day window. Effective Year 41, the Nine Days will be published as eight and one-half days. The remaining half-day is reclassified as maintenance. Do not discuss the revision with licensed crews. Do not discuss the cause. Crews asking about the shortening trend are to be referred to the Narcosis Advisory. - I.O.V.</pre>\n<h2>Design Notes</h2>\n<p>Seeds the central mystery: the tide is drawing out shorter every year.</p>\n",
+    "category": "logs",
+    "subtitle": "Character(s): Warden Ines Okafor-Vane",
+    "sessionChronicle": null
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:35:43.362824+00:00"
+  },
+  {
+   "category": "factions",
+   "entry_id": "the-seawall-authority",
+   "name": "The Seawall Authority",
+   "subtitle": "The Terrace-born body that owns the Seawall, the Sluice Gates and the air tax, and decides who may dive.",
+   "faction": null,
+   "tags_json": [],
+   "body_html": "\n<div class=\"quote-block\">The Terrace-born body that owns the Seawall, the Sluice Gates and the air tax, and decides who may dive.</div>\n<h2>Politics</h2>\n<p>Order through scarcity. The Authority presents itself as the only thing standing between the city and the Gray Reach, and treats every unlicensed dive as an attack on public safety.</p>\n<h2>Government</h2>\n<p>A council of eleven Terrace families, each holding a seat tied to one stretch of Seawall. Seats pass by inheritance or purchase.</p>\n<h2>Economy</h2>\n<p>Dive licenses, the air tax, and tidal-turbine power sold to every tier. Pays Tide Scrip salaries to Wardens and shares in a quiet cut of all licensed salvage.</p>\n<h2>Military</h2>\n<p>The Wardens: armored Terrace guards who patrol the Seawall and the Tidewalk, backed by crawler drones and the Gate sirens. Strong on the surface, thin below the waterline.</p>\n<h2>Tensions &amp; Secrets</h2>\n<p>The Authority knows the tide is drawing out slightly shorter every year and has buried the data. Several council seats are quietly funded by Gate Syndicate money.</p>\n",
+   "raw_json": {
+    "id": "the-seawall-authority",
+    "name": "The Seawall Authority",
+    "tags": [],
+    "footer": [
+     "Source: World Setup Wizard"
+    ],
+    "faction": null,
+    "bodyHtml": "\n<div class=\"quote-block\">The Terrace-born body that owns the Seawall, the Sluice Gates and the air tax, and decides who may dive.</div>\n<h2>Politics</h2>\n<p>Order through scarcity. The Authority presents itself as the only thing standing between the city and the Gray Reach, and treats every unlicensed dive as an attack on public safety.</p>\n<h2>Government</h2>\n<p>A council of eleven Terrace families, each holding a seat tied to one stretch of Seawall. Seats pass by inheritance or purchase.</p>\n<h2>Economy</h2>\n<p>Dive licenses, the air tax, and tidal-turbine power sold to every tier. Pays Tide Scrip salaries to Wardens and shares in a quiet cut of all licensed salvage.</p>\n<h2>Military</h2>\n<p>The Wardens: armored Terrace guards who patrol the Seawall and the Tidewalk, backed by crawler drones and the Gate sirens. Strong on the surface, thin below the waterline.</p>\n<h2>Tensions &amp; Secrets</h2>\n<p>The Authority knows the tide is drawing out slightly shorter every year and has buried the data. Several council seats are quietly funded by Gate Syndicate money.</p>\n",
+    "subtitle": "The Terrace-born body that owns the Seawall, the Sluice Gates and the air tax, and decides who may dive.",
+    "accentColor": "#9fb4c4"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:26:50.327536+00:00"
+  },
+  {
+   "category": "factions",
+   "entry_id": "the-hollow-choir",
+   "name": "The Hollow Choir",
+   "subtitle": "A Sunken-born cult that follows the tunnel song and believes the sea is taking the city back for a reason.",
+   "faction": null,
+   "tags_json": [],
+   "body_html": "\n<div class=\"quote-block\">A Sunken-born cult that follows the tunnel song and believes the sea is taking the city back for a reason.</div>\n<h2>Politics</h2>\n<p>Millenarian and patient. They see the Authority as jailers holding the city against its own fate, and they recruit from the Stack-dwellers the Terraces forgot. The Choir operates without hierarchy in the traditional sense—decisions emerge from consensus during the deep listening hours, when members fall silent and claim to hear the song most clearly. In practice, whoever speaks first after the silence carries disproportionate weight, and the Cantor (chosen by whoever returns from the deepest tunnel dive) becomes the voice that others follow, though they insist they are merely translating rather than commanding.</p>\n<h2>Government</h2>\n<p>Led by a rotating Cantor chosen by whoever returns from the deepest tunnel. There is no council, only the song. New Cantors emerge when an existing one ceases to dive, or when someone returns from a depth no living member has reached before. The transition is treated as a sacred moment—the old Cantor relinquishes their voice, and the new one's first utterance becomes doctrine until the next ascending returns.</p>\n<h2>Economy</h2>\n<p>Donations of air tanks and salvage from converts. They trade almost nothing and need very little. The Choir sustains itself through tithes of breathable air and submersed salvage from believers, pooled into communal reserves kept in sealed chambers deep in the Drowned Districts. They refuse Tide Scrip, which they see as a chain binding people to the Authority's system. New recruits must surrender personal debt claims—a radical renunciation that severs them from their old lives.</p>\n<h2>Military</h2>\n<p>Unarmed on paper. In practice, hundreds of devoted followers who walk into flooded tunnels without fear and cannot be turned back. The Choir's strength lies not in weapons but in bodies willing to enter the Reach during dangerous tide windows, moving through flooded passages the Authority fears to map. They retrieve salvage from places too deep or unstable for licensed divers, and they know the tunnel network in ways no Terrace surveyor ever will. They have never raised a hand against the Authority—their resistance is patient, subtractive, a slow abandonment of the upper city.</p>\n<h2>Tensions &amp; Secrets</h2>\n<p>The Cantor does not know where the song comes from. A few members have begun to suspect it is not coming from the sea at all. Growing factions within the Choir argue over the song's meaning: some believe it is a summoning (the city sinking is redemption), others that it is a warning (the city will fall and they must be ready), and a dangerous minority whispers that it might be artificial—something left behind in the deep before the flooding, now being awakened by the Sluice Gates' machinery. The Choir's relationship with other Sunken-born is also fracturing; older residents who simply endured the lower city resent the Choir's spiritualization of their suffering and fear the cult's growing numbers will draw Authority violence down on everyone below. Externally, the Authority tolerates the Choir as long as they remain unarmed, but the Tidewalk Guard watches their recruiting carefully. The Terraces view them as delusional at best, seditious at worst.</p>\n",
+   "raw_json": {
+    "id": "the-hollow-choir",
+    "name": "The Hollow Choir",
+    "tags": [],
+    "footer": [
+     "Source: World Setup Wizard"
+    ],
+    "faction": null,
+    "bodyHtml": "\n<div class=\"quote-block\">A Sunken-born cult that follows the tunnel song and believes the sea is taking the city back for a reason.</div>\n<h2>Politics</h2>\n<p>Millenarian and patient. They see the Authority as jailers holding the city against its own fate, and they recruit from the Stack-dwellers the Terraces forgot. The Choir operates without hierarchy in the traditional sense—decisions emerge from consensus during the deep listening hours, when members fall silent and claim to hear the song most clearly. In practice, whoever speaks first after the silence carries disproportionate weight, and the Cantor (chosen by whoever returns from the deepest tunnel dive) becomes the voice that others follow, though they insist they are merely translating rather than commanding.</p>\n<h2>Government</h2>\n<p>Led by a rotating Cantor chosen by whoever returns from the deepest tunnel. There is no council, only the song. New Cantors emerge when an existing one ceases to dive, or when someone returns from a depth no living member has reached before. The transition is treated as a sacred moment—the old Cantor relinquishes their voice, and the new one's first utterance becomes doctrine until the next ascending returns.</p>\n<h2>Economy</h2>\n<p>Donations of air tanks and salvage from converts. They trade almost nothing and need very little. The Choir sustains itself through tithes of breathable air and submersed salvage from believers, pooled into communal reserves kept in sealed chambers deep in the Drowned Districts. They refuse Tide Scrip, which they see as a chain binding people to the Authority's system. New recruits must surrender personal debt claims—a radical renunciation that severs them from their old lives.</p>\n<h2>Military</h2>\n<p>Unarmed on paper. In practice, hundreds of devoted followers who walk into flooded tunnels without fear and cannot be turned back. The Choir's strength lies not in weapons but in bodies willing to enter the Reach during dangerous tide windows, moving through flooded passages the Authority fears to map. They retrieve salvage from places too deep or unstable for licensed divers, and they know the tunnel network in ways no Terrace surveyor ever will. They have never raised a hand against the Authority—their resistance is patient, subtractive, a slow abandonment of the upper city.</p>\n<h2>Tensions &amp; Secrets</h2>\n<p>The Cantor does not know where the song comes from. A few members have begun to suspect it is not coming from the sea at all. Growing factions within the Choir argue over the song's meaning: some believe it is a summoning (the city sinking is redemption), others that it is a warning (the city will fall and they must be ready), and a dangerous minority whispers that it might be artificial—something left behind in the deep before the flooding, now being awakened by the Sluice Gates' machinery. The Choir's relationship with other Sunken-born is also fracturing; older residents who simply endured the lower city resent the Choir's spiritualization of their suffering and fear the cult's growing numbers will draw Authority violence down on everyone below. Externally, the Authority tolerates the Choir as long as they remain unarmed, but the Tidewalk Guard watches their recruiting carefully. The Terraces view them as delusional at best, seditious at worst.</p>\n",
+    "subtitle": "A Sunken-born cult that follows the tunnel song and believes the sea is taking the city back for a reason.",
+    "accentColor": "#b58cff"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:26:50.713649+00:00"
+  },
+  {
+   "category": "enemies",
+   "entry_id": "manual-enem-mvpyc1lj4ko6s0",
+   "name": "Brine Crawler",
+   "subtitle": "Large Construct (salvage drone) — CR 3",
+   "faction": null,
+   "tags_json": [
+    "<span class=\"tag\">CR 3</span>",
+    "<span class=\"tag\">homebrew</span>"
+   ],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-enem-mvpyc1lj4ko6s0\" data-category=\"enemies\" data-entry-id=\"manual-enem-mvpyc1lj4ko6s0\" data-label=\"Enemy portrait\" src=\"about:blank\" alt=\"Brine Crawler\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<div class=\"quote-block\">Large Construct (salvage drone), Unaligned</div>\n\n<table class=\"rel-table\">\n<tr><th>Armor Class</th><td>15 (corroded plating)</td></tr>\n<tr><th>Hit Points</th><td>68 (8d10+24)</td></tr>\n<tr><th>Speed</th><td>30 ft., swim 40 ft.</td></tr>\n</table>\n\n<table class=\"rel-table stat-block-abilities\"><tr><td><strong>STR</strong><br>17 (+3)</td><td><strong>DEX</strong><br>12 (+1)</td><td><strong>CON</strong><br>16 (+3)</td><td><strong>INT</strong><br>3 (-4)</td><td><strong>WIS</strong><br>11 (+0)</td><td><strong>CHA</strong><br>4 (-3)</td></tr></table>\n\n<table class=\"rel-table\">\n\n\n<tr><th>Damage Vulnerabilities</th><td>—</td></tr>\n<tr><th>Damage Resistances</th><td>—</td></tr>\n<tr><th>Damage Immunities</th><td>—</td></tr>\n<tr><th>Condition Immunities</th><td>—</td></tr>\n<tr><th>Senses</th><td>blindsight 60 ft. (sonar), passive Perception 10</td></tr>\n<tr><th>Languages</th><td>—</td></tr>\n<tr><th>Challenge</th><td>3 (700 XP) &middot; Proficiency Bonus +2 <span style=\"color:var(--ink-faint); font-size:0.8em;\">(estimated -- review before play)</span></td></tr>\n</table>\n\n\n\n\n\n\n\n<h2>Design Notes</h2><p>Hazard for Nine Days dives. Best used in flooded Mid-Stack corridors. Grapple-and-drag underwater; weak to electrical damage.</p>\n\n",
+   "raw_json": {
+    "id": "manual-enem-mvpyc1lj4ko6s0",
+    "raw": {
+     "id": "manual-enem-mvpyc1lj4ko6s0",
+     "name": "Brine Crawler",
+     "size": "Large",
+     "type": "Construct (salvage drone)",
+     "speed": "30 ft., swim 40 ft.",
+     "flavor": "A sixty-year-old Authority crawler drone that never got its shutdown order. Barnacled, half-flooded and still hunting for the hull plating it was built to weld. Divers say it clicks in time with the tide horn.",
+     "senses": "blindsight 60 ft. (sonar), passive Perception 10",
+     "skills": null,
+     "status": null,
+     "traits": [],
+     "actions": [],
+     "faction": null,
+     "hitDice": "8d10+24",
+     "abilities": {
+      "cha": 4,
+      "con": 16,
+      "dex": 12,
+      "int": 3,
+      "str": 17,
+      "wis": 11
+     },
+     "alignment": "Unaligned",
+     "armorNote": "corroded plating",
+     "hitPoints": 68,
+     "languages": "—",
+     "armorClass": 15,
+     "sourceMode": "homebrew",
+     "designNotes": "Hazard for Nine Days dives. Best used in flooded Mid-Stack corridors. Grapple-and-drag underwater; weak to electrical damage.",
+     "srdSourceId": null,
+     "savingThrows": null,
+     "srdLicenseNote": null,
+     "challengeRating": {
+      "cr": "3",
+      "xp": 700,
+      "estimated": true,
+      "defensiveCr": null,
+      "offensiveCr": null
+     },
+     "damageImmunities": null,
+     "legendaryActions": [],
+     "damageResistances": null,
+     "conditionImmunities": null,
+     "damageVulnerabilities": null
+    },
+    "name": "Brine Crawler",
+    "tags": [
+     "<span class=\"tag\">CR 3</span>",
+     "<span class=\"tag\">homebrew</span>"
+    ],
+    "footer": [
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Bestiary Entry — CR 3",
+    "faction": null,
+    "ruleset": "5e",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-enem-mvpyc1lj4ko6s0\" data-category=\"enemies\" data-entry-id=\"manual-enem-mvpyc1lj4ko6s0\" data-label=\"Enemy portrait\" src=\"about:blank\" alt=\"Brine Crawler\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<div class=\"quote-block\">Large Construct (salvage drone), Unaligned</div>\n\n<table class=\"rel-table\">\n<tr><th>Armor Class</th><td>15 (corroded plating)</td></tr>\n<tr><th>Hit Points</th><td>68 (8d10+24)</td></tr>\n<tr><th>Speed</th><td>30 ft., swim 40 ft.</td></tr>\n</table>\n\n<table class=\"rel-table stat-block-abilities\"><tr><td><strong>STR</strong><br>17 (+3)</td><td><strong>DEX</strong><br>12 (+1)</td><td><strong>CON</strong><br>16 (+3)</td><td><strong>INT</strong><br>3 (-4)</td><td><strong>WIS</strong><br>11 (+0)</td><td><strong>CHA</strong><br>4 (-3)</td></tr></table>\n\n<table class=\"rel-table\">\n\n\n<tr><th>Damage Vulnerabilities</th><td>—</td></tr>\n<tr><th>Damage Resistances</th><td>—</td></tr>\n<tr><th>Damage Immunities</th><td>—</td></tr>\n<tr><th>Condition Immunities</th><td>—</td></tr>\n<tr><th>Senses</th><td>blindsight 60 ft. (sonar), passive Perception 10</td></tr>\n<tr><th>Languages</th><td>—</td></tr>\n<tr><th>Challenge</th><td>3 (700 XP) &middot; Proficiency Bonus +2 <span style=\"color:var(--ink-faint); font-size:0.8em;\">(estimated -- review before play)</span></td></tr>\n</table>\n\n\n\n\n\n\n\n<h2>Design Notes</h2><p>Hazard for Nine Days dives. Best used in flooded Mid-Stack corridors. Grapple-and-drag underwater; weak to electrical damage.</p>\n\n",
+    "category": "enemies",
+    "subtitle": "Large Construct (salvage drone) — CR 3",
+    "sourceMode": "homebrew",
+    "srdSourceId": null
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:34:08.797031+00:00"
+  },
+  {
+   "category": "enemies",
+   "entry_id": "manual-enem-mvpydnpt0zzi4w",
+   "name": "Choir Hollow-Walker",
+   "subtitle": "Medium Humanoid (Sunken-born) — CR 1",
+   "faction": "the-hollow-choir",
+   "tags_json": [
+    "<span class=\"tag\">CR 1</span>",
+    "<span class=\"tag\">homebrew</span>"
+   ],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-enem-mvpydnpt0zzi4w\" data-category=\"enemies\" data-entry-id=\"manual-enem-mvpydnpt0zzi4w\" data-label=\"Enemy portrait\" src=\"about:blank\" alt=\"Choir Hollow-Walker\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<div class=\"quote-block\">Medium Humanoid (Sunken-born), Chaotic Neutral</div>\n\n<table class=\"rel-table\">\n<tr><th>Armor Class</th><td>13 (kelp-weave and hull scrap)</td></tr>\n<tr><th>Hit Points</th><td>39 (6d8+12)</td></tr>\n<tr><th>Speed</th><td>30 ft., swim 30 ft.</td></tr>\n</table>\n\n<table class=\"rel-table stat-block-abilities\"><tr><td><strong>STR</strong><br>12 (+1)</td><td><strong>DEX</strong><br>14 (+2)</td><td><strong>CON</strong><br>14 (+2)</td><td><strong>INT</strong><br>10 (+0)</td><td><strong>WIS</strong><br>15 (+2)</td><td><strong>CHA</strong><br>11 (+0)</td></tr></table>\n\n<table class=\"rel-table\">\n\n\n<tr><th>Damage Vulnerabilities</th><td>—</td></tr>\n<tr><th>Damage Resistances</th><td>—</td></tr>\n<tr><th>Damage Immunities</th><td>—</td></tr>\n<tr><th>Condition Immunities</th><td>—</td></tr>\n<tr><th>Senses</th><td>darkvision 60 ft., passive Perception 12</td></tr>\n<tr><th>Languages</th><td>Common, Sunken cant</td></tr>\n<tr><th>Challenge</th><td>1 (200 XP) &middot; Proficiency Bonus +2 <span style=\"color:var(--ink-faint); font-size:0.8em;\">(estimated -- review before play)</span></td></tr>\n</table>\n\n\n\n\n\n\n\n<h2>Design Notes</h2><p>Rumor-level supernatural. Never confirm the song is real; run the encounter as unsettling, not combat-first.</p>\n\n",
+   "raw_json": {
+    "id": "manual-enem-mvpydnpt0zzi4w",
+    "raw": {
+     "id": "manual-enem-mvpydnpt0zzi4w",
+     "name": "Choir Hollow-Walker",
+     "size": "Medium",
+     "type": "Humanoid (Sunken-born)",
+     "speed": "30 ft., swim 30 ft.",
+     "flavor": "They walk the flooded metro on Day Nine with their lamps off, humming a note no one else can quite hear. They do not attack unless you try to turn them around.",
+     "senses": "darkvision 60 ft., passive Perception 12",
+     "skills": null,
+     "status": null,
+     "traits": [],
+     "actions": [],
+     "faction": "the-hollow-choir",
+     "hitDice": "6d8+12",
+     "abilities": {
+      "cha": 11,
+      "con": 14,
+      "dex": 14,
+      "int": 10,
+      "str": 12,
+      "wis": 15
+     },
+     "alignment": "Chaotic Neutral",
+     "armorNote": "kelp-weave and hull scrap",
+     "hitPoints": 39,
+     "languages": "Common, Sunken cant",
+     "armorClass": 13,
+     "sourceMode": "homebrew",
+     "designNotes": "Rumor-level supernatural. Never confirm the song is real; run the encounter as unsettling, not combat-first.",
+     "srdSourceId": null,
+     "savingThrows": null,
+     "srdLicenseNote": null,
+     "challengeRating": {
+      "cr": "1",
+      "xp": 200,
+      "estimated": true,
+      "defensiveCr": null,
+      "offensiveCr": null
+     },
+     "damageImmunities": null,
+     "legendaryActions": [],
+     "damageResistances": null,
+     "conditionImmunities": null,
+     "damageVulnerabilities": null
+    },
+    "name": "Choir Hollow-Walker",
+    "tags": [
+     "<span class=\"tag\">CR 1</span>",
+     "<span class=\"tag\">homebrew</span>"
+    ],
+    "footer": [
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Bestiary Entry — CR 1",
+    "faction": "the-hollow-choir",
+    "ruleset": "5e",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-enem-mvpydnpt0zzi4w\" data-category=\"enemies\" data-entry-id=\"manual-enem-mvpydnpt0zzi4w\" data-label=\"Enemy portrait\" src=\"about:blank\" alt=\"Choir Hollow-Walker\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<div class=\"quote-block\">Medium Humanoid (Sunken-born), Chaotic Neutral</div>\n\n<table class=\"rel-table\">\n<tr><th>Armor Class</th><td>13 (kelp-weave and hull scrap)</td></tr>\n<tr><th>Hit Points</th><td>39 (6d8+12)</td></tr>\n<tr><th>Speed</th><td>30 ft., swim 30 ft.</td></tr>\n</table>\n\n<table class=\"rel-table stat-block-abilities\"><tr><td><strong>STR</strong><br>12 (+1)</td><td><strong>DEX</strong><br>14 (+2)</td><td><strong>CON</strong><br>14 (+2)</td><td><strong>INT</strong><br>10 (+0)</td><td><strong>WIS</strong><br>15 (+2)</td><td><strong>CHA</strong><br>11 (+0)</td></tr></table>\n\n<table class=\"rel-table\">\n\n\n<tr><th>Damage Vulnerabilities</th><td>—</td></tr>\n<tr><th>Damage Resistances</th><td>—</td></tr>\n<tr><th>Damage Immunities</th><td>—</td></tr>\n<tr><th>Condition Immunities</th><td>—</td></tr>\n<tr><th>Senses</th><td>darkvision 60 ft., passive Perception 12</td></tr>\n<tr><th>Languages</th><td>Common, Sunken cant</td></tr>\n<tr><th>Challenge</th><td>1 (200 XP) &middot; Proficiency Bonus +2 <span style=\"color:var(--ink-faint); font-size:0.8em;\">(estimated -- review before play)</span></td></tr>\n</table>\n\n\n\n\n\n\n\n<h2>Design Notes</h2><p>Rumor-level supernatural. Never confirm the song is real; run the encounter as unsettling, not combat-first.</p>\n\n",
+    "category": "enemies",
+    "subtitle": "Medium Humanoid (Sunken-born) — CR 1",
+    "sourceMode": "homebrew",
+    "srdSourceId": null
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:34:37.569207+00:00"
+  },
+  {
+   "category": "factions",
+   "entry_id": "the-tidewalkers",
+   "name": "The Tidewalkers",
+   "subtitle": "Augmented salvage crews who dive deepest, loyal to their own and resentful of licensing.",
+   "faction": null,
+   "tags_json": [],
+   "body_html": "\n<div class=\"quote-block\">Augmented salvage crews who dive deepest, loyal to their own and resentful of licensing.</div>\n<h2>Politics</h2>\n<p>Fiercely independent. They see the Authority as parasites who profit from every dive they never make, and they refuse to leave a crewmate below.</p>\n<h2>Government</h2>\n<p>Crew-based. Each crew elects a Lead Diver, and the leads meet at the Tidewalk Moot before every Nine Days to bargain over claims.</p>\n<h2>Economy</h2>\n<p>Salvage shares paid in Tide Scrip and hours of Reach owed between crews. Wealth is measured by depth records and rebreather quality.</p>\n<h2>Military</h2>\n<p>No standing army. Crews fight with harpoon rigs, pressure-rated exosuits and sonar-guided ambushes in flooded corridors.</p>\n<h2>Tensions &amp; Secrets</h2>\n<p>Several top crews have started hearing the tunnel song and diving alone on Day Nine. They have not told anyone, including the Moot.</p>\n",
+   "raw_json": {
+    "id": "the-tidewalkers",
+    "name": "The Tidewalkers",
+    "tags": [],
+    "footer": [
+     "Source: World Setup Wizard"
+    ],
+    "faction": null,
+    "bodyHtml": "\n<div class=\"quote-block\">Augmented salvage crews who dive deepest, loyal to their own and resentful of licensing.</div>\n<h2>Politics</h2>\n<p>Fiercely independent. They see the Authority as parasites who profit from every dive they never make, and they refuse to leave a crewmate below.</p>\n<h2>Government</h2>\n<p>Crew-based. Each crew elects a Lead Diver, and the leads meet at the Tidewalk Moot before every Nine Days to bargain over claims.</p>\n<h2>Economy</h2>\n<p>Salvage shares paid in Tide Scrip and hours of Reach owed between crews. Wealth is measured by depth records and rebreather quality.</p>\n<h2>Military</h2>\n<p>No standing army. Crews fight with harpoon rigs, pressure-rated exosuits and sonar-guided ambushes in flooded corridors.</p>\n<h2>Tensions &amp; Secrets</h2>\n<p>Several top crews have started hearing the tunnel song and diving alone on Day Nine. They have not told anyone, including the Moot.</p>\n",
+    "subtitle": "Augmented salvage crews who dive deepest, loyal to their own and resentful of licensing.",
+    "accentColor": "#2fd0c0"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:26:50.451782+00:00"
+  },
+  {
+   "category": "items",
+   "entry_id": "manual-item-mvpye7xul4dcow",
+   "name": "Tide Watch",
+   "subtitle": "Uncommon wondrous",
+   "faction": "the-tidewalkers",
+   "tags_json": [
+    "<span class=\"tag\">Uncommon</span>",
+    "<span class=\"tag\">wondrous</span>",
+    "<span class=\"tag\">homebrew</span>"
+   ],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-item-mvpye7xul4dcow\" data-category=\"items\" data-entry-id=\"manual-item-mvpye7xul4dcow\" data-label=\"Item portrait\" src=\"about:blank\" alt=\"Tide Watch\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Uncommon (requires attunement) — wondrous</p>\n<div class=\"quote-block\">Every Tidewalker is buried with theirs. If your watch stops, the crew takes it back to the Seawall and reads the last hour out loud.</div>\n\n<table class=\"rel-table\">\n\n<tr><th>Value</th><td>250 gp</td></tr>\n<tr><th>Weight</th><td>1 lb</td></tr>\n</table>\n\n<h2>Description</h2>\n<p>A pressure-sealed wrist unit etched with the twelve-month tide table. The face shows the hours remaining until the Sluice horn, counting down in red once the water begins to return.</p>\n\n<h2>Magical Properties</h2><p>While worn, you always know the exact time until the next tide change and have advantage on checks to avoid being caught by rising water. When you surface after the horn, the watch chimes once, and a Tidewalker crew will always know your name.</p>\n\n\n<h2>Design Notes</h2><p>Signature faction item. Great early reward for the Day Nine dive.</p>\n\n",
+   "raw_json": {
+    "id": "manual-item-mvpye7xul4dcow",
+    "raw": {
+     "id": "manual-item-mvpye7xul4dcow",
+     "name": "Tide Watch",
+     "flavor": "Every Tidewalker is buried with theirs. If your watch stops, the crew takes it back to the Seawall and reads the last hour out loud.",
+     "rarity": "Uncommon",
+     "status": null,
+     "faction": "the-tidewalkers",
+     "valueGp": 250,
+     "baseItem": null,
+     "itemType": "wondrous",
+     "weightLb": 1,
+     "magicBonus": null,
+     "sourceMode": "homebrew",
+     "description": "A pressure-sealed wrist unit etched with the twelve-month tide table. The face shows the hours remaining until the Sluice horn, counting down in red once the water begins to return.",
+     "designNotes": "Signature faction item. Great early reward for the Day Nine dive.",
+     "resolvedStats": null,
+     "magicalProperties": [
+      "While worn, you always know the exact time until the next tide change and have advantage on checks to avoid being caught by rising water. When you surface after the horn, the watch chimes once, and a Tidewalker crew will always know your name."
+     ],
+     "rarityValueWarning": null,
+     "requiresAttunement": true,
+     "attunementRequirement": null
+    },
+    "name": "Tide Watch",
+    "tags": [
+     "<span class=\"tag\">Uncommon</span>",
+     "<span class=\"tag\">wondrous</span>",
+     "<span class=\"tag\">homebrew</span>"
+    ],
+    "footer": [
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Uncommon Item",
+    "faction": "the-tidewalkers",
+    "ruleset": "5e",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-item-mvpye7xul4dcow\" data-category=\"items\" data-entry-id=\"manual-item-mvpye7xul4dcow\" data-label=\"Item portrait\" src=\"about:blank\" alt=\"Tide Watch\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Uncommon (requires attunement) — wondrous</p>\n<div class=\"quote-block\">Every Tidewalker is buried with theirs. If your watch stops, the crew takes it back to the Seawall and reads the last hour out loud.</div>\n\n<table class=\"rel-table\">\n\n<tr><th>Value</th><td>250 gp</td></tr>\n<tr><th>Weight</th><td>1 lb</td></tr>\n</table>\n\n<h2>Description</h2>\n<p>A pressure-sealed wrist unit etched with the twelve-month tide table. The face shows the hours remaining until the Sluice horn, counting down in red once the water begins to return.</p>\n\n<h2>Magical Properties</h2><p>While worn, you always know the exact time until the next tide change and have advantage on checks to avoid being caught by rising water. When you surface after the horn, the watch chimes once, and a Tidewalker crew will always know your name.</p>\n\n\n<h2>Design Notes</h2><p>Signature faction item. Great early reward for the Day Nine dive.</p>\n\n",
+    "category": "items",
+    "subtitle": "Uncommon wondrous",
+    "sourceMode": "homebrew"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:34:56.552721+00:00"
+  },
+  {
+   "category": "classes",
+   "entry_id": "manual-clas-mvpyfkeupdp1bp",
+   "name": "Tidewalker",
+   "subtitle": "d10 · Martial",
+   "faction": "the-tidewalkers",
+   "tags_json": [
+    "<span class=\"tag\">5e Class</span>",
+    "<span class=\"tag\">homebrew</span>"
+   ],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-clas-mvpyfkeupdp1bp\" data-category=\"classes\" data-entry-id=\"manual-clas-mvpyfkeupdp1bp\" data-label=\"Class portrait\" src=\"about:blank\" alt=\"Tidewalker\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<div class=\"quote-block\">Augmented salvage divers who go deepest on Day Nine. They are fiercely loyal and resent Authority licensing; they never leave a crew member in the Reach.</div>\n\n<table class=\"rel-table\">\n<tr><th>Hit Die</th><td>d10</td></tr>\n<tr><th>Primary Ability</th><td>Constitution</td></tr>\n<tr><th>Saving Throw Proficiencies</th><td>Constitution, Wisdom</td></tr>\n\n<tr><th>Subclass Choice</th><td>Subclass, chosen at level 3</td></tr>\n</table>\n\n<h2>Class Table (Levels 1–20)</h2>\n<table class=\"rel-table\">\n<tr><th>Level</th><th>Prof. Bonus</th><th>Features</th></tr>\n<tr><td>1</td><td>+2</td><td>Deep Lung</td></tr>\n<tr><td>2</td><td>+2</td><td>—</td></tr>\n<tr><td>3</td><td>+2</td><td>Read the Reach, Subclass feature</td></tr>\n<tr><td>4</td><td>+2</td><td>Ability Score Improvement</td></tr>\n<tr><td>5</td><td>+3</td><td>Throw the Rope</td></tr>\n<tr><td>6</td><td>+3</td><td>—</td></tr>\n<tr><td>7</td><td>+3</td><td>—</td></tr>\n<tr><td>8</td><td>+3</td><td>Ability Score Improvement</td></tr>\n<tr><td>9</td><td>+4</td><td>—</td></tr>\n<tr><td>10</td><td>+4</td><td>—</td></tr>\n<tr><td>11</td><td>+4</td><td>—</td></tr>\n<tr><td>12</td><td>+4</td><td>Ability Score Improvement</td></tr>\n<tr><td>13</td><td>+5</td><td>—</td></tr>\n<tr><td>14</td><td>+5</td><td>—</td></tr>\n<tr><td>15</td><td>+5</td><td>—</td></tr>\n<tr><td>16</td><td>+5</td><td>Ability Score Improvement</td></tr>\n<tr><td>17</td><td>+6</td><td>—</td></tr>\n<tr><td>18</td><td>+6</td><td>—</td></tr>\n<tr><td>19</td><td>+6</td><td>Ability Score Improvement</td></tr>\n<tr><td>20</td><td>+6</td><td>—</td></tr>\n</table>\n\n\n\n\n\n",
+   "raw_json": {
+    "id": "manual-clas-mvpyfkeupdp1bp",
+    "raw": {
+     "id": "manual-clas-mvpyfkeupdp1bp",
+     "name": "Tidewalker",
+     "flavor": "Augmented salvage divers who go deepest on Day Nine. They are fiercely loyal and resent Authority licensing; they never leave a crew member in the Reach.",
+     "hitDie": "d10",
+     "status": null,
+     "faction": "the-tidewalkers",
+     "features": [
+      {
+       "name": "Deep Lung",
+       "level": 1,
+       "description": "Your augmented lungs let you hold your breath for 10 minutes plus your Constitution modifier in minutes."
+      },
+      {
+       "name": "Read the Reach",
+       "level": 3,
+       "description": "You always know the current tide state and gain advantage on checks to navigate flooded or drowned terrain."
+      },
+      {
+       "name": "Throw the Rope",
+       "level": 5,
+       "description": "When an ally within 30 ft. is below 0 hit points underwater, you may use your reaction to pull them to safety."
+      }
+     ],
+     "casterType": "none",
+     "sourceMode": "homebrew",
+     "subclasses": [],
+     "designNotes": "",
+     "subclassName": "",
+     "primaryAbility": "con",
+     "spellcastingAbility": null,
+     "subclassUnlockLevel": 3,
+     "savingThrowProficiencies": [
+      "Constitution",
+      "Wisdom"
+     ]
+    },
+    "name": "Tidewalker",
+    "tags": [
+     "<span class=\"tag\">5e Class</span>",
+     "<span class=\"tag\">homebrew</span>"
+    ],
+    "footer": [
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Class Sheet — Full 1–20 Progression",
+    "faction": "the-tidewalkers",
+    "ruleset": "5e",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-clas-mvpyfkeupdp1bp\" data-category=\"classes\" data-entry-id=\"manual-clas-mvpyfkeupdp1bp\" data-label=\"Class portrait\" src=\"about:blank\" alt=\"Tidewalker\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<div class=\"quote-block\">Augmented salvage divers who go deepest on Day Nine. They are fiercely loyal and resent Authority licensing; they never leave a crew member in the Reach.</div>\n\n<table class=\"rel-table\">\n<tr><th>Hit Die</th><td>d10</td></tr>\n<tr><th>Primary Ability</th><td>Constitution</td></tr>\n<tr><th>Saving Throw Proficiencies</th><td>Constitution, Wisdom</td></tr>\n\n<tr><th>Subclass Choice</th><td>Subclass, chosen at level 3</td></tr>\n</table>\n\n<h2>Class Table (Levels 1–20)</h2>\n<table class=\"rel-table\">\n<tr><th>Level</th><th>Prof. Bonus</th><th>Features</th></tr>\n<tr><td>1</td><td>+2</td><td>Deep Lung</td></tr>\n<tr><td>2</td><td>+2</td><td>—</td></tr>\n<tr><td>3</td><td>+2</td><td>Read the Reach, Subclass feature</td></tr>\n<tr><td>4</td><td>+2</td><td>Ability Score Improvement</td></tr>\n<tr><td>5</td><td>+3</td><td>Throw the Rope</td></tr>\n<tr><td>6</td><td>+3</td><td>—</td></tr>\n<tr><td>7</td><td>+3</td><td>—</td></tr>\n<tr><td>8</td><td>+3</td><td>Ability Score Improvement</td></tr>\n<tr><td>9</td><td>+4</td><td>—</td></tr>\n<tr><td>10</td><td>+4</td><td>—</td></tr>\n<tr><td>11</td><td>+4</td><td>—</td></tr>\n<tr><td>12</td><td>+4</td><td>Ability Score Improvement</td></tr>\n<tr><td>13</td><td>+5</td><td>—</td></tr>\n<tr><td>14</td><td>+5</td><td>—</td></tr>\n<tr><td>15</td><td>+5</td><td>—</td></tr>\n<tr><td>16</td><td>+5</td><td>Ability Score Improvement</td></tr>\n<tr><td>17</td><td>+6</td><td>—</td></tr>\n<tr><td>18</td><td>+6</td><td>—</td></tr>\n<tr><td>19</td><td>+6</td><td>Ability Score Improvement</td></tr>\n<tr><td>20</td><td>+6</td><td>—</td></tr>\n</table>\n\n\n\n\n\n",
+    "category": "classes",
+    "subtitle": "d10 · Martial",
+    "sourceMode": "homebrew"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:36:08.638724+00:00"
+  },
+  {
+   "category": "classes",
+   "entry_id": "manual-clas-mvpyg5xqk1tipz",
+   "name": "Gate Runner",
+   "subtitle": "d8 · Martial",
+   "faction": "the-gate-syndicate",
+   "tags_json": [
+    "<span class=\"tag\">5e Class</span>",
+    "<span class=\"tag\">homebrew</span>"
+   ],
+   "body_html": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-clas-mvpyg5xqk1tipz\" data-category=\"classes\" data-entry-id=\"manual-clas-mvpyg5xqk1tipz\" data-label=\"Class portrait\" src=\"about:blank\" alt=\"Gate Runner\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<div class=\"quote-block\">Smugglers who move contraband through the Sluice Gates on the Nine Days. They work for whoever pays and trust nobody on the Terraces.</div>\n\n<table class=\"rel-table\">\n<tr><th>Hit Die</th><td>d8</td></tr>\n<tr><th>Primary Ability</th><td>Dexterity</td></tr>\n<tr><th>Saving Throw Proficiencies</th><td>Dexterity, Intelligence</td></tr>\n\n<tr><th>Subclass Choice</th><td>Subclass, chosen at level 3</td></tr>\n</table>\n\n<h2>Class Table (Levels 1–20)</h2>\n<table class=\"rel-table\">\n<tr><th>Level</th><th>Prof. Bonus</th><th>Features</th></tr>\n<tr><td>1</td><td>+2</td><td>Unlogged</td></tr>\n<tr><td>2</td><td>+2</td><td>—</td></tr>\n<tr><td>3</td><td>+2</td><td>Wet Net Ghost, Subclass feature</td></tr>\n<tr><td>4</td><td>+2</td><td>Ability Score Improvement</td></tr>\n<tr><td>5</td><td>+3</td><td>Sluice Sprint</td></tr>\n<tr><td>6</td><td>+3</td><td>—</td></tr>\n<tr><td>7</td><td>+3</td><td>—</td></tr>\n<tr><td>8</td><td>+3</td><td>Ability Score Improvement</td></tr>\n<tr><td>9</td><td>+4</td><td>—</td></tr>\n<tr><td>10</td><td>+4</td><td>—</td></tr>\n<tr><td>11</td><td>+4</td><td>—</td></tr>\n<tr><td>12</td><td>+4</td><td>Ability Score Improvement</td></tr>\n<tr><td>13</td><td>+5</td><td>—</td></tr>\n<tr><td>14</td><td>+5</td><td>—</td></tr>\n<tr><td>15</td><td>+5</td><td>—</td></tr>\n<tr><td>16</td><td>+5</td><td>Ability Score Improvement</td></tr>\n<tr><td>17</td><td>+6</td><td>—</td></tr>\n<tr><td>18</td><td>+6</td><td>—</td></tr>\n<tr><td>19</td><td>+6</td><td>Ability Score Improvement</td></tr>\n<tr><td>20</td><td>+6</td><td>—</td></tr>\n</table>\n\n\n\n\n\n",
+   "raw_json": {
+    "id": "manual-clas-mvpyg5xqk1tipz",
+    "raw": {
+     "id": "manual-clas-mvpyg5xqk1tipz",
+     "name": "Gate Runner",
+     "flavor": "Smugglers who move contraband through the Sluice Gates on the Nine Days. They work for whoever pays and trust nobody on the Terraces.",
+     "hitDie": "d8",
+     "status": null,
+     "faction": "the-gate-syndicate",
+     "features": [
+      {
+       "name": "Unlogged",
+       "level": 1,
+       "description": "You can slip through Authority checkpoints; scanners treat you as an unregistered maintenance worker until you attack or are touched."
+      },
+      {
+       "name": "Wet Net Ghost",
+       "level": 3,
+       "description": "Within range of a Gate relay, you may spoof a license ping once per Nine Days."
+      },
+      {
+       "name": "Sluice Sprint",
+       "level": 5,
+       "description": "Dash as a bonus action while moving through tunnels or flooded passages."
+      }
+     ],
+     "casterType": "none",
+     "sourceMode": "homebrew",
+     "subclasses": [],
+     "designNotes": "",
+     "subclassName": "",
+     "primaryAbility": "dex",
+     "spellcastingAbility": null,
+     "subclassUnlockLevel": 3,
+     "savingThrowProficiencies": [
+      "Dexterity",
+      "Intelligence"
+     ]
+    },
+    "name": "Gate Runner",
+    "tags": [
+     "<span class=\"tag\">5e Class</span>",
+     "<span class=\"tag\">homebrew</span>"
+    ],
+    "footer": [
+     "Source: generated via Chronicled"
+    ],
+    "eyebrow": "Class Sheet — Full 1–20 Progression",
+    "faction": "the-gate-syndicate",
+    "ruleset": "5e",
+    "bodyHtml": "\n<img class=\"portrait-img\" id=\"portrait-img-manual-clas-mvpyg5xqk1tipz\" data-category=\"classes\" data-entry-id=\"manual-clas-mvpyg5xqk1tipz\" data-label=\"Class portrait\" src=\"about:blank\" alt=\"Gate Runner\" onerror=\"handlePortraitError(this)\">\n<p class=\"flavor\" style=\"text-transform:uppercase; font-size:0.7rem; letter-spacing:0.05em;\">Source: homebrew</p>\n<div class=\"quote-block\">Smugglers who move contraband through the Sluice Gates on the Nine Days. They work for whoever pays and trust nobody on the Terraces.</div>\n\n<table class=\"rel-table\">\n<tr><th>Hit Die</th><td>d8</td></tr>\n<tr><th>Primary Ability</th><td>Dexterity</td></tr>\n<tr><th>Saving Throw Proficiencies</th><td>Dexterity, Intelligence</td></tr>\n\n<tr><th>Subclass Choice</th><td>Subclass, chosen at level 3</td></tr>\n</table>\n\n<h2>Class Table (Levels 1–20)</h2>\n<table class=\"rel-table\">\n<tr><th>Level</th><th>Prof. Bonus</th><th>Features</th></tr>\n<tr><td>1</td><td>+2</td><td>Unlogged</td></tr>\n<tr><td>2</td><td>+2</td><td>—</td></tr>\n<tr><td>3</td><td>+2</td><td>Wet Net Ghost, Subclass feature</td></tr>\n<tr><td>4</td><td>+2</td><td>Ability Score Improvement</td></tr>\n<tr><td>5</td><td>+3</td><td>Sluice Sprint</td></tr>\n<tr><td>6</td><td>+3</td><td>—</td></tr>\n<tr><td>7</td><td>+3</td><td>—</td></tr>\n<tr><td>8</td><td>+3</td><td>Ability Score Improvement</td></tr>\n<tr><td>9</td><td>+4</td><td>—</td></tr>\n<tr><td>10</td><td>+4</td><td>—</td></tr>\n<tr><td>11</td><td>+4</td><td>—</td></tr>\n<tr><td>12</td><td>+4</td><td>Ability Score Improvement</td></tr>\n<tr><td>13</td><td>+5</td><td>—</td></tr>\n<tr><td>14</td><td>+5</td><td>—</td></tr>\n<tr><td>15</td><td>+5</td><td>—</td></tr>\n<tr><td>16</td><td>+5</td><td>Ability Score Improvement</td></tr>\n<tr><td>17</td><td>+6</td><td>—</td></tr>\n<tr><td>18</td><td>+6</td><td>—</td></tr>\n<tr><td>19</td><td>+6</td><td>Ability Score Improvement</td></tr>\n<tr><td>20</td><td>+6</td><td>—</td></tr>\n</table>\n\n\n\n\n\n",
+    "category": "classes",
+    "subtitle": "d8 · Martial",
+    "sourceMode": "homebrew"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:36:20.8231+00:00"
+  },
+  {
+   "category": "factions",
+   "entry_id": "the-gate-syndicate",
+   "name": "The Gate Syndicate",
+   "subtitle": "Smugglers and fixers who run unlicensed dives and move contraband through the Sluice Gates.",
+   "faction": null,
+   "tags_json": [],
+   "body_html": "\n<div class=\"quote-block\">Smugglers and fixers who run unlicensed dives and move contraband through the Sluice Gates.</div>\n<h2>Politics</h2>\n<p>Pragmatic and cynical. They sell the same access to whoever pays, and keep the Authority and the Tidewalkers from ever fully trusting each other.</p>\n<h2>Government</h2>\n<p>A loose ring of five Gate Bosses who split the sluice tunnels by shift. Disputes are settled by auction, and sometimes by drowning.</p>\n<h2>Economy</h2>\n<p>Bribes, bootleg dive permits, black-market air and pre-flood data fenced to the Terraces. Everything clears in Tide Scrip off the books.</p>\n<h2>Military</h2>\n<p>Fast skiffs, hired Tidewalker muscle, and old Authority gate codes they should not have. They avoid open fights and win by controlling the doors.</p>\n<h2>Tensions &amp; Secrets</h2>\n<p>Their bribe money has reached deep into the Authority council. A rumor says one Boss has stopped selling to the Terraces and now sells only to the Hollow Choir.</p>\n",
+   "raw_json": {
+    "id": "the-gate-syndicate",
+    "name": "The Gate Syndicate",
+    "tags": [],
+    "footer": [
+     "Source: World Setup Wizard"
+    ],
+    "faction": null,
+    "bodyHtml": "\n<div class=\"quote-block\">Smugglers and fixers who run unlicensed dives and move contraband through the Sluice Gates.</div>\n<h2>Politics</h2>\n<p>Pragmatic and cynical. They sell the same access to whoever pays, and keep the Authority and the Tidewalkers from ever fully trusting each other.</p>\n<h2>Government</h2>\n<p>A loose ring of five Gate Bosses who split the sluice tunnels by shift. Disputes are settled by auction, and sometimes by drowning.</p>\n<h2>Economy</h2>\n<p>Bribes, bootleg dive permits, black-market air and pre-flood data fenced to the Terraces. Everything clears in Tide Scrip off the books.</p>\n<h2>Military</h2>\n<p>Fast skiffs, hired Tidewalker muscle, and old Authority gate codes they should not have. They avoid open fights and win by controlling the doors.</p>\n<h2>Tensions &amp; Secrets</h2>\n<p>Their bribe money has reached deep into the Authority council. A rumor says one Boss has stopped selling to the Terraces and now sells only to the Hollow Choir.</p>\n",
+    "subtitle": "Smugglers and fixers who run unlicensed dives and move contraband through the Sluice Gates.",
+    "accentColor": "#ff7a3c"
+   },
+   "locked": false,
+   "created_at": "2026-10-27T00:26:50.592697+00:00"
+  }
+ ]
+}

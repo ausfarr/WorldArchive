@@ -1,0 +1,41 @@
+/* Demo-tab-only styles; everything else comes from archive.css (the app's own stylesheet). */
+.demo-banner { background: var(--bg-panel-raised); border-bottom: 1px solid var(--border-line); font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-dim); }
+.demo-banner .wrap { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+.demo-banner strong { color: var(--neon-cyan); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+.demo-cta { color: var(--bg-void); background: var(--neon-primary); padding: 4px 12px; font-weight: 500; letter-spacing: 0.04em; border-radius: 2px; white-space: nowrap; }
+.demo-cta:hover { text-decoration: none; filter: brightness(1.1); }
+
+.site-header .wrap { gap: 16px; flex-wrap: wrap; }
+.demo-search { position: relative; margin-left: auto; }
+.demo-search input { background: var(--bg-panel-raised); border: 1px solid var(--border-line); color: var(--ink); padding: 7px 10px; font-family: var(--font-body); font-size: 0.85rem; width: 220px; max-width: 100%; }
+.demo-search .site-search-results { position: absolute; right: 0; top: calc(100% + 6px); width: 320px; max-height: 60vh; overflow: auto; background: var(--bg-panel-raised); border: 1px solid var(--border-line); border-radius: 4px; padding: 8px; z-index: 60; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.site-search-group { margin-bottom: 8px; }
+
+.demo-hero { padding: 40px 0 8px; }
+.demo-hero h1 { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 10px; font-size: clamp(1.8rem, 5vw, 2.8rem); color: var(--neon-primary); }
+.demo-hero .tagline { color: var(--ink-dim); max-width: 680px; margin: 0 0 12px; }
+.demo-hero .status { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; color: var(--neon-cyan); margin: 0 0 8px; }
+.demo-hero .meta { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-faint); margin: 0; }
+
+.hub-grid { margin-top: 28px; }
+.category-card { cursor: pointer; }
+
+.demo-section-title { font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.04em; margin: 40px 0 14px; font-size: 1.1rem; }
+.entry-card .thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; margin: -16px -18px 12px; width: calc(100% + 36px); max-width: none; border-bottom: 1px solid var(--border-line-soft); background: var(--bg-panel-raised); }
+.entry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; margin-bottom: 40px; }
+
+.faction-banner { width: 100%; max-height: 260px; object-fit: cover; display: block; border-bottom: 1px solid var(--border-line); }
+.sheet { overflow: hidden; }
+.sheet-footer { padding: 16px 32px 24px; font-family: var(--font-mono); font-size: 0.68rem; color: var(--ink-faint); border-top: 1px solid var(--border-line-soft); }
+.sheet-footer span { display: block; }
+.sheet-nav { display: flex; justify-content: space-between; gap: 12px; margin: -56px 0 80px; font-family: var(--font-mono); font-size: 0.75rem; }
+.demo-end-cta { margin: 0 0 60px; padding: 24px 28px; border: 1px solid var(--border-line); border-left: 3px solid var(--neon-primary); background: var(--bg-panel); }
+.demo-end-cta h2 { font-family: var(--font-display); text-transform: uppercase; margin: 0 0 8px; font-size: 1.15rem; }
+.demo-end-cta p { margin: 0 0 14px; color: var(--ink-dim); }
+
+@media (max-width: 640px) {
+  .sheet-header, .sheet-body { padding-left: 18px; padding-right: 18px; }
+  .demo-search input { width: 100%; }
+  .demo-search { margin-left: 0; width: 100%; }
+  .sheet-footer { padding-left: 18px; padding-right: 18px; }
+}
