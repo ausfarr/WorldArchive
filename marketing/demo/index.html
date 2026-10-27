@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo World: Saltmere Sprawl — Chronicled</title>
+<meta name="description" content="Browse a finished Chronicled archive: 97 entries (NPCs, monsters, items, factions, districts, spells, classes, characters and logs) from the Saltmere Sprawl demo world.">
+<link rel="icon" href="../images/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- The app's own archive stylesheet (copied by scripts/exportDemoSnapshot.js) so entries look exactly as they do in the product. -->
+<link rel="stylesheet" href="archive.css">
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+
+<div class="demo-banner">
+  <div class="wrap">
+    <span><strong>Demo world.</strong> A static, read-only snapshot of a finished archive — nothing here is generated live.</span>
+    <a class="demo-cta" href="https://app.chronicled.world/">Build your own →</a>
+  </div>
+</div>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="site-title"><a href="#/" id="site-title-link">THE ARCHIVE</a></div>
+    <nav class="site-nav" id="site-nav"></nav>
+    <div class="demo-search">
+      <input id="demo-search" type="search" placeholder="Search the archive…" autocomplete="off" aria-label="Search the archive">
+      <div id="demo-search-results" class="site-search-results" hidden></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="view" aria-live="polite"></main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span id="demo-footer">CHRONICLED</span>
+    <a href="../index.html">chronicled.world</a>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script src="demo.js"></script>
+</body>
+</html>

@@ -114,3 +114,33 @@ node scripts/seedSaltmereDemo.js --dry-run
 node scripts/seedSaltmereDemo.js --apply --confirm-host <SUPABASE_URL host>
 # undo: node scripts/seedSaltmereDemo.js --remove --confirm-host <SUPABASE_URL host>
 ```
+
+## Static demo tab (`marketing/demo/`)
+
+A browsable, no-backend "Demo world" tab for chronicled.world (`/demo/`, linked
+from the marketing nav, listed in `sitemap.xml`). It is a **snapshot**, so it
+keeps working after the live Saltmere world is replaced with a real one.
+
+- **Source of truth is committed:** `saltmere_pack/existing_world_snapshot.json`
+  holds the 19 entries that were in the live world plus the config the page
+  needs (category labels/blurbs, site title/tagline/status line, style-guide
+  theme, calendar). Captured read-only with
+  `node scripts/exportDemoSnapshot.js --capture` (SELECTs only; project URL and
+  world id are scrubbed from the file).
+- **Build** (`node scripts/exportDemoSnapshot.js`, no credentials, no database):
+  loads the snapshot into the in-memory fake, replays the seed script against it
+  (so ids, links and dossier HTML are exactly what the app's templates produce),
+  and writes `marketing/demo/data.js` (97 entries) + `marketing/demo/images/`
+  (70 portraits/banners) + `archive.css` (a copy of the app stylesheet, so
+  entries look like the product). Dossier links are rewritten to `#/category/id`;
+  every portrait `<img>` points at a bundled file or is dropped (the 19 live
+  entries have no images; their stored URLs returned 400).
+- **Viewer** (`index.html`, `demo.js`, `demo.css`): hash-routed hub / category
+  grid / dossier, search, prev/next, the world's own theme and category names
+  (Powers, Contacts, ...). Works from any static host and from `file://`.
+- **Re-run** the build whenever the pack or the app's templates change.
+- Verified in headless Chromium over plain static serving: all 97 dossiers render,
+  0 dead internal links, 0 page errors, no horizontal scroll at 390px.
+- Presentation-only choices in the exporter: the five new factions get accent
+  colours from a small palette (the app generates these with a model call; not
+  written anywhere); portrait images are the pack PNGs unmodified (~9 MB total).

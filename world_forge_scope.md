@@ -297,3 +297,5 @@ it follows are recorded here. Full detail: `session_addendum_saltmere_demo_seed_
   front from the pack's slug->id map, then by id/name against existing entries.
 - **Tests:** `node scripts/testSaltmereSeed.js` (resolver, dedupe, and an
   end-to-end apply/idempotency/remove run on `scripts/lib/fakeSupabase.js`).
+- **Static demo tab:** `scripts/exportDemoSnapshot.js` renders the seeded world to
+  `marketing/demo/` (no database at view time). See the addendum's "Static demo tab".

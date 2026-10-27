@@ -29,6 +29,11 @@ entry from here forward gets both a real date and a version at write time.
   tag, pre-write backup. No app code, schema, or migration changes. Tests:
   `scripts/testSaltmereSeed.js`. Detail:
   [session_addendum_saltmere_demo_seed_shipped.md](session_addendum_saltmere_demo_seed_shipped.md).
+- **Static Demo world tab (marketing site).** `/demo/` is a read-only, backend-free
+  browser for the 97-entry Saltmere Sprawl archive (hub, category grids, full
+  dossiers with art, cross-links, search), themed from the world's own style
+  guide. Built from a committed snapshot by `scripts/exportDemoSnapshot.js`, so
+  it survives the live world being replaced. Nav link + sitemap entry added.
 
 - **Log in vs. Save-your-world clarity (v1.12).** `login.html` now has two
   explicit tabs (`Log in` | `Save my world`); `?mode=signin|save` overrides,
