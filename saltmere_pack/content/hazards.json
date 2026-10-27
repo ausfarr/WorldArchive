@@ -1,0 +1,424 @@
+[
+ {
+  "id": "rust-hauler-drone",
+  "name": "Rust Hauler Drone",
+  "size": "Large",
+  "type": "construct",
+  "alignment": "unaligned",
+  "armorClass": 15,
+  "armorNote": "plating",
+  "hitPoints": 68,
+  "hitDice": "8d10+24",
+  "speed": "30 ft., fly 30 ft.",
+  "abilities": {
+   "str": 18,
+   "dex": 10,
+   "con": 16,
+   "int": 3,
+   "wis": 10,
+   "cha": 3
+  },
+  "senses": "darkvision 60 ft.",
+  "languages": "understands the Authority dialect but cannot speak",
+  "targetChallengeRating": "3",
+  "traits": [
+   {
+    "name": "Corroded Frame",
+    "description": "Takes 1d6 extra damage from acid or saltwater."
+   },
+   {
+    "name": "Haul Protocol",
+    "description": "Advantage on grapple checks against anything carrying cargo."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "description": "Two slam attacks."
+   },
+   {
+    "name": "Slam",
+    "description": "+6 to hit, reach 5 ft., 2d8+4 bludgeoning."
+   },
+   {
+    "name": "Cargo Net (Recharge 5-6)",
+    "description": "DC 14 Dex save or restrained until freed."
+   }
+  ],
+  "flavor": "A cargo-hauler drone that outlived its programming and now collects whatever it can lift.",
+  "designNotes": "Good first-tier boss when a party enters the Rustyard.",
+  "image": "best_0"
+ },
+ {
+  "id": "glimmer-eel",
+  "name": "Glimmer Eel",
+  "size": "Large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "armorClass": 13,
+  "armorNote": "natural",
+  "hitPoints": 45,
+  "hitDice": "6d10+12",
+  "speed": "swim 40 ft.",
+  "abilities": {
+   "str": 14,
+   "dex": 15,
+   "con": 14,
+   "int": 2,
+   "wis": 12,
+   "cha": 5
+  },
+  "senses": "darkvision 120 ft.",
+  "languages": "—",
+  "targetChallengeRating": "2",
+  "traits": [
+   {
+    "name": "Bait Lantern",
+    "description": "Lure glows; creatures within 30 ft. must pass DC 12 Wis or approach it."
+   },
+   {
+    "name": "Water Breathing",
+    "description": "Breathes only water."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "description": "+5, 2d8+2 piercing."
+   },
+   {
+    "name": "Shock (Recharge 5-6)",
+    "description": "10-ft. line, DC 13 Con, 4d6 lightning, half on success."
+   }
+  ],
+  "flavor": "Its lantern is the last thing many divers see.",
+  "designNotes": "The signature low-level underwater threat.",
+  "image": "best_1"
+ },
+ {
+  "id": "barnacle-sentinel",
+  "name": "Barnacle Sentinel",
+  "size": "Medium",
+  "type": "monstrosity",
+  "alignment": "neutral",
+  "armorClass": 16,
+  "armorNote": "natural",
+  "hitPoints": 52,
+  "hitDice": "7d8+21",
+  "speed": "10 ft., swim 20 ft.",
+  "abilities": {
+   "str": 16,
+   "dex": 6,
+   "con": 16,
+   "int": 5,
+   "wis": 14,
+   "cha": 4
+  },
+  "senses": "darkvision 60 ft.",
+  "languages": "—",
+  "targetChallengeRating": "2",
+  "traits": [
+   {
+    "name": "Anchored",
+    "description": "Does not move on its own while anchored; reach 10 ft."
+   },
+   {
+    "name": "Barnacle Crust",
+    "description": "Resistance to bludgeoning, piercing, slashing from nonmagical attacks."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Crush",
+    "description": "+5, 2d10+3 bludgeoning, grappled (DC 13)."
+   },
+   {
+    "name": "Release Spores (1/day)",
+    "description": "15-ft. cone, DC 13 Con or poisoned 1 min."
+   }
+  ],
+  "flavor": "It looks like a rock until it opens.",
+  "designNotes": "Use as a gatekeeper.",
+  "image": "best_2"
+ },
+ {
+  "id": "lantern-swarm",
+  "name": "Lantern Swarm",
+  "size": "Medium",
+  "type": "swarm of Tiny beasts",
+  "alignment": "unaligned",
+  "armorClass": 12,
+  "armorNote": "natural",
+  "hitPoints": 33,
+  "hitDice": "6d8+6",
+  "speed": "swim 30 ft.",
+  "abilities": {
+   "str": 3,
+   "dex": 14,
+   "con": 12,
+   "int": 1,
+   "wis": 10,
+   "cha": 3
+  },
+  "senses": "darkvision 60 ft.",
+  "languages": "—",
+  "targetChallengeRating": "1",
+  "traits": [
+   {
+    "name": "Swarm",
+    "description": "Occupies another creature's space and can move through openings 1 inch wide."
+   },
+   {
+    "name": "Dazzling Flash",
+    "description": "Creatures within 5 ft. must pass DC 11 Con or be blinded until the start of their next turn."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Stings",
+    "description": "+4, 2d6 piercing; 1d6 if half HP or fewer."
+   }
+  ],
+  "flavor": "A cloud of lamps, each hungry.",
+  "designNotes": "Blinding hazard for corridors.",
+  "image": "best_3"
+ },
+ {
+  "id": "tunnel-maw",
+  "name": "The Tunnel Maw",
+  "size": "Huge",
+  "type": "monstrosity",
+  "alignment": "unaligned",
+  "armorClass": 17,
+  "armorNote": "natural",
+  "hitPoints": 168,
+  "hitDice": "16d12+64",
+  "speed": "swim 30 ft.",
+  "abilities": {
+   "str": 23,
+   "dex": 9,
+   "con": 19,
+   "int": 3,
+   "wis": 12,
+   "cha": 6
+  },
+  "senses": "blindsight 60 ft.",
+  "languages": "—",
+  "targetChallengeRating": "8",
+  "traits": [
+   {
+    "name": "Swallow",
+    "description": "If the maw hits with its bite, the target is grappled and swallowed (DC 16 escape)."
+   },
+   {
+    "name": "Echoless",
+    "description": "Dampens sound within 60 ft.; sonic spells fail."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "description": "Bite and tail slam."
+   },
+   {
+    "name": "Bite",
+    "description": "+10, 3d10+6 piercing."
+   },
+   {
+    "name": "Tail",
+    "description": "+10, 2d8+6 bludgeoning."
+   }
+  ],
+  "flavor": "An old drainage tunnel that learned to swallow things whole.",
+  "designNotes": "A set-piece boss for a collapsed tram line.",
+  "image": "best_4"
+ },
+ {
+  "id": "harvester-crab",
+  "name": "Harvester Crab",
+  "size": "Large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "armorClass": 15,
+  "armorNote": "natural",
+  "hitPoints": 58,
+  "hitDice": "7d10+21",
+  "speed": "30 ft., swim 30 ft.",
+  "abilities": {
+   "str": 17,
+   "dex": 10,
+   "con": 16,
+   "int": 1,
+   "wis": 10,
+   "cha": 3
+  },
+  "senses": "—",
+  "languages": "—",
+  "targetChallengeRating": "2",
+  "traits": [
+   {
+    "name": "Pincer Reach",
+    "description": "Reach 10 ft."
+   },
+   {
+    "name": "Armored Shell",
+    "description": "Resistance to nonmagical slashing."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Pincer",
+    "description": "+5, 2d8+3 slashing, grappled (DC 13)."
+   },
+   {
+    "name": "Harvest",
+    "description": "If grappled target is restrained, deals 2d6 automatic slashing at the start of its turn."
+   }
+  ],
+  "flavor": "It harvests whatever is left.",
+  "designNotes": "Midgame obstacle.",
+  "image": "best_5"
+ },
+ {
+  "id": "pale-listener",
+  "name": "The Pale Listener",
+  "size": "Large",
+  "type": "aberration",
+  "alignment": "unaligned",
+  "armorClass": 15,
+  "armorNote": "natural",
+  "hitPoints": 110,
+  "hitDice": "13d10+39",
+  "speed": "swim 40 ft.",
+  "abilities": {
+   "str": 15,
+   "dex": 12,
+   "con": 16,
+   "int": 17,
+   "wis": 18,
+   "cha": 12
+  },
+  "senses": "blindsight 120 ft.",
+  "languages": "telepathy 60 ft.",
+  "targetChallengeRating": "7",
+  "traits": [
+   {
+    "name": "Hum",
+    "description": "Creatures within 30 ft. have disadvantage on Stealth checks and Concentration saves."
+   },
+   {
+    "name": "Echo",
+    "description": "Reaction: copies a sound; the Choir believes it speaks."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "description": "Two tendril strikes."
+   },
+   {
+    "name": "Tendril",
+    "description": "+7, 2d8+3 piercing, DC 15 Wis or frightened."
+   },
+   {
+    "name": "Whisper (Recharge 5-6)",
+    "description": "60-ft. cone, DC 15 Wis, 6d8 psychic, half on success."
+   }
+  ],
+  "flavor": "The Choir's god, or something that listens to it.",
+  "designNotes": "Choir climax.",
+  "image": "best_6"
+ },
+ {
+  "id": "cable-siren",
+  "name": "Cable Siren",
+  "size": "Medium",
+  "type": "monstrosity",
+  "alignment": "chaotic evil",
+  "armorClass": 13,
+  "armorNote": "natural",
+  "hitPoints": 65,
+  "hitDice": "10d8+20",
+  "speed": "30 ft., swim 40 ft.",
+  "abilities": {
+   "str": 10,
+   "dex": 16,
+   "con": 14,
+   "int": 12,
+   "wis": 13,
+   "cha": 18
+  },
+  "senses": "darkvision 60 ft.",
+  "languages": "Common",
+  "targetChallengeRating": "3",
+  "traits": [
+   {
+    "name": "Live Wire Hair",
+    "description": "Creatures that touch her take 1d6 lightning."
+   },
+   {
+    "name": "Siren Song",
+    "description": "Charm DC 14 Wis on listeners within 60 ft."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Multiattack",
+    "description": "Two claws."
+   },
+   {
+    "name": "Claw",
+    "description": "+5, 2d6+3 slashing plus 1d6 lightning."
+   }
+  ],
+  "flavor": "A diver who wired herself into the cables.",
+  "designNotes": "Lure-themed encounter.",
+  "image": "best_7"
+ },
+ {
+  "id": "armored-isopod",
+  "name": "Armored Isopod",
+  "size": "Large",
+  "type": "beast",
+  "alignment": "unaligned",
+  "armorClass": 17,
+  "armorNote": "natural",
+  "hitPoints": 76,
+  "hitDice": "8d10+32",
+  "speed": "30 ft., swim 20 ft.",
+  "abilities": {
+   "str": 18,
+   "dex": 8,
+   "con": 18,
+   "int": 1,
+   "wis": 10,
+   "cha": 2
+  },
+  "senses": "darkvision 60 ft.",
+  "languages": "—",
+  "targetChallengeRating": "3",
+  "traits": [
+   {
+    "name": "Curl Up",
+    "description": "Bonus action: AC 19, speed 0."
+   },
+   {
+    "name": "Armored",
+    "description": "Resistance to nonmagical damage while curled."
+   }
+  ],
+  "actions": [
+   {
+    "name": "Bite",
+    "description": "+6, 2d10+4 piercing."
+   },
+   {
+    "name": "Roll Over (Recharge 5-6)",
+    "description": "Moves up to 30 ft., DC 14 Str or prone and 3d8 bludgeoning."
+   }
+  ],
+  "flavor": "It's mostly armor and appetite.",
+  "designNotes": "Tanky hazard.",
+  "image": "best_8"
+ }
+]

@@ -1,0 +1,266 @@
+[
+ {
+  "id": "rook-delacroix-diver",
+  "name": "Rook Delacroix",
+  "classes": [
+   {
+    "classId": "rust-diver",
+    "classLevel": 8
+   }
+  ],
+  "abilities": {
+   "str": 16,
+   "dex": 12,
+   "con": 16,
+   "int": 10,
+   "wis": 12,
+   "cha": 10
+  },
+  "skillProficiencies": [
+   "Athletics",
+   "Survival"
+  ],
+  "backgroundKey": "sailor",
+  "armorClass": 15,
+  "armorNote": "scrap plate",
+  "equipment": "Brass rebreather, harpoon rig, 12 dive tags",
+  "background": "Veteran diver and Rustyard Master.",
+  "ideals": "Nobody dies for a crate.",
+  "bonds": "The crew first.",
+  "flaws": "Overconfident about his own limits.",
+  "backstory": "Lost his first crew in the Third Flood and swore never again.",
+  "designNotes": "Dive leader NPC.",
+  "image": "div_0"
+ },
+ {
+  "id": "cable-siren-diver",
+  "name": "Cable Siren",
+  "classes": [
+   {
+    "classId": "cable-warden",
+    "classLevel": 5
+   }
+  ],
+  "abilities": {
+   "str": 10,
+   "dex": 16,
+   "con": 12,
+   "int": 14,
+   "wis": 10,
+   "cha": 16
+  },
+  "skillProficiencies": [
+   "Acrobatics",
+   "Deception"
+  ],
+  "backgroundKey": "criminal",
+  "armorClass": 13,
+  "armorNote": "padded coat",
+  "equipment": "Live cable coil, signal booster",
+  "background": "Former diver turned siren-voice.",
+  "ideals": "Freedom through noise.",
+  "bonds": "The cable that saved her.",
+  "flaws": "Can't stop singing.",
+  "backstory": "Wired herself into the Sprawl's grid after a dive went wrong.",
+  "designNotes": "Boss option.",
+  "image": "div_1"
+ },
+ {
+  "id": "tide-watch-diver",
+  "name": "Tide Watch",
+  "classes": [
+   {
+    "classId": "tidecaller",
+    "classLevel": 6
+   }
+  ],
+  "abilities": {
+   "str": 10,
+   "dex": 12,
+   "con": 12,
+   "int": 12,
+   "wis": 18,
+   "cha": 14
+  },
+  "skillProficiencies": [
+   "Insight",
+   "Perception"
+  ],
+  "backgroundKey": "hermit",
+  "armorClass": 12,
+  "armorNote": "robes",
+  "equipment": "Tide watch, storm lantern",
+  "background": "A solitary watcher who reads the sea.",
+  "ideals": "Balance.",
+  "bonds": "The tide itself.",
+  "flaws": "Loneliness.",
+  "backstory": "Hasn't spoken in a year; now speaks to the party.",
+  "designNotes": "Seer NPC.",
+  "image": "div_2"
+ },
+ {
+  "id": "inez-reyes",
+  "name": "Inez Reyes",
+  "classes": [
+   {
+    "classId": "gate-runner",
+    "classLevel": 4
+   }
+  ],
+  "abilities": {
+   "str": 10,
+   "dex": 17,
+   "con": 12,
+   "int": 12,
+   "wis": 12,
+   "cha": 14
+  },
+  "skillProficiencies": [
+   "Stealth",
+   "Sleight of Hand"
+  ],
+  "backgroundKey": "urchin",
+  "armorClass": 14,
+  "armorNote": "leather",
+  "equipment": "Lockpicks, smuggler's satchel",
+  "background": "Gate Four courier.",
+  "ideals": "Fast and free.",
+  "bonds": "Her brother Lucian.",
+  "flaws": "Can't say no to a dare.",
+  "backstory": "Smuggled medicine through Gate Four at 12.",
+  "designNotes": "PC option.",
+  "image": "div_3"
+ },
+ {
+  "id": "hanne-bellweather",
+  "name": "Hanne Bellweather",
+  "classes": [
+   {
+    "classId": "tide-medic",
+    "classLevel": 5
+   }
+  ],
+  "abilities": {
+   "str": 10,
+   "dex": 12,
+   "con": 14,
+   "int": 12,
+   "wis": 17,
+   "cha": 12
+  },
+  "skillProficiencies": [
+   "Medicine",
+   "Insight"
+  ],
+  "backgroundKey": "acolyte",
+  "armorClass": 13,
+  "armorNote": "apron",
+  "equipment": "Medical kit, mercy breath scroll",
+  "background": "Blue Apron veteran.",
+  "ideals": "No one drowns alone.",
+  "bonds": "Dr. Ruvo.",
+  "flaws": "Won't sleep.",
+  "backstory": "Carried six people out of the Third Flood.",
+  "designNotes": "PC option.",
+  "image": "div_4"
+ },
+ {
+  "id": "toma-saltwick",
+  "name": "Toma Saltwick",
+  "classes": [
+   {
+    "classId": "rust-diver",
+    "classLevel": 3
+   }
+  ],
+  "abilities": {
+   "str": 17,
+   "dex": 10,
+   "con": 15,
+   "int": 8,
+   "wis": 10,
+   "cha": 8
+  },
+  "skillProficiencies": [
+   "Athletics",
+   "Perception"
+  ],
+  "backgroundKey": "folk hero",
+  "armorClass": 16,
+  "armorNote": "scrap plate",
+  "equipment": "Pry bar, rope",
+  "background": "A young salvager with a big heart.",
+  "ideals": "Show them what's possible.",
+  "bonds": "His crew.",
+  "flaws": "Impulsive.",
+  "backstory": "Left a farm to dive.",
+  "designNotes": "PC option.",
+  "image": "div_5"
+ },
+ {
+  "id": "vesper-quiet",
+  "name": "Vesper Quiet",
+  "classes": [
+   {
+    "classId": "hollow-listener",
+    "classLevel": 6
+   }
+  ],
+  "abilities": {
+   "str": 8,
+   "dex": 14,
+   "con": 12,
+   "int": 12,
+   "wis": 14,
+   "cha": 18
+  },
+  "skillProficiencies": [
+   "Stealth",
+   "Persuasion"
+  ],
+  "backgroundKey": "charlatan",
+  "armorClass": 12,
+  "armorNote": "cloak",
+  "equipment": "Bone flute, echo shell",
+  "background": "Choir deserter.",
+  "ideals": "Truth has a sound.",
+  "bonds": "The Listener.",
+  "flaws": "Can't lie.",
+  "backstory": "Left the Choir after hearing the Listener answer.",
+  "designNotes": "Dark mirror.",
+  "image": "div_6"
+ },
+ {
+  "id": "ned-ironwake",
+  "name": "Ned Ironwake",
+  "classes": [
+   {
+    "classId": "gate-runner",
+    "classLevel": 7
+   }
+  ],
+  "abilities": {
+   "str": 12,
+   "dex": 18,
+   "con": 12,
+   "int": 12,
+   "wis": 10,
+   "cha": 12
+  },
+  "skillProficiencies": [
+   "Acrobatics",
+   "Stealth"
+  ],
+  "backgroundKey": "criminal",
+  "armorClass": 15,
+  "armorNote": "studded",
+  "equipment": "Rope, hooks",
+  "background": "A legendary courier.",
+  "ideals": "Speed above all.",
+  "bonds": "His ferry.",
+  "flaws": "Reckless.",
+  "backstory": "Once outran a flood.",
+  "designNotes": "Contact for jobs.",
+  "image": "div_7"
+ }
+]

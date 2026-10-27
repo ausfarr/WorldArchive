@@ -1,0 +1,224 @@
+[
+ {
+  "id": "tidecaller",
+  "name": "Tidecaller",
+  "hitDie": "d8",
+  "primaryAbility": "Wisdom",
+  "savingThrowProficiencies": [
+   "Wis",
+   "Con"
+  ],
+  "casterType": "full",
+  "spellcastingAbility": "Wisdom",
+  "features": [
+   {
+    "level": 1,
+    "name": "Tide Sense",
+    "description": "Know the next tide change within 1 mile."
+   },
+   {
+    "level": 2,
+    "name": "Pull",
+    "description": "Move creatures with water."
+   },
+   {
+    "level": 3,
+    "name": "Tide Path",
+    "description": "Subclass."
+   }
+  ],
+  "subclassName": "Current",
+  "subclasses": [
+   "Tide-Speaker",
+   "Storm-Reader"
+  ],
+  "flavor": "They bend the water to their will.",
+  "designNotes": "Control caster.",
+  "image": "cls_0"
+ },
+ {
+  "id": "cable-warden",
+  "name": "Cable Warden",
+  "hitDie": "d10",
+  "primaryAbility": "Dexterity",
+  "savingThrowProficiencies": [
+   "Dex",
+   "Int"
+  ],
+  "casterType": "half",
+  "spellcastingAbility": "Intelligence",
+  "features": [
+   {
+    "level": 1,
+    "name": "Live Wire",
+    "description": "Bonus action: coat a weapon in lightning for 1d4."
+   },
+   {
+    "level": 2,
+    "name": "Cable Grip",
+    "description": "Bonus action: grapple within 15 ft."
+   },
+   {
+    "level": 3,
+    "name": "Circuit",
+    "description": "Subclass."
+   }
+  ],
+  "subclassName": "Circuit",
+  "subclasses": [
+   "Conduit",
+   "Splicer"
+  ],
+  "flavor": "Electricity is a weapon and a leash.",
+  "designNotes": "Martial hybrid.",
+  "image": "cls_1"
+ },
+ {
+  "id": "tide-medic",
+  "name": "Tide Medic",
+  "hitDie": "d8",
+  "primaryAbility": "Wisdom",
+  "savingThrowProficiencies": [
+   "Wis",
+   "Cha"
+  ],
+  "casterType": "half",
+  "spellcastingAbility": "Wisdom",
+  "features": [
+   {
+    "level": 1,
+    "name": "First Breath",
+    "description": "Heal 1d6 + level to a dying creature."
+   },
+   {
+    "level": 2,
+    "name": "Triage",
+    "description": "Stabilize two creatures at once."
+   },
+   {
+    "level": 3,
+    "name": "Vow",
+    "description": "Subclass."
+   }
+  ],
+  "subclassName": "Vow",
+  "subclasses": [
+   "Blue Apron",
+   "Deep Rescue"
+  ],
+  "flavor": "They carry breath.",
+  "designNotes": "Healer.",
+  "image": "cls_2"
+ },
+ {
+  "id": "hollow-listener",
+  "name": "Hollow Listener",
+  "hitDie": "d6",
+  "primaryAbility": "Charisma",
+  "savingThrowProficiencies": [
+   "Cha",
+   "Wis"
+  ],
+  "casterType": "full",
+  "spellcastingAbility": "Charisma",
+  "features": [
+   {
+    "level": 1,
+    "name": "Hum",
+    "description": "Creatures within 10 ft. have disadvantage on Stealth."
+   },
+   {
+    "level": 2,
+    "name": "Echo",
+    "description": "Reaction: repeat a sound."
+   },
+   {
+    "level": 3,
+    "name": "Silence",
+    "description": "Subclass."
+   }
+  ],
+  "subclassName": "Silence",
+  "subclasses": [
+   "Choir Voice",
+   "Quiet Hand"
+  ],
+  "flavor": "They hear what the water hides.",
+  "designNotes": "Social caster.",
+  "image": "cls_3"
+ },
+ {
+  "id": "rust-diver",
+  "name": "Rust Diver",
+  "hitDie": "d10",
+  "primaryAbility": "Strength",
+  "savingThrowProficiencies": [
+   "Str",
+   "Con"
+  ],
+  "casterType": "none",
+  "spellcastingAbility": "",
+  "features": [
+   {
+    "level": 1,
+    "name": "Scrap Hide",
+    "description": "AC 13 + Con while wearing scrap armor."
+   },
+   {
+    "level": 2,
+    "name": "Salvage Eye",
+    "description": "Advantage on checks to find salvage."
+   },
+   {
+    "level": 3,
+    "name": "Rig",
+    "description": "Subclass."
+   }
+  ],
+  "subclassName": "Rig",
+  "subclasses": [
+   "Heavy Rig",
+   "Scavenger"
+  ],
+  "flavor": "They wear the wreck.",
+  "designNotes": "Tank.",
+  "image": "cls_4"
+ },
+ {
+  "id": "gate-runner",
+  "name": "Gate Runner",
+  "hitDie": "d8",
+  "primaryAbility": "Dexterity",
+  "savingThrowProficiencies": [
+   "Dex",
+   "Cha"
+  ],
+  "casterType": "none",
+  "spellcastingAbility": "",
+  "features": [
+   {
+    "level": 1,
+    "name": "Gate Sense",
+    "description": "Detect traps and secret doors within 30 ft."
+   },
+   {
+    "level": 2,
+    "name": "Quick Step",
+    "description": "Bonus action: Dash or Disengage."
+   },
+   {
+    "level": 3,
+    "name": "Run",
+    "description": "Subclass."
+   }
+  ],
+  "subclassName": "Run",
+  "subclasses": [
+   "Smuggler",
+   "Courier"
+  ],
+  "flavor": "They know every way in.",
+  "designNotes": "Rogue.",
+  "image": "cls_5"
+ }
+]

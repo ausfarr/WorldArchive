@@ -1,0 +1,933 @@
+[
+ {
+  "id": "old-tomo",
+  "name": "Old Tomo",
+  "callsign": "Ferryman",
+  "roleArchetype": "Informant/Fixer",
+  "faction": "unaligned",
+  "age": 71,
+  "signatureQuote": "\"The tide doesn't lie. People do. Pay me and I'll tell you which is which.\"",
+  "physicalDescription": "A wiry old man with salt-white braids, a patched oilskin coat and a ferry pole worn smooth by decades. One knuckle is always taped.",
+  "traits": [
+   "Patient",
+   "Superstitious",
+   "Quietly generous"
+  ],
+  "contradiction": "Hates the Authority but ferries its wardens for free.",
+  "wants": "Enough coin to retire to a dry-room.",
+  "actuallyNeeds": "Someone to take over his ferry route before he drowns tired.",
+  "speech": {
+   "register": "Rough, dry humor",
+   "rhythm": "Slow, with long pauses",
+   "tic": "Taps his pole twice before answering",
+   "neverSay": "\"Sorry\""
+  },
+  "relationships": [
+   {
+    "type": "Friend",
+    "toId": "mama-quill",
+    "toCategory": "npc",
+    "toLabel": "Mama Quill",
+    "why": "Trades gossip for tea every ninth day."
+   },
+   {
+    "type": "Debt",
+    "toId": "gate-syndicate",
+    "toCategory": "faction",
+    "toLabel": "Gate Syndicate",
+    "why": "Owes them for the ferry hull."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Fare's a coin or a secret. Pick one.\"",
+   "branches": [
+    {
+     "toneLabel": "Pay coin",
+     "reply": "\"Good. Where to? Mind the third pier.\""
+    },
+    {
+     "toneLabel": "Offer a secret",
+     "reply": "\"Hm. That's worth the whole trip and a warning.\""
+    }
+   ]
+  },
+  "questHook": "Tomo needs someone to carry a sealed crate to Choir Shrine without asking what's in it.",
+  "designNotes": "Good early-game guide; his rumors seed three districts.",
+  "image": "npc1_0"
+ },
+ {
+  "id": "dr-adaeze-ruvo",
+  "name": "Dr. Adaeze Ruvo",
+  "callsign": "Blue Apron",
+  "roleArchetype": "Community VIP",
+  "faction": "mercy-drop",
+  "age": 44,
+  "signatureQuote": "\"I've seen what water does to a lung. Don't tell me about brave.\"",
+  "physicalDescription": "Tall, tired, forearms scarred with chemical burns. Her apron is stained a permanent grey-blue.",
+  "traits": [
+   "Exacting",
+   "Compassionate",
+   "Unsparing"
+  ],
+  "contradiction": "Preaches free care while quietly stockpiling for a siege.",
+  "wants": "A decompression chamber that works.",
+  "actuallyNeeds": "Sleep, and someone to share the call-list.",
+  "speech": {
+   "register": "Clipped clinical",
+   "rhythm": "Short, fast",
+   "tic": "Counts breaths under her breath",
+   "neverSay": "\"I don't know\""
+  },
+  "relationships": [
+   {
+    "type": "Founder",
+    "toId": "mercy-drop",
+    "toCategory": "faction",
+    "toLabel": "Mercy Drop",
+    "why": "Built it from a queue of corpses."
+   },
+   {
+    "type": "Rival",
+    "toId": "trident-consortium",
+    "toCategory": "faction",
+    "toLabel": "Trident Consortium",
+    "why": "Calls their air a ransom."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Sit. Breathe. Then tell me what you took in.\"",
+   "branches": [
+    {
+     "toneLabel": "Ask for help",
+     "reply": "\"We'll see. Take off the glove.\""
+    },
+    {
+     "toneLabel": "Offer supplies",
+     "reply": "\"Name your price. I'll tell you if I can afford it.\""
+    }
+   ]
+  },
+  "questHook": "A diver is stuck in the chamber; Ruvo needs a rare filter from the Trident Works without paying the Consortium.",
+  "designNotes": "Moral anchor; shows the cost of the economy.",
+  "image": "npc1_1"
+ },
+ {
+  "id": "kessa-marrow",
+  "name": "Kessa Marrow",
+  "callsign": "Cutter",
+  "roleArchetype": "Rival",
+  "faction": "salvage-guild",
+  "age": 31,
+  "signatureQuote": "\"You find it, I cut it loose, we split it. Unless you're slow.\"",
+  "physicalDescription": "Compact woman, shaved temples, a bandolier of cutting tools and a smile that doesn't reach her eyes.",
+  "traits": [
+   "Ambitious",
+   "Competitive",
+   "Precise"
+  ],
+  "contradiction": "Calls herself loyal to the Guild but is courting Trident.",
+  "wants": "To be the Rustyard Master.",
+  "actuallyNeeds": "To be told she was good before the Master retires.",
+  "speech": {
+   "register": "Brisk, confident",
+   "rhythm": "Staccato",
+   "tic": "Clicks her cutter twice",
+   "neverSay": "\"Maybe\""
+  },
+  "relationships": [
+   {
+    "type": "Employer",
+    "toId": "salvage-guild",
+    "toCategory": "faction",
+    "toLabel": "Salvage Guild",
+    "why": "Crew Chief, third rank."
+   },
+   {
+    "type": "Rival",
+    "toId": "one-eyed-hale",
+    "toCategory": "npc",
+    "toLabel": "One-Eyed Hale",
+    "why": "Hale taught her; she has surpassed him."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Thought you'd be taller.\"",
+   "branches": [
+    {
+     "toneLabel": "Banter",
+     "reply": "\"Keep talking. It's the only part of you that's quick.\""
+    },
+    {
+     "toneLabel": "Offer a deal",
+     "reply": "\"Terms first. Then I decide if I like you.\""
+    }
+   ]
+  },
+  "questHook": "She hires the party to beat a rival crew to a sunken tram.",
+  "designNotes": "Competitive foil for dive scenes.",
+  "image": "npc1_2"
+ },
+ {
+  "id": "one-eyed-hale",
+  "name": "One-Eyed Hale",
+  "callsign": "Lamp",
+  "roleArchetype": "Informant/Fixer",
+  "faction": "salvage-guild",
+  "age": 58,
+  "signatureQuote": "\"I lost the eye to a Glimmer Eel. Best lesson I ever bought.\"",
+  "physicalDescription": "Heavy, kind-faced, with a cloudy left eye and a harpoon-scar across the brow.",
+  "traits": [
+   "Wise",
+   "Haunted",
+   "Funny"
+  ],
+  "contradiction": "Teaches safety while refusing to dive again.",
+  "wants": "To see one more crew come home whole.",
+  "actuallyNeeds": "Forgiveness for the diver he left behind.",
+  "speech": {
+   "register": "Warm, rumbling",
+   "rhythm": "Easy, anecdotal",
+   "tic": "Rubs the scar when lying",
+   "neverSay": "\"Easy\""
+  },
+  "relationships": [
+   {
+    "type": "Student",
+    "toId": "kessa-marrow",
+    "toCategory": "npc",
+    "toLabel": "Kessa Marrow",
+    "why": "He taught her everything and she knows it."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Sit, sit. Mind the bucket — it's eel.\"",
+   "branches": [
+    {
+     "toneLabel": "Ask about eels",
+     "reply": "\"Light means bait. Always. Remember that.\""
+    },
+    {
+     "toneLabel": "Ask about the past",
+     "reply": "\"Not before the second drink.\""
+    }
+   ]
+  },
+  "questHook": "Hale knows the lane to a wreck no one has reached; he will map it only if someone brings back a keepsake.",
+  "designNotes": "Mentor and tutorial NPC.",
+  "image": "npc1_3"
+ },
+ {
+  "id": "mama-quill",
+  "name": "Mama Quill",
+  "callsign": "Needle",
+  "roleArchetype": "Community VIP",
+  "faction": "unaligned",
+  "age": 66,
+  "signatureQuote": "\"Hands first, then questions. Eat something.\"",
+  "physicalDescription": "Small and round, silver hair pinned with fishbones, always sewing something to someone's sleeve.",
+  "traits": [
+   "Nurturing",
+   "Shrewd",
+   "Stubborn"
+  ],
+  "contradiction": "Feeds everybody, trusts nobody.",
+  "wants": "Her grandchildren off the Terraces.",
+  "actuallyNeeds": "To stop being everybody's mother.",
+  "speech": {
+   "register": "Soft Pidgin",
+   "rhythm": "Warm and looping",
+   "tic": "Calls everyone \"chicken\"",
+   "neverSay": "\"No\""
+  },
+  "relationships": [
+   {
+    "type": "Friend",
+    "toId": "old-tomo",
+    "toCategory": "npc",
+    "toLabel": "Old Tomo",
+    "why": "Tea and gossip."
+   },
+   {
+    "type": "Resident",
+    "toId": "stilt-market",
+    "toCategory": "location",
+    "toLabel": "Stilt Market",
+    "why": "Her stall is the first on the row."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Chicken, you look half-drowned. Sit.\"",
+   "branches": [
+    {
+     "toneLabel": "Accept food",
+     "reply": "\"Good. Now tell me who sent you.\""
+    },
+    {
+     "toneLabel": "Decline",
+     "reply": "\"Hm. Proud. I like that. Eat anyway.\""
+    }
+   ]
+  },
+  "questHook": "Quill asks the party to find a lost sewing kit that holds her husband's old dive logs.",
+  "designNotes": "Emotional hub of Stilt Market.",
+  "image": "npc1_4"
+ },
+ {
+  "id": "pip",
+  "name": "Pip",
+  "callsign": "Runner",
+  "roleArchetype": "Informant/Fixer",
+  "faction": "unaligned",
+  "age": 13,
+  "signatureQuote": "\"I know a shortcut. It's only a little bit flooded.\"",
+  "physicalDescription": "A bright kid in an oversized slicker with a satchel that clinks, bare feet, bandaged knees.",
+  "traits": [
+   "Fearless",
+   "Chatty",
+   "Lonely"
+  ],
+  "contradiction": "Looks reckless but memorizes every tide table.",
+  "wants": "A pair of real boots.",
+  "actuallyNeeds": "Someone to call family.",
+  "speech": {
+   "register": "Quick and breathless",
+   "rhythm": "Rapid",
+   "tic": "Counts on fingers",
+   "neverSay": "\"Can't\""
+  },
+  "relationships": [
+   {
+    "type": "Employer",
+    "toId": "watching-eye",
+    "toCategory": "faction",
+    "toLabel": "The Watching Eye",
+    "why": "Runs messages for the Lens."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Hey, hey! You're new. Want to see something cool?\"",
+   "branches": [
+    {
+     "toneLabel": "Follow",
+     "reply": "\"This way! Duck at the cable.\""
+    },
+    {
+     "toneLabel": "Refuse",
+     "reply": "\"Okay but you'll miss the good one.\""
+    }
+   ]
+  },
+  "questHook": "Pip finds a half-flooded chamber with a humming cable and needs the party to see it.",
+  "designNotes": "Hook generator; can be killed for stakes.",
+  "image": "npc1_5"
+ },
+ {
+  "id": "gran-oskar",
+  "name": "Gran Oskar",
+  "callsign": "Anchor",
+  "roleArchetype": "Quest-Giver",
+  "faction": "tidewalkers",
+  "age": 79,
+  "signatureQuote": "\"I've outlived three seawalls. I'll outlive you too if you listen.\"",
+  "physicalDescription": "Barrel-chested old man in a quilted vest, hands like roots, eyes pale as bleached shell.",
+  "traits": [
+   "Gruff",
+   "Principled",
+   "Mournful"
+  ],
+  "contradiction": "Believes the tide is a teacher but wants it stopped.",
+  "wants": "To see a child of the Sprawl grow old.",
+  "actuallyNeeds": "Someone to hand the ledger to.",
+  "speech": {
+   "register": "Gravelly",
+   "rhythm": "Measured",
+   "tic": "Rubs his knuckles",
+   "neverSay": "\"Never\""
+  },
+  "relationships": [
+   {
+    "type": "Elder",
+    "toId": "tidewalkers",
+    "toCategory": "faction",
+    "toLabel": "The Tidewalkers",
+    "why": "Keeper of the nine-day ledger."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Sit down, boy. The tide's not in a hurry.\"",
+   "branches": [
+    {
+     "toneLabel": "Ask about the ledger",
+     "reply": "\"It's every drowned name I know. Don't make me add yours.\""
+    },
+    {
+     "toneLabel": "Ask for work",
+     "reply": "\"Bring me a lost cable-chart from the Mid-Stacks.\""
+    }
+   ]
+  },
+  "questHook": "Oskar sends the party to recover the first tide-ledger from the Drowned Cathedral.",
+  "designNotes": "Lore keeper; ties history to the world.",
+  "image": "npc1_6"
+ },
+ {
+  "id": "brother-veyl",
+  "name": "Brother Veyl",
+  "callsign": "Reed",
+  "roleArchetype": "Faction Leader",
+  "faction": "hollow-choir",
+  "age": 38,
+  "signatureQuote": "\"Silence has a shape. Come and be measured for it.\"",
+  "physicalDescription": "Pale, gaunt man in a hooded robe sewn from cable-sheathing, a bone flute at his hip.",
+  "traits": [
+   "Serene",
+   "Unsettling",
+   "Gentle"
+  ],
+  "contradiction": "Preaches silence while humming constantly.",
+  "wants": "To hear the Listener answer.",
+  "actuallyNeeds": "To be forgiven by the one he was sent to kill.",
+  "speech": {
+   "register": "Soft, liturgical",
+   "rhythm": "Slow, chant-like",
+   "tic": "Hums two notes",
+   "neverSay": "\"Loud\""
+  },
+  "relationships": [
+   {
+    "type": "Leader",
+    "toId": "hollow-choir",
+    "toCategory": "faction",
+    "toLabel": "The Hollow Choir",
+    "why": "Voice of the Shrine."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"The water is listening. Please keep your voice low.\"",
+   "branches": [
+    {
+     "toneLabel": "Ask about the Choir",
+     "reply": "\"We are tuning the city. Slowly.\""
+    },
+    {
+     "toneLabel": "Mock",
+     "reply": "\"Laughter echoes. We prefer it not to.\""
+    }
+   ]
+  },
+  "questHook": "Veyl offers the party a seat at the Choir if they carry a sealed reed to the Pale Listener.",
+  "designNotes": "Cult face; creeping dread.",
+  "image": "npc1_7"
+ },
+ {
+  "id": "sgt-taro-maka",
+  "name": "Sgt. Taro Maka",
+  "callsign": "Anvil",
+  "roleArchetype": "Rival",
+  "faction": "seawall-authority",
+  "age": 36,
+  "signatureQuote": "\"Rules are the only thing between us and the lower levels.\"",
+  "physicalDescription": "Square-jawed, armor patched in three colors, eyes always counting exits.",
+  "traits": [
+   "Disciplined",
+   "Fair",
+   "Weary"
+  ],
+  "contradiction": "Enforces orders he doesn't believe in.",
+  "wants": "A promotion off the Wall.",
+  "actuallyNeeds": "Permission to disobey one order.",
+  "speech": {
+   "register": "Formal",
+   "rhythm": "Even",
+   "tic": "Taps his baton",
+   "neverSay": "\"Illegal\""
+  },
+  "relationships": [
+   {
+    "type": "Employer",
+    "toId": "seawall-authority",
+    "toCategory": "faction",
+    "toLabel": "Seawall Authority",
+    "why": "Sergeant, Wall Watch."
+   },
+   {
+    "type": "Friend",
+    "toId": "sgt-ahote-brant",
+    "toCategory": "npc",
+    "toLabel": "Sgt. Ahote Brant",
+    "why": "Fellow veteran."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Papers. And your reason for being on my wall.\"",
+   "branches": [
+    {
+     "toneLabel": "Comply",
+     "reply": "\"Good. Keep your hands where I can see them.\""
+    },
+    {
+     "toneLabel": "Bribe",
+     "reply": "\"Don't insult me. Then do it again, politely.\""
+    }
+   ]
+  },
+  "questHook": "Maka offers a deal: bring evidence on a corrupt warden and he drops charges against the party.",
+  "designNotes": "Gatekeeper NPC for Seawall scenes.",
+  "image": "npc1_8"
+ },
+ {
+  "id": "warden-hsu",
+  "name": "Warden Hsu",
+  "callsign": "Seal",
+  "roleArchetype": "Faction Leader",
+  "faction": "seawall-authority",
+  "age": 52,
+  "signatureQuote": "\"The Wall is a promise. I intend to keep it.\"",
+  "physicalDescription": "Lean woman in a grey coat with brass epaulets, a prosthetic left hand etched with tide marks.",
+  "traits": [
+   "Disciplined",
+   "Calculating",
+   "Weary"
+  ],
+  "contradiction": "Defends the Wall but quietly rations the lower districts.",
+  "wants": "To finish the Level 3 Wall.",
+  "actuallyNeeds": "A reason to trust someone again.",
+  "speech": {
+   "register": "Formal, clipped",
+   "rhythm": "Even",
+   "tic": "Counts tide marks on her hand",
+   "neverSay": "\"Mercy\""
+  },
+  "relationships": [
+   {
+    "type": "Leader",
+    "toId": "seawall-authority",
+    "toCategory": "faction",
+    "toLabel": "Seawall Authority",
+    "why": "Warden of the Seawall."
+   },
+   {
+    "type": "Contract",
+    "toId": "trident-consortium",
+    "toCategory": "faction",
+    "toLabel": "Trident Consortium",
+    "why": "Buys all her air."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"State your business. Be brief; the tide is not.\"",
+   "branches": [
+    {
+     "toneLabel": "Report a leak",
+     "reply": "\"Where. When. And who else knows?\""
+    },
+    {
+     "toneLabel": "Request aid",
+     "reply": "\"Fill out the form. Then we discuss form.\""
+    }
+   ]
+  },
+  "questHook": "Hsu asks the party to inspect a suspected breach in the Wall before the next high tide.",
+  "designNotes": "Primary authority antagonist/ally.",
+  "image": "npc2_0"
+ },
+ {
+  "id": "iris-vandermeer",
+  "name": "Iris Vandermeer",
+  "callsign": "Ledger",
+  "roleArchetype": "Merchant",
+  "faction": "trident-consortium",
+  "age": 41,
+  "signatureQuote": "\"Everything has a price. I simply publish it.\"",
+  "physicalDescription": "Immaculate in a pressure-suit-grey blazer, steel monocle, rings on every finger.",
+  "traits": [
+   "Efficient",
+   "Charming",
+   "Cold"
+  ],
+  "contradiction": "Sells safety while exploiting fear.",
+  "wants": "Exclusive Authority contract.",
+  "actuallyNeeds": "Someone who isn't afraid of her.",
+  "speech": {
+   "register": "Polished",
+   "rhythm": "Smooth",
+   "tic": "Adjusts her monocle",
+   "neverSay": "\"Free\""
+  },
+  "relationships": [
+   {
+    "type": "Employer",
+    "toId": "trident-consortium",
+    "toCategory": "faction",
+    "toLabel": "Trident Consortium",
+    "why": "Director of Legal."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Welcome to the Works. May I interest you in a subscription?\"",
+   "branches": [
+    {
+     "toneLabel": "Browse",
+     "reply": "\"The Standard tier covers eight hours. Eight and a half costs extra.\""
+    },
+    {
+     "toneLabel": "Haggle",
+     "reply": "\"Oh, you're one of those. Lovely.\""
+    }
+   ]
+  },
+  "questHook": "Vandermeer hires the party to sabotage Mercy Drop's filter supply.",
+  "designNotes": "Corporate villain with charm.",
+  "image": "npc2_1"
+ },
+ {
+  "id": "capt-rook-delacroix",
+  "name": "Capt. Rook Delacroix",
+  "callsign": "Rook",
+  "roleArchetype": "Quest-Giver",
+  "faction": "salvage-guild",
+  "age": 47,
+  "signatureQuote": "\"Seven dives, one rule: nobody dies for a crate.\"",
+  "physicalDescription": "Silver-haired, weathered, a bell-helmet under one arm and a necklace of dive tags.",
+  "traits": [
+   "Reliable",
+   "Gallows-witty",
+   "Protective"
+  ],
+  "contradiction": "Brags about caution while taking worse risks each year.",
+  "wants": "One last deep dive.",
+  "actuallyNeeds": "Retirement without guilt.",
+  "speech": {
+   "register": "Gruff",
+   "rhythm": "Dry",
+   "tic": "Taps the dive tags",
+   "neverSay": "\"Safe\""
+  },
+  "relationships": [
+   {
+    "type": "Leader",
+    "toId": "salvage-guild",
+    "toCategory": "faction",
+    "toLabel": "Salvage Guild",
+    "why": "Rustyard Master."
+   },
+   {
+    "type": "Mentor",
+    "toId": "kessa-marrow",
+    "toCategory": "npc",
+    "toLabel": "Kessa Marrow",
+    "why": "Recruited her at 19."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Gear up. The lane's open for exactly forty minutes.\"",
+   "branches": [
+    {
+     "toneLabel": "Accept",
+     "reply": "\"Good. Stay on the line.\""
+    },
+    {
+     "toneLabel": "Decline",
+     "reply": "\"Smart. Come back when you're stupid.\""
+    }
+   ]
+  },
+  "questHook": "Delacroix plans a deep dive to the Drowned Cathedral and needs a crew he can trust.",
+  "designNotes": "Dive-mission hub.",
+  "image": "npc2_2"
+ },
+ {
+  "id": "the-quiet-hand",
+  "name": "The Quiet Hand",
+  "callsign": "Whisper",
+  "roleArchetype": "Informant/Fixer",
+  "faction": "gate-syndicate",
+  "age": 0,
+  "signatureQuote": "\"Nobody ever saw me. That's the service.\"",
+  "physicalDescription": "Unknown. Appears as a gloved hand sliding a note under a door.",
+  "traits": [
+   "Anonymous",
+   "Precise",
+   "Patient"
+  ],
+  "contradiction": "Sells loyalty to everyone.",
+  "wants": "A buyer who doesn't ask questions.",
+  "actuallyNeeds": "To be seen once.",
+  "speech": {
+   "register": "Notes only",
+   "rhythm": "No spoken voice",
+   "tic": "Leaves a drawn eye on every note",
+   "neverSay": "\"I\""
+  },
+  "relationships": [
+   {
+    "type": "Employer",
+    "toId": "gate-syndicate",
+    "toCategory": "faction",
+    "toLabel": "Gate Syndicate",
+    "why": "Contract fixer."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "(A note slides under the door: \"Three coins. Third pier. Alone.\")",
+   "branches": [
+    {
+     "toneLabel": "Show up",
+     "reply": "\"Good. Here is what I know.\""
+    },
+    {
+     "toneLabel": "Ignore",
+     "reply": "The next note arrives anyway."
+    }
+   ]
+  },
+  "questHook": "The Quiet Hand offers a map to the Syndicate vault in exchange for a favor to be named later.",
+  "designNotes": "Mystery NPC; can be anyone.",
+  "image": "npc2_3"
+ },
+ {
+  "id": "mother-sael",
+  "name": "Mother Sael",
+  "callsign": "Choirmistress",
+  "roleArchetype": "Faction Leader",
+  "faction": "hollow-choir",
+  "age": 63,
+  "signatureQuote": "\"We do not pray for the water to leave. We pray to be worthy of it.\"",
+  "physicalDescription": "Statuesque, in layered shroud-robes, voice like a cello, fingers stained with salt.",
+  "traits": [
+   "Commanding",
+   "Melancholic",
+   "Devout"
+  ],
+  "contradiction": "Preaches quiet but orders the loudest chants.",
+  "wants": "The Listener to speak.",
+  "actuallyNeeds": "Proof the Choir isn't mad.",
+  "speech": {
+   "register": "Liturgical",
+   "rhythm": "Sing-song",
+   "tic": "Hums when thinking",
+   "neverSay": "\"No\""
+  },
+  "relationships": [
+   {
+    "type": "Leader",
+    "toId": "hollow-choir",
+    "toCategory": "faction",
+    "toLabel": "The Hollow Choir",
+    "why": "Choirmistress."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Come in from the rain, child.\"",
+   "branches": [
+    {
+     "toneLabel": "Ask for sanctuary",
+     "reply": "\"The Shrine keeps none, but the Choir keeps many.\""
+    },
+    {
+     "toneLabel": "Ask about the Listener",
+     "reply": "\"Not here. Not aloud.\""
+    }
+   ]
+  },
+  "questHook": "Sael asks the party to escort a pilgrim past Syndicate patrols.",
+  "designNotes": "Faction leader; moral gray.",
+  "image": "npc2_4"
+ },
+ {
+  "id": "sgt-ahote-brant",
+  "name": "Sgt. Ahote Brant",
+  "callsign": "Rampart",
+  "roleArchetype": "Rival",
+  "faction": "seawall-authority",
+  "age": 40,
+  "signatureQuote": "\"I've held this line since before you could swim.\"",
+  "physicalDescription": "Broad and calm, braided beard, a repaired shield strapped to his back.",
+  "traits": [
+   "Steady",
+   "Loyal",
+   "Skeptical"
+  ],
+  "contradiction": "Hates the Authority's corruption but loves its mission.",
+  "wants": "A quiet shift change.",
+  "actuallyNeeds": "To tell someone the truth about the Level 3 breach.",
+  "speech": {
+   "register": "Plain",
+   "rhythm": "Slow",
+   "tic": "Checks his shield strap",
+   "neverSay": "\"Panic\""
+  },
+  "relationships": [
+   {
+    "type": "Friend",
+    "toId": "sgt-taro-maka",
+    "toCategory": "npc",
+    "toLabel": "Sgt. Taro Maka",
+    "why": "Brothers in arms."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"You're standing in my sight line.\"",
+   "branches": [
+    {
+     "toneLabel": "Move",
+     "reply": "\"Thank you.\""
+    },
+    {
+     "toneLabel": "Ask about the breach",
+     "reply": "\"Not here.\""
+    }
+   ]
+  },
+  "questHook": "Brant secretly asks the party to inspect the Level 3 breach and keep it off the books.",
+  "designNotes": "Ally inside the Authority.",
+  "image": "npc2_5"
+ },
+ {
+  "id": "wren-zhao",
+  "name": "Wren Zhao",
+  "callsign": "Static",
+  "roleArchetype": "Quest-Giver",
+  "faction": "watching-eye",
+  "age": 29,
+  "signatureQuote": "\"Everything breaks. I just know when.\"",
+  "physicalDescription": "Thin, jittery, goggles pushed up into dyed-teal hair, cables trailing from her coat.",
+  "traits": [
+   "Inventive",
+   "Anxious",
+   "Brilliant"
+  ],
+  "contradiction": "Maps every secret but can't keep her own.",
+  "wants": "A quiet night's sleep.",
+  "actuallyNeeds": "To be seen as a person, not a lens.",
+  "speech": {
+   "register": "Rapid-fire jargon",
+   "rhythm": "Choppy",
+   "tic": "Mutters signal frequencies",
+   "neverSay": "\"Trust\""
+  },
+  "relationships": [
+   {
+    "type": "Employer",
+    "toId": "watching-eye",
+    "toCategory": "faction",
+    "toLabel": "The Watching Eye",
+    "why": "Fifth Lens."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Don't move — you're standing on a sensor.\"",
+   "branches": [
+    {
+     "toneLabel": "Step back",
+     "reply": "\"Better. Now, favor?\""
+    },
+    {
+     "toneLabel": "Ask about sensors",
+     "reply": "\"Forty-two. Eleven lie.\""
+    }
+   ]
+  },
+  "questHook": "Wren needs someone to place a signal booster inside the Hollow Choir's shrine.",
+  "designNotes": "Tech hook for scouting missions.",
+  "image": "npc2_6"
+ },
+ {
+  "id": "lucian-reyes",
+  "name": "Lucian Reyes",
+  "callsign": "Dealer",
+  "roleArchetype": "Merchant",
+  "faction": "gate-syndicate",
+  "age": 45,
+  "signatureQuote": "\"Everyone has a vice. I just supply it.\"",
+  "physicalDescription": "Dapper, slicked hair, a rust-stained suit, a ring on every other finger.",
+  "traits": [
+   "Charming",
+   "Greedy",
+   "Generous"
+  ],
+  "contradiction": "Smuggler with a soft spot for strays.",
+  "wants": "To buy the Gate Four lease.",
+  "actuallyNeeds": "Someone to tell him he's good.",
+  "speech": {
+   "register": "Smooth, amused",
+   "rhythm": "Rolling",
+   "tic": "Taps a ring on the table",
+   "neverSay": "\"Honest\""
+  },
+  "relationships": [
+   {
+    "type": "Employer",
+    "toId": "gate-syndicate",
+    "toCategory": "faction",
+    "toLabel": "Gate Syndicate",
+    "why": "Front man."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Welcome to Gate Four. Take a seat. Take a drink.\"",
+   "branches": [
+    {
+     "toneLabel": "Buy",
+     "reply": "\"Smart. What do you need?\""
+    },
+    {
+     "toneLabel": "Accuse",
+     "reply": "\"Accusation is just another word for opening bid.\""
+    }
+   ]
+  },
+  "questHook": "Reyes wants the party to deliver contraband across the Gate without scanning.",
+  "designNotes": "Smuggling hub.",
+  "image": "npc2_7"
+ },
+ {
+  "id": "chief-imani-okoro",
+  "name": "Chief Imani Okoro",
+  "callsign": "Hook",
+  "roleArchetype": "Faction Leader",
+  "faction": "dockers-union",
+  "age": 50,
+  "signatureQuote": "\"We carry this city on our backs. Remember who carries who.\"",
+  "physicalDescription": "Broad-shouldered, calloused, a red scarf tied at her neck, voice that cuts through crane noise.",
+  "traits": [
+   "Fierce",
+   "Fair",
+   "Tired"
+  ],
+  "contradiction": "Fights for the union but hates strikes.",
+  "wants": "A hazard clause for deep dives.",
+  "actuallyNeeds": "Younger stewards she can trust.",
+  "speech": {
+   "register": "Direct",
+   "rhythm": "Booming",
+   "tic": "Slaps the table",
+   "neverSay": "\"Scab\""
+  },
+  "relationships": [
+   {
+    "type": "Leader",
+    "toId": "dockers-union",
+    "toCategory": "faction",
+    "toLabel": "Dockers' Union",
+    "why": "Union Chief."
+   }
+  ],
+  "dialogue": {
+   "openingLine": "\"Name's Okoro. You're either with us or in our way.\"",
+   "branches": [
+    {
+     "toneLabel": "Join",
+     "reply": "\"Good. Dues are a day's pay.\""
+    },
+    {
+     "toneLabel": "Oppose",
+     "reply": "\"Then we'll see you on the pier.\""
+    }
+   ]
+  },
+  "questHook": "Okoro asks the party to stop a scab shipment at Gate Four.",
+  "designNotes": "Labor conflict hook.",
+  "image": "npc2_8"
+ }
+]

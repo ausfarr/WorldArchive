@@ -1,0 +1,182 @@
+[
+ {
+  "id": "salvage-guild",
+  "name": "Salvage Guild",
+  "nickname": "The Rustyard Crews",
+  "overviewQuote": "\"If it sank, it's ours. If it's ours, it's for sale.\"",
+  "origin": "Formed in the second tide-year when three rival scrapper crews agreed on one price list after a bidding war got a diver killed.",
+  "corePhilosophy": "Everything below the waterline is a resource, and the dead are not owed anything but a fair cut of what they were carrying.",
+  "structureHierarchy": "Rustyard Master (elected by dive-count) over six Crew Chiefs; each chief runs 8-15 divers and a winch gang.",
+  "territory": "The Rustyard and the flooded lower platforms of Mid-Stacks.",
+  "goalsNearTerm": "Break the Gate Syndicate's grip on the dry-dock permits; certify safe dive lanes for Level 3.",
+  "goalsLongTerm": "A guild-owned deep-dive bell so nobody has to rent one from Trident.",
+  "internalTensions": "Old crews hoard the good lanes; newer crews think the cut-sheet favors the Master's cousins.",
+  "iconography": "A rust-red wrench crossed with a harpoon hook, painted on every winch.",
+  "relationships": [
+   {
+    "faction": "Gate Syndicate",
+    "stance": "Rival",
+    "why": "Both want the dry-dock permits."
+   },
+   {
+    "faction": "Trident Consortium",
+    "stance": "Uneasy supplier",
+    "why": "Trident sells the rebreathers the Guild can't make."
+   },
+   {
+    "faction": "Dockers' Union",
+    "stance": "Ally",
+    "why": "Shared hoist crews, shared grudges."
+   }
+  ],
+  "economyResources": "Winch fees, lane certification stamps, a 10% cut on every Rustyard sale.",
+  "joining": "Pass a three-dive check with a Crew Chief and pay the stamp fee.",
+  "foundingDate": {
+   "year": 2,
+   "monthIndex": 3,
+   "day": 14
+  },
+  "image": "fac_4"
+ },
+ {
+  "id": "trident-consortium",
+  "name": "Trident Consortium",
+  "nickname": "The Three Prongs",
+  "overviewQuote": "\"We don't own the sea. We own the thing that lets you breathe in it.\"",
+  "origin": "A pre-flood diving-equipment firm that survived by buying its bankrupt competitors and converting a sunk warehouse into a factory.",
+  "corePhilosophy": "Safety is a subscription. Every breath should be metered, logged and billable.",
+  "structureHierarchy": "Three directors (Air, Pressure, Legal) answer to a rotating chair; floor staff are indentured by equipment debt.",
+  "territory": "The Trident Works, a pressurized warehouse on the mid-levels, plus kiosks across the Terraces.",
+  "goalsNearTerm": "Lock in exclusive rebreather contracts with the Seawall Authority.",
+  "goalsLongTerm": "Own every air supply in the Sprawl, then price it.",
+  "internalTensions": "The Air director wants to open-source the rebreather design; Legal wants him gone.",
+  "iconography": "Three interlocking circles in a bubble-blue trident.",
+  "relationships": [
+   {
+    "faction": "Seawall Authority",
+    "stance": "Contract partner",
+    "why": "Supplies the Wall crews' air under a renewable exclusive."
+   },
+   {
+    "faction": "Mercy Drop",
+    "stance": "Hostile",
+    "why": "Mercy Drop gives away what Trident sells."
+   }
+  ],
+  "economyResources": "Rebreather rentals, air-fill subscriptions, pressure-suit leases, dive insurance.",
+  "joining": "Apply at the Works. Equipment debt is the entrance fee.",
+  "foundingDate": {
+   "year": 1,
+   "monthIndex": 0,
+   "day": 2
+  },
+  "image": "fac_5"
+ },
+ {
+  "id": "mercy-drop",
+  "name": "Mercy Drop",
+  "nickname": "The Blue Aprons",
+  "overviewQuote": "\"Nobody drowns twice on our watch.\"",
+  "origin": "A clinic founded by Dr. Adaeze Ruvo after the Third Flood killed forty people in a queue for the only functioning pump.",
+  "corePhilosophy": "Medicine and clean water are not for sale; everything else is negotiable.",
+  "structureHierarchy": "Flat structure: a Medical Lead, shift captains, and volunteers who rotate every nine tides.",
+  "territory": "The Half-Sunk Lobby clinic and four dry-room outposts.",
+  "goalsNearTerm": "Stock two months of antibiotics and a working decompression chamber.",
+  "goalsLongTerm": "A district-wide rescue network that answers every distress call.",
+  "internalTensions": "The volunteers burn out; two captains quietly take Syndicate money for supplies.",
+  "iconography": "A white drop on a blue apron, stitched by hand.",
+  "relationships": [
+   {
+    "faction": "Trident Consortium",
+    "stance": "Hostile",
+    "why": "Undercuts their air subscriptions with free refills."
+   },
+   {
+    "faction": "Seawall Authority",
+    "stance": "Tolerated",
+    "why": "Authority needs the clinic more than it likes it."
+   },
+   {
+    "faction": "Tidewalkers",
+    "stance": "Ally",
+    "why": "Tidewalkers bring the injured in."
+   }
+  ],
+  "economyResources": "Donations, barter-for-care, one grudging stipend from the Authority.",
+  "joining": "Show up for a shift. Skills are taught; courage is not.",
+  "foundingDate": {
+   "year": 4,
+   "monthIndex": 6,
+   "day": 9
+  },
+  "image": "fac_6"
+ },
+ {
+  "id": "watching-eye",
+  "name": "The Watching Eye",
+  "nickname": "The Lens",
+  "overviewQuote": "\"We see what the water forgets.\"",
+  "origin": "A scrap-built surveillance cooperative that began as flood-gauge readers on the Seawall and kept adding cameras.",
+  "corePhilosophy": "Knowledge is the only dry ground. Whoever sees everything cannot be surprised.",
+  "structureHierarchy": "A Council of Nine Lenses, each responsible for a block of sensors and a rumor-trade desk.",
+  "territory": "Camera nests on rooftops from the Terraces to Gate Four.",
+  "goalsNearTerm": "Map every blind spot between the Choir Shrine and the Seawall.",
+  "goalsLongTerm": "A complete tide-by-tide record of the Sprawl, sold to whoever asks politely.",
+  "internalTensions": "One Lens has been selling footage of her own members.",
+  "iconography": "A single open eye inside a rising-water ring.",
+  "relationships": [
+   {
+    "faction": "Hollow Choir",
+    "stance": "Wary",
+    "why": "The Choir resents being watched and jams signals."
+   },
+   {
+    "faction": "Gate Syndicate",
+    "stance": "Customer",
+    "why": "Buys footage for blackmail."
+   }
+  ],
+  "economyResources": "Footage and rumor sales, sensor maintenance fees.",
+  "joining": "Trade a secret worth more than the one you take.",
+  "foundingDate": {
+   "year": 5,
+   "monthIndex": 1,
+   "day": 22
+  },
+  "image": "fac_7"
+ },
+ {
+  "id": "dockers-union",
+  "name": "Dockers' Union",
+  "nickname": "The Hook Hands",
+  "overviewQuote": "\"Every crate has a name. Every name has a family.\"",
+  "origin": "Stevedores who refused a wage cut during the Wall rebuild and won by letting a convoy sink at the pier.",
+  "corePhilosophy": "The people who lift the city should vote on what it lifts.",
+  "structureHierarchy": "Branch stewards elected by hoist crew; a Strike Fund overseen by a tight council.",
+  "territory": "Gate Four docks, Stilt Market piers, the Flooded Platform crane yard.",
+  "goalsNearTerm": "Win a hazard bonus clause for dives below the third landing.",
+  "goalsLongTerm": "A union seat on the Seawall Authority board.",
+  "internalTensions": "Younger stewards want to strike; older ones remember what the last strike cost.",
+  "iconography": "A crossed hook and a raised fist.",
+  "relationships": [
+   {
+    "faction": "Salvage Guild",
+    "stance": "Ally",
+    "why": "Shared hoists."
+   },
+   {
+    "faction": "Gate Syndicate",
+    "stance": "Hostile",
+    "why": "The Syndicate breaks strikes with hired muscle."
+   }
+  ],
+  "economyResources": "Dues, a strike fund, control of the cranes.",
+  "joining": "Join a hoist crew; the dues are a day's pay a tide.",
+  "foundingDate": {
+   "year": 3,
+   "monthIndex": 7,
+   "day": 1
+  },
+  "image": "fac_8"
+ }
+]

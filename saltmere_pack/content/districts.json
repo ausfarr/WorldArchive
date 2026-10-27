@@ -1,0 +1,204 @@
+[
+ {
+  "id": "stilt-market",
+  "name": "Stilt Market",
+  "descriptorLine": "A bazaar of rope bridges and tarp stalls over black water.",
+  "regionBiome": "Flooded market",
+  "faction": "unaligned",
+  "notableFeatures": "Hanging lanterns, floating stalls, a ferry dock.",
+  "dangerTags": [
+   "Crowds",
+   "Pickpockets"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "mama-quill",
+    "toLabel": "Mama Quill",
+    "why": "Runs the first stall."
+   },
+   {
+    "toId": "old-tomo",
+    "toLabel": "Old Tomo",
+    "why": "Ferries goods."
+   }
+  ],
+  "hooksSecrets": "Contraband under the fish stalls; a hidden dive entrance under the tuna stall.",
+  "designNotes": "Hub location.",
+  "image": "locs_0"
+ },
+ {
+  "id": "flooded-platform",
+  "name": "Flooded Platform",
+  "descriptorLine": "A half-drowned train platform, ankle-deep and glowing.",
+  "regionBiome": "Flooded transit",
+  "faction": "unaligned",
+  "notableFeatures": "Cracked signs, a rusted train, tide marks on every wall.",
+  "dangerTags": [
+   "Drowning",
+   "Eels"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "one-eyed-hale",
+    "toLabel": "One-Eyed Hale",
+    "why": "Drinks here."
+   }
+  ],
+  "hooksSecrets": "Sunken tram line to the Drowned Cathedral.",
+  "designNotes": "Dive entrance.",
+  "image": "locs_1"
+ },
+ {
+  "id": "sail-garden",
+  "name": "Sail Garden",
+  "descriptorLine": "Hydroponic terraces hung under repurposed sails.",
+  "regionBiome": "Rooftop garden",
+  "faction": "tidewalkers",
+  "notableFeatures": "Rows of kelp and tomato under torn sails.",
+  "dangerTags": [
+   "Wind",
+   "Heights"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "gran-oskar",
+    "toLabel": "Gran Oskar",
+    "why": "Tends the garden."
+   }
+  ],
+  "hooksSecrets": "Seed vault in the old sail loft.",
+  "designNotes": "Sanctuary.",
+  "image": "locs_2"
+ },
+ {
+  "id": "seawall-control",
+  "name": "Seawall Control",
+  "descriptorLine": "A concrete bunker bristling with tide gauges.",
+  "regionBiome": "Authority bunker",
+  "faction": "seawall-authority",
+  "notableFeatures": "Control room, siren tower, armory.",
+  "dangerTags": [
+   "Patrols",
+   "Alarms"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "warden-hsu",
+    "toLabel": "Warden Hsu",
+    "why": "Commands."
+   }
+  ],
+  "hooksSecrets": "A forged order hides the Level 3 breach.",
+  "designNotes": "Authority base.",
+  "image": "locs_3"
+ },
+ {
+  "id": "drowned-cathedral",
+  "name": "Drowned Cathedral",
+  "descriptorLine": "A cathedral half-sunk into the sea, bells still ringing.",
+  "regionBiome": "Flooded ruin",
+  "faction": "hollow-choir",
+  "notableFeatures": "Pews under water, a bell tower, a nave full of echoes.",
+  "dangerTags": [
+   "Drowning",
+   "Cultists"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "mother-sael",
+    "toLabel": "Mother Sael",
+    "why": "Holds services here."
+   }
+  ],
+  "hooksSecrets": "The first tide-ledger rests in the vestry.",
+  "designNotes": "Mid-game dungeon.",
+  "image": "locs_4"
+ },
+ {
+  "id": "tarp-town",
+  "name": "Tarp Town",
+  "descriptorLine": "A sprawl of tarp shelters strung between pylons.",
+  "regionBiome": "Slum",
+  "faction": "unaligned",
+  "notableFeatures": "Rope walkways, shared stoves, drying nets.",
+  "dangerTags": [
+   "Fire",
+   "Theft"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "pip",
+    "toLabel": "Pip",
+    "why": "Lives here."
+   }
+  ],
+  "hooksSecrets": "A rumored dry-room under the stoves.",
+  "designNotes": "Social location.",
+  "image": "locs_5"
+ },
+ {
+  "id": "half-sunk-lobby",
+  "name": "Half-Sunk Lobby",
+  "descriptorLine": "A flooded hotel lobby converted into a clinic.",
+  "regionBiome": "Clinic",
+  "faction": "mercy-drop",
+  "notableFeatures": "Blue-lit wards, a decompression chamber.",
+  "dangerTags": [
+   "Disease"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "dr-adaeze-ruvo",
+    "toLabel": "Dr. Adaeze Ruvo",
+    "why": "Runs the clinic."
+   }
+  ],
+  "hooksSecrets": "Stockpile of antibiotics behind the old front desk.",
+  "designNotes": "Medical hub.",
+  "image": "locs_6"
+ },
+ {
+  "id": "the-rustyard",
+  "name": "The Rustyard",
+  "descriptorLine": "A scrapyard of sunken ships and cranes.",
+  "regionBiome": "Scrap yard",
+  "faction": "salvage-guild",
+  "notableFeatures": "Cranes, winches, wreck cages.",
+  "dangerTags": [
+   "Cave-ins",
+   "Rival crews"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "capt-rook-delacroix",
+    "toLabel": "Capt. Rook Delacroix",
+    "why": "Master."
+   }
+  ],
+  "hooksSecrets": "A sealed wreck marked with Guild stamps.",
+  "designNotes": "Salvage hub.",
+  "image": "locs_7"
+ },
+ {
+  "id": "choir-shrine",
+  "name": "Choir Shrine",
+  "descriptorLine": "A hush-bound chamber humming with salt-crusted speakers.",
+  "regionBiome": "Shrine",
+  "faction": "hollow-choir",
+  "notableFeatures": "Speakers, salt idols, a central basin.",
+  "dangerTags": [
+   "Madness",
+   "Cultists"
+  ],
+  "notableNpcs": [
+   {
+    "toId": "brother-veyl",
+    "toLabel": "Brother Veyl",
+    "why": "Leads rites."
+   }
+  ],
+  "hooksSecrets": "The basin connects to the Pale Listener.",
+  "designNotes": "Choir lair.",
+  "image": "locs_8"
+ }
+]

@@ -1,0 +1,104 @@
+[
+ {
+  "id": "log-first-tide",
+  "name": "First Tide Ledger",
+  "logType": "Journal",
+  "locationContext": "Written in the vestry of the Drowned Cathedral",
+  "locationId": "drowned-cathedral",
+  "characters": "Gran Oskar",
+  "context": "The first recorded tide-ledger of the Sprawl.",
+  "bodyText": "Day 1: the water rose past the third step. Day 2: the bells rang by themselves. Day 3: Mother Sael said the sea was listening.",
+  "faction": "tidewalkers",
+  "designNotes": "Lore anchor.",
+  "resolvedDate": {
+   "year": 1,
+   "monthIndex": 0,
+   "day": 1
+  },
+  "resolvedDateSubject": "entry"
+ },
+ {
+  "id": "log-seawall-breach",
+  "name": "Seawall Breach Report",
+  "logType": "Terminal",
+  "locationContext": "Seawall Control terminal 14",
+  "locationId": "seawall-control",
+  "characters": "Sgt. Taro Maka, Warden Hsu",
+  "context": "Official report on the Level 3 breach.",
+  "bodyText": "TIMESTAMP 04:12 — BREACH LEVEL 3 CONFIRMED. WARDEN ORDERS: DO NOT FILE. SERGEANT NOTE: THEY'RE LYING.",
+  "faction": "seawall-authority",
+  "designNotes": "Evidence for the Maka quest."
+ },
+ {
+  "id": "log-hale-eel",
+  "name": "Hale's Eel Notes",
+  "logType": "Journal",
+  "locationContext": "Hale's bunk in the Rustyard",
+  "locationId": "the-rustyard",
+  "characters": "One-Eyed Hale",
+  "context": "Notes on Glimmer Eels.",
+  "bodyText": "Light means bait. Always. Don't follow it. If it follows you, shut the lantern and sink.",
+  "faction": "salvage-guild",
+  "designNotes": "Teaching tool."
+ },
+ {
+  "id": "log-ruvo-ward",
+  "name": "Dr. Ruvo's Ward Log",
+  "logType": "Journal",
+  "locationContext": "Half-Sunk Lobby clinic",
+  "locationId": "half-sunk-lobby",
+  "characters": "Dr. Adaeze Ruvo",
+  "context": "Daily clinic notes.",
+  "bodyText": "Day 41: antibiotics at two weeks. Day 42: Trident raised the filter price again. Day 43: I will not sleep.",
+  "faction": "mercy-drop",
+  "designNotes": "Resource tension."
+ },
+ {
+  "id": "log-veyl-hymn",
+  "name": "Veyl's Hymn",
+  "logType": "Audio",
+  "locationContext": "Recorded in the Choir Shrine",
+  "locationId": "choir-shrine",
+  "characters": "Brother Veyl",
+  "context": "A hum recorded at the Shrine.",
+  "bodyText": "[A low hum. A voice: \"Hush, hush. It is listening.\" The hum fades into static.]",
+  "faction": "hollow-choir",
+  "designNotes": "Atmosphere."
+ },
+ {
+  "id": "log-wren-sensors",
+  "name": "Wren's Sensor Map",
+  "logType": "Terminal",
+  "locationContext": "Watching Eye node 7",
+  "locationId": "",
+  "characters": "Wren Zhao",
+  "context": "Sensor map notes.",
+  "bodyText": "NODE 7: 3 blind spots. NODE 9: Choir jamming. NOTE: they know.",
+  "faction": "watching-eye",
+  "designNotes": "Tech clue."
+ },
+ {
+  "id": "log-reyes-ledger",
+  "name": "Reyes' Ledger",
+  "logType": "Journal",
+  "locationContext": "Gate Four back office",
+  "locationId": "",
+  "characters": "Lucian Reyes",
+  "context": "Smuggling ledger.",
+  "bodyText": "Shipment 12: medicine, 40 crates. Customer: Mercy Drop. Mark up: 300%. Guilt: unmarked.",
+  "faction": "gate-syndicate",
+  "designNotes": "Betrayal clue."
+ },
+ {
+  "id": "log-listener-answer",
+  "name": "The Listener Answers",
+  "logType": "Audio",
+  "locationContext": "Recorded under the Choir Shrine",
+  "locationId": "choir-shrine",
+  "characters": "Mother Sael, Brother Veyl",
+  "context": "The night the Listener answered.",
+  "bodyText": "[Chanting. A new voice answers in the same cadence. The chanting stops.]",
+  "faction": "hollow-choir",
+  "designNotes": "Climax foreshadow."
+ }
+]

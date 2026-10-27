@@ -1,0 +1,170 @@
+[
+ {
+  "id": "brass-rebreather",
+  "name": "Brass Rebreather",
+  "itemType": "wondrous item",
+  "rarity": "uncommon",
+  "requiresAttunement": false,
+  "baseItem": "",
+  "magicBonus": 0,
+  "description": "A hand-tooled brass mask that recycles breath for up to two hours.",
+  "magicalProperties": [
+   {
+    "name": "Rebreather",
+    "description": "Breathe underwater for 2 hours; DC 12 Con if used longer."
+   }
+  ],
+  "valueGp": 250,
+  "weightLb": 3,
+  "flavor": "Smells like warm pennies and old rain.",
+  "designNotes": "Core dive gear; Trident sells upgrades.",
+  "image": "items_0"
+ },
+ {
+  "id": "harpoon-rig",
+  "name": "Harpoon Rig",
+  "itemType": "weapon",
+  "rarity": "uncommon",
+  "requiresAttunement": false,
+  "baseItem": "harpoon",
+  "magicBonus": 1,
+  "description": "A wrist-mounted harpoon launcher with a coiled cable.",
+  "magicalProperties": [
+   {
+    "name": "Retrieve",
+    "description": "Bonus action: reel in the harpoon and any Medium or smaller target hooked on it."
+   }
+  ],
+  "valueGp": 400,
+  "weightLb": 8,
+  "flavor": "Every notch is a story.",
+  "designNotes": "Underwater ranged option.",
+  "image": "items_1"
+ },
+ {
+  "id": "glowing-data-core",
+  "name": "Glowing Data Core",
+  "itemType": "wondrous item",
+  "rarity": "rare",
+  "requiresAttunement": true,
+  "baseItem": "",
+  "magicBonus": 0,
+  "description": "A humming crystal cylinder holding a dead company's records.",
+  "magicalProperties": [
+   {
+    "name": "Query",
+    "description": "Once per dawn, ask the core one question about the Sprawl before the flood."
+   }
+  ],
+  "valueGp": 1200,
+  "weightLb": 2,
+  "flavor": "It remembers what it shouldn't.",
+  "designNotes": "Plot item for the Watching Eye.",
+  "image": "items_2"
+ },
+ {
+  "id": "storm-lantern",
+  "name": "Storm Lantern",
+  "itemType": "wondrous item",
+  "rarity": "common",
+  "requiresAttunement": false,
+  "baseItem": "",
+  "magicBonus": 0,
+  "description": "A dented lantern whose glass is sealed with wax.",
+  "magicalProperties": [
+   {
+    "name": "Storm-proof",
+    "description": "Burns in wind and underwater for 8 hours."
+   }
+  ],
+  "valueGp": 25,
+  "weightLb": 2,
+  "flavor": "Never goes out, even when you want it to.",
+  "designNotes": "Starter item.",
+  "image": "items_4"
+ },
+ {
+  "id": "pressure-satchel",
+  "name": "Pressure Satchel",
+  "itemType": "wondrous item",
+  "rarity": "uncommon",
+  "requiresAttunement": false,
+  "baseItem": "",
+  "magicBonus": 0,
+  "description": "A waterproof satchel that holds twice what it should.",
+  "magicalProperties": [
+   {
+    "name": "Pressure Seal",
+    "description": "Items inside are immune to water and pressure damage."
+   }
+  ],
+  "valueGp": 300,
+  "weightLb": 4,
+  "flavor": "Smells like rubber and secrets.",
+  "designNotes": "Utility for dive hauls.",
+  "image": "items_5"
+ },
+ {
+  "id": "sonar-pistol",
+  "name": "Sonar Pistol",
+  "itemType": "weapon",
+  "rarity": "rare",
+  "requiresAttunement": true,
+  "baseItem": "hand crossbow",
+  "magicBonus": 1,
+  "description": "A pistol that fires pulses of sound.",
+  "magicalProperties": [
+   {
+    "name": "Sonar Pulse",
+    "description": "Action: reveal creatures within 60 ft. until the end of your next turn."
+   }
+  ],
+  "valueGp": 2000,
+  "weightLb": 3,
+  "flavor": "The ping hums in your teeth.",
+  "designNotes": "Scout gear.",
+  "image": "items_6"
+ },
+ {
+  "id": "relic-idol",
+  "name": "Relic Idol",
+  "itemType": "wondrous item",
+  "rarity": "rare",
+  "requiresAttunement": true,
+  "baseItem": "",
+  "magicBonus": 0,
+  "description": "A rusted idol dug from the Drowned Cathedral, warm to the touch.",
+  "magicalProperties": [
+   {
+    "name": "Murmur",
+    "description": "Once per dawn, hear a whisper from the Choir within 1 mile."
+   }
+  ],
+  "valueGp": 900,
+  "weightLb": 2,
+  "flavor": "It sounds like someone breathing.",
+  "designNotes": "Choir hook.",
+  "image": "items_7"
+ },
+ {
+  "id": "live-cable-coil",
+  "name": "Live Cable Coil",
+  "itemType": "wondrous item",
+  "rarity": "uncommon",
+  "requiresAttunement": false,
+  "baseItem": "",
+  "magicBonus": 0,
+  "description": "A coil of insulated cable, still humming.",
+  "magicalProperties": [
+   {
+    "name": "Jolt",
+    "description": "Action: 3d6 lightning to a target within 10 ft., DC 13 Dex half."
+   }
+  ],
+  "valueGp": 350,
+  "weightLb": 6,
+  "flavor": "It bites when you're careless.",
+  "designNotes": "Utility trap.",
+  "image": "items_8"
+ }
+]

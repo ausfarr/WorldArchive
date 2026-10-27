@@ -1,0 +1,173 @@
+[
+ {
+  "id": "tide-pull",
+  "name": "Tide Pull",
+  "level": 1,
+  "school": "Transmutation",
+  "ritual": false,
+  "concentration": false,
+  "castingTime": "1 action",
+  "range": "60 feet",
+  "components": "V, S",
+  "materialComponent": null,
+  "duration": "Instantaneous",
+  "classes": [
+   "Tidecaller"
+  ],
+  "description": "Pull a creature up to 15 ft. toward you; DC Str save negates.",
+  "atHigherLevels": "Distance +5 ft. per slot level.",
+  "flavor": "The sea remembers who owes it.",
+  "designNotes": "Control utility.",
+  "image": "anom_0"
+ },
+ {
+  "id": "lantern-lure",
+  "name": "Lantern Lure",
+  "level": 1,
+  "school": "Enchantment",
+  "ritual": false,
+  "concentration": true,
+  "castingTime": "1 action",
+  "range": "30 feet",
+  "components": "V, S",
+  "materialComponent": null,
+  "duration": "Concentration, 1 minute",
+  "classes": [
+   "Tidecaller",
+   "Cable Warden"
+  ],
+  "description": "Create a glowing lure; creatures that fail a Wis save approach it.",
+  "atHigherLevels": "Extra target per slot above 1st.",
+  "flavor": "Light as bait.",
+  "designNotes": "Pulls aggro.",
+  "image": "anom_1"
+ },
+ {
+  "id": "echo-shell",
+  "name": "Echo Shell",
+  "level": 2,
+  "school": "Illusion",
+  "ritual": false,
+  "concentration": true,
+  "castingTime": "1 action",
+  "range": "Self",
+  "components": "V, S, M",
+  "materialComponent": "a conch shell",
+  "duration": "Concentration, 10 minutes",
+  "classes": [
+   "Hollow Listener"
+  ],
+  "description": "Hide within a shell of sound; you can mimic voices heard in the last hour.",
+  "atHigherLevels": "—",
+  "flavor": "Say it back, but wrong.",
+  "designNotes": "Infiltration.",
+  "image": "anom_2"
+ },
+ {
+  "id": "brine-brand",
+  "name": "Brine Brand",
+  "level": 2,
+  "school": "Evocation",
+  "ritual": false,
+  "concentration": false,
+  "castingTime": "1 action",
+  "range": "Touch",
+  "components": "V, S",
+  "materialComponent": null,
+  "duration": "Instantaneous",
+  "classes": [
+   "Tidecaller",
+   "Cable Warden"
+  ],
+  "description": "Melee spell attack; 3d6 necrotic and the target is marked with a glowing brand.",
+  "atHigherLevels": "+1d6 per slot above 2nd.",
+  "flavor": "Salt in the wound.",
+  "designNotes": "Damage + tracking.",
+  "image": "anom_3"
+ },
+ {
+  "id": "drown-the-light",
+  "name": "Drown the Light",
+  "level": 3,
+  "school": "Evocation",
+  "ritual": false,
+  "concentration": false,
+  "castingTime": "1 action",
+  "range": "120 feet",
+  "components": "V, S",
+  "materialComponent": null,
+  "duration": "Instantaneous",
+  "classes": [
+   "Tidecaller"
+  ],
+  "description": "A 20-ft. sphere of darkness; DC Con or take 4d8 cold damage.",
+  "atHigherLevels": "+1d8 per slot above 3rd.",
+  "flavor": "The dark pours in.",
+  "designNotes": "Area control.",
+  "image": "anom_4"
+ },
+ {
+  "id": "mercy-breath",
+  "name": "Mercy Breath",
+  "level": 1,
+  "school": "Abjuration",
+  "ritual": false,
+  "concentration": false,
+  "castingTime": "1 action",
+  "range": "Touch",
+  "components": "V, S",
+  "materialComponent": null,
+  "duration": "1 hour",
+  "classes": [
+   "Tide Medic"
+  ],
+  "description": "A creature can breathe underwater for 1 hour.",
+  "atHigherLevels": "Duration +1 hour per slot above 1st.",
+  "flavor": "A gift worth the price.",
+  "designNotes": "Core utility.",
+  "image": "anom_5"
+ },
+ {
+  "id": "static-chorus",
+  "name": "Static Chorus",
+  "level": 4,
+  "school": "Evocation",
+  "ritual": false,
+  "concentration": false,
+  "castingTime": "1 action",
+  "range": "90 feet",
+  "components": "V, S",
+  "materialComponent": null,
+  "duration": "Instantaneous",
+  "classes": [
+   "Hollow Listener",
+   "Cable Warden"
+  ],
+  "description": "A choir of static; creatures in a 15-ft. radius make a Con save or take 5d8 thunder and are deafened.",
+  "atHigherLevels": "+1d8 per slot above 4th.",
+  "flavor": "Everything whispers at once.",
+  "designNotes": "Blast.",
+  "image": "anom_6"
+ },
+ {
+  "id": "call-the-listener",
+  "name": "Call the Listener",
+  "level": 5,
+  "school": "Conjuration",
+  "ritual": false,
+  "concentration": true,
+  "castingTime": "10 minutes",
+  "range": "Self",
+  "components": "V, S, M",
+  "materialComponent": "a salt idol worth 100 gp",
+  "duration": "Concentration, 1 hour",
+  "classes": [
+   "Hollow Listener"
+  ],
+  "description": "Summon a minor echo of the Pale Listener that obeys spoken commands.",
+  "atHigherLevels": "—",
+  "flavor": "Be careful what you answer.",
+  "designNotes": "Dangerous.",
+  "image": "anom_7"
+ }
+]
